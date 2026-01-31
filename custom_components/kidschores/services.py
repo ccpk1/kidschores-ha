@@ -2306,7 +2306,7 @@ def async_setup_services(hass: HomeAssistant):
         coordinator = _get_coordinator_by_entry_id(hass, entry_id)
 
         # Delegate to ChoreManager
-        await coordinator.chore_manager.reset_all_chores()
+        await coordinator.chore_manager.reset_all_chore_states_to_pending()
 
     hass.services.async_register(
         const.DOMAIN,

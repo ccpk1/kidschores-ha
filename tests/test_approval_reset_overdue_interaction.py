@@ -245,9 +245,7 @@ class TestApprovalResetOverdueInteraction:
         with patch.object(
             coordinator.notification_manager, "notify_kid", new=AsyncMock()
         ):
-            await coordinator.chore_manager._reset_daily_chore_statuses(
-                [const.FREQUENCY_DAILY]
-            )
+            await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
 
         # Verify reset to PENDING
         final_state = get_kid_state_for_chore(coordinator, kid_id, chore_id)
@@ -267,7 +265,11 @@ class TestApprovalResetOverdueInteraction:
         """Test that an unclaimed PENDING chore becomes OVERDUE at due date.
 
         Scenario: Chore assigned but not claimed. Due date passes.
-        Expected: Chore marked OVERDUE.
+        Expected: Chore marked OVERDUE via periodic update (not midnight reset).
+
+        Note: We use _on_periodic_update here because that's what detects
+        overdue during the day. _on_midnight_rollover would also detect
+        overdue but then immediately reset it due to clear_at_approval_reset.
         """
         coordinator = setup_at_due_date_scenario.coordinator
         kid_id = setup_at_due_date_scenario.kid_ids["Zoë"]
@@ -282,11 +284,11 @@ class TestApprovalResetOverdueInteraction:
         # Set due date to the past
         set_chore_due_date_to_past(coordinator, chore_id, kid_id=kid_id)
 
-        # Trigger overdue check
+        # Trigger overdue check via periodic update (simulating due date passing)
         with patch.object(
             coordinator.notification_manager, "notify_kid", new=AsyncMock()
         ):
-            await coordinator.chore_manager.process_overdue_chores(dt_now_utc())
+            await coordinator.chore_manager._on_periodic_update(now_utc=dt_now_utc())
 
         # Verify overdue status
         assert coordinator.chore_manager.chore_is_overdue(kid_id, chore_id), (
@@ -326,9 +328,7 @@ class TestApprovalResetOverdueInteraction:
         with patch.object(
             coordinator.notification_manager, "notify_kid", new=AsyncMock()
         ):
-            await coordinator.chore_manager._reset_daily_chore_statuses(
-                [const.FREQUENCY_DAILY]
-            )
+            await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
 
         # With CLEAR action, pending claim should be cleared and state reset to PENDING
         assert not coordinator.chore_manager.chore_has_pending_claim(
@@ -360,23 +360,26 @@ class TestApprovalResetOverdueInteraction:
         kid_id = setup_at_due_date_scenario.kid_ids["Zoë"]
         chore_id = setup_at_due_date_scenario.chore_ids["AtDueDateOnce Reset Chore"]
 
-        # Set due date to past and mark overdue
+        # Set due date to past
         set_chore_due_date_to_past(coordinator, chore_id, kid_id=kid_id)
+
+        # Mark overdue via periodic update (simulates mid-day due date passing)
+        # This is the correct flow: due date passes → becomes OVERDUE
         with patch.object(
             coordinator.notification_manager, "notify_kid", new=AsyncMock()
         ):
-            await coordinator.chore_manager.process_overdue_chores(dt_now_utc())
+            await coordinator.chore_manager._on_periodic_update(now_utc=dt_now_utc())
 
         # Verify overdue status
-        assert coordinator.chore_manager.chore_is_overdue(kid_id, chore_id)
+        assert coordinator.chore_manager.chore_is_overdue(kid_id, chore_id), (
+            "Expected chore to be OVERDUE after due date passes"
+        )
 
-        # Now trigger reset cycle - this should clear OVERDUE with "then_reset"
+        # Now trigger midnight rollover - this should clear OVERDUE with "then_reset"
         with patch.object(
             coordinator.notification_manager, "notify_kid", new=AsyncMock()
         ):
-            await coordinator.chore_manager._reset_daily_chore_statuses(
-                [const.FREQUENCY_DAILY]
-            )
+            await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
 
         # EXPECTED BEHAVIOR: OVERDUE status IS cleared with AT_DUE_DATE_THEN_RESET
         # The reset logic includes OVERDUE in states_to_skip when overdue_handling
@@ -416,9 +419,7 @@ class TestApprovalResetOverdueInteraction:
         with patch.object(
             coordinator.notification_manager, "notify_kid", new=AsyncMock()
         ):
-            await coordinator.chore_manager._reset_daily_chore_statuses(
-                [const.FREQUENCY_DAILY]
-            )
+            await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
 
         # Verify chore was NOT reset (due date in future)
         assert coordinator.chore_manager.chore_is_approved_in_period(
@@ -429,7 +430,7 @@ class TestApprovalResetOverdueInteraction:
         with patch.object(
             coordinator.notification_manager, "notify_kid", new=AsyncMock()
         ):
-            await coordinator.chore_manager.process_overdue_chores(dt_now_utc())
+            await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
 
         # Verify NOT marked overdue
         assert not coordinator.chore_manager.chore_is_overdue(kid_id, chore_id), (
@@ -717,9 +718,7 @@ class TestPerKidResetIsolation:
         with patch.object(
             coordinator.notification_manager, "notify_kid", new=AsyncMock()
         ):
-            await coordinator.chore_manager._reset_daily_chore_statuses(
-                [const.FREQUENCY_DAILY]
-            )
+            await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
 
         # ASSERT: Kid1 (past due date) should reset to PENDING
         kid1_state = get_kid_state_for_chore(coordinator, kid1_id, chore_id)
@@ -781,9 +780,7 @@ class TestPerKidResetIsolation:
         with patch.object(
             coordinator.notification_manager, "notify_kid", new=AsyncMock()
         ):
-            await coordinator.chore_manager._reset_daily_chore_statuses(
-                [const.FREQUENCY_DAILY]
-            )
+            await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
 
         # ASSERT: BOTH kids should reset to PENDING
         kid1_state = get_kid_state_for_chore(coordinator, kid1_id, chore_id)
@@ -848,9 +845,7 @@ class TestPerKidResetIsolation:
         with patch.object(
             coordinator.notification_manager, "notify_kid", new=AsyncMock()
         ):
-            await coordinator.chore_manager._reset_daily_chore_statuses(
-                [const.FREQUENCY_DAILY]
-            )
+            await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
 
         # ASSERT: BOTH kids should stay APPROVED (no reset)
         kid1_state = get_kid_state_for_chore(coordinator, kid1_id, chore_id)

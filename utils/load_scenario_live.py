@@ -158,7 +158,6 @@ async def load_scenario_to_running_instance():  # pylint: disable=too-many-local
             "reward_claims": {},
             "bonus_applies": {},
             "penalty_applies": {},
-            "overdue_notifications": {},
             "point_stats": {
                 "points_net_all_time": float(
                     progress.get("point_stats", {}).get(

@@ -26,9 +26,9 @@ from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.core import Context, HomeAssistant
-from homeassistant.util import dt as dt_util
 import pytest
 
+from custom_components.kidschores.utils.dt_utils import dt_now_utc
 from tests.helpers import (
     # Pending claim action constants
     APPROVAL_RESET_PENDING_CLAIM_AUTO_APPROVE,
@@ -49,8 +49,6 @@ from tests.helpers import (
     DATA_CHORE_DEFAULT_POINTS,
     DATA_CHORE_DUE_DATE,
     # Frequency
-    FREQUENCY_DAILY,
-    # Setup helpers
     SetupResult,
     setup_from_yaml,
 )
@@ -144,7 +142,7 @@ def set_chore_due_date_to_past(
     chore_info: ChoreData | dict[str, Any] = coordinator.chores_data.get(chore_id, {})
 
     # Calculate past date
-    past_date = dt_util.utcnow() - timedelta(days=days_ago)
+    past_date = dt_now_utc() - timedelta(days=days_ago)
     past_date_iso = past_date.isoformat()
 
     # Set approval_period_start BEFORE the past due date
@@ -434,7 +432,7 @@ class TestSharedAllPendingClaimHold:
         )
 
         # Trigger reset (INTERNAL API - HOLD chores are exempt from due date check)
-        await coordinator.chore_manager._reset_daily_chore_statuses([FREQUENCY_DAILY])
+        await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
         await hass.async_block_till_done()
 
         # Both should STILL be CLAIMED (hold action)
@@ -482,7 +480,7 @@ class TestSharedAllPendingClaimClear:
         set_chore_due_date_to_past(coordinator, chore_id, days_ago=1)
 
         # Trigger reset (INTERNAL API)
-        await coordinator.chore_manager._reset_daily_chore_statuses([FREQUENCY_DAILY])
+        await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
         await hass.async_block_till_done()
 
         # Both should be PENDING (claims cleared)
@@ -519,7 +517,7 @@ class TestSharedAllPendingClaimClear:
 
         # Set due date to past and trigger reset (INTERNAL API)
         set_chore_due_date_to_past(coordinator, chore_id, days_ago=1)
-        await coordinator.chore_manager._reset_daily_chore_statuses([FREQUENCY_DAILY])
+        await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
         await hass.async_block_till_done()
 
         # No points should have been awarded
@@ -564,7 +562,7 @@ class TestSharedAllPendingClaimAutoApprove:
 
         # Set due date to past and trigger reset (INTERNAL API)
         set_chore_due_date_to_past(coordinator, chore_id, days_ago=1)
-        await coordinator.chore_manager._reset_daily_chore_statuses([FREQUENCY_DAILY])
+        await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
         await hass.async_block_till_done()
 
         # Both should have received points (auto-approval)
@@ -591,7 +589,7 @@ class TestSharedAllPendingClaimAutoApprove:
 
         # Set due date to past and trigger reset (INTERNAL API)
         set_chore_due_date_to_past(coordinator, chore_id, days_ago=1)
-        await coordinator.chore_manager._reset_daily_chore_statuses([FREQUENCY_DAILY])
+        await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
         await hass.async_block_till_done()
 
         # Both should be PENDING after auto-approval + reset
@@ -651,7 +649,7 @@ class TestSharedFirstPendingClaimHold:
         )
 
         # Trigger reset (INTERNAL API - HOLD chores are exempt from due date check)
-        await coordinator.chore_manager._reset_daily_chore_statuses([FREQUENCY_DAILY])
+        await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
         await hass.async_block_till_done()
 
         # Zoë should STILL be CLAIMED (hold action)
@@ -690,7 +688,7 @@ class TestSharedFirstPendingClaimClear:
 
         # Set due date to past and trigger reset (INTERNAL API)
         set_chore_due_date_to_past(coordinator, chore_id, days_ago=1)
-        await coordinator.chore_manager._reset_daily_chore_statuses([FREQUENCY_DAILY])
+        await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
         await hass.async_block_till_done()
 
         # Both should be PENDING (race reset)
@@ -738,7 +736,7 @@ class TestSharedFirstPendingClaimAutoApprove:
 
         # Set due date to past and trigger reset (INTERNAL API)
         set_chore_due_date_to_past(coordinator, chore_id, days_ago=1)
-        await coordinator.chore_manager._reset_daily_chore_statuses([FREQUENCY_DAILY])
+        await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
         await hass.async_block_till_done()
 
         # Only Zoë should have received points
@@ -762,7 +760,7 @@ class TestSharedFirstPendingClaimAutoApprove:
 
         # Set due date to past and trigger reset (INTERNAL API)
         set_chore_due_date_to_past(coordinator, chore_id, days_ago=1)
-        await coordinator.chore_manager._reset_daily_chore_statuses([FREQUENCY_DAILY])
+        await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
         await hass.async_block_till_done()
 
         # Both should be PENDING after reset (new race begins)

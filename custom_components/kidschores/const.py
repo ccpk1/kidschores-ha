@@ -1016,7 +1016,6 @@ DATA_KID_LAST_STREAK_DATE: Final = "last_date"
 DATA_KID_MOBILE_NOTIFY_SERVICE: Final = "mobile_notify_service"
 DATA_KID_NAME: Final = "name"
 DATA_KID_OVERDUE_CHORES: Final = "overdue_chores"
-DATA_KID_OVERDUE_NOTIFICATIONS: Final = "overdue_notifications"
 DATA_KID_OVERALL_CHORE_STREAK: Final = "overall_chore_streak"
 DATA_KID_PENALTY_APPLIES: Final = "penalty_applies"
 DATA_KID_POINTS: Final = "points"
@@ -3871,6 +3870,12 @@ DATA_KID_CHORE_DATA_DUE_DATE_LEGACY: Final = (
 # enable_notifications was always derived from bool(mobile_notify_service)
 DATA_KID_ENABLE_NOTIFICATIONS_LEGACY: Final = "enable_notifications"  # LEGACY: Deprecated - check bool(mobile_notify_service) instead
 DATA_PARENT_ENABLE_NOTIFICATIONS_LEGACY: Final = "enable_notifications"  # LEGACY: Deprecated - check bool(mobile_notify_service) instead
+
+# Overdue Notification Tracking (v0.5.0): Dead code - never populated, only cleared
+# Superseded by DATA_NOTIFICATIONS bucket with DATA_NOTIF_LAST_OVERDUE for dedup
+DATA_KID_OVERDUE_NOTIFICATIONS_LEGACY: Final = (
+    "overdue_notifications"  # LEGACY: Dead code, pop from storage
+)
 
 
 # KC 4.x Beta Cleanup (removed in schema v42)

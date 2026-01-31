@@ -865,3 +865,437 @@ class TestComputeGlobalChoreState:
         }
         result = ChoreEngine.compute_global_chore_state(chore_data, kid_states)
         assert result == const.CHORE_STATE_OVERDUE
+
+
+# =============================================================================
+# TEST: TIMER BOUNDARY DECISION METHODS
+# =============================================================================
+
+
+class TestShouldProcessAtBoundary:
+    """Test should_process_at_boundary() - trigger scope filtering."""
+
+    # -------------------------------------------------------------------------
+    # Midnight trigger tests
+    # -------------------------------------------------------------------------
+
+    def test_midnight_once_matches_midnight_trigger(self) -> None:
+        """AT_MIDNIGHT_ONCE should process for midnight trigger."""
+        assert ChoreEngine.should_process_at_boundary(
+            const.APPROVAL_RESET_AT_MIDNIGHT_ONCE, "midnight"
+        )
+
+    def test_midnight_multi_matches_midnight_trigger(self) -> None:
+        """AT_MIDNIGHT_MULTI should process for midnight trigger."""
+        assert ChoreEngine.should_process_at_boundary(
+            const.APPROVAL_RESET_AT_MIDNIGHT_MULTI, "midnight"
+        )
+
+    def test_midnight_once_skips_due_date_trigger(self) -> None:
+        """AT_MIDNIGHT_ONCE should NOT process for due_date trigger."""
+        assert not ChoreEngine.should_process_at_boundary(
+            const.APPROVAL_RESET_AT_MIDNIGHT_ONCE, "due_date"
+        )
+
+    def test_midnight_multi_skips_due_date_trigger(self) -> None:
+        """AT_MIDNIGHT_MULTI should NOT process for due_date trigger."""
+        assert not ChoreEngine.should_process_at_boundary(
+            const.APPROVAL_RESET_AT_MIDNIGHT_MULTI, "due_date"
+        )
+
+    # -------------------------------------------------------------------------
+    # Due date trigger tests
+    # -------------------------------------------------------------------------
+
+    def test_due_date_once_matches_due_date_trigger(self) -> None:
+        """AT_DUE_DATE_ONCE should process for due_date trigger."""
+        assert ChoreEngine.should_process_at_boundary(
+            const.APPROVAL_RESET_AT_DUE_DATE_ONCE, "due_date"
+        )
+
+    def test_due_date_multi_matches_due_date_trigger(self) -> None:
+        """AT_DUE_DATE_MULTI should process for due_date trigger."""
+        assert ChoreEngine.should_process_at_boundary(
+            const.APPROVAL_RESET_AT_DUE_DATE_MULTI, "due_date"
+        )
+
+    def test_due_date_once_skips_midnight_trigger(self) -> None:
+        """AT_DUE_DATE_ONCE should NOT process for midnight trigger."""
+        assert not ChoreEngine.should_process_at_boundary(
+            const.APPROVAL_RESET_AT_DUE_DATE_ONCE, "midnight"
+        )
+
+    def test_due_date_multi_skips_midnight_trigger(self) -> None:
+        """AT_DUE_DATE_MULTI should NOT process for midnight trigger."""
+        assert not ChoreEngine.should_process_at_boundary(
+            const.APPROVAL_RESET_AT_DUE_DATE_MULTI, "midnight"
+        )
+
+    # -------------------------------------------------------------------------
+    # UPON_COMPLETION tests
+    # -------------------------------------------------------------------------
+
+    def test_upon_completion_never_timer_driven(self) -> None:
+        """UPON_COMPLETION should never process for any timer trigger."""
+        assert not ChoreEngine.should_process_at_boundary(
+            const.APPROVAL_RESET_UPON_COMPLETION, "midnight"
+        )
+        assert not ChoreEngine.should_process_at_boundary(
+            const.APPROVAL_RESET_UPON_COMPLETION, "due_date"
+        )
+
+    # -------------------------------------------------------------------------
+    # Edge cases
+    # -------------------------------------------------------------------------
+
+    def test_unknown_trigger_returns_false(self) -> None:
+        """Unknown trigger type should return False."""
+        assert not ChoreEngine.should_process_at_boundary(
+            const.APPROVAL_RESET_AT_MIDNIGHT_ONCE, "unknown"
+        )
+
+
+class TestCalculateBoundaryAction:
+    """Test calculate_boundary_action() - core decision logic."""
+
+    # -------------------------------------------------------------------------
+    # PENDING state tests
+    # -------------------------------------------------------------------------
+
+    def test_pending_state_always_skips(self) -> None:
+        """PENDING state = nothing to do, always skip."""
+        result = ChoreEngine.calculate_boundary_action(
+            current_state=const.CHORE_STATE_PENDING,
+            overdue_handling=const.OVERDUE_HANDLING_AT_DUE_DATE,
+            pending_claims_handling=const.APPROVAL_RESET_PENDING_CLAIM_CLEAR,
+            recurring_frequency=const.FREQUENCY_DAILY,
+            has_due_date=True,
+        )
+        assert result == "skip"
+
+    # -------------------------------------------------------------------------
+    # APPROVED state tests
+    # -------------------------------------------------------------------------
+
+    def test_approved_recurring_with_due_date_resets_and_reschedules(self) -> None:
+        """APPROVED recurring chore with due date → reset_and_reschedule."""
+        result = ChoreEngine.calculate_boundary_action(
+            current_state=const.CHORE_STATE_APPROVED,
+            overdue_handling=const.OVERDUE_HANDLING_AT_DUE_DATE,
+            pending_claims_handling=const.APPROVAL_RESET_PENDING_CLAIM_CLEAR,
+            recurring_frequency=const.FREQUENCY_DAILY,
+            has_due_date=True,
+        )
+        assert result == "reset_and_reschedule"
+
+    def test_approved_recurring_without_due_date_resets_only(self) -> None:
+        """APPROVED recurring chore without due date → reset_only."""
+        result = ChoreEngine.calculate_boundary_action(
+            current_state=const.CHORE_STATE_APPROVED,
+            overdue_handling=const.OVERDUE_HANDLING_AT_DUE_DATE,
+            pending_claims_handling=const.APPROVAL_RESET_PENDING_CLAIM_CLEAR,
+            recurring_frequency=const.FREQUENCY_DAILY,
+            has_due_date=False,
+        )
+        assert result == "reset_only"
+
+    def test_approved_non_recurring_with_due_date_resets_and_reschedules(self) -> None:
+        """Non-recurring APPROVED chore resets based on approval_reset_type.
+
+        Even for non-recurring chores, APPROVED state resets at the boundary.
+        The approval_reset_type (AT_MIDNIGHT_*, AT_DUE_DATE_*) determines
+        WHEN resets happen, not recurring_frequency.
+        """
+        result = ChoreEngine.calculate_boundary_action(
+            current_state=const.CHORE_STATE_APPROVED,
+            overdue_handling=const.OVERDUE_HANDLING_AT_DUE_DATE,
+            pending_claims_handling=const.APPROVAL_RESET_PENDING_CLAIM_CLEAR,
+            recurring_frequency=const.FREQUENCY_NONE,
+            has_due_date=True,
+        )
+        assert result == "reset_and_reschedule"
+
+    def test_approved_non_recurring_without_due_date_resets_only(self) -> None:
+        """Non-recurring APPROVED chore without due date → reset_only."""
+        result = ChoreEngine.calculate_boundary_action(
+            current_state=const.CHORE_STATE_APPROVED,
+            overdue_handling=const.OVERDUE_HANDLING_AT_DUE_DATE,
+            pending_claims_handling=const.APPROVAL_RESET_PENDING_CLAIM_CLEAR,
+            recurring_frequency=const.FREQUENCY_NONE,
+            has_due_date=False,
+        )
+        assert result == "reset_only"
+
+    # -------------------------------------------------------------------------
+    # CLAIMED state tests
+    # -------------------------------------------------------------------------
+
+    def test_claimed_with_hold_policy_holds(self) -> None:
+        """CLAIMED + HOLD policy → hold (preserve claim)."""
+        result = ChoreEngine.calculate_boundary_action(
+            current_state=const.CHORE_STATE_CLAIMED,
+            overdue_handling=const.OVERDUE_HANDLING_AT_DUE_DATE,
+            pending_claims_handling=const.APPROVAL_RESET_PENDING_CLAIM_HOLD,
+            recurring_frequency=const.FREQUENCY_DAILY,
+            has_due_date=True,
+        )
+        assert result == "hold"
+
+    def test_claimed_with_clear_policy_resets_and_reschedules(self) -> None:
+        """CLAIMED + CLEAR policy with due date → reset_and_reschedule."""
+        result = ChoreEngine.calculate_boundary_action(
+            current_state=const.CHORE_STATE_CLAIMED,
+            overdue_handling=const.OVERDUE_HANDLING_AT_DUE_DATE,
+            pending_claims_handling=const.APPROVAL_RESET_PENDING_CLAIM_CLEAR,
+            recurring_frequency=const.FREQUENCY_DAILY,
+            has_due_date=True,
+        )
+        assert result == "reset_and_reschedule"
+
+    def test_claimed_with_auto_approve_resets_and_reschedules(self) -> None:
+        """CLAIMED + AUTO_APPROVE with due date → reset_and_reschedule."""
+        result = ChoreEngine.calculate_boundary_action(
+            current_state=const.CHORE_STATE_CLAIMED,
+            overdue_handling=const.OVERDUE_HANDLING_AT_DUE_DATE,
+            pending_claims_handling=const.APPROVAL_RESET_PENDING_CLAIM_AUTO_APPROVE,
+            recurring_frequency=const.FREQUENCY_DAILY,
+            has_due_date=True,
+        )
+        assert result == "reset_and_reschedule"
+
+    def test_claimed_with_clear_no_due_date_resets_only(self) -> None:
+        """CLAIMED + CLEAR policy without due date → reset_only."""
+        result = ChoreEngine.calculate_boundary_action(
+            current_state=const.CHORE_STATE_CLAIMED,
+            overdue_handling=const.OVERDUE_HANDLING_AT_DUE_DATE,
+            pending_claims_handling=const.APPROVAL_RESET_PENDING_CLAIM_CLEAR,
+            recurring_frequency=const.FREQUENCY_DAILY,
+            has_due_date=False,
+        )
+        assert result == "reset_only"
+
+    # -------------------------------------------------------------------------
+    # OVERDUE state tests
+    # -------------------------------------------------------------------------
+
+    def test_overdue_at_due_date_holds(self) -> None:
+        """OVERDUE + AT_DUE_DATE handling → hold until manual completion."""
+        result = ChoreEngine.calculate_boundary_action(
+            current_state=const.CHORE_STATE_OVERDUE,
+            overdue_handling=const.OVERDUE_HANDLING_AT_DUE_DATE,
+            pending_claims_handling=const.APPROVAL_RESET_PENDING_CLAIM_CLEAR,
+            recurring_frequency=const.FREQUENCY_DAILY,
+            has_due_date=True,
+        )
+        assert result == "hold"
+
+    def test_overdue_clear_at_reset_resets_and_reschedules(self) -> None:
+        """OVERDUE + CLEAR_AT_APPROVAL_RESET → reset_and_reschedule."""
+        result = ChoreEngine.calculate_boundary_action(
+            current_state=const.CHORE_STATE_OVERDUE,
+            overdue_handling=const.OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_AT_APPROVAL_RESET,
+            pending_claims_handling=const.APPROVAL_RESET_PENDING_CLAIM_CLEAR,
+            recurring_frequency=const.FREQUENCY_DAILY,
+            has_due_date=True,
+        )
+        assert result == "reset_and_reschedule"
+
+    def test_overdue_clear_at_reset_no_due_date_resets_only(self) -> None:
+        """OVERDUE + CLEAR_AT_APPROVAL_RESET without due date → reset_only."""
+        result = ChoreEngine.calculate_boundary_action(
+            current_state=const.CHORE_STATE_OVERDUE,
+            overdue_handling=const.OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_AT_APPROVAL_RESET,
+            pending_claims_handling=const.APPROVAL_RESET_PENDING_CLAIM_CLEAR,
+            recurring_frequency=const.FREQUENCY_DAILY,
+            has_due_date=False,
+        )
+        assert result == "reset_only"
+
+    def test_overdue_clear_immediate_skips(self) -> None:
+        """OVERDUE + CLEAR_IMMEDIATE_ON_LATE → skip (already handled)."""
+        result = ChoreEngine.calculate_boundary_action(
+            current_state=const.CHORE_STATE_OVERDUE,
+            overdue_handling=const.OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_IMMEDIATE_ON_LATE,
+            pending_claims_handling=const.APPROVAL_RESET_PENDING_CLAIM_CLEAR,
+            recurring_frequency=const.FREQUENCY_DAILY,
+            has_due_date=True,
+        )
+        assert result == "skip"
+
+    def test_overdue_never_overdue_skips(self) -> None:
+        """OVERDUE + NEVER_OVERDUE → skip (shouldn't be in OVERDUE state)."""
+        result = ChoreEngine.calculate_boundary_action(
+            current_state=const.CHORE_STATE_OVERDUE,
+            overdue_handling=const.OVERDUE_HANDLING_NEVER_OVERDUE,
+            pending_claims_handling=const.APPROVAL_RESET_PENDING_CLAIM_CLEAR,
+            recurring_frequency=const.FREQUENCY_DAILY,
+            has_due_date=True,
+        )
+        assert result == "skip"
+
+
+class TestGetBoundaryCategory:
+    """Test get_boundary_category() - combined categorization."""
+
+    # -------------------------------------------------------------------------
+    # Out of scope tests
+    # -------------------------------------------------------------------------
+
+    def test_midnight_chore_on_due_date_trigger_returns_none(self) -> None:
+        """Midnight-reset chore should return None for due_date trigger."""
+        chore_data = {
+            const.DATA_CHORE_APPROVAL_RESET_TYPE: const.APPROVAL_RESET_AT_MIDNIGHT_ONCE,
+        }
+        result = ChoreEngine.get_boundary_category(
+            chore_data, const.CHORE_STATE_APPROVED, "due_date"
+        )
+        assert result is None
+
+    def test_due_date_chore_on_midnight_trigger_returns_none(self) -> None:
+        """Due-date-reset chore should return None for midnight trigger."""
+        chore_data = {
+            const.DATA_CHORE_APPROVAL_RESET_TYPE: const.APPROVAL_RESET_AT_DUE_DATE_ONCE,
+        }
+        result = ChoreEngine.get_boundary_category(
+            chore_data, const.CHORE_STATE_APPROVED, "midnight"
+        )
+        assert result is None
+
+    def test_upon_completion_returns_none_for_any_trigger(self) -> None:
+        """UPON_COMPLETION should return None for any timer trigger."""
+        chore_data = {
+            const.DATA_CHORE_APPROVAL_RESET_TYPE: const.APPROVAL_RESET_UPON_COMPLETION,
+        }
+        assert (
+            ChoreEngine.get_boundary_category(
+                chore_data, const.CHORE_STATE_APPROVED, "midnight"
+            )
+            is None
+        )
+        assert (
+            ChoreEngine.get_boundary_category(
+                chore_data, const.CHORE_STATE_APPROVED, "due_date"
+            )
+            is None
+        )
+
+    # -------------------------------------------------------------------------
+    # In scope - returns category
+    # -------------------------------------------------------------------------
+
+    def test_approved_midnight_chore_returns_reset_and_reschedule(self) -> None:
+        """APPROVED midnight chore with due date → reset_and_reschedule."""
+        chore_data = {
+            const.DATA_CHORE_APPROVAL_RESET_TYPE: const.APPROVAL_RESET_AT_MIDNIGHT_ONCE,
+            const.DATA_CHORE_RECURRING_FREQUENCY: const.FREQUENCY_DAILY,
+            const.DATA_CHORE_DUE_DATE: "2025-01-31T10:00:00",
+            const.DATA_CHORE_COMPLETION_CRITERIA: const.COMPLETION_CRITERIA_SHARED,
+        }
+        result = ChoreEngine.get_boundary_category(
+            chore_data, const.CHORE_STATE_APPROVED, "midnight"
+        )
+        assert result == "reset_and_reschedule"
+
+    def test_claimed_hold_policy_returns_hold(self) -> None:
+        """CLAIMED chore with HOLD policy → hold."""
+        chore_data = {
+            const.DATA_CHORE_APPROVAL_RESET_TYPE: const.APPROVAL_RESET_AT_MIDNIGHT_ONCE,
+            const.DATA_CHORE_APPROVAL_RESET_PENDING_CLAIM_ACTION: (
+                const.APPROVAL_RESET_PENDING_CLAIM_HOLD
+            ),
+            const.DATA_CHORE_RECURRING_FREQUENCY: const.FREQUENCY_DAILY,
+            const.DATA_CHORE_COMPLETION_CRITERIA: const.COMPLETION_CRITERIA_SHARED,
+        }
+        result = ChoreEngine.get_boundary_category(
+            chore_data, const.CHORE_STATE_CLAIMED, "midnight"
+        )
+        assert result == "hold"
+
+    def test_pending_state_returns_none(self) -> None:
+        """PENDING state should return None (skip maps to None)."""
+        chore_data = {
+            const.DATA_CHORE_APPROVAL_RESET_TYPE: const.APPROVAL_RESET_AT_MIDNIGHT_ONCE,
+            const.DATA_CHORE_RECURRING_FREQUENCY: const.FREQUENCY_DAILY,
+            const.DATA_CHORE_COMPLETION_CRITERIA: const.COMPLETION_CRITERIA_SHARED,
+        }
+        result = ChoreEngine.get_boundary_category(
+            chore_data, const.CHORE_STATE_PENDING, "midnight"
+        )
+        assert result is None
+
+    # -------------------------------------------------------------------------
+    # INDEPENDENT vs SHARED due date detection
+    # -------------------------------------------------------------------------
+
+    def test_independent_chore_checks_per_kid_due_dates(self) -> None:
+        """INDEPENDENT chore checks per_kid_due_dates for has_due_date."""
+        chore_data = {
+            const.DATA_CHORE_APPROVAL_RESET_TYPE: const.APPROVAL_RESET_AT_MIDNIGHT_ONCE,
+            const.DATA_CHORE_RECURRING_FREQUENCY: const.FREQUENCY_DAILY,
+            const.DATA_CHORE_COMPLETION_CRITERIA: const.COMPLETION_CRITERIA_INDEPENDENT,
+            const.DATA_CHORE_PER_KID_DUE_DATES: {"kid-1": "2025-01-31T10:00:00"},
+        }
+        result = ChoreEngine.get_boundary_category(
+            chore_data, const.CHORE_STATE_APPROVED, "midnight"
+        )
+        assert result == "reset_and_reschedule"
+
+    def test_independent_chore_without_per_kid_due_dates_resets_only(self) -> None:
+        """INDEPENDENT chore without per_kid_due_dates → reset_only."""
+        chore_data = {
+            const.DATA_CHORE_APPROVAL_RESET_TYPE: const.APPROVAL_RESET_AT_MIDNIGHT_ONCE,
+            const.DATA_CHORE_RECURRING_FREQUENCY: const.FREQUENCY_DAILY,
+            const.DATA_CHORE_COMPLETION_CRITERIA: const.COMPLETION_CRITERIA_INDEPENDENT,
+            const.DATA_CHORE_PER_KID_DUE_DATES: {},
+        }
+        result = ChoreEngine.get_boundary_category(
+            chore_data, const.CHORE_STATE_APPROVED, "midnight"
+        )
+        assert result == "reset_only"
+
+    def test_shared_chore_checks_chore_level_due_date(self) -> None:
+        """SHARED chore checks chore-level due_date."""
+        chore_data = {
+            const.DATA_CHORE_APPROVAL_RESET_TYPE: const.APPROVAL_RESET_AT_MIDNIGHT_ONCE,
+            const.DATA_CHORE_RECURRING_FREQUENCY: const.FREQUENCY_DAILY,
+            const.DATA_CHORE_COMPLETION_CRITERIA: const.COMPLETION_CRITERIA_SHARED,
+            const.DATA_CHORE_DUE_DATE: "2025-01-31T10:00:00",
+        }
+        result = ChoreEngine.get_boundary_category(
+            chore_data, const.CHORE_STATE_APPROVED, "midnight"
+        )
+        assert result == "reset_and_reschedule"
+
+    def test_shared_chore_without_due_date_resets_only(self) -> None:
+        """SHARED chore without due_date → reset_only."""
+        chore_data = {
+            const.DATA_CHORE_APPROVAL_RESET_TYPE: const.APPROVAL_RESET_AT_MIDNIGHT_ONCE,
+            const.DATA_CHORE_RECURRING_FREQUENCY: const.FREQUENCY_DAILY,
+            const.DATA_CHORE_COMPLETION_CRITERIA: const.COMPLETION_CRITERIA_SHARED,
+            # No DATA_CHORE_DUE_DATE key
+        }
+        result = ChoreEngine.get_boundary_category(
+            chore_data, const.CHORE_STATE_APPROVED, "midnight"
+        )
+        assert result == "reset_only"
+
+    # -------------------------------------------------------------------------
+    # Default values tests
+    # -------------------------------------------------------------------------
+
+    def test_uses_default_values_for_missing_config(self) -> None:
+        """Should use defaults when config keys are missing."""
+        # Minimal chore data - relies on defaults
+        chore_data = {
+            # Approval reset defaults to AT_MIDNIGHT_ONCE
+            # Overdue handling defaults to AT_DUE_DATE
+            # Pending claims defaults to CLEAR
+            # Recurring frequency defaults to NONE
+            # Completion criteria defaults to SHARED
+        }
+        result = ChoreEngine.get_boundary_category(
+            chore_data, const.CHORE_STATE_APPROVED, "midnight"
+        )
+        # APPROVED → reset_only (no due_date = reset_only)
+        # approval_reset_type determines WHEN, not frequency
+        assert result == "reset_only"

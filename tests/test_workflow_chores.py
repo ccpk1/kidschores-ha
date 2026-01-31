@@ -26,6 +26,7 @@ from unittest.mock import AsyncMock, patch
 from homeassistant.core import Context, HomeAssistant
 import pytest
 
+from custom_components.kidschores.utils.dt_utils import dt_now_utc
 from tests.helpers import (
     ATTR_GLOBAL_STATE,
     CHORE_STATE_APPROVED,
@@ -566,7 +567,7 @@ class TestApprovalResetNoDueDate:
     Key Insight from coordinator.py:
     - frequency="none" chores are ALWAYS included in reset checks
     - If no due_date_str exists, no date check blocks reset
-    - Result: These chores reset immediately when _reset_daily_chore_statuses() runs
+    - Result: These chores reset immediately when _process_approval_boundary() runs
 
     NOTE: These tests use direct coordinator API for triggering resets,
     which is acceptable because reset is an internal scheduler operation
@@ -622,9 +623,7 @@ class TestApprovalResetNoDueDate:
         with patch.object(
             coordinator.notification_manager, "notify_kid", new=AsyncMock()
         ):
-            await coordinator.chore_manager._reset_daily_chore_statuses(
-                [FREQUENCY_DAILY]
-            )
+            await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
 
         await hass.async_block_till_done()
 
@@ -695,9 +694,7 @@ class TestApprovalResetNoDueDate:
         with patch.object(
             coordinator.notification_manager, "notify_kid", new=AsyncMock()
         ):
-            await coordinator.chore_manager._reset_daily_chore_statuses(
-                [FREQUENCY_DAILY]
-            )
+            await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
 
         await hass.async_block_till_done()
 
@@ -766,9 +763,7 @@ class TestApprovalResetNoDueDate:
         with patch.object(
             coordinator.notification_manager, "notify_kid", new=AsyncMock()
         ):
-            await coordinator.chore_manager._reset_daily_chore_statuses(
-                [FREQUENCY_DAILY]
-            )
+            await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
 
         await hass.async_block_till_done()
 
@@ -808,9 +803,7 @@ class TestApprovalResetNoDueDate:
         with patch.object(
             coordinator.notification_manager, "notify_kid", new=AsyncMock()
         ):
-            await coordinator.chore_manager._reset_daily_chore_statuses(
-                [FREQUENCY_DAILY]
-            )
+            await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
 
         await hass.async_block_till_done()
 
@@ -1033,9 +1026,7 @@ class TestWorkflowResetIntegration:
         with patch.object(
             coordinator.notification_manager, "notify_kid", new=AsyncMock()
         ):
-            await coordinator.chore_manager._reset_daily_chore_statuses(
-                [FREQUENCY_DAILY]
-            )
+            await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
 
         await hass.async_block_till_done()
 
@@ -1069,9 +1060,7 @@ class TestWorkflowResetIntegration:
         with patch.object(
             coordinator.notification_manager, "notify_kid", new=AsyncMock()
         ):
-            await coordinator.chore_manager._reset_daily_chore_statuses(
-                [FREQUENCY_DAILY]
-            )
+            await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
 
         await hass.async_block_till_done()
 
@@ -1107,9 +1096,7 @@ class TestWorkflowResetIntegration:
         with patch.object(
             coordinator.notification_manager, "notify_kid", new=AsyncMock()
         ):
-            await coordinator.chore_manager._reset_daily_chore_statuses(
-                [FREQUENCY_DAILY]
-            )
+            await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
 
         await hass.async_block_till_done()
 

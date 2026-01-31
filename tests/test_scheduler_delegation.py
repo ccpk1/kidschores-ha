@@ -129,7 +129,7 @@ class TestOverdueEventEmission:
         set_chore_due_date_to_past(coordinator, chore_id, zoe_id, days_ago=1)
 
         # Trigger overdue check via Coordinator (which delegates to Manager)
-        await coordinator.chore_manager.process_overdue_chores(dt_now_utc())
+        await coordinator.chore_manager._on_periodic_update(now_utc=dt_now_utc())
 
         # Verify CHORE_OVERDUE event was emitted
         overdue_events = [
@@ -175,7 +175,7 @@ class TestOverdueEventEmission:
         set_chore_due_date_to_past(coordinator, chore_id, zoe_id, days_ago=2)
 
         # Trigger overdue check
-        await coordinator.chore_manager.process_overdue_chores(dt_now_utc())
+        await coordinator.chore_manager._on_periodic_update(now_utc=dt_now_utc())
 
         # Verify NO CHORE_OVERDUE event was emitted for this chore
         overdue_events_for_chore = [
@@ -232,7 +232,7 @@ class TestOverdueEventEmission:
         set_chore_due_date_to_past(coordinator, chore_id, zoe_id, days_ago=1)
 
         # Trigger overdue check
-        await coordinator.chore_manager.process_overdue_chores(dt_now_utc())
+        await coordinator.chore_manager._on_periodic_update(now_utc=dt_now_utc())
 
         # Verify overdue event was emitted for this kid
         overdue_events_for_kid = [
@@ -293,7 +293,7 @@ class TestRecurringResetEventEmission:
         from homeassistant.util import dt as dt_util
 
         now = dt_util.utcnow()
-        await coordinator.chore_manager.process_scheduled_resets(now)
+        await coordinator.chore_manager._on_midnight_rollover(now_utc=now)
 
         # Verify CHORE_STATUS_RESET event was emitted
         reset_events = [
@@ -309,12 +309,12 @@ class TestRecurringResetEventEmission:
             assert "chore_id" in event_payload
 
     @pytest.mark.asyncio
-    async def test_reset_chore_via_manager_emits_event(
+    async def test_reset_chore_via_transition_emits_event(
         self,
         hass: HomeAssistant,
         scheduling_scenario: SetupResult,
     ) -> None:
-        """Test: Direct ChoreManager.reset_chore() emits CHORE_STATUS_RESET."""
+        """Test: _transition_chore_state emits CHORE_STATUS_RESET when resetting to PENDING."""
         coordinator = scheduling_scenario.coordinator
         zoe_id = scheduling_scenario.kid_ids["Zoë"]
         chore_id = scheduling_scenario.chore_ids["Reset Midnight Once"]
@@ -332,8 +332,14 @@ class TestRecurringResetEventEmission:
 
         coordinator.chore_manager.emit = tracking_emit
 
-        # Call reset directly on Manager
-        await coordinator.chore_manager.reset_chore(zoe_id, chore_id)
+        # Call _transition_chore_state (master method for state changes)
+        coordinator.chore_manager._transition_chore_state(
+            zoe_id,
+            chore_id,
+            const.CHORE_STATE_PENDING,
+            reset_approval_period=True,
+            clear_ownership=True,
+        )
 
         # Verify CHORE_STATUS_RESET event was emitted
         reset_events = [
@@ -354,36 +360,28 @@ class TestDelegationPath:
     """Tests verifying the delegation path from Coordinator to Manager."""
 
     @pytest.mark.asyncio
-    async def test_coordinator_process_recurring_delegates_to_manager(
+    async def test_midnight_rollover_processes_resets(
         self,
         hass: HomeAssistant,
         scheduling_scenario: SetupResult,
     ) -> None:
-        """Test: Coordinator._process_recurring_chore_resets() delegates to Manager.process_scheduled_resets().
+        """Test: _on_midnight_rollover() processes approval resets.
 
-        This verifies the delegation path is connected correctly.
+        Verifies the midnight rollover handler executes without error
+        and returns the count of processed resets.
         """
         coordinator = scheduling_scenario.coordinator
 
-        # Track if Manager method was called
-        manager_called = False
-        original_method = coordinator.chore_manager.process_scheduled_resets
-
-        async def tracking_method(*args: Any, **kwargs: Any) -> Any:
-            nonlocal manager_called
-            manager_called = True
-            return await original_method(*args, **kwargs)
-
-        coordinator.chore_manager.process_scheduled_resets = tracking_method
-
-        # Call Coordinator method with current time
+        # Call midnight rollover with current time
         from homeassistant.util import dt as dt_util
 
-        await coordinator.chore_manager.process_recurring_chore_resets(dt_util.utcnow())
+        result = await coordinator.chore_manager._on_midnight_rollover(
+            now_utc=dt_util.utcnow()
+        )
 
-        # Verify Manager method was called
-        assert manager_called, (
-            "Coordinator._process_recurring_chore_resets should delegate to ChoreManager.process_scheduled_resets"
+        # Verify it returns a count (int)
+        assert isinstance(result, int), (
+            f"_on_midnight_rollover should return int count, got: {type(result)}"
         )
 
 
@@ -438,17 +436,17 @@ class TestServiceDelegation:
 
         # Track if Manager method was called
         manager_called = False
-        original_method = coordinator.chore_manager.reset_all_chores
+        original_method = coordinator.chore_manager.reset_all_chore_states_to_pending
 
         def tracking_method(*args: Any, **kwargs: Any) -> Any:
             nonlocal manager_called
             manager_called = True
             return original_method(*args, **kwargs)
 
-        coordinator.chore_manager.reset_all_chores = tracking_method
+        coordinator.chore_manager.reset_all_chore_states_to_pending = tracking_method
 
         # Call Coordinator service method
-        await coordinator.chore_manager.reset_all_chores()
+        await coordinator.chore_manager.reset_all_chore_states_to_pending()
 
         # Verify Manager method was called
         assert manager_called, (

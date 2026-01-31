@@ -560,7 +560,6 @@ class KidData(TypedDict):
 
     # Overdue tracking
     overdue_chores: NotRequired[list[str]]  # Chore UUIDs
-    overdue_notifications: NotRequired[dict[str, str]]  # chore_id -> notification_id
     completed_by_other_chores: NotRequired[
         list[str]
     ]  # Shared chores completed by others

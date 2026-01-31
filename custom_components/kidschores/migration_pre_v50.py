@@ -212,16 +212,11 @@ async def migrate_config_to_storage(
                     # New entity - add from config
                     storage_data[data_key][entity_id] = config_entity_data
 
-                # For kids, ensure each kid has the required v42 fields
+                # For kids, remove dead overdue_notifications field if present
                 if config_key == const.CONF_KIDS_LEGACY:
-                    # Add overdue_notifications field if missing
-                    if (
-                        const.DATA_KID_OVERDUE_NOTIFICATIONS
-                        not in storage_data[data_key][entity_id]
-                    ):
-                        storage_data[data_key][entity_id][
-                            const.DATA_KID_OVERDUE_NOTIFICATIONS
-                        ] = {}
+                    storage_data[data_key][entity_id].pop(
+                        const.DATA_KID_OVERDUE_NOTIFICATIONS_LEGACY, None
+                    )
 
             const.LOGGER.debug(
                 "DEBUG: Migrated %s %s from config to storage",
@@ -814,11 +809,13 @@ class PreV50Migrator:
         kids = self.coordinator._data.get(const.DATA_KIDS, {})
         migrated_count = 0
         for kid_id, kid_info in kids.items():
-            if const.DATA_KID_OVERDUE_NOTIFICATIONS not in kid_info:
-                kid_info[const.DATA_KID_OVERDUE_NOTIFICATIONS] = {}
-                migrated_count += 1
+            # Remove dead overdue_notifications field (never populated, superseded by
+            # DATA_NOTIFICATIONS bucket with DATA_NOTIF_LAST_OVERDUE for dedup)
+            if const.DATA_KID_OVERDUE_NOTIFICATIONS_LEGACY in kid_info:
+                kid_info.pop(const.DATA_KID_OVERDUE_NOTIFICATIONS_LEGACY)
                 const.LOGGER.debug(
-                    "DEBUG: Added overdue_notifications field to kid '%s'", kid_id
+                    "DEBUG: Removed dead overdue_notifications field from kid '%s'",
+                    kid_id,
                 )
             # Ensure cumulative_badge_progress exists (initialized empty, populated later)
             if const.DATA_KID_CUMULATIVE_BADGE_PROGRESS not in kid_info:
@@ -2932,7 +2929,6 @@ class PreV50Migrator:
                 const.DATA_KID_USE_PERSISTENT_NOTIFICATIONS, True
             ),
             const.DATA_KID_OVERDUE_CHORES: [],
-            const.DATA_KID_OVERDUE_NOTIFICATIONS: {},
         }
 
         const.LOGGER.debug(

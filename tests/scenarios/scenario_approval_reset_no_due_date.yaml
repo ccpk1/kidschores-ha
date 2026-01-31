@@ -7,7 +7,7 @@
 # - If NO due_date exists, reset happens immediately (no date check blocks it)
 #
 # Expected Behavior:
-# - When _reset_daily_chore_statuses() is called, these chores reset from
+# - When _process_approval_boundary() is called, these chores reset from
 #   APPROVED → PENDING regardless of time elapsed
 # - This applies to all three completion criteria types
 #

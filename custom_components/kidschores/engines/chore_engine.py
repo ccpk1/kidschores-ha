@@ -922,3 +922,185 @@ class ChoreEngine:
         except Exception:
             # If schedule calculation fails, fallback to simple daily logic
             return 1
+
+    # =========================================================================
+    # TIMER BOUNDARY DECISION METHODS
+    # =========================================================================
+
+    @staticmethod
+    def should_process_at_boundary(
+        approval_reset_type: str,
+        trigger: str,
+    ) -> bool:
+        """Check if chore should be processed for this trigger.
+
+        Determines if a chore's approval_reset_type matches the current timer
+        trigger. This is the first filter in the approval boundary gatekeeper.
+
+        Args:
+            approval_reset_type: Chore's configured reset type (AT_MIDNIGHT_*,
+                AT_DUE_DATE_*, UPON_COMPLETION)
+            trigger: Current trigger type ("midnight" or "due_date")
+
+        Returns:
+            True if chore should be processed for this trigger:
+            - AT_MIDNIGHT_ONCE/MULTI → True for trigger="midnight"
+            - AT_DUE_DATE_ONCE/MULTI → True for trigger="due_date"
+            - UPON_COMPLETION → Always False (handled in approve workflow)
+        """
+        midnight_types = {
+            const.APPROVAL_RESET_AT_MIDNIGHT_ONCE,
+            const.APPROVAL_RESET_AT_MIDNIGHT_MULTI,
+        }
+        due_date_types = {
+            const.APPROVAL_RESET_AT_DUE_DATE_ONCE,
+            const.APPROVAL_RESET_AT_DUE_DATE_MULTI,
+        }
+
+        if trigger == "midnight":
+            return approval_reset_type in midnight_types
+        if trigger == "due_date":
+            return approval_reset_type in due_date_types
+        return False
+
+    @staticmethod
+    def calculate_boundary_action(
+        current_state: str,
+        overdue_handling: str,
+        pending_claims_handling: str,
+        recurring_frequency: str,
+        has_due_date: bool,
+    ) -> str:
+        """Calculate what action to take for a chore at approval boundary.
+
+        This is the core decision logic for the approval boundary gatekeeper.
+        It evaluates the chore's current state and configuration to determine
+        the appropriate action.
+
+        Args:
+            current_state: Current chore state (PENDING, CLAIMED, APPROVED, OVERDUE)
+            overdue_handling: Chore's overdue_handling_type setting
+            pending_claims_handling: Chore's pending_claim_action setting
+            recurring_frequency: Chore's frequency (DAILY, WEEKLY, NONE, etc.)
+            has_due_date: Whether the chore has a due date configured
+
+        Returns:
+            Action string:
+            - "reset_and_reschedule": Reset state + calculate next due date
+            - "reset_only": Reset state without rescheduling (no due date)
+            - "hold": Skip processing, preserve current state
+            - "skip": No action needed (already PENDING or non-recurring approved)
+        """
+        # PENDING state = nothing to do
+        if current_state == const.CHORE_STATE_PENDING:
+            return "skip"
+
+        # APPROVED state = always reset (approval_reset_type already filtered)
+        # Note: Non-recurring chores with AT_MIDNIGHT_* still reset at midnight.
+        # The approval_reset_type determines WHEN resets happen, not frequency.
+        if current_state == const.CHORE_STATE_APPROVED:
+            return "reset_and_reschedule" if has_due_date else "reset_only"
+
+        # CLAIMED state = check pending_claims_handling
+        if current_state == const.CHORE_STATE_CLAIMED:
+            if pending_claims_handling == const.APPROVAL_RESET_PENDING_CLAIM_HOLD:
+                return "hold"
+            # CLEAR and AUTO_APPROVE both proceed with reset
+            # (AUTO_APPROVE approval is handled by the manager, not engine)
+            return "reset_and_reschedule" if has_due_date else "reset_only"
+
+        # OVERDUE state = check overdue_handling
+        if current_state == const.CHORE_STATE_OVERDUE:
+            # AT_DUE_DATE = hold until manually completed
+            if overdue_handling == const.OVERDUE_HANDLING_AT_DUE_DATE:
+                return "hold"
+            # CLEAR_AT_APPROVAL_RESET = clear overdue and reset
+            if (
+                overdue_handling
+                == const.OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_AT_APPROVAL_RESET
+            ):
+                return "reset_and_reschedule" if has_due_date else "reset_only"
+            # CLEAR_IMMEDIATE_ON_LATE = already handled when due passed, skip
+            if (
+                overdue_handling
+                == const.OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_IMMEDIATE_ON_LATE
+            ):
+                return "skip"
+            # NEVER_OVERDUE = shouldn't be in OVERDUE state, but skip if so
+            if overdue_handling == const.OVERDUE_HANDLING_NEVER_OVERDUE:
+                return "skip"
+
+        # Default: skip unknown states
+        return "skip"
+
+    @staticmethod
+    def get_boundary_category(
+        chore_data: ChoreData | dict[str, Any],
+        kid_state: str,
+        trigger: str,
+    ) -> str | None:
+        """Get categorization for batch approval boundary processing.
+
+        Combines should_process_at_boundary and calculate_boundary_action
+        into a single categorization call for efficient batch processing.
+
+        Args:
+            chore_data: Chore configuration dict
+            kid_state: Current state for this kid (or chore-level for SHARED)
+            trigger: Current trigger type ("midnight" or "due_date")
+
+        Returns:
+            Category string or None:
+            - "reset_and_reschedule": Needs reset with due date update
+            - "reset_only": Needs reset without due date update
+            - "hold": Should be skipped (preserve state)
+            - None: Not in scope for this trigger or skip
+        """
+        # Check if chore is in scope for this trigger
+        approval_reset_type = chore_data.get(
+            const.DATA_CHORE_APPROVAL_RESET_TYPE,
+            const.APPROVAL_RESET_AT_MIDNIGHT_ONCE,
+        )
+        if not ChoreEngine.should_process_at_boundary(approval_reset_type, trigger):
+            return None
+
+        # Get configuration values
+        overdue_handling = chore_data.get(
+            const.DATA_CHORE_OVERDUE_HANDLING_TYPE,
+            const.OVERDUE_HANDLING_AT_DUE_DATE,
+        )
+        pending_claims_handling = chore_data.get(
+            const.DATA_CHORE_APPROVAL_RESET_PENDING_CLAIM_ACTION,
+            const.APPROVAL_RESET_PENDING_CLAIM_CLEAR,
+        )
+        recurring_frequency = chore_data.get(
+            const.DATA_CHORE_RECURRING_FREQUENCY,
+            const.FREQUENCY_NONE,
+        )
+
+        # Check for due date
+        completion_criteria = chore_data.get(
+            const.DATA_CHORE_COMPLETION_CRITERIA,
+            const.COMPLETION_CRITERIA_SHARED,
+        )
+        if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
+            # INDEPENDENT: check per_kid_due_dates
+            per_kid_due_dates = chore_data.get(const.DATA_CHORE_PER_KID_DUE_DATES, {})
+            has_due_date = bool(per_kid_due_dates)
+        else:
+            # SHARED/SHARED_FIRST: check chore-level due_date
+            has_due_date = bool(chore_data.get(const.DATA_CHORE_DUE_DATE))
+
+        # Calculate action
+        action = ChoreEngine.calculate_boundary_action(
+            current_state=kid_state,
+            overdue_handling=overdue_handling,
+            pending_claims_handling=pending_claims_handling,
+            recurring_frequency=recurring_frequency,
+            has_due_date=has_due_date,
+        )
+
+        # Map action to category (skip → None)
+        if action == "skip":
+            return None
+        return action

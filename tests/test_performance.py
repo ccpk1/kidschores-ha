@@ -49,7 +49,7 @@ async def test_performance_baseline_with_scenario_full(
         ),
     ):
         # Test 1: Check overdue chores (O(chores × kids))
-        await coordinator.chore_manager.process_overdue_chores(dt_now_utc())
+        await coordinator.chore_manager._on_periodic_update(now_utc=dt_now_utc())
 
         # Test 2: Persist operation
         coordinator._persist()

@@ -1595,7 +1595,7 @@ class TestRecurringChoreReset:
                 coordinator.notification_manager, "notify_kid", new=AsyncMock()
             ),
         ):
-            await coordinator.chore_manager.process_recurring_chore_resets(reset_time)
+            await coordinator.chore_manager._on_midnight_rollover(now_utc=reset_time)
 
         # Method completes without error (no return value to check)
         assert True
@@ -1644,8 +1644,8 @@ class TestRecurringChoreReset:
                 coordinator.notification_manager, "notify_kid", new=AsyncMock()
             ),
         ):
-            reset_count = await coordinator.chore_manager.process_scheduled_resets(
-                reset_time
+            reset_count = await coordinator.chore_manager._on_midnight_rollover(
+                now_utc=reset_time
             )
 
         # Should process weekly chore
@@ -1670,8 +1670,8 @@ class TestRecurringChoreReset:
 
         # Trigger process_scheduled_resets
         with patch.object(coordinator, "_persist", new=MagicMock()):
-            reset_count = await coordinator.chore_manager.process_scheduled_resets(
-                wrong_time
+            reset_count = await coordinator.chore_manager._on_midnight_rollover(
+                now_utc=wrong_time
             )
 
         # Should not reset any chores

@@ -733,9 +733,6 @@ def build_kid(
         const.DATA_KID_OVERDUE_CHORES: (
             existing.get(const.DATA_KID_OVERDUE_CHORES, []) if existing else []
         ),
-        const.DATA_KID_OVERDUE_NOTIFICATIONS: (
-            existing.get(const.DATA_KID_OVERDUE_NOTIFICATIONS, {}) if existing else {}
-        ),
     }
 
     # --- Shadow kid markers (only set if requested) ---

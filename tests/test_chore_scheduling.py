@@ -39,7 +39,7 @@ Controls WHEN a chore becomes available again after completion/approval.
     - Chore resets immediately after approval (continuous availability)
     - After approval, can claim again immediately
 
-Coordinator method: _reset_daily_chore_statuses(target_freqs: list[str])
+Coordinator method: _process_approval_boundary(trigger, now_utc, *, skip_time_check=False)
   - Called by scheduled tasks to reset chore states based on approval_reset_type
   - Handles both AT_MIDNIGHT_* and AT_DUE_DATE_* reset types
 
@@ -59,7 +59,7 @@ Controls HOW overdue status is handled when due date passes.
   OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_AT_APPROVAL_RESET ("at_due_date_clear_at_approval_reset")
     - Chore becomes OVERDUE at due date
     - AUTOMATICALLY resets to PENDING at next approval reset cycle
-    - The reset happens in _reset_daily_chore_statuses() or
+    - The reset happens in _process_approval_boundary() or
       _reset_independent_chore_status() / _reset_shared_chore_status()
     - When should_clear_overdue=True, OVERDUE state is NOT skipped during reset
 
@@ -475,7 +475,7 @@ class TestOverdueDetection:
         set_chore_due_date_to_past(coordinator, chore_id, zoe_id, days_ago=1)
 
         # Trigger overdue check by calling the coordinator's check method
-        await coordinator.chore_manager.process_overdue_chores(dt_now_utc())
+        await coordinator.chore_manager._on_periodic_update(now_utc=dt_now_utc())
 
         # Verify state is OVERDUE
         state = get_kid_chore_state(coordinator, zoe_id, chore_id)
@@ -506,7 +506,7 @@ class TestOverdueDetection:
         set_chore_due_date_to_past(coordinator, chore_id, zoe_id, days_ago=1)
 
         # Trigger overdue check
-        await coordinator.chore_manager.process_overdue_chores(dt_now_utc())
+        await coordinator.chore_manager._on_periodic_update(now_utc=dt_now_utc())
 
         # Verify state is still PENDING (not overdue)
         state = get_kid_chore_state(coordinator, zoe_id, chore_id)
@@ -531,7 +531,7 @@ class TestOverdueDetection:
         chore_id = chore_map["Reset Midnight Once"]
 
         # Trigger overdue check
-        await coordinator.chore_manager.process_overdue_chores(dt_now_utc())
+        await coordinator.chore_manager._on_periodic_update(now_utc=dt_now_utc())
 
         # Verify state is PENDING (not overdue)
         state = get_kid_chore_state(coordinator, zoe_id, chore_id)
@@ -561,7 +561,7 @@ class TestOverdueDetection:
         set_chore_due_date_to_past(coordinator, chore_id, zoe_id, days_ago=3)
 
         # Trigger overdue check
-        await coordinator.chore_manager.process_overdue_chores(dt_now_utc())
+        await coordinator.chore_manager._on_periodic_update(now_utc=dt_now_utc())
 
         # Verify state is OVERDUE
         state = get_kid_chore_state(coordinator, zoe_id, chore_id)
@@ -1191,7 +1191,7 @@ class TestOverdueAtDueDate:
         set_chore_due_date_to_past(coordinator, chore_id, zoe_id, days_ago=1)
 
         # Run the overdue check
-        await coordinator.chore_manager.process_overdue_chores(dt_now_utc())
+        await coordinator.chore_manager._on_periodic_update(now_utc=dt_now_utc())
 
         # Verify state is now OVERDUE
         kid_chore_data = coordinator.chore_manager.get_chore_data_for_kid(
@@ -1223,7 +1223,7 @@ class TestOverdueAtDueDate:
         chore_id = chore_map["Reset Midnight Once"]  # Has due_date_relative: "future"
 
         # Run overdue check
-        await coordinator.chore_manager.process_overdue_chores(dt_now_utc())
+        await coordinator.chore_manager._on_periodic_update(now_utc=dt_now_utc())
 
         # Verify state is NOT overdue
         assert not coordinator.chore_manager.chore_is_overdue(zoe_id, chore_id), (
@@ -1267,7 +1267,7 @@ class TestOverdueNeverOverdue:
         set_chore_due_date_to_past(coordinator, chore_id, zoe_id, days_ago=1)
 
         # Run overdue check
-        await coordinator.chore_manager.process_overdue_chores(dt_now_utc())
+        await coordinator.chore_manager._on_periodic_update(now_utc=dt_now_utc())
 
         # Verify state is STILL PENDING or None (not overdue despite past due date)
         kid_chore_data = coordinator.chore_manager.get_chore_data_for_kid(
@@ -1312,7 +1312,7 @@ class TestOverdueThenReset:
         set_chore_due_date_to_past(coordinator, chore_id, zoe_id, days_ago=1)
 
         # Run overdue check
-        await coordinator.chore_manager.process_overdue_chores(dt_now_utc())
+        await coordinator.chore_manager._on_periodic_update(now_utc=dt_now_utc())
 
         # Verify state is OVERDUE
         kid_chore_data = coordinator.chore_manager.get_chore_data_for_kid(
@@ -1340,7 +1340,7 @@ class TestOverdueThenReset:
         The THEN_RESET behavior means when the approval reset cycle runs,
         the OVERDUE state is cleared and chore returns to PENDING.
 
-        Key mechanism: _reset_daily_chore_statuses() checks overdue_handling_type
+        Key mechanism: _process_approval_boundary() checks overdue_handling_type
         and when it's AT_DUE_DATE_THEN_RESET, the OVERDUE state is NOT skipped
         during reset (should_clear_overdue = True).
         """
@@ -1354,7 +1354,7 @@ class TestOverdueThenReset:
         set_chore_due_date_to_past(coordinator, chore_id, zoe_id, days_ago=1)
 
         # Run overdue check - should become overdue
-        await coordinator.chore_manager.process_overdue_chores(dt_now_utc())
+        await coordinator.chore_manager._on_periodic_update(now_utc=dt_now_utc())
 
         # Verify chore is overdue
         kid_chore_data = coordinator.chore_manager.get_chore_data_for_kid(
@@ -1364,7 +1364,7 @@ class TestOverdueThenReset:
 
         # Run the daily reset - this is what clears AT_DUE_DATE_THEN_RESET chores
         # The reset method checks overdue_handling_type and clears OVERDUE state
-        await coordinator.chore_manager._reset_daily_chore_statuses([FREQUENCY_DAILY])
+        await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
 
         # After reset, the chore should be back to PENDING
         kid_chore_data = coordinator.chore_manager.get_chore_data_for_kid(
@@ -1396,7 +1396,7 @@ class TestOverdueThenReset:
         set_chore_due_date_to_past(coordinator, chore_id, zoe_id, days_ago=2)
 
         # Run overdue check
-        await coordinator.chore_manager.process_overdue_chores(dt_now_utc())
+        await coordinator.chore_manager._on_periodic_update(now_utc=dt_now_utc())
 
         # Verify chore is marked overdue
         assert coordinator.chore_manager.chore_is_overdue(zoe_id, chore_id), (
@@ -1405,7 +1405,7 @@ class TestOverdueThenReset:
 
         # Without running reset, chore should stay overdue
         # Run overdue check again (simulates time passing but no reset)
-        await coordinator.chore_manager.process_overdue_chores(dt_now_utc())
+        await coordinator.chore_manager._on_periodic_update(now_utc=dt_now_utc())
 
         # Still overdue
         assert coordinator.chore_manager.chore_is_overdue(zoe_id, chore_id), (
@@ -1446,7 +1446,7 @@ class TestOverdueClaimedChoreNotOverdue:
         set_chore_due_date_to_past(coordinator, chore_id, zoe_id, days_ago=1)
 
         # Run overdue check
-        await coordinator.chore_manager.process_overdue_chores(dt_now_utc())
+        await coordinator.chore_manager._on_periodic_update(now_utc=dt_now_utc())
 
         # Verify state is STILL CLAIMED (not overdue)
         kid_chore_data = coordinator.chore_manager.get_chore_data_for_kid(
@@ -1479,7 +1479,7 @@ class TestIsOverdueHelper:
         set_chore_due_date_to_past(coordinator, chore_id, zoe_id, days_ago=1)
 
         # Run overdue check to mark chore as overdue
-        await coordinator.chore_manager.process_overdue_chores(dt_now_utc())
+        await coordinator.chore_manager._on_periodic_update(now_utc=dt_now_utc())
 
         # Verify chore_is_overdue returns True
         result = coordinator.chore_manager.chore_is_overdue(zoe_id, chore_id)
@@ -1500,7 +1500,7 @@ class TestIsOverdueHelper:
         chore_id = chore_map["Reset Midnight Once"]
 
         # Run overdue check
-        await coordinator.chore_manager.process_overdue_chores(dt_now_utc())
+        await coordinator.chore_manager._on_periodic_update(now_utc=dt_now_utc())
 
         # Verify chore_is_overdue returns False
         result = coordinator.chore_manager.chore_is_overdue(zoe_id, chore_id)
@@ -1573,7 +1573,7 @@ class TestPendingClaimHold:
         )
 
         # Trigger reset (simulate midnight reset)
-        await coordinator.chore_manager._reset_daily_chore_statuses([FREQUENCY_DAILY])
+        await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
 
         # Verify state is STILL CLAIMED (hold action keeps the claim)
         state_after = get_kid_chore_state(coordinator, zoe_id, chore_id)
@@ -1607,7 +1607,7 @@ class TestPendingClaimHold:
         await coordinator.chore_manager.claim_chore(zoe_id, chore_id, "Test User")
 
         # Trigger reset
-        await coordinator.chore_manager._reset_daily_chore_statuses([FREQUENCY_DAILY])
+        await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
 
         # Verify points unchanged (no auto-approval)
         kid_info = coordinator.kids_data.get(zoe_id, {})
@@ -1656,7 +1656,7 @@ class TestPendingClaimClear:
         set_chore_due_date_to_past(coordinator, chore_id, zoe_id, days_ago=1)
 
         # Trigger reset
-        await coordinator.chore_manager._reset_daily_chore_statuses([FREQUENCY_DAILY])
+        await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
 
         # Verify state is PENDING (claim was cleared)
         state_after = get_kid_chore_state(coordinator, zoe_id, chore_id)
@@ -1689,7 +1689,7 @@ class TestPendingClaimClear:
         set_chore_due_date_to_past(coordinator, chore_id, zoe_id, days_ago=1)
 
         # Trigger reset
-        await coordinator.chore_manager._reset_daily_chore_statuses([FREQUENCY_DAILY])
+        await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
 
         # Verify pending claim is cleared
         assert not coordinator.chore_manager.chore_has_pending_claim(
@@ -1720,7 +1720,7 @@ class TestPendingClaimClear:
         set_chore_due_date_to_past(coordinator, chore_id, zoe_id, days_ago=1)
 
         # Trigger reset
-        await coordinator.chore_manager._reset_daily_chore_statuses([FREQUENCY_DAILY])
+        await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
 
         # Verify points unchanged
         kid_info = coordinator.kids_data.get(zoe_id, {})
@@ -1773,7 +1773,7 @@ class TestPendingClaimAutoApprove:
         set_chore_due_date_to_past(coordinator, chore_id, zoe_id, days_ago=1)
 
         # Trigger reset
-        await coordinator.chore_manager._reset_daily_chore_statuses([FREQUENCY_DAILY])
+        await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
 
         # Verify points awarded (auto-approval happened)
         kid_info = coordinator.kids_data.get(zoe_id, {})
@@ -1808,7 +1808,7 @@ class TestPendingClaimAutoApprove:
         set_chore_due_date_to_past(coordinator, chore_id, zoe_id, days_ago=1)
 
         # Trigger reset
-        await coordinator.chore_manager._reset_daily_chore_statuses([FREQUENCY_DAILY])
+        await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
 
         # Verify state is PENDING after reset (auto-approval + reset)
         state_after = get_kid_chore_state(coordinator, zoe_id, chore_id)
@@ -1841,7 +1841,7 @@ class TestPendingClaimAutoApprove:
         set_chore_due_date_to_past(coordinator, chore_id, zoe_id, days_ago=1)
 
         # Trigger reset
-        await coordinator.chore_manager._reset_daily_chore_statuses([FREQUENCY_DAILY])
+        await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
 
         # Verify pending claim is cleared after auto-approval and reset
         assert not coordinator.chore_manager.chore_has_pending_claim(
@@ -1882,7 +1882,7 @@ class TestPendingClaimEdgeCases:
         set_chore_due_date_to_past(coordinator, chore_id, zoe_id, days_ago=1)
 
         # Trigger reset
-        await coordinator.chore_manager._reset_daily_chore_statuses([FREQUENCY_DAILY])
+        await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
 
         # State should be PENDING after reset (normal reset behavior)
         state_after = get_kid_chore_state(coordinator, zoe_id, chore_id)
@@ -1910,7 +1910,7 @@ class TestPendingClaimEdgeCases:
         points_before = kid_info.get(DATA_KID_POINTS, 0)
 
         # Don't claim - just trigger reset
-        await coordinator.chore_manager._reset_daily_chore_statuses([FREQUENCY_DAILY])
+        await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
 
         # Verify points unchanged (no pending claim to auto-approve)
         kid_info = coordinator.kids_data.get(zoe_id, {})
@@ -2558,7 +2558,7 @@ class TestPendingClaimActionBehavior:
 
         # Trigger reset (simulating midnight reset for daily chores)
         # The reset method checks approval_reset_pending_claim_action
-        await coordinator.chore_manager._reset_daily_chore_statuses([FREQUENCY_DAILY])
+        await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
 
         # After reset with clear_pending, chore should be PENDING
         state_after = get_kid_chore_state(coordinator, zoe_id, chore_id)
@@ -2589,7 +2589,7 @@ class TestPendingClaimActionBehavior:
 
         # Trigger reset (simulating midnight reset for daily chores)
         # The reset method checks approval_reset_pending_claim_action
-        await coordinator.chore_manager._reset_daily_chore_statuses([FREQUENCY_DAILY])
+        await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
 
         # After reset with hold_pending, chore should still be CLAIMED
         state_after = get_kid_chore_state(coordinator, zoe_id, chore_id)
@@ -2630,7 +2630,7 @@ class TestPendingClaimActionBehavior:
 
         # Trigger reset (simulating midnight reset for daily chores)
         # The reset method checks approval_reset_pending_claim_action
-        await coordinator.chore_manager._reset_daily_chore_statuses([FREQUENCY_DAILY])
+        await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
 
         # After reset with auto_approve_pending, points should be awarded
         zoe_points_after = coordinator.kids_data[zoe_id].get(DATA_KID_POINTS, 0)
@@ -2693,7 +2693,7 @@ class TestApprovalResetEdgeCases:
         )
 
         # Trigger daily reset (this should NOT reset the chore due to no due date)
-        await coordinator.chore_manager._reset_daily_chore_statuses([FREQUENCY_DAILY])
+        await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
 
         # State should remain APPROVED (not reset to PENDING)
         assert (
@@ -2771,7 +2771,7 @@ class TestApprovalResetEdgeCases:
             )
 
         # After multiple approvals, trigger reset should not change behavior
-        await coordinator.chore_manager._reset_daily_chore_statuses([FREQUENCY_DAILY])
+        await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
 
         # Should still be able to claim again (MULTI allows multiple claims)
         can_claim, error_key = coordinator.chore_manager.can_claim_chore(

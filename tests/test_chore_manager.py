@@ -313,13 +313,19 @@ class TestResetAndOverdue:
 
     @pytest.mark.asyncio
     async def test_reset_chore(self, chore_manager: ChoreManager) -> None:
-        """Test chore reset."""
+        """Test chore reset via _transition_chore_state."""
         # Claim and approve first
         await chore_manager.claim_chore("kid-1", "chore-1", "Alice")
         chore_manager.emit.reset_mock()
 
-        # Reset
-        await chore_manager.reset_chore("kid-1", "chore-1")
+        # Reset using _transition_chore_state (master method for state changes)
+        chore_manager._transition_chore_state(
+            "kid-1",
+            "chore-1",
+            const.CHORE_STATE_PENDING,
+            reset_approval_period=True,
+            clear_ownership=True,
+        )
 
         # Verify state reset to pending
         kid_chore_data = chore_manager._coordinator.kids_data["kid-1"][
@@ -334,10 +340,10 @@ class TestResetAndOverdue:
         call_args = chore_manager.emit.call_args
         assert call_args[0][0] == const.SIGNAL_SUFFIX_CHORE_STATUS_RESET
 
-    async def test_mark_overdue_via_time_check(
+    async def test_mark_overdue_via_periodic_update(
         self, chore_manager: ChoreManager
     ) -> None:
-        """Test that process_overdue_chores calls process_time_checks and returns count.
+        """Test that _on_periodic_update calls process_time_checks and processes overdue.
 
         Note: This tests the public API interface. Full integration testing
         of overdue state transitions is covered by test_scheduler_delegation.py.
@@ -354,14 +360,17 @@ class TestResetAndOverdue:
                 "overdue": [mock_entry],
                 "in_due_window": [],
                 "due_reminder": [],
+                "approval_reset_shared": [],
+                "approval_reset_independent": [],
             }
         )
 
-        # Mock _process_overdue
+        # Mock _process_overdue and _process_approval_reset_entries
         chore_manager._process_overdue = AsyncMock(return_value=None)
+        chore_manager._process_approval_reset_entries = AsyncMock(return_value=0)
 
-        # Process overdue checks
-        result = await chore_manager.process_overdue_chores(dt_now_utc())
+        # Process periodic update
+        await chore_manager._on_periodic_update(now_utc=dt_now_utc())
 
         # Verify process_time_checks was called
         chore_manager.process_time_checks.assert_called_once()
@@ -370,9 +379,6 @@ class TestResetAndOverdue:
         chore_manager._process_overdue.assert_called_once()
         call_args = chore_manager._process_overdue.call_args[0]
         assert len(call_args[0]) == 1  # One overdue entry
-
-        # Verify return value is the count
-        assert result == 1
 
 
 # ============================================================================

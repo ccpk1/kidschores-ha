@@ -694,7 +694,7 @@ class TestResetOverdueChoresService:
         with patch.object(
             coordinator.notification_manager, "notify_kid", new=AsyncMock()
         ):
-            await coordinator.chore_manager.process_overdue_chores(dt_now_utc())
+            await coordinator.chore_manager._on_periodic_update(now_utc=dt_now_utc())
 
         # Verify overdue
         assert coordinator.chore_manager.chore_is_overdue(zoe_id, chore_id), (
