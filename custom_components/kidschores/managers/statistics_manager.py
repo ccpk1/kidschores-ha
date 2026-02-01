@@ -146,10 +146,15 @@ class StatisticsManager(BaseManager):
 
         # Subscribe to chore events
         self.listen(const.SIGNAL_SUFFIX_CHORE_APPROVED, self._on_chore_approved)
+        self.listen(const.SIGNAL_SUFFIX_CHORE_AUTO_APPROVED, self._on_chore_approved)
         self.listen(const.SIGNAL_SUFFIX_CHORE_COMPLETED, self._on_chore_completed)
         self.listen(const.SIGNAL_SUFFIX_CHORE_CLAIMED, self._on_chore_claimed)
         self.listen(const.SIGNAL_SUFFIX_CHORE_DISAPPROVED, self._on_chore_disapproved)
         self.listen(const.SIGNAL_SUFFIX_CHORE_OVERDUE, self._on_chore_overdue)
+
+        # Quiet transitions - state changes without bucket writes (snapshot only)
+        self.listen(const.SIGNAL_SUFFIX_CHORE_STATUS_RESET, self._on_chore_status_reset)
+        self.listen(const.SIGNAL_SUFFIX_CHORE_UNDONE, self._on_chore_undone)
 
         # Subscribe to reward approval events
         self.listen(const.SIGNAL_SUFFIX_REWARD_APPROVED, self._on_reward_approved)
@@ -442,13 +447,16 @@ class StatisticsManager(BaseManager):
             if effective_date
             else None
         )
-        period_mapping = self._stats_engine.get_period_keys(bucket_dt)
 
         # Record transaction to period buckets
+        # NOTE: Do NOT pass period_mapping as period_key_mapping!
+        # period_mapping contains date strings like '2026-01-31'
+        # period_key_mapping expects structure keys like DATA_KID_CHORE_DATA_PERIODS_DAILY
+        # Engine will use default mapping which is correct for chore periods
         self._stats_engine.record_transaction(
             periods,
             increments,
-            period_key_mapping=period_mapping,
+            reference_date=bucket_dt,
         )
 
         # Prune old period data
@@ -470,7 +478,7 @@ class StatisticsManager(BaseManager):
         """Handle CHORE_APPROVED event - update approval statistics.
 
         Records approved count and points to period buckets.
-        Note: Completion is tracked separately via CHORE_COMPLETED signal.
+        Note: Completion and streaks are tracked separately via CHORE_COMPLETED signal.
         """
         kid_id = payload.get("kid_id", "")
         chore_id = payload.get("chore_id", "")
@@ -493,16 +501,22 @@ class StatisticsManager(BaseManager):
 
     @callback
     def _on_chore_completed(self, payload: dict[str, Any]) -> None:
-        """Handle CHORE_COMPLETED event - update completion statistics.
+        """Handle CHORE_COMPLETED event - update completion and streak statistics.
 
         Called when completion criteria is satisfied:
-        - INDEPENDENT: Immediately on approval
+        - INDEPENDENT: Immediately on approval (one kid)
         - SHARED_FIRST: First approving kid only
         - SHARED (all): All kids when last is approved
+
+        Records:
+        - Completion count (always)
+        - Streak tally (if provided, max 1 per day per kid)
+        - Longest streak in all_time bucket
         """
         chore_id = payload.get("chore_id", "")
         kid_ids = payload.get("kid_ids", [])
         effective_date = payload.get("effective_date")
+        streak_tallies = payload.get("streak_tallies", {})  # dict: kid_id -> streak
 
         if not kid_ids:
             const.LOGGER.warning(
@@ -513,10 +527,65 @@ class StatisticsManager(BaseManager):
 
         # Record completion for each kid (batch mode - persist once at end)
         for kid_id in kid_ids:
+            # Build increments for this kid
+            increments: dict[str, int | float] = {
+                const.DATA_KID_CHORE_DATA_PERIOD_COMPLETED: 1,
+            }
+
+            # Handle streak_tally with max-1-per-day enforcement
+            streak_tally = streak_tallies.get(kid_id)
+            if streak_tally is not None:
+                # Get periods structure to check today's bucket
+                kid_info = self._get_kid(kid_id)
+                if kid_info:
+                    chore_data = kid_info.get(const.DATA_KID_CHORE_DATA, {})
+                    kid_chore_data = chore_data.get(chore_id, {})
+                    periods = kid_chore_data.get(const.DATA_KID_CHORE_DATA_PERIODS, {})
+                    daily_buckets = periods.get(
+                        const.DATA_KID_CHORE_DATA_PERIODS_DAILY, {}
+                    )
+
+                    # Get today's bucket key
+                    today_key = self._stats_engine.get_period_keys().get("daily")
+
+                    # Check if already set today (max 1 update per day)
+                    should_write_streak = True
+                    if today_key and today_key in daily_buckets:
+                        if (
+                            const.DATA_KID_CHORE_DATA_PERIOD_STREAK_TALLY
+                            in daily_buckets[today_key]
+                        ):
+                            should_write_streak = False
+                            const.LOGGER.debug(
+                                "StatisticsManager._on_chore_completed: SKIP streak_tally "
+                                "(already set today) kid=%s, chore=%s, date=%s",
+                                kid_id,
+                                chore_id,
+                                today_key,
+                            )
+
+                    # Add to increments if not already set today
+                    if should_write_streak:
+                        increments[const.DATA_KID_CHORE_DATA_PERIOD_STREAK_TALLY] = (
+                            streak_tally
+                        )
+
+                        # Update longest_streak in all_time bucket if new high
+                        all_time = periods.get(
+                            const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME, {}
+                        )
+                        current_longest = all_time.get(
+                            const.DATA_KID_CHORE_DATA_PERIOD_LONGEST_STREAK, 0
+                        )
+                        if streak_tally > current_longest:
+                            all_time[
+                                const.DATA_KID_CHORE_DATA_PERIOD_LONGEST_STREAK
+                            ] = streak_tally
+
             if self._record_chore_transaction(
                 kid_id,
                 chore_id,
-                {const.DATA_KID_CHORE_DATA_PERIOD_COMPLETED: 1},
+                increments,
                 effective_date,
                 persist=False,  # Batch: persist once after loop
             ):
@@ -563,15 +632,100 @@ class StatisticsManager(BaseManager):
 
     @callback
     def _on_chore_overdue(self, payload: dict[str, Any]) -> None:
-        """Handle CHORE_OVERDUE event - record overdue to period buckets."""
+        """Handle CHORE_OVERDUE event - record overdue to period buckets.
+
+        Enforces max 1 overdue per day by checking today's bucket value before
+        incrementing. This ensures daily buckets never exceed 1 for overdue count.
+        """
         kid_id = payload.get("kid_id", "")
         chore_id = payload.get("chore_id", "")
 
+        # Get periods structure to check today's bucket
+        kid_info = self._get_kid(kid_id)
+        if not kid_info:
+            return
+
+        chore_data = kid_info.get(const.DATA_KID_CHORE_DATA, {})
+        kid_chore_data = chore_data.get(chore_id, {})
+        periods = kid_chore_data.get(const.DATA_KID_CHORE_DATA_PERIODS, {})
+        daily_buckets = periods.get(const.DATA_KID_CHORE_DATA_PERIODS_DAILY, {})
+
+        # Get today's bucket key
+        today_key = self._stats_engine.get_period_keys().get("daily")
+
+        # Check if today's bucket already has overdue >= 1 (max 1 per day rule)
+        if today_key and today_key in daily_buckets:
+            existing_overdue = daily_buckets[today_key].get(
+                const.DATA_KID_CHORE_DATA_PERIOD_OVERDUE, 0
+            )
+            if existing_overdue >= 1:
+                const.LOGGER.debug(
+                    "StatisticsManager._on_chore_overdue: SKIP (already at max 1) "
+                    "kid=%s, chore=%s, date=%s, current=%d",
+                    kid_id,
+                    chore_id,
+                    today_key,
+                    existing_overdue,
+                )
+                return
+
+        # Proceed with increment (will create bucket if needed)
         if self._record_chore_transaction(
             kid_id, chore_id, {const.DATA_KID_CHORE_DATA_PERIOD_OVERDUE: 1}
         ):
             const.LOGGER.debug(
                 "StatisticsManager._on_chore_overdue: kid=%s, chore=%s",
+                kid_id,
+                chore_id,
+            )
+
+    @callback
+    def _on_chore_status_reset(self, payload: dict[str, Any]) -> None:
+        """Handle CHORE_STATUS_RESET event - refresh snapshot counts.
+
+        STATUS_RESET is a quiet transition (no bucket writes needed).
+        We only need to refresh the chore cache to update current_* counts.
+
+        Args:
+            payload: Event data containing:
+                - kid_id: The kid's internal ID
+                - chore_id: The chore's internal ID
+                - chore_name: The chore's display name
+        """
+        kid_id = payload.get("kid_id", "")
+        chore_id = payload.get("chore_id", "")
+
+        if kid_id:
+            self._schedule_cache_refresh(kid_id, "chore")
+            const.LOGGER.debug(
+                "StatisticsManager._on_chore_status_reset: kid=%s, chore=%s",
+                kid_id,
+                chore_id,
+            )
+
+    @callback
+    def _on_chore_undone(self, payload: dict[str, Any]) -> None:
+        """Handle CHORE_UNDONE event - refresh snapshot counts.
+
+        UNDONE is a quiet transition (no bucket writes needed).
+        We only need to refresh the chore cache to update current_* counts.
+
+        Note: Point reclamation is handled by EconomyManager via
+        POINTS_CHANGED signal; this handler only refreshes counts.
+
+        Args:
+            payload: Event data containing:
+                - kid_id: The kid's internal ID
+                - chore_id: The chore's internal ID
+                - points_to_reclaim: Points that were reclaimed
+        """
+        kid_id = payload.get("kid_id", "")
+        chore_id = payload.get("chore_id", "")
+
+        if kid_id:
+            self._schedule_cache_refresh(kid_id, "chore")
+            const.LOGGER.debug(
+                "StatisticsManager._on_chore_undone: kid=%s, chore=%s",
                 kid_id,
                 chore_id,
             )
@@ -808,7 +962,8 @@ class StatisticsManager(BaseManager):
     def _refresh_chore_cache(self, kid_id: str) -> None:
         """Refresh chore statistics cache for a kid.
 
-        Derives temporal chore stats from chore_data periods.
+        Derives temporal chore stats from chore_data periods and extracts
+        snapshot counts (current_overdue, current_claimed, etc.) from Engine.
         Only runs on chore-related events.
 
         Args:
@@ -819,6 +974,26 @@ class StatisticsManager(BaseManager):
             return
 
         cache = self._stats_cache.setdefault(kid_id, {})
+
+        # === Snapshot counts from Engine (single source of truth) ===
+        # Engine iterates all chores to count current states
+        full_stats = self.coordinator.stats.generate_chore_stats(
+            kid_info, self.coordinator.chores_data
+        )
+        cache[const.PRES_KID_CHORES_CURRENT_OVERDUE] = full_stats.get(
+            const.DATA_KID_CHORE_STATS_CURRENT_OVERDUE, 0
+        )
+        cache[const.PRES_KID_CHORES_CURRENT_CLAIMED] = full_stats.get(
+            const.DATA_KID_CHORE_STATS_CURRENT_CLAIMED, 0
+        )
+        cache[const.PRES_KID_CHORES_CURRENT_APPROVED] = full_stats.get(
+            const.DATA_KID_CHORE_STATS_CURRENT_APPROVED, 0
+        )
+        cache[const.PRES_KID_CHORES_CURRENT_DUE_TODAY] = full_stats.get(
+            const.DATA_KID_CHORE_STATS_CURRENT_DUE_TODAY, 0
+        )
+
+        # === Temporal aggregates from period buckets ===
         chore_data = kid_info.get(const.DATA_KID_CHORE_DATA, {})
 
         now_local = dt_now_local()
@@ -900,19 +1075,48 @@ class StatisticsManager(BaseManager):
             claimed_year += year_entry.get(const.DATA_KID_CHORE_DATA_PERIOD_CLAIMED, 0)
             points_year += year_entry.get(const.DATA_KID_CHORE_DATA_PERIOD_POINTS, 0)
 
+        # Aggregate all_time stats from all chore period buckets
+        approved_all_time = 0
+        completed_all_time = 0
+        claimed_all_time = 0
+        points_all_time = 0.0
+
+        for _chore_id, chore_info in chore_data.items():
+            periods = chore_info.get(const.DATA_KID_CHORE_DATA_PERIODS, {})
+            all_time_periods = periods.get(
+                const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME, {}
+            )
+
+            # All-time bucket stores cumulative totals
+            approved_all_time += all_time_periods.get(
+                const.DATA_KID_CHORE_DATA_PERIOD_APPROVED, 0
+            )
+            completed_all_time += all_time_periods.get(
+                const.DATA_KID_CHORE_DATA_PERIOD_COMPLETED, 0
+            )
+            claimed_all_time += all_time_periods.get(
+                const.DATA_KID_CHORE_DATA_PERIOD_CLAIMED, 0
+            )
+            points_all_time += all_time_periods.get(
+                const.DATA_KID_CHORE_DATA_PERIOD_POINTS, 0
+            )
+
         # Store in cache
         cache[const.PRES_KID_CHORES_APPROVED_TODAY] = approved_today
         cache[const.PRES_KID_CHORES_APPROVED_WEEK] = approved_week
         cache[const.PRES_KID_CHORES_APPROVED_MONTH] = approved_month
         cache[const.PRES_KID_CHORES_APPROVED_YEAR] = approved_year
+        cache[const.PRES_KID_CHORES_APPROVED_ALL_TIME] = approved_all_time
         cache[const.PRES_KID_CHORES_COMPLETED_TODAY] = completed_today
         cache[const.PRES_KID_CHORES_COMPLETED_WEEK] = completed_week
         cache[const.PRES_KID_CHORES_COMPLETED_MONTH] = completed_month
         cache[const.PRES_KID_CHORES_COMPLETED_YEAR] = completed_year
+        cache[const.PRES_KID_CHORES_COMPLETED_ALL_TIME] = completed_all_time
         cache[const.PRES_KID_CHORES_CLAIMED_TODAY] = claimed_today
         cache[const.PRES_KID_CHORES_CLAIMED_WEEK] = claimed_week
         cache[const.PRES_KID_CHORES_CLAIMED_MONTH] = claimed_month
         cache[const.PRES_KID_CHORES_CLAIMED_YEAR] = claimed_year
+        cache[const.PRES_KID_CHORES_CLAIMED_ALL_TIME] = claimed_all_time
         cache[const.PRES_KID_CHORES_POINTS_TODAY] = round(
             points_today, const.DATA_FLOAT_PRECISION
         )
@@ -924,6 +1128,9 @@ class StatisticsManager(BaseManager):
         )
         cache[const.PRES_KID_CHORES_POINTS_YEAR] = round(
             points_year, const.DATA_FLOAT_PRECISION
+        )
+        cache[const.PRES_KID_CHORES_POINTS_ALL_TIME] = round(
+            points_all_time, const.DATA_FLOAT_PRECISION
         )
 
     def _refresh_reward_cache(self, kid_id: str) -> None:

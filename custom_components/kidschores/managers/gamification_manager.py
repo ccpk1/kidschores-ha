@@ -114,8 +114,10 @@ class GamificationManager(BaseManager):
 
         # Chore events affect chore count, daily completion, streaks
         self.listen(const.SIGNAL_SUFFIX_CHORE_APPROVED, self._on_chore_approved)
+        self.listen(const.SIGNAL_SUFFIX_CHORE_AUTO_APPROVED, self._on_chore_approved)
         self.listen(const.SIGNAL_SUFFIX_CHORE_DISAPPROVED, self._on_chore_disapproved)
         self.listen(const.SIGNAL_SUFFIX_CHORE_STATUS_RESET, self._on_chore_status_reset)
+        self.listen(const.SIGNAL_SUFFIX_CHORE_OVERDUE, self._on_chore_overdue)
 
         # Reward events can affect specific badges
         self.listen(const.SIGNAL_SUFFIX_REWARD_APPROVED, self._on_reward_approved)
@@ -253,6 +255,18 @@ class GamificationManager(BaseManager):
 
     def _on_chore_status_reset(self, payload: dict[str, Any]) -> None:
         """Handle chore_status_reset event.
+
+        Args:
+            payload: Event data with kid_id, chore_id, etc.
+        """
+        kid_id = payload.get("kid_id")
+        if kid_id:
+            self._mark_pending(kid_id)
+
+    def _on_chore_overdue(self, payload: dict[str, Any]) -> None:
+        """Handle chore_overdue event.
+
+        Overdue events can affect "perfect week" or streak-based badges.
 
         Args:
             payload: Event data with kid_id, chore_id, etc.
@@ -484,7 +498,14 @@ class GamificationManager(BaseManager):
 
         This ensures restart resilience - if HA restarts during debounce window,
         pending evaluations will be recovered on next startup.
+
+        Uses call_soon_threadsafe since this may be called from dispatcher
+        (SyncWorker thread) via signal handlers.
         """
+        self.hass.loop.call_soon_threadsafe(self._persist_pending_impl)
+
+    def _persist_pending_impl(self) -> None:
+        """Internal implementation that runs on the event loop thread."""
         meta = self.coordinator._data.setdefault(const.DATA_META, {})
         meta[const.DATA_META_PENDING_EVALUATIONS] = list(self._pending_evaluations)
         self.coordinator._persist()
@@ -495,8 +516,13 @@ class GamificationManager(BaseManager):
         Args:
             kid_id: The internal UUID of the kid
         """
+        was_already_pending = kid_id in self._pending_evaluations
         self._pending_evaluations.add(kid_id)
-        self._persist_pending()
+
+        # Only persist if this is a NEW addition (optimization for burst events)
+        if not was_already_pending:
+            self._persist_pending()
+
         self._schedule_evaluation()
         const.LOGGER.debug(
             "Kid %s marked pending for gamification evaluation, %d total pending",

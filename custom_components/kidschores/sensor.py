@@ -857,9 +857,7 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
             self._chore_id, {}
         )
         periods = kid_chore_data.get(const.DATA_KID_CHORE_DATA_PERIODS, {})
-        all_time_stats = periods.get(
-            const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME, {}
-        ).get(const.PERIOD_ALL_TIME, {})
+        all_time_stats = periods.get(const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME, {})
 
         # Use new per-chore data for counts and streaks
         claims_count = all_time_stats.get(
@@ -1279,8 +1277,14 @@ class KidChoresSensor(KidsChoresCoordinatorEntity, SensorEntity):
         with temporal stats (today, week, month, year) from presentation cache.
         Temporal stats use PRES_* keys mapped to backward-compatible attribute names.
 
-        Attribute order: common fields first (purpose, kid_name),
-        then all chore_stat_* fields sorted alphabetically.
+        Attribute order organized into logical groups for better UX:
+        1. Identity (purpose, kid_name)
+        2. Current Status (current_due_today, current_claimed, current_approved, current_overdue)
+        3. Today (approved_today, claimed_today, completed_today, points_today)
+        4. This Week (approved_this_week, claimed_this_week, completed_this_week, points_this_week)
+        5. This Month (approved_this_month, claimed_this_month, completed_this_month, points_this_month)
+        6. This Year (approved_this_year, claimed_this_year, completed_this_year, points_this_year)
+        7. All-Time (approved_all_time, claimed_all_time, completed_all_time, disapproved_all_time, overdue_all_time, points_all_time, longest_streak, most_completed_chore)
         """
         kid_info: KidData = cast(
             "KidData", self.coordinator.kids_data.get(self._kid_id, {})
@@ -1288,30 +1292,100 @@ class KidChoresSensor(KidsChoresCoordinatorEntity, SensorEntity):
         # Get persistent stats from storage (all_time values, streaks, etc.)
         stats = kid_info.get(const.DATA_KID_CHORE_STATS, {})
 
-        # Common fields first (consistent ordering across sensors)
-        attributes: dict[str, Any] = {
-            const.ATTR_PURPOSE: const.TRANS_KEY_PURPOSE_CHORES,
-            const.ATTR_KID_NAME: self._kid_name,
-        }
-
-        # Add persistent stats from storage (sorted)
-        for key in sorted(stats.keys()):
-            attributes[f"{const.ATTR_PREFIX_CHORE_STAT}{key}"] = stats[key]
-
-        # Phase 7.5: Add temporal stats from presentation cache
-        # PRES_KID_CHORES_* keys need full prefix stripped to match translation keys
+        # Get temporal stats from presentation cache
         pres_stats = self.coordinator.statistics_manager.get_stats(self._kid_id)
+
+        # Build unified lookup dict for easier access
+        all_stats: dict[str, Any] = {}
+
+        # Add persistent stats (strip nothing, keep original keys)
+        all_stats.update(stats)
+
+        # Add temporal stats (strip PRES prefixes)
         for pres_key, value in pres_stats.items():
             if pres_key.startswith("pres_kid_chores_"):
-                # Strip "pres_kid_chores_" prefix (16 chars) to match translation keys
-                # "pres_kid_chores_approved_today" -> "approved_today"
-                attr_key = pres_key[16:]
-                attributes[f"{const.ATTR_PREFIX_CHORE_STAT}{attr_key}"] = value
+                attr_key = pres_key[
+                    16:
+                ]  # "pres_kid_chores_approved_today" -> "approved_today"
+                all_stats[attr_key] = value
             elif pres_key.startswith("pres_kid_top_chores_"):
-                # Strip "pres_kid_" prefix for top_chores keys
-                # "pres_kid_top_chores_xxx" -> "top_chores_xxx"
-                attr_key = pres_key[9:]
-                attributes[f"{const.ATTR_PREFIX_CHORE_STAT}{attr_key}"] = value
+                attr_key = pres_key[9:]  # "pres_kid_top_chores_xxx" -> "top_chores_xxx"
+                all_stats[attr_key] = value
+
+        # Build attributes in logical order
+        attributes: dict[str, Any] = {}
+
+        # Group 1: Identity
+        attributes[const.ATTR_PURPOSE] = const.TRANS_KEY_PURPOSE_CHORES
+        attributes[const.ATTR_KID_NAME] = self._kid_name
+
+        # Group 2: Current Status
+        for key in [
+            "current_due_today",
+            "current_claimed",
+            "current_approved",
+            "current_overdue",
+        ]:
+            if key in all_stats:
+                attributes[f"{const.ATTR_PREFIX_CHORE_STAT}{key}"] = all_stats[key]
+
+        # Group 3: Today
+        for key in [
+            "approved_today",
+            "claimed_today",
+            "completed_today",
+            "points_today",
+        ]:
+            if key in all_stats:
+                attributes[f"{const.ATTR_PREFIX_CHORE_STAT}{key}"] = all_stats[key]
+
+        # Group 4: This Week
+        for key in [
+            "approved_week",
+            "claimed_week",
+            "completed_week",
+            "points_week",
+        ]:
+            if key in all_stats:
+                attributes[f"{const.ATTR_PREFIX_CHORE_STAT}{key}"] = all_stats[key]
+
+        # Group 5: This Month
+        for key in [
+            "approved_month",
+            "claimed_month",
+            "completed_month",
+            "points_month",
+        ]:
+            if key in all_stats:
+                attributes[f"{const.ATTR_PREFIX_CHORE_STAT}{key}"] = all_stats[key]
+
+        # Group 6: This Year
+        for key in [
+            "approved_year",
+            "claimed_year",
+            "completed_year",
+            "points_year",
+        ]:
+            if key in all_stats:
+                attributes[f"{const.ATTR_PREFIX_CHORE_STAT}{key}"] = all_stats[key]
+
+        # Group 7: All-Time
+        for key in [
+            "approved_all_time",
+            "claimed_all_time",
+            "completed_all_time",
+            "disapproved_all_time",
+            "overdue_all_time",
+            "points_all_time",
+            "longest_streak",
+            "most_completed_chore",
+        ]:
+            if key in all_stats:
+                attributes[f"{const.ATTR_PREFIX_CHORE_STAT}{key}"] = all_stats[key]
+
+        # Group 8: Top Chores (if present)
+        for key in sorted([k for k in all_stats if k.startswith("top_chores_")]):
+            attributes[f"{const.ATTR_PREFIX_CHORE_STAT}{key}"] = all_stats[key]
 
         return attributes
 

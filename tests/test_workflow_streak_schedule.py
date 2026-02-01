@@ -40,9 +40,10 @@ from custom_components.kidschores.const import (
     DATA_KID_CHORE_DATA_PERIODS_ALL_TIME,
     DATA_KID_CHORE_DATA_PERIODS_DAILY,
     FREQUENCY_CUSTOM,
+    HELPER_RETURN_DATETIME_LOCAL,
     TIME_UNIT_DAYS,
 )
-from custom_components.kidschores.utils.dt_utils import dt_today_local
+from custom_components.kidschores.utils.dt_utils import dt_parse, dt_today_local
 from tests.helpers import (
     DATA_CHORE_DUE_DATE,
     DATA_CHORE_RECURRING_FREQUENCY,
@@ -334,12 +335,16 @@ class TestStreakCalculation:
 
         # Use local dates (coordinator stores streaks by local date)
         today_local = dt_today_local()
-        yesterday_local = today_local - timedelta(days=1)
-        yesterday_iso = yesterday_local.isoformat()
 
         one_week_ago_utc = datetime.now(UTC) - timedelta(days=7)
+        # Convert last_completed (UTC) to local date for streak bucket key
+        one_week_ago_local = dt_parse(
+            one_week_ago_utc.isoformat(), return_type=HELPER_RETURN_DATETIME_LOCAL
+        )
+        one_week_ago_iso = one_week_ago_local.date().isoformat()
+
         set_last_completed(coordinator, kid_id, chore_id, one_week_ago_utc)
-        set_yesterday_streak(coordinator, kid_id, chore_id, yesterday_iso, 3)
+        set_yesterday_streak(coordinator, kid_id, chore_id, one_week_ago_iso, 3)
 
         # Approve today (exactly 1 week later)
         with patch.object(
@@ -450,12 +455,16 @@ class TestStreakCalculation:
 
         # Use local dates (coordinator stores streaks by local date)
         today_local = dt_today_local()
-        yesterday_local = today_local - timedelta(days=1)
-        yesterday_iso = yesterday_local.isoformat()
 
         three_days_ago_utc = datetime.now(UTC) - timedelta(days=3)
+        # Convert last_completed (UTC) to local date for streak bucket key
+        three_days_ago_local = dt_parse(
+            three_days_ago_utc.isoformat(), return_type=HELPER_RETURN_DATETIME_LOCAL
+        )
+        three_days_ago_iso = three_days_ago_local.date().isoformat()
+
         set_last_completed(coordinator, kid_id, chore_id, three_days_ago_utc)
-        set_yesterday_streak(coordinator, kid_id, chore_id, yesterday_iso, 4)
+        set_yesterday_streak(coordinator, kid_id, chore_id, three_days_ago_iso, 4)
 
         # Approve today (exactly 3 days later = on schedule)
         with patch.object(

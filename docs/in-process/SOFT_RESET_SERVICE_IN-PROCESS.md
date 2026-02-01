@@ -9,14 +9,14 @@
 
 ## Summary & immediate steps
 
-| Phase / Step | Description | % complete | Quick notes |
-|--------------|-------------|------------|-------------|
-| Phase 1 – Research & Validation | Audit existing reset services and data structures | 100% | Research complete, validated all data structures |
-| Phase 2 – Service Constants | Add constants for new service and backup tag | 0% | Translation keys, service names, backup tags |
-| Phase 3 – Manager Methods | Implement stat reset methods in managers | 0% | 3 new methods needed across 2 managers |
-| Phase 4 – Service Handler | Implement orchestration service handler | 0% | Coordinates all reset operations |
-| Phase 5 – Service Registration | Register service and schema | 0% | services.yaml + services.py registration |
-| Phase 6 – Testing | Comprehensive test coverage | 0% | Service tests + manager method tests |
+| Phase / Step                    | Description                                       | % complete | Quick notes                                      |
+| ------------------------------- | ------------------------------------------------- | ---------- | ------------------------------------------------ |
+| Phase 1 – Research & Validation | Audit existing reset services and data structures | 100%       | Research complete, validated all data structures |
+| Phase 2 – Service Constants     | Add constants for new service and backup tag      | 0%         | Translation keys, service names, backup tags     |
+| Phase 3 – Manager Methods       | Implement stat reset methods in managers          | 0%         | 3 new methods needed across 2 managers           |
+| Phase 4 – Service Handler       | Implement orchestration service handler           | 0%         | Coordinates all reset operations                 |
+| Phase 5 – Service Registration  | Register service and schema                       | 0%         | services.yaml + services.py registration         |
+| Phase 6 – Testing               | Comprehensive test coverage                       | 0%         | Service tests + manager method tests             |
 
 1. **Key objective** – Implement a "soft reset" service that clears all transactional data (points, stats, streaks, progress) while preserving structural definitions (chore/reward/badge templates, kid profiles).
 2. **Summary of recent work** – Phase 1 research completed. Validated that existing `reset_all_chores` only resets states, not stats. Identified all data structures that need resetting.
@@ -43,39 +43,50 @@
 ### What Existing Reset Services Actually Do
 
 #### `reset_all_chores()` - ChoreManager
+
 **Resets**:
+
 - Chore state → `PENDING`
 - `approval_period_start` → now
 - Overdue notifications → cleared
 
 **Does NOT reset**:
+
 - Per-kid chore stats (`DATA_KID_CHORE_DATA`)
 - Period-based counters (daily/weekly/monthly)
 - Total counts, points, streaks
 
 #### `reset_rewards()` - RewardManager
+
 **Resets**:
+
 - Clears entire `reward_data[reward_id]` dict per kid
 - This removes: pending_count, notification_ids, timestamps, counters, periods
 
 **Correctly resets all reward tracking**.
 
 #### `reset_penalties()` - EconomyManager
+
 **Resets**:
+
 - Clears `penalty_applies` dict per kid
 - Removes "times applied" counters
 
 **Does NOT restore points** (as documented).
 
 #### `reset_bonuses()` - EconomyManager
+
 **Resets**:
+
 - Clears `bonus_applies` dict per kid
 - Removes "times applied" counters
 
 **Does NOT remove points** (as documented).
 
 #### `remove_awarded_badges()` - GamificationManager
+
 **Resets**:
+
 - Removes badge from kid's `badges_earned` dict
 - Removes kid from badge's `earned_by` list
 - Updates point multiplier for cumulative badges
@@ -87,6 +98,7 @@
 The following data structures are **NOT** reset by any existing service:
 
 #### Per-Kid Runtime Data (`DATA_KID_*`)
+
 - `points` → Should reset to 0
 - `points_multiplier` → Should reset to 1.0
 - `ledger` → Should clear to []
@@ -98,12 +110,15 @@ The following data structures are **NOT** reset by any existing service:
 - `chore_data` → Should clear (per-chore stats for kid)
 
 #### Achievement Progress (`DATA_ACHIEVEMENTS`)
+
 **Preserve**:
+
 - `internal_id`, `name`, `description`, `icon`, `labels`
 - `type`, `criteria`, `target_value`, `reward_points`
 - `assigned_kids`, `selected_chore_id`
 
 **Reset**:
+
 - `current_value` → 0
 - `current_streak` → 0
 - `progress` → 0.0
@@ -112,13 +127,16 @@ The following data structures are **NOT** reset by any existing service:
 - `baseline` → 0 or reset to initial value
 
 #### Challenge Progress (`DATA_CHALLENGES`)
+
 **Preserve**:
+
 - `internal_id`, `name`, `description`, `icon`, `labels`
 - `type`, `criteria`, `target_value`, `reward_points`
 - `assigned_kids`, `selected_chore_id`
 - `start_date`, `end_date`, `required_daily`
 
 **Reset**:
+
 - `count` → 0
 - `daily_counts` → {}
 - `progress` → 0.0
@@ -148,8 +166,8 @@ The following data structures are **NOT** reset by any existing service:
 
 - **Goal**: Add all constants needed for the new service
 - **Steps / detailed work items**
-  1. Add `SERVICE_RESET_TRANSACTIONAL_DATA = "reset_transactional_data"` to const.py (~line 3558 with other SERVICE_* constants)
-  2. Add `BACKUP_TAG_SOFT_RESET = "soft_reset"` to const.py (~line 4104 with other BACKUP_TAG_* constants)
+  1. Add `SERVICE_RESET_TRANSACTIONAL_DATA = "reset_transactional_data"` to const.py (~line 3558 with other SERVICE\_\* constants)
+  2. Add `BACKUP_TAG_SOFT_RESET = "soft_reset"` to const.py (~line 4104 with other BACKUP*TAG*\* constants)
   3. Add translation keys:
      - `TRANS_KEY_NOTIF_TITLE_SOFT_RESET = "notif_title_soft_reset"` (~line 1803)
      - `TRANS_KEY_NOTIF_MESSAGE_SOFT_RESET = "notif_message_soft_reset"` (~line 2053)
@@ -171,38 +189,39 @@ The following data structures are **NOT** reset by any existing service:
   - File: `custom_components/kidschores/managers/economy_manager.py`
   - Location: After `reset_bonuses()` method (~line 982)
   - Implementation:
+
     ```python
     def reset_all_kid_points_and_stats(self) -> None:
         """Reset all kid points, ledgers, streaks, and chore_data stats.
-        
+
         Preserves kid profiles (names, user IDs, notification settings).
         Used by soft reset service to clear runtime data.
         """
         for kid_id in self._data.get(const.DATA_KIDS, {}):
             kid = self._data[const.DATA_KIDS][kid_id]
-            
+
             # Reset points and multipliers to defaults
             kid[const.DATA_KID_POINTS] = const.DEFAULT_ZERO
             kid[const.DATA_KID_POINTS_MULTIPLIER] = const.DEFAULT_KID_POINTS_MULTIPLIER
-            
+
             # Clear transaction ledger
             kid[const.DATA_KID_LEDGER] = []
-            
+
             # Reset streak tracking
             kid[const.DATA_KID_CURRENT_STREAK] = 0
             kid[const.DATA_KID_OVERALL_CHORE_STREAK] = 0
             kid[const.DATA_KID_LAST_CHORE_DATE] = None
             kid[const.DATA_KID_LAST_STREAK_DATE] = None
-            
+
             # Clear per-chore stats for this kid
             kid[const.DATA_KID_CHORE_DATA] = {}
-            
+
             # Note: point_stats managed by StatisticsManager
             # Note: reward_data cleared by RewardManager.reset_rewards()
             # Note: penalty_applies cleared by reset_penalties()
             # Note: bonus_applies cleared by reset_bonuses()
             # Note: badges_earned cleared by GamificationManager.remove_awarded_badges()
-        
+
         const.LOGGER.info("Reset all kid points, ledgers, streaks, and chore stats")
     ```
 
@@ -210,31 +229,32 @@ The following data structures are **NOT** reset by any existing service:
   - File: `custom_components/kidschores/managers/gamification_manager.py`
   - Location: After `remove_awarded_badges_by_id()` method (~line 1850)
   - Implementation:
+
     ```python
     def reset_achievement_progress(self) -> None:
         """Reset all achievement progress for all kids.
-        
+
         Preserves achievement definitions, resets runtime progress.
         Used by soft reset service.
         """
         for achievement_id in self._data.get(const.DATA_ACHIEVEMENTS, {}):
             achievement = self._data[const.DATA_ACHIEVEMENTS][achievement_id]
-            
+
             # Reset progress tracking
             achievement[const.DATA_ACHIEVEMENT_CURRENT_VALUE] = 0
             achievement[const.DATA_ACHIEVEMENT_CURRENT_STREAK] = 0
             achievement[const.DATA_ACHIEVEMENT_PROGRESS] = 0.0
-            
+
             # Reset awarded status if field exists
             if const.DATA_ACHIEVEMENT_AWARDED in achievement:
                 achievement[const.DATA_ACHIEVEMENT_AWARDED] = False
-            
+
             # Clear last awarded date
             achievement[const.DATA_ACHIEVEMENT_LAST_AWARDED_DATE] = None
-            
+
             # Reset baseline to 0 (or could preserve initial baseline)
             achievement[const.DATA_ACHIEVEMENT_BASELINE] = 0
-        
+
         const.LOGGER.info("Reset all achievement progress")
     ```
 
@@ -242,25 +262,26 @@ The following data structures are **NOT** reset by any existing service:
   - File: `custom_components/kidschores/managers/gamification_manager.py`
   - Location: After `reset_achievement_progress()` method
   - Implementation:
+
     ```python
     def reset_challenge_progress(self) -> None:
         """Reset all challenge progress for all kids.
-        
+
         Preserves challenge definitions and time windows, resets runtime progress.
         Used by soft reset service.
         """
         for challenge_id in self._data.get(const.DATA_CHALLENGES, {}):
             challenge = self._data[const.DATA_CHALLENGES][challenge_id]
-            
+
             # Reset progress tracking
             challenge[const.DATA_CHALLENGE_COUNT] = 0
             challenge[const.DATA_CHALLENGE_DAILY_COUNTS] = {}
             challenge[const.DATA_CHALLENGE_PROGRESS] = 0.0
-            
+
             # Reset awarded status if field exists
             if const.DATA_CHALLENGE_AWARDED in challenge:
                 challenge[const.DATA_CHALLENGE_AWARDED] = False
-        
+
         const.LOGGER.info("Reset all challenge progress")
     ```
 
@@ -274,6 +295,7 @@ The following data structures are **NOT** reset by any existing service:
 - **Steps / detailed work items**
   1. Add handler to `services.py` after `handle_reset_all_data()` (~line 2297)
   2. Implementation pattern:
+
      ```python
      async def handle_reset_transactional_data(_call: ServiceCall):
          """Handle soft reset - clear transactional data, preserve structure."""
@@ -315,6 +337,7 @@ The following data structures are **NOT** reset by any existing service:
 
          const.LOGGER.info("Soft reset complete. All transactional data cleared.")
      ```
+
 - **Key issues**
   - None - follows existing service patterns
 
@@ -322,7 +345,7 @@ The following data structures are **NOT** reset by any existing service:
 
 - **Goal**: Register service with Home Assistant
 - **Steps / detailed work items**
-  1. Add service schema to `services.py` (near other RESET_* schemas ~line 171):
+  1. Add service schema to `services.py` (near other RESET\_\* schemas ~line 171):
      ```python
      RESET_TRANSACTIONAL_DATA_SCHEMA = vol.Schema({})
      ```
@@ -342,7 +365,7 @@ The following data structures are **NOT** reset by any existing service:
        description: >
          Soft reset: Resets all points, stats, streaks, and progress while preserving
          chore/reward/badge definitions and kid profiles. Creates backup before reset.
-         Use this for starting fresh (new school year, new points system) without 
+         Use this for starting fresh (new school year, new points system) without
          losing your setup.
        fields: {}
      ```
@@ -409,6 +432,7 @@ The following data structures are **NOT** reset by any existing service:
 The following structures are **NEVER** modified by this service:
 
 **Kids**: Profile data preserved
+
 - `internal_id`, `name`, `ha_user_id`, `mobile_notify_service`
 - `use_persistent_notifications`, `dashboard_language`
 - Shadow kid linkage (`is_shadow`, `linked_parent_id`)
@@ -416,34 +440,42 @@ The following structures are **NEVER** modified by this service:
 **Parents**: Completely untouched
 
 **Chores**: All definition fields preserved
+
 - `name`, `description`, `icon`, `labels`, `points`
 - `recurring_frequency`, `completion_criteria`, `assigned_kids`
 - `applicable_days`, `due_date`, `auto_approve`
 - All notification settings
 
 **Rewards**: All definition fields preserved
+
 - `name`, `description`, `icon`, `labels`, `cost`
 
 **Badges**: All definition fields preserved
+
 - `name`, `description`, `icon`, `type`, `threshold`, `multiplier`
 - Maintenance rules, reset frequency
 
 **Penalties**: All definition fields preserved
+
 - `name`, `description`, `icon`, `labels`, `points_deducted`
 
 **Bonuses**: All definition fields preserved
+
 - `name`, `description`, `icon`, `labels`, `points_awarded`
 
 **Achievements**: Definition fields preserved
+
 - `name`, `description`, `icon`, `labels`, `type`, `criteria`
 - `target_value`, `reward_points`, `assigned_kids`, `selected_chore_id`
 
 **Challenges**: Definition fields preserved
+
 - `name`, `description`, `icon`, `labels`, `type`, `criteria`
 - `target_value`, `reward_points`, `assigned_kids`, `selected_chore_id`
 - `start_date`, `end_date`, `required_daily`
 
 **System Settings**: Config entry options completely untouched
+
 - Points theme, intervals, retention settings, etc.
 
 ### Use Cases

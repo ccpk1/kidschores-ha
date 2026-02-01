@@ -18,6 +18,7 @@ for cross-domain communication (economy, notifications, achievements).
 from __future__ import annotations
 
 import asyncio
+from datetime import datetime
 from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.exceptions import HomeAssistantError
@@ -40,17 +41,16 @@ from ..helpers.entity_helpers import (
     remove_orphaned_shared_chore_sensors,
 )
 from ..utils.dt_utils import (
-    dt_add_interval,
+    HELPER_RETURN_DATETIME_LOCAL,
     dt_now_iso,
+    dt_parse,
     dt_parse_duration,
     dt_to_utc,
-    dt_today_local,
 )
 from .base_manager import BaseManager
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator
-    from datetime import datetime
 
     from homeassistant.core import HomeAssistant
 
@@ -519,24 +519,25 @@ class ChoreManager(BaseManager):
         # Used to set claim fields for consistency
         has_pending_claim = self.chore_has_pending_claim(kid_id, chore_id)
 
-        # Get yesterday's streak for continuation check
-        today_iso = dt_today_local().isoformat()
-        yesterday_iso = dt_add_interval(
-            today_iso,
-            interval_unit=const.TIME_UNIT_DAYS,
-            delta=-1,
-            require_future=False,
-            return_type=const.HELPER_RETURN_ISO_DATE,
-        )
-
+        # Get previous streak from last completion date (schedule-aware)
+        # For weekly/biweekly chores, yesterday won't have data - must use last_completed date
         periods_data = kid_chore_data.setdefault(const.DATA_KID_CHORE_DATA_PERIODS, {})
         daily_periods = periods_data.setdefault(
             const.DATA_KID_CHORE_DATA_PERIODS_DAILY, {}
         )
-        yesterday_data = daily_periods.get(yesterday_iso, {})
-        previous_streak = yesterday_data.get(
-            const.DATA_KID_CHORE_DATA_PERIOD_STREAK_TALLY, 0
-        )
+        previous_streak = 0
+        if previous_last_completed:
+            # Convert UTC timestamp to local timezone, then extract date for bucket key
+            # Period buckets use local dates ("UTC for storage, local for keys")
+            local_dt = dt_parse(
+                previous_last_completed, return_type=HELPER_RETURN_DATETIME_LOCAL
+            )
+            if local_dt and isinstance(local_dt, datetime):
+                last_completed_date_key = local_dt.date().isoformat()
+                last_completed_data = daily_periods.get(last_completed_date_key, {})
+                previous_streak = last_completed_data.get(
+                    const.DATA_KID_CHORE_DATA_PERIOD_STREAK_TALLY, 0
+                )
 
         # Calculate effects
         effects = ChoreEngine.calculate_transition(
@@ -575,26 +576,14 @@ class ChoreManager(BaseManager):
 
         # Calculate streak using schedule-aware logic (parent-lag-proof)
         # Uses last_completed (work date) not last_approved (parent action date)
+        # Note: Streak is passed to StatisticsManager via CHORE_COMPLETED signal
+        # (not written directly to periods - that's StatisticsManager's responsibility)
         new_streak = ChoreEngine.calculate_streak(
             current_streak=previous_streak,
             previous_last_completed_iso=previous_last_completed,
             current_work_date_iso=effective_date_iso,
             chore_data=chore_data,
         )
-
-        # Store streak_tally in today's period data (daily value)
-        today_data = daily_periods.setdefault(today_iso, {})
-        today_data[const.DATA_KID_CHORE_DATA_PERIOD_STREAK_TALLY] = new_streak
-
-        # Update all-time longest_streak if this is a new high water mark
-        all_time_data = periods_data.setdefault(
-            const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME, {}
-        )
-        all_time_streak = all_time_data.get(
-            const.DATA_KID_CHORE_DATA_PERIOD_LONGEST_STREAK, 0
-        )
-        if new_streak > all_time_streak:
-            all_time_data[const.DATA_KID_CHORE_DATA_PERIOD_LONGEST_STREAK] = new_streak
 
         # Update global chore state
         self._update_global_state(chore_id)
@@ -710,7 +699,6 @@ class ChoreManager(BaseManager):
             previous_state=previous_state,
             update_stats=True,
             effective_date=effective_date_iso,
-            streak_tally=new_streak,
         )
 
         # Emit completion event based on completion criteria
@@ -724,6 +712,7 @@ class ChoreManager(BaseManager):
                 chore_id=chore_id,
                 kid_ids=[kid_id],
                 effective_date=effective_date_iso,
+                streak_tallies={kid_id: new_streak},
             )
         elif completion_criteria == const.COMPLETION_CRITERIA_SHARED_FIRST:
             # Shared first: only the kid who did the work gets completion credit
@@ -732,15 +721,66 @@ class ChoreManager(BaseManager):
                 chore_id=chore_id,
                 kid_ids=[kid_id],
                 effective_date=effective_date_iso,
+                streak_tallies={kid_id: new_streak},
             )
         elif completion_criteria == const.COMPLETION_CRITERIA_SHARED:
             # Shared (all): only emit when ALL assigned kids have been approved
             if self._all_kids_approved(chore_id, kids_assigned):
+                # Calculate streak for each kid
+                streak_tallies = {}
+                for assigned_kid_id in kids_assigned:
+                    if not assigned_kid_id:
+                        continue
+                    # Get kid's chore_data and yesterday's streak
+                    assigned_kid_info = self._coordinator.kids_data.get(assigned_kid_id)
+                    if not assigned_kid_info:
+                        continue
+                    kid_chore_dict: dict[str, Any] = assigned_kid_info.get(
+                        const.DATA_KID_CHORE_DATA, {}
+                    )
+                    assigned_chore_data = kid_chore_dict.get(chore_id, {})
+                    assigned_periods = assigned_chore_data.get(
+                        const.DATA_KID_CHORE_DATA_PERIODS, {}
+                    )
+                    assigned_daily = assigned_periods.get(
+                        const.DATA_KID_CHORE_DATA_PERIODS_DAILY, {}
+                    )
+                    assigned_last_completed = assigned_chore_data.get(
+                        const.DATA_KID_CHORE_DATA_LAST_COMPLETED
+                    )
+                    # Get streak from last completion date (not yesterday - schedule-aware!)
+                    assigned_previous_streak = 0
+                    if assigned_last_completed:
+                        # Convert UTC timestamp to local timezone for bucket lookup
+                        assigned_local_dt = dt_parse(
+                            assigned_last_completed,
+                            return_type=HELPER_RETURN_DATETIME_LOCAL,
+                        )
+                        if assigned_local_dt and isinstance(
+                            assigned_local_dt, datetime
+                        ):
+                            assigned_date_key = assigned_local_dt.date().isoformat()
+                            assigned_last_data = assigned_daily.get(
+                                assigned_date_key, {}
+                            )
+                            assigned_previous_streak = assigned_last_data.get(
+                                const.DATA_KID_CHORE_DATA_PERIOD_STREAK_TALLY, 0
+                            )
+                    # Calculate streak for this kid
+                    assigned_streak = ChoreEngine.calculate_streak(
+                        current_streak=assigned_previous_streak,
+                        previous_last_completed_iso=assigned_last_completed,
+                        current_work_date_iso=effective_date_iso,
+                        chore_data=chore_data,
+                    )
+                    streak_tallies[assigned_kid_id] = assigned_streak
+
                 self.emit(
                     const.SIGNAL_SUFFIX_CHORE_COMPLETED,
                     chore_id=chore_id,
                     kid_ids=kids_assigned,
                     effective_date=effective_date_iso,
+                    streak_tallies=streak_tallies,
                 )
 
         self._coordinator.async_set_updated_data(self._coordinator._data)

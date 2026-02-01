@@ -306,6 +306,33 @@ today = dt_today_local()
 next_time = dt_add_interval(dt_now_local(), {"interval": 1, "interval_unit": "day"})
 ```
 
+#### UTC for Storage, Local for Keys (Period Statistics)
+
+**Mandatory Pattern**: When generating period bucket keys (daily, weekly, monthly), ALWAYS convert UTC timestamps to local timezone dates.
+
+**Rule**:
+
+- Storage: Keep timestamps as UTC ISO strings (`DATA_KID_CHORE_DATA_LAST_COMPLETED`)
+- Bucket Keys: Convert to local date before extracting key (`dt_parse(..., HELPER_RETURN_DATETIME_LOCAL)`)
+
+**Implementation**:
+
+```python
+# ✅ CORRECT: Convert UTC → local → extract date
+previous_completed = chore_data[DATA_KID_CHORE_DATA_LAST_COMPLETED]  # UTC timestamp
+local_dt = dt_parse(previous_completed, return_type=HELPER_RETURN_DATETIME_LOCAL)
+bucket_key = local_dt.date().isoformat()  # Local date string
+period_data = daily_periods.get(bucket_key, {})
+
+# ❌ WRONG: Using UTC date directly
+utc_dt = dt_parse(previous_completed)  # Returns UTC datetime
+bucket_key = utc_dt.date().isoformat()  # UTC date (WRONG!)
+```
+
+**Why**: Ensures user's calendar days match statistics. NY kid completing chore at 10 PM Monday shows "Monday" stats, not "Tuesday" (UTC would be 3 AM Tuesday).
+
+**Affected Areas**: Streak calculations, period statistics queries, historical data lookups, aggregation logic.
+
 #### RecurrenceEngine for Schedule Calculations
 
 For chore/badge recurrence calculations, use `RecurrenceEngine` class instead of manual date arithmetic:

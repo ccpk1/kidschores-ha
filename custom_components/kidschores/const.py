@@ -1261,6 +1261,7 @@ PRES_KID_CHORES_APPROVED_TODAY: Final = "pres_kid_chores_approved_today"
 PRES_KID_CHORES_APPROVED_WEEK: Final = "pres_kid_chores_approved_week"
 PRES_KID_CHORES_APPROVED_MONTH: Final = "pres_kid_chores_approved_month"
 PRES_KID_CHORES_APPROVED_YEAR: Final = "pres_kid_chores_approved_year"
+PRES_KID_CHORES_APPROVED_ALL_TIME: Final = "pres_kid_chores_approved_all_time"
 
 # --- Presentation: Completed Stats (work date tracking - parent-lag-proof) ---
 # These track when work was DONE (claim date), not when approved.
@@ -1268,20 +1269,31 @@ PRES_KID_CHORES_COMPLETED_TODAY: Final = "pres_kid_chores_completed_today"
 PRES_KID_CHORES_COMPLETED_WEEK: Final = "pres_kid_chores_completed_week"
 PRES_KID_CHORES_COMPLETED_MONTH: Final = "pres_kid_chores_completed_month"
 PRES_KID_CHORES_COMPLETED_YEAR: Final = "pres_kid_chores_completed_year"
+PRES_KID_CHORES_COMPLETED_ALL_TIME: Final = "pres_kid_chores_completed_all_time"
 
 PRES_KID_CHORES_CLAIMED_TODAY: Final = "pres_kid_chores_claimed_today"
 PRES_KID_CHORES_CLAIMED_WEEK: Final = "pres_kid_chores_claimed_week"
 PRES_KID_CHORES_CLAIMED_MONTH: Final = "pres_kid_chores_claimed_month"
 PRES_KID_CHORES_CLAIMED_YEAR: Final = "pres_kid_chores_claimed_year"
+PRES_KID_CHORES_CLAIMED_ALL_TIME: Final = "pres_kid_chores_claimed_all_time"
 
 PRES_KID_CHORES_POINTS_TODAY: Final = "pres_kid_chores_points_today"
 PRES_KID_CHORES_POINTS_WEEK: Final = "pres_kid_chores_points_week"
 PRES_KID_CHORES_POINTS_MONTH: Final = "pres_kid_chores_points_month"
 PRES_KID_CHORES_POINTS_YEAR: Final = "pres_kid_chores_points_year"
+PRES_KID_CHORES_POINTS_ALL_TIME: Final = "pres_kid_chores_points_all_time"
 
 PRES_KID_TOP_CHORES_WEEK: Final = "pres_kid_top_chores_week"
 PRES_KID_TOP_CHORES_MONTH: Final = "pres_kid_top_chores_month"
 PRES_KID_TOP_CHORES_ALL_TIME: Final = "pres_kid_top_chores_all_time"
+
+# --- Presentation: Snapshot Counts (current state, not historical) ---
+# These are volatile counts of chores in specific states RIGHT NOW.
+# Derived from current chore states, NOT from period buckets.
+PRES_KID_CHORES_CURRENT_OVERDUE: Final = "pres_kid_chores_current_overdue"
+PRES_KID_CHORES_CURRENT_CLAIMED: Final = "pres_kid_chores_current_claimed"
+PRES_KID_CHORES_CURRENT_APPROVED: Final = "pres_kid_chores_current_approved"
+PRES_KID_CHORES_CURRENT_DUE_TODAY: Final = "pres_kid_chores_current_due_today"
 
 # --- Presentation: Reward Stats (derived from period buckets) ---
 PRES_KID_REWARDS_CLAIMED_TODAY: Final = "pres_kid_rewards_claimed_today"

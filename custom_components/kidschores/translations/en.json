@@ -2698,6 +2698,36 @@
           "chore_stat_disapproved_all_time": {
             "name": "Disapproved All Time"
           },
+          "chore_stat_completed_today": {
+            "name": "Completed Today"
+          },
+          "chore_stat_completed_week": {
+            "name": "Completed This Week"
+          },
+          "chore_stat_completed_month": {
+            "name": "Completed This Month"
+          },
+          "chore_stat_completed_year": {
+            "name": "Completed This Year"
+          },
+          "chore_stat_completed_all_time": {
+            "name": "Completed All Time"
+          },
+          "chore_stat_points_today": {
+            "name": "Points Today"
+          },
+          "chore_stat_points_week": {
+            "name": "Points This Week"
+          },
+          "chore_stat_points_month": {
+            "name": "Points This Month"
+          },
+          "chore_stat_points_year": {
+            "name": "Points This Year"
+          },
+          "chore_stat_points_all_time": {
+            "name": "Points All Time"
+          },
           "chore_stat_chores_completed_today": {
             "name": "Completed Today"
           },

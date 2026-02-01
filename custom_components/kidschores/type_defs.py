@@ -907,11 +907,11 @@ class ChoreApprovedEvent(TypedDict, total=False):
     """Event payload for SIGNAL_SUFFIX_CHORE_APPROVED.
 
     Emitted by: ChoreManager.approve()
-    Consumed by: GamificationManager (achievement/streak tracking)
+    Consumed by: EconomyManager (point deposit), StatisticsManager (approval count)
 
     Phase 5 additions: chore_labels, multiplier_applied, previous_state, update_stats.
     Phase 6 additions: effective_date (when kid did work, for parent-lag proof stats).
-    GamificationManager uses these to decide badge awarding without database queries.
+    Phase 8 change: Removed streak_tally (moved to ChoreCompletedEvent).
     """
 
     kid_id: str  # Required
@@ -926,7 +926,27 @@ class ChoreApprovedEvent(TypedDict, total=False):
     previous_state: str  # To detect re-approvals vs new approvals
     update_stats: bool  # Whether to update statistics (False for corrections)
     effective_date: str  # ISO timestamp when kid did work (last_claimed with fallbacks)
-    streak_tally: int  # Current streak value after this approval (for stats recording)
+
+
+class ChoreCompletedEvent(TypedDict, total=False):
+    """Event payload for SIGNAL_SUFFIX_CHORE_COMPLETED.
+
+    Emitted by: ChoreManager.approve() (after completion criteria satisfied)
+    Consumed by: StatisticsManager (completion count + streak tracking)
+
+    Completion criteria determines kid_ids:
+    - INDEPENDENT: [approving_kid_id]
+    - SHARED_FIRST: [approving_kid_id]
+    - SHARED (all): [all assigned kid_ids] when last kid approved
+
+    streak_tallies maps each kid_id to their calculated streak value.
+    StatisticsManager writes these to period buckets with max-1-per-day guard.
+    """
+
+    chore_id: str  # Required
+    kid_ids: list[str]  # Required: Kids who get completion credit
+    effective_date: str  # Required: ISO timestamp when work was done
+    streak_tallies: dict[str, int]  # Required: kid_id -> streak value
 
 
 class ChoreDisapprovedEvent(TypedDict, total=False):
@@ -1137,6 +1157,7 @@ __all__ = [
     "ChallengesCollection",
     "ChoreApprovedEvent",
     "ChoreClaimedEvent",
+    "ChoreCompletedEvent",
     "ChoreData",
     "ChoreDisapprovedEvent",
     "ChoreId",

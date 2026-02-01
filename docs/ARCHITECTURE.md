@@ -294,6 +294,14 @@ KidsChores separates **source data** (persisted) from **derived data** (computed
 
 **Implementation**: `StatisticsEngine.record_transaction()` writes to period buckets; `filter_persistent_stats()` strips temporal aggregations before storage; aggregations rebuild from buckets at coordinator refresh.
 
+#### Statistics Period Bucket Key Generation (UTC for Storage, Local for Keys)
+
+**Critical Principle**: Timestamps are stored as UTC ISO strings, but period bucket keys MUST use local timezone dates to reflect user's calendar days.
+
+**Why**: A kid in New York completing a chore at 10 PM Monday should see stats recorded under "Monday", not "Tuesday" (which would occur if using UTC date at 3 AM Tuesday).
+
+**Application**: Affects streak calculations, period statistics, and any logic that needs to query "yesterday's data" or "last week's totals".
+
 ---
 
 ## Type System Architecture
