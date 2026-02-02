@@ -415,7 +415,9 @@ class KidChoreClaimButton(KidsChoresCoordinatorEntity, ButtonEntity):
             const.TRANS_KEY_BUTTON_ATTR_KID_NAME: kid_name,
             const.TRANS_KEY_BUTTON_ATTR_CHORE_NAME: chore_name,
         }
-        self.entity_id = f"{const.BUTTON_KC_PREFIX}{kid_name}{const.BUTTON_KC_EID_MIDFIX_CHORE_CLAIM}{chore_name}"
+        # Moving to HA native best practice: auto-generate entity_id from unique_id + has_entity_name
+        # rather than manually constructing to support HA core change 01309191283 (Jan 14, 2026)
+        # self.entity_id = f"{const.BUTTON_KC_PREFIX}{kid_name}{const.BUTTON_KC_EID_MIDFIX_CHORE_CLAIM}{chore_name}"
         self._attr_device_info = create_kid_device_info_from_coordinator(
             self.coordinator, kid_id, kid_name, entry
         )
@@ -536,7 +538,9 @@ class ParentChoreApproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
             const.TRANS_KEY_BUTTON_ATTR_KID_NAME: kid_name,
             const.TRANS_KEY_BUTTON_ATTR_CHORE_NAME: chore_name,
         }
-        self.entity_id = f"{const.BUTTON_KC_PREFIX}{kid_name}{const.BUTTON_KC_EID_MIDFIX_CHORE_APPROVAL}{chore_name}"
+        # Moving to HA native best practice: auto-generate entity_id from unique_id + has_entity_name
+        # rather than manually constructing to support HA core change 01309191283 (Jan 14, 2026)
+        # self.entity_id = f"{const.BUTTON_KC_PREFIX}{kid_name}{const.BUTTON_KC_EID_MIDFIX_CHORE_APPROVAL}{chore_name}"
         self._attr_device_info = create_kid_device_info_from_coordinator(
             self.coordinator, kid_id, kid_name, entry
         )
@@ -661,7 +665,9 @@ class ParentChoreDisapproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
             const.TRANS_KEY_BUTTON_ATTR_KID_NAME: kid_name,
             const.TRANS_KEY_BUTTON_ATTR_CHORE_NAME: chore_name,
         }
-        self.entity_id = f"{const.BUTTON_KC_PREFIX}{kid_name}{const.BUTTON_KC_EID_MIDFIX_CHORE_DISAPPROVAL}{chore_name}"
+        # Moving to HA native best practice: auto-generate entity_id from unique_id + has_entity_name
+        # rather than manually constructing to support HA core change 01309191283 (Jan 14, 2026)
+        # self.entity_id = f"{const.BUTTON_KC_PREFIX}{kid_name}{const.BUTTON_KC_EID_MIDFIX_CHORE_DISAPPROVAL}{chore_name}"
         self._attr_device_info = create_kid_device_info_from_coordinator(
             self.coordinator, kid_id, kid_name, entry
         )
@@ -824,7 +830,9 @@ class KidRewardRedeemButton(KidsChoresCoordinatorEntity, ButtonEntity):
             const.TRANS_KEY_BUTTON_ATTR_KID_NAME: kid_name,
             const.TRANS_KEY_BUTTON_ATTR_REWARD_NAME: reward_name,
         }
-        self.entity_id = f"{const.BUTTON_KC_PREFIX}{kid_name}{const.BUTTON_KC_EID_MIDFIX_REWARD_CLAIM}{reward_name}"
+        # Moving to HA native best practice: auto-generate entity_id from unique_id + has_entity_name
+        # rather than manually constructing to support HA core change 01309191283 (Jan 14, 2026)
+        # self.entity_id = f"{const.BUTTON_KC_PREFIX}{kid_name}{const.BUTTON_KC_EID_MIDFIX_REWARD_CLAIM}{reward_name}"
         self._attr_device_info = create_kid_device_info_from_coordinator(
             self.coordinator, kid_id, kid_name, entry
         )
@@ -950,7 +958,9 @@ class ParentRewardApproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
             const.TRANS_KEY_BUTTON_ATTR_KID_NAME: kid_name,
             const.TRANS_KEY_BUTTON_ATTR_REWARD_NAME: reward_name,
         }
-        self.entity_id = f"{const.BUTTON_KC_PREFIX}{kid_name}{const.BUTTON_KC_EID_MIDFIX_REWARD_APPROVAL}{reward_name}"
+        # Moving to HA native best practice: auto-generate entity_id from unique_id + has_entity_name
+        # rather than manually constructing to support HA core change 01309191283 (Jan 14, 2026)
+        # self.entity_id = f"{const.BUTTON_KC_PREFIX}{kid_name}{const.BUTTON_KC_EID_MIDFIX_REWARD_APPROVAL}{reward_name}"
         self._attr_device_info = create_kid_device_info_from_coordinator(
             self.coordinator, kid_id, kid_name, entry
         )
@@ -1077,7 +1087,9 @@ class ParentRewardDisapproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
             const.TRANS_KEY_BUTTON_ATTR_KID_NAME: kid_name,
             const.TRANS_KEY_BUTTON_ATTR_REWARD_NAME: reward_name,
         }
-        self.entity_id = f"{const.BUTTON_KC_PREFIX}{kid_name}{const.BUTTON_KC_EID_MIDFIX_REWARD_DISAPPROVAL}{reward_name}"
+        # Moving to HA native best practice: auto-generate entity_id from unique_id + has_entity_name
+        # rather than manually constructing to support HA core change 01309191283 (Jan 14, 2026)
+        # self.entity_id = f"{const.BUTTON_KC_PREFIX}{kid_name}{const.BUTTON_KC_EID_MIDFIX_REWARD_DISAPPROVAL}{reward_name}"
         self._attr_device_info = create_kid_device_info_from_coordinator(
             self.coordinator, kid_id, kid_name, entry
         )
@@ -1244,7 +1256,9 @@ class ParentBonusApplyButton(KidsChoresCoordinatorEntity, ButtonEntity):
         # Strip redundant "bonus" suffix from entity_id (bonus_name often ends with "Bonus")
         bonus_slug = bonus_name.lower().replace(" ", "_")
         bonus_slug = bonus_slug.removesuffix("_bonus")  # Remove "_bonus" suffix
-        self.entity_id = f"{const.BUTTON_KC_PREFIX}{kid_name}{const.BUTTON_KC_EID_MIDFIX_BONUS}{bonus_slug}"
+        # Moving to HA native best practice: auto-generate entity_id from unique_id + has_entity_name
+        # rather than manually constructing to support HA core change 01309191283 (Jan 14, 2026)
+        # self.entity_id = f"{const.BUTTON_KC_PREFIX}{kid_name}{const.BUTTON_KC_EID_MIDFIX_BONUS}{bonus_slug}"
         self._attr_device_info = create_kid_device_info_from_coordinator(
             self.coordinator, kid_id, kid_name, entry
         )
@@ -1381,7 +1395,9 @@ class ParentPenaltyApplyButton(KidsChoresCoordinatorEntity, ButtonEntity):
             const.TRANS_KEY_BUTTON_ATTR_KID_NAME: kid_name,
             const.TRANS_KEY_BUTTON_ATTR_PENALTY_NAME: penalty_name,
         }
-        self.entity_id = f"{const.BUTTON_KC_PREFIX}{kid_name}{const.BUTTON_KC_EID_MIDFIX_PENALTY}{penalty_name}"
+        # Moving to HA native best practice: auto-generate entity_id from unique_id + has_entity_name
+        # rather than manually constructing to support HA core change 01309191283 (Jan 14, 2026)
+        # self.entity_id = f"{const.BUTTON_KC_PREFIX}{kid_name}{const.BUTTON_KC_EID_MIDFIX_PENALTY}{penalty_name}"
         self._attr_device_info = create_kid_device_info_from_coordinator(
             self.coordinator, kid_id, kid_name, entry
         )
@@ -1542,7 +1558,9 @@ class ParentPointsAdjustButton(KidsChoresCoordinatorEntity, ButtonEntity):
             const.TRANS_KEY_BUTTON_ATTR_SIGN_LABEL: sign_label,
             const.TRANS_KEY_BUTTON_ATTR_POINTS_LABEL: points_label,
         }
-        self.entity_id = f"{const.BUTTON_KC_PREFIX}{kid_name}{const.BUTTON_KC_EID_SUFFIX_POINTS}_{sign_text}"
+        # Moving to HA native best practice: auto-generate entity_id from unique_id + has_entity_name
+        # rather than manually constructing to support HA core change 01309191283 (Jan 14, 2026)
+        # self.entity_id = f"{const.BUTTON_KC_PREFIX}{kid_name}{const.BUTTON_KC_EID_SUFFIX_POINTS}_{sign_text}"
         self._attr_device_info = create_kid_device_info_from_coordinator(
             self.coordinator, kid_id, kid_name, entry
         )

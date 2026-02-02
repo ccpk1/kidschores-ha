@@ -89,12 +89,13 @@ class KidDashboardHelperDateTimePicker(DateTimeEntity, RestoreEntity):
             hour=12, minute=0, second=0, microsecond=0
         )
 
-        # Generate entity_id following integration pattern
-        self.entity_id = (
-            f"{const.DATETIME_KC_PREFIX}{kid_name}"
-            f"{const.DATETIME_KC_EID_MIDFIX_UI_DASHBOARD}"
-            f"{const.DATETIME_KC_EID_SUFFIX_DATE_HELPER}"
-        )
+        # Moving to HA native best practice: auto-generate entity_id from unique_id + has_entity_name
+        # rather than manually constructing to support HA core change 01309191283 (Jan 14, 2026)
+        # self.entity_id = (
+        #     f"{const.DATETIME_KC_PREFIX}{kid_name}"
+        #     f"{const.DATETIME_KC_EID_MIDFIX_UI_DASHBOARD}"
+        #     f"{const.DATETIME_KC_EID_SUFFIX_DATE_HELPER}"
+        # )
 
     async def async_added_to_hass(self) -> None:
         """Run when entity is added to hass - restore previous state."""

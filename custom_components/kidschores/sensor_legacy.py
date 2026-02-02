@@ -106,7 +106,9 @@ class KidChoreCompletionSensor(KidsChoresCoordinatorEntity, SensorEntity):
         self._attr_translation_placeholders = {
             const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name
         }
-        self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_SUFFIX_CHORES_COMPLETED_TOTAL_SENSOR}"
+        # Moving to HA native best practice: auto-generate entity_id from unique_id + has_entity_name
+        # rather than manually constructing to support HA core change 01309191283 (Jan 14, 2026)
+        # self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_SUFFIX_CHORES_COMPLETED_TOTAL_SENSOR}"
         self._attr_device_info = create_kid_device_info_from_coordinator(
             self.coordinator, kid_id, kid_name, entry
         )
@@ -175,7 +177,9 @@ class KidChoreCompletionDailySensor(KidsChoresCoordinatorEntity, SensorEntity):
         self._attr_translation_placeholders = {
             const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name
         }
-        self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_SUFFIX_CHORES_COMPLETED_DAILY_SENSOR}"
+        # Moving to HA native best practice: auto-generate entity_id from unique_id + has_entity_name
+        # rather than manually constructing to support HA core change 01309191283 (Jan 14, 2026)
+        # self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_SUFFIX_CHORES_COMPLETED_DAILY_SENSOR}"
         self._attr_device_info = create_kid_device_info_from_coordinator(
             self.coordinator, kid_id, kid_name, entry
         )
@@ -238,7 +242,9 @@ class KidChoreCompletionWeeklySensor(KidsChoresCoordinatorEntity, SensorEntity):
         self._attr_translation_placeholders = {
             const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name
         }
-        self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_SUFFIX_CHORES_COMPLETED_WEEKLY_SENSOR}"
+        # Moving to HA native best practice: auto-generate entity_id from unique_id + has_entity_name
+        # rather than manually constructing to support HA core change 01309191283 (Jan 14, 2026)
+        # self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_SUFFIX_CHORES_COMPLETED_WEEKLY_SENSOR}"
         self._attr_device_info = create_kid_device_info_from_coordinator(
             self.coordinator, kid_id, kid_name, entry
         )
@@ -301,7 +307,9 @@ class KidChoreCompletionMonthlySensor(KidsChoresCoordinatorEntity, SensorEntity)
         self._attr_translation_placeholders = {
             const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name
         }
-        self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_SUFFIX_CHORES_COMPLETED_MONTHLY_SENSOR}"
+        # Moving to HA native best practice: auto-generate entity_id from unique_id + has_entity_name
+        # rather than manually constructing to support HA core change 01309191283 (Jan 14, 2026)
+        # self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_SUFFIX_CHORES_COMPLETED_MONTHLY_SENSOR}"
         self._attr_device_info = create_kid_device_info_from_coordinator(
             self.coordinator, kid_id, kid_name, entry
         )
@@ -353,7 +361,9 @@ class SystemChoresPendingApprovalSensor(KidsChoresCoordinatorEntity, SensorEntit
         self._attr_unique_id = f"{entry.entry_id}{const.SENSOR_KC_UID_SUFFIX_PENDING_CHORE_APPROVALS_SENSOR}"
         # Icon defined in icons.json
         self._attr_native_unit_of_measurement = const.DEFAULT_PENDING_CHORES_UNIT
-        self.entity_id = f"{const.SENSOR_KC_PREFIX}{const.SENSOR_KC_EID_SUFFIX_PENDING_CHORE_APPROVALS_SENSOR}"
+        # Moving to HA native best practice: auto-generate entity_id from unique_id + has_entity_name
+        # rather than manually constructing to support HA core change 01309191283 (Jan 14, 2026)
+        # self.entity_id = f"{const.SENSOR_KC_PREFIX}{const.SENSOR_KC_EID_SUFFIX_PENDING_CHORE_APPROVALS_SENSOR}"
         self._attr_device_info = create_system_device_info(entry)
 
     @property
@@ -455,7 +465,9 @@ class SystemRewardsPendingApprovalSensor(KidsChoresCoordinatorEntity, SensorEnti
         self._attr_unique_id = f"{entry.entry_id}{const.SENSOR_KC_UID_SUFFIX_PENDING_REWARD_APPROVALS_SENSOR}"
         # Icon defined in icons.json
         self._attr_native_unit_of_measurement = const.DEFAULT_PENDING_REWARDS_UNIT
-        self.entity_id = f"{const.SENSOR_KC_PREFIX}{const.SENSOR_KC_EID_SUFFIX_PENDING_REWARD_APPROVALS_SENSOR}"
+        # Moving to HA native best practice: auto-generate entity_id from unique_id + has_entity_name
+        # rather than manually constructing to support HA core change 01309191283 (Jan 14, 2026)
+        # self.entity_id = f"{const.SENSOR_KC_PREFIX}{const.SENSOR_KC_EID_SUFFIX_PENDING_REWARD_APPROVALS_SENSOR}"
         self._attr_device_info = create_system_device_info(entry)
 
     @property
@@ -575,7 +587,9 @@ class KidPointsEarnedDailySensor(KidsChoresCoordinatorEntity, SensorEntity):
         self._attr_translation_placeholders = {
             const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name,
         }
-        self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_SUFFIX_KID_POINTS_EARNED_DAILY_SENSOR}"
+        # Moving to HA native best practice: auto-generate entity_id from unique_id + has_entity_name
+        # rather than manually constructing to support HA core change 01309191283 (Jan 14, 2026)
+        # self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_SUFFIX_KID_POINTS_EARNED_DAILY_SENSOR}"
         self._attr_device_info = create_kid_device_info_from_coordinator(
             self.coordinator, kid_id, kid_name, entry
         )
@@ -651,7 +665,9 @@ class KidPointsEarnedWeeklySensor(KidsChoresCoordinatorEntity, SensorEntity):
         self._attr_translation_placeholders = {
             const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name,
         }
-        self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_SUFFIX_KID_POINTS_EARNED_WEEKLY_SENSOR}"
+        # Moving to HA native best practice: auto-generate entity_id from unique_id + has_entity_name
+        # rather than manually constructing to support HA core change 01309191283 (Jan 14, 2026)
+        # self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_SUFFIX_KID_POINTS_EARNED_WEEKLY_SENSOR}"
         self._attr_device_info = create_kid_device_info_from_coordinator(
             self.coordinator, kid_id, kid_name, entry
         )
@@ -727,7 +743,9 @@ class KidPointsEarnedMonthlySensor(KidsChoresCoordinatorEntity, SensorEntity):
         self._attr_translation_placeholders = {
             const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name,
         }
-        self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_SUFFIX_KID_POINTS_EARNED_MONTHLY_SENSOR}"
+        # Moving to HA native best practice: auto-generate entity_id from unique_id + has_entity_name
+        # rather than manually constructing to support HA core change 01309191283 (Jan 14, 2026)
+        # self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_SUFFIX_KID_POINTS_EARNED_MONTHLY_SENSOR}"
         self._attr_device_info = create_kid_device_info_from_coordinator(
             self.coordinator, kid_id, kid_name, entry
         )
@@ -804,7 +822,9 @@ class KidPointsMaxEverSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name,
             const.TRANS_KEY_SENSOR_ATTR_POINTS: points_label,
         }
-        self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_SUFFIX_KID_MAX_POINTS_EARNED_SENSOR}"
+        # Moving to HA native best practice: auto-generate entity_id from unique_id + has_entity_name
+        # rather than manually constructing to support HA core change 01309191283 (Jan 14, 2026)
+        # self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_SUFFIX_KID_MAX_POINTS_EARNED_SENSOR}"
         self._attr_device_info = create_kid_device_info_from_coordinator(
             self.coordinator, kid_id, kid_name, entry
         )
@@ -883,7 +903,9 @@ class KidChoreStreakSensor(KidsChoresCoordinatorEntity, SensorEntity):
         self._attr_translation_placeholders = {
             const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name,
         }
-        self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_SUFFIX_KID_HIGHEST_STREAK_SENSOR}"
+        # Moving to HA native best practice: auto-generate entity_id from unique_id + has_entity_name
+        # rather than manually constructing to support HA core change 01309191283 (Jan 14, 2026)
+        # self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_SUFFIX_KID_HIGHEST_STREAK_SENSOR}"
         self._attr_device_info = create_kid_device_info_from_coordinator(
             self.coordinator, kid_id, kid_name, entry
         )
@@ -992,7 +1014,9 @@ class KidPenaltyAppliedSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name,
             const.TRANS_KEY_SENSOR_ATTR_PENALTY_NAME: penalty_name,
         }
-        self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_MIDFIX_PENALTY_APPLIES_SENSOR}{penalty_name}"
+        # Moving to HA native best practice: auto-generate entity_id from unique_id + has_entity_name
+        # rather than manually constructing to support HA core change 01309191283 (Jan 14, 2026)
+        # self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_MIDFIX_PENALTY_APPLIES_SENSOR}{penalty_name}"
         self._attr_device_info = create_kid_device_info_from_coordinator(
             self.coordinator, kid_id, kid_name, entry
         )
@@ -1108,7 +1132,9 @@ class KidBonusAppliedSensor(KidsChoresCoordinatorEntity, SensorEntity):
         # Strip redundant "bonus" suffix from entity_id (bonus_name often ends with "Bonus")
         bonus_slug = bonus_name.lower().replace(" ", "_")
         bonus_slug = bonus_slug.removesuffix("_bonus")  # Remove "_bonus" suffix
-        self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_MIDFIX_BONUS_APPLIES_SENSOR}{bonus_slug}"
+        # Moving to HA native best practice: auto-generate entity_id from unique_id + has_entity_name
+        # rather than manually constructing to support HA core change 01309191283 (Jan 14, 2026)
+        # self.entity_id = f"{const.SENSOR_KC_PREFIX}{kid_name}{const.SENSOR_KC_EID_MIDFIX_BONUS_APPLIES_SENSOR}{bonus_slug}"
         self._attr_device_info = create_kid_device_info_from_coordinator(
             self.coordinator, kid_id, kid_name, entry
         )

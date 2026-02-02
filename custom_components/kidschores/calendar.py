@@ -95,7 +95,9 @@ class KidScheduleCalendar(CalendarEntity):
         self._attr_translation_placeholders = {
             const.TRANS_KEY_SENSOR_ATTR_KID_NAME: kid_name
         }
-        self.entity_id = f"{const.CALENDAR_KC_PREFIX}{kid_name}"
+        # Moving to HA native best practice: auto-generate entity_id from unique_id + has_entity_name
+        # rather than manually constructing to support HA core change 01309191283 (Jan 14, 2026)
+        # self.entity_id = f"{const.CALENDAR_KC_PREFIX}{kid_name}"
         self._attr_device_info = create_kid_device_info_from_coordinator(
             self.coordinator, kid_id, kid_name, config_entry
         )
