@@ -564,16 +564,16 @@ def construct_entity_id(platform: str, kid_name: str, suffix: str) -> str:
         suffix: Entity suffix constant
 
     Returns:
-        Full entity ID string like "sensor.kc_sarah_points"
+        Full entity ID string like "sensor.sarah_kidschores_points"
 
     Example:
         construct_entity_id("sensor", "Sarah", SENSOR_KC_EID_SUFFIX_UI_DASHBOARD_HELPER)
-        # Returns: "sensor.kc_sarah_ui_dashboard_helper"
+        # Returns: "sensor.sarah_kidschores_ui_dashboard_helper"
     """
     from homeassistant.util import slugify
 
     kid_slug = slugify(kid_name)
-    return f"{platform}.kc_{kid_slug}{suffix}"
+    return f"{platform}.{kid_slug}_kidschores{suffix}"
 
 
 # =============================================================================

@@ -349,7 +349,7 @@ class TestDailyMultiUponCompletionReset:
         lila_ctx = Context(user_id=mock_hass_users["kid3"].id)
 
         # Get starting points from sensor state
-        lila_points_sensor = "sensor.kc_lila_points"
+        lila_points_sensor = "sensor.lila_kidschores_points"
         points_start = float(hass.states.get(lila_points_sensor).state)
 
         # =====================================================================
@@ -618,7 +618,7 @@ class TestDailyMultiUponCompletionResetShared:
         lila_ctx = Context(user_id=mock_hass_users["kid3"].id)
 
         # Get starting points from sensor state
-        lila_points_sensor = "sensor.kc_lila_points"
+        lila_points_sensor = "sensor.lila_kidschores_points"
         points_start = float(hass.states.get(lila_points_sensor).state)
 
         # =====================================================================

@@ -17,9 +17,12 @@
   "ruff.fixAll": true,
   "ruff.lint.enable": true,
 
-  // Disable pylint (we're using ruff now)
+  // Disable pylint in IDE (we're using ruff + mypy now)
+  // Ruff handles linting/formatting, MyPy handles type checking
+  // Pylint is disabled but available for CI/CD validation
   "python.linting.enabled": false,
   "python.linting.pylintEnabled": false,
+  "python.linting.pylintArgs": ["--rcfile=.pylintrc"],
 
   // Python language server settings
   "python.analysis.diagnosticMode": "workspace",

@@ -102,19 +102,23 @@ class TestShadowKidApprovalOnlyButtons:
     ) -> None:
         """Shadow kid with workflow=False has ONLY Approve button."""
         # Get Dad's dashboard helper (Rule 3: Dashboard Helper as Single Source of Truth)
+        from tests.helpers.workflows import get_dashboard_helper
+
         # Wait for dashboard helper to be fully populated
-        helper_state = None
+        helper_attrs = None
         for _ in range(10):  # Retry up to 10 times
-            helper_state = hass.states.get("sensor.kc_dad_leo_ui_dashboard_helper")
-            if helper_state and helper_state.attributes.get("chores"):
-                break
+            try:
+                helper_attrs = get_dashboard_helper(hass, "dad_leo")
+                if helper_attrs.get("chores"):
+                    break
+            except ValueError:
+                pass
             await hass.async_block_till_done()
             import asyncio
 
             await asyncio.sleep(0.1)
 
-        assert helper_state is not None, "Dad's dashboard helper should exist"
-        helper_attrs = helper_state.attributes
+        assert helper_attrs is not None, "Dad's dashboard helper should exist"
 
         # Verify Dad is a shadow kid with workflow disabled
         assert helper_attrs.get("is_shadow_kid") is True, "Dad should be a shadow kid"
@@ -169,19 +173,24 @@ class TestShadowKidApprovalOnlyButtons:
     ) -> None:
         """Approve button transitions chore from PENDING to APPROVED."""
         # Get Dad's dashboard helper (Rule 3: Dashboard Helper as Single Source of Truth)
+        from tests.helpers.workflows import get_dashboard_helper
+
         # Wait for dashboard helper to be fully populated
-        helper_state = None
+        helper_attrs = None
         for _ in range(10):  # Retry up to 10 times
-            helper_state = hass.states.get("sensor.kc_dad_leo_ui_dashboard_helper")
-            if helper_state and helper_state.attributes.get("chores"):
-                break
+            try:
+                helper_attrs = get_dashboard_helper(hass, "dad_leo")
+                if helper_attrs.get("chores"):
+                    break
+            except ValueError:
+                pass
             await hass.async_block_till_done()
             await asyncio.sleep(0.1)
 
-        assert helper_state is not None, "Dashboard helper should exist"
+        assert helper_attrs is not None, "Dashboard helper should exist"
 
         # Get chores from dashboard helper
-        chores_list = helper_state.attributes.get("chores", [])
+        chores_list = helper_attrs.get("chores", [])
         chore_info = next(c for c in chores_list if c.get("name") == "Mow lawn")
         chore_status_sensor = chore_info.get("eid")
 
@@ -261,17 +270,21 @@ async def test_shadow_kid_with_workflow_enabled_has_all_buttons(
 ) -> None:
     """Shadow kid with workflow=True has Claim, Approve, Disapprove buttons."""
     # Get Dad's dashboard helper (Dad is the shadow kid with workflow enabled)
+    from tests.helpers.workflows import get_dashboard_helper
+
     # Wait for dashboard helper to be fully populated
-    helper_state = None
+    helper_attrs = None
     for _ in range(10):  # Retry up to 10 times
-        helper_state = hass.states.get("sensor.kc_dad_leo_ui_dashboard_helper")
-        if helper_state and helper_state.attributes.get("chores"):
-            break
+        try:
+            helper_attrs = get_dashboard_helper(hass, "dad_leo")
+            if helper_attrs.get("chores"):
+                break
+        except ValueError:
+            pass
         await hass.async_block_till_done()
         await asyncio.sleep(0.1)
 
-    assert helper_state is not None, "Dad's dashboard helper should exist"
-    helper_attrs = helper_state.attributes
+    assert helper_attrs is not None, "Dad's dashboard helper should exist"
 
     # Verify Dad is a shadow kid with workflow enabled
     assert helper_attrs.get("is_shadow_kid") is True, "Dad should be a shadow kid"
@@ -345,78 +358,92 @@ class TestButtonCountValidation:
     ) -> None:
         """Shadow kid with workflow=False has fewer buttons than regular kid."""
         # Get Dad's dashboard helper (Rule 3: Dashboard Helper as Single Source of Truth)
+        from tests.helpers.workflows import get_dashboard_helper
+
         # Wait for dashboard helper to be fully populated
-        dad_helper_state = None
+        dad_helper_attrs = None
         for _ in range(10):  # Retry up to 10 times
-            dad_helper_state = hass.states.get("sensor.kc_dad_leo_ui_dashboard_helper")
-            if dad_helper_state and dad_helper_state.attributes.get("chores"):
-                break
+            try:
+                dad_helper_attrs = get_dashboard_helper(hass, "dad_leo")
+                if dad_helper_attrs.get("chores"):
+                    break
+            except ValueError:
+                pass
             await hass.async_block_till_done()
             await asyncio.sleep(0.1)
 
-        assert dad_helper_state is not None, "Dad's dashboard helper should exist"
-        assert dad_helper_state.attributes.get("is_shadow_kid") is True, (
+        assert dad_helper_attrs is not None, "Dad's dashboard helper should exist"
+        assert dad_helper_attrs.get("is_shadow_kid") is True, (
             "Dad should be a shadow kid"
         )
-        assert dad_helper_state.attributes.get("chore_workflow_enabled") is False, (
+        assert dad_helper_attrs.get("chore_workflow_enabled") is False, (
             "Dad should have workflow disabled"
         )
 
-        # Get Sarah's dashboard helper (Rule 3: Dashboard Helper as Single Source of Truth)
-        sarah_helper_state = hass.states.get("sensor.kc_zoe_ui_dashboard_helper")
-        assert sarah_helper_state is not None, "Sarah's dashboard helper should exist"
-        assert sarah_helper_state.attributes.get("is_shadow_kid") is False, (
-            "Sarah should be a regular kid"
+        # Get Zoë's dashboard helper (Rule 3: Dashboard Helper as Single Source of Truth)
+        from tests.helpers.workflows import get_dashboard_helper
+
+        zoe_helper_attrs = get_dashboard_helper(hass, "zoe")
+        assert zoe_helper_attrs.get("is_shadow_kid") is False, (
+            "Zoë should be a regular kid"
         )
 
-        # Count CHORE button entities for Dad (shadow kid)
-        # Filter to only chore buttons (exclude point adjustment buttons)
-        dad_buttons = [
-            entry
-            for entry in entity_registry.entities.values()
-            if entry.domain == BUTTON_DOMAIN
-            and "dad" in entry.entity_id.lower()
-            and any(
-                button_type in entry.entity_id
-                for button_type in [
-                    "chore_claim",
-                    "chore_approval",
-                    "chore_disapproval",
-                ]
-            )
-        ]
+        # Count CHORE button entities for Dad by reading from chore sensors
+        # (Rule 4: Button IDs from chore sensor attributes)
+        dad_button_ids = []
+        for chore in dad_helper_attrs.get("chores", []):
+            chore_sensor_eid = chore.get("eid")
+            chore_state = hass.states.get(chore_sensor_eid)
+            if chore_state:
+                # Collect all button entity IDs from chore sensor
+                if btn_id := chore_state.attributes.get(
+                    ATTR_CHORE_CLAIM_BUTTON_ENTITY_ID
+                ):
+                    dad_button_ids.append(btn_id)
+                if btn_id := chore_state.attributes.get(
+                    ATTR_CHORE_APPROVE_BUTTON_ENTITY_ID
+                ):
+                    dad_button_ids.append(btn_id)
+                if btn_id := chore_state.attributes.get(
+                    ATTR_CHORE_DISAPPROVE_BUTTON_ENTITY_ID
+                ):
+                    dad_button_ids.append(btn_id)
 
-        # Count CHORE button entities for Zoë (regular kid)
-        zoe_buttons = [
-            entry
-            for entry in entity_registry.entities.values()
-            if entry.domain == BUTTON_DOMAIN
-            and "zoe" in entry.entity_id.lower()
-            and any(
-                button_type in entry.entity_id
-                for button_type in [
-                    "chore_claim",
-                    "chore_approval",
-                    "chore_disapproval",
-                ]
-            )
-        ]
+        # Count CHORE button entities for Zoë by reading from chore sensors
+        zoe_button_ids = []
+        for chore in zoe_helper_attrs.get("chores", []):
+            chore_sensor_eid = chore.get("eid")
+            chore_state = hass.states.get(chore_sensor_eid)
+            if chore_state:
+                # Collect all button entity IDs from chore sensor
+                if btn_id := chore_state.attributes.get(
+                    ATTR_CHORE_CLAIM_BUTTON_ENTITY_ID
+                ):
+                    zoe_button_ids.append(btn_id)
+                if btn_id := chore_state.attributes.get(
+                    ATTR_CHORE_APPROVE_BUTTON_ENTITY_ID
+                ):
+                    zoe_button_ids.append(btn_id)
+                if btn_id := chore_state.attributes.get(
+                    ATTR_CHORE_DISAPPROVE_BUTTON_ENTITY_ID
+                ):
+                    zoe_button_ids.append(btn_id)
 
-        # Dad should have fewer buttons than Sarah
+        # Dad should have fewer buttons than Zoë
         # Dad: 1 Approve button per chore (2 chores = 2 buttons)
         # Zoë: 3 buttons per chore (2 chores = 6 buttons)
-        assert len(dad_buttons) < len(zoe_buttons), (
+        assert len(dad_button_ids) < len(zoe_button_ids), (
             f"Shadow kid (workflow=False) should have fewer buttons. "
-            f"Dad: {len(dad_buttons)}, Zoë: {len(zoe_buttons)}"
+            f"Dad: {len(dad_button_ids)}, Zoë: {len(zoe_button_ids)}"
         )
 
         # Specific counts based on scenario:
         # Dad has "Mow lawn" (1 button) + "Take out trash" (1 button) = 2 buttons
-        assert len(dad_buttons) == 2, (
-            f"Expected 2 buttons for Dad, got {len(dad_buttons)}"
+        assert len(dad_button_ids) == 2, (
+            f"Expected 2 buttons for Dad, got {len(dad_button_ids)}"
         )
 
-        # Sarah has "Make bed" (3 buttons) + "Take out trash" (3 buttons) = 6 buttons
-        assert len(zoe_buttons) == 6, (
-            f"Expected 6 buttons for Sarah, got {len(zoe_buttons)}"
+        # Zoë has "Make bed" (3 buttons) + "Take out trash" (3 buttons) = 6 buttons
+        assert len(zoe_button_ids) == 6, (
+            f"Expected 6 buttons for Zoë, got {len(zoe_button_ids)}"
         )

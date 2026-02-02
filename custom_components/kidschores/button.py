@@ -1537,15 +1537,12 @@ class ParentPointsAdjustButton(KidsChoresCoordinatorEntity, ButtonEntity):
         self._delta = delta
         self._points_label = str(points_label)
 
+        # Use translation keys for "Increment" / "Decrement" labels since HA auto-generates entity_id
+        # from name and strips special characters like "+" and "-".
+        # The delta value is included in the sign label for display.
+        # Examples: "Increment 1.0", "Decrement 2.0"
         sign_label = (
-            f"{const.TRANS_KEY_BUTTON_DELTA_PLUS_LABEL}{delta}"
-            if delta >= 0
-            else f"{delta}"
-        )
-        sign_text = (
-            f"{const.TRANS_KEY_BUTTON_DELTA_PLUS_TEXT}{delta}"
-            if delta >= 0
-            else f"{const.TRANS_KEY_BUTTON_DELTA_MINUS_TEXT}{delta}"
+            f"Increment {abs(delta)}" if delta >= 0 else f"Decrement {abs(delta)}"
         )
         # Slugify delta for unique_id (replace decimal point and negative sign)
         # Examples: 1.0 -> 1p0, -1.0 -> neg1p0, 10.0 -> 10p0

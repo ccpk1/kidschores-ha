@@ -105,7 +105,7 @@ def get_dashboard_helper(hass: HomeAssistant, kid_slug: str) -> dict[str, Any]:
     Raises:
         ValueError: If dashboard helper doesn't exist
     """
-    helper_id = f"sensor.kc_{kid_slug}_ui_dashboard_helper"
+    helper_id = f"sensor.{kid_slug}_kidschores_ui_dashboard_helper"
     state = hass.states.get(helper_id)
 
     if state is None:
@@ -115,7 +115,10 @@ def get_dashboard_helper(hass: HomeAssistant, kid_slug: str) -> dict[str, Any]:
 
 
 def get_kid_points(hass: HomeAssistant, kid_slug: str) -> float:
-    """Get current points for a kid.
+    """Get current points for a kid via dashboard helper.
+
+    Uses the dashboard helper's core_sensors.points_eid to find the actual
+    points sensor entity ID (which may vary based on points_label config).
 
     Args:
         hass: Home Assistant instance
@@ -124,8 +127,15 @@ def get_kid_points(hass: HomeAssistant, kid_slug: str) -> float:
     Returns:
         Current point balance
     """
-    points_id = f"sensor.kc_{kid_slug}_points"
-    state = hass.states.get(points_id)
+    # Get points entity ID from dashboard helper (single source of truth)
+    helper = get_dashboard_helper(hass, kid_slug)
+    core_sensors = helper.get("core_sensors", {})
+    points_eid = core_sensors.get("points_eid")
+
+    if not points_eid:
+        return 0.0
+
+    state = hass.states.get(points_eid)
 
     if state is None or state.state in ("unknown", "unavailable"):
         return 0.0

@@ -2060,7 +2060,7 @@ class TestMultiWeekScheduling:
         chore_id = chore_map["Biweekly Task"]
 
         # Get chore entity ID from dashboard helper (Rule 3: Dashboard Helper is source)
-        helper_eid = "sensor.kc_zoe_ui_dashboard_helper"
+        helper_eid = "sensor.zoe_kidschores_ui_dashboard_helper"
         helper_state = hass.states.get(helper_eid)
         assert helper_state is not None, "Dashboard helper should exist"
 
@@ -2122,7 +2122,7 @@ class TestMultiWeekScheduling:
         chore_id = chore_map["Monthly Task"]
 
         # Get chore entity ID from dashboard helper (Rule 3: Dashboard Helper is source)
-        helper_eid = "sensor.kc_zoe_ui_dashboard_helper"
+        helper_eid = "sensor.zoe_kidschores_ui_dashboard_helper"
         helper_state = hass.states.get(helper_eid)
         assert helper_state is not None, "Dashboard helper should exist"
 

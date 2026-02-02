@@ -3839,6 +3839,10 @@
       },
       "parent_points_adjust_button": {
         "name": "{sign_label} {points_label}",
+        "sign_label": {
+          "increment": "Increment",
+          "decrement": "Decrement"
+        },
         "state_attributes": {
           "purpose": {
             "name": "Purpose",
@@ -3970,6 +3974,33 @@
     },
     "configuration_error": {
       "message": "Configuration error: {detail}"
+    },
+    "data_reset_confirmation_required": {
+      "message": "You must set confirm_destructive: true to proceed with data reset"
+    },
+    "data_reset_kid_not_found": {
+      "message": "Kid '{kid_name}' not found"
+    },
+    "data_reset_item_not_found": {
+      "message": "{item_type} '{item_name}' not found"
+    },
+    "data_reset_invalid_scope": {
+      "message": "Invalid scope '{scope}'. Must be: global, kid, domain, or item"
+    },
+    "notif_title_data_reset": {
+      "message": "Transactional Data Reset"
+    },
+    "notif_message_data_reset_global": {
+      "message": "All runtime data has been reset. Configuration preserved."
+    },
+    "notif_message_data_reset_kid": {
+      "message": "Data reset complete for {kid_name}. Points, stats, and progress cleared."
+    },
+    "notif_message_data_reset_domain": {
+      "message": "Data reset complete for all {domain}. Runtime data cleared."
+    },
+    "notif_message_data_reset_item": {
+      "message": "Data reset complete for {item_name}. Runtime data cleared."
     }
   }
 }

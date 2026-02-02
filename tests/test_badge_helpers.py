@@ -165,7 +165,7 @@ def get_bonus_by_name(coordinator: Any, bonus_name: str) -> str:
 
 
 def get_dashboard_helper_eid(hass: HomeAssistant, kid_name: str) -> str:
-    """Get dashboard helper entity ID for a kid by searching states.
+    """Get dashboard helper entity ID for a kid by name.
 
     Args:
         hass: Home Assistant instance
@@ -178,20 +178,20 @@ def get_dashboard_helper_eid(hass: HomeAssistant, kid_name: str) -> str:
         ValueError: If dashboard helper not found
     """
     # Slugify the kid name (lowercase, replace special chars)
-    slug = kid_name.lower().replace("!", "").replace("ë", "e").replace("å", "a")
-    eid = f"sensor.kc_{slug}_ui_dashboard_helper"
+    slug = (
+        kid_name.lower()
+        .replace("!", "")
+        .replace("ë", "e")
+        .replace("å", "a")
+        .replace("ü", "u")
+    )
+    eid = f"sensor.{slug}_kidschores_ui_dashboard_helper"
     state = hass.states.get(eid)
     if state:
         return eid
-    # Try alternative slugifications
-    for entity_state in hass.states.async_all():
-        if (
-            entity_state.entity_id.startswith("sensor.kc_")
-            and entity_state.entity_id.endswith("_ui_dashboard_helper")
-            and kid_name.lower().replace("!", "") in entity_state.entity_id.lower()
-        ):
-            return entity_state.entity_id
-    raise ValueError(f"Dashboard helper not found for kid: {kid_name}")
+    raise ValueError(
+        f"Dashboard helper not found for kid: {kid_name} (expected: {eid})"
+    )
 
 
 def find_chore_in_dashboard(

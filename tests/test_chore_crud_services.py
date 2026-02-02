@@ -93,7 +93,7 @@ def find_chore_in_dashboard_helper(
     Returns:
         Chore dict if found, None otherwise
     """
-    helper_eid = f"sensor.kc_{kid_slug}_ui_dashboard_helper"
+    helper_eid = f"sensor.{kid_slug}_kidschores_ui_dashboard_helper"
     helper_state = hass.states.get(helper_eid)
 
     if helper_state is None:

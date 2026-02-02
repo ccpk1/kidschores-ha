@@ -9,10 +9,10 @@ Usage:
     )
 
     # Assert entity exists
-    assert_entity_exists(hass, "sensor.kc_zoe_points")
+    assert_entity_exists(hass, "sensor.zoe_kidschores_star_points")
 
     # Assert state equals expected value
-    assert_state_equals(hass, "sensor.kc_zoe_points", "100")
+    assert_state_equals(hass, "sensor.zoe_kidschores_star_points", "100")
 
     # Assert points changed by expected amount
     assert_points_changed(result, expected_change=10.0)
@@ -348,23 +348,22 @@ def assert_due_date_advanced(
 def count_entities_by_platform(
     hass: HomeAssistant,
     platform: str,
-    prefix: str = "kc_",
+    suffix: str = "_kidschores_",
 ) -> int:
     """Count KidsChores entities for a specific platform.
 
     Args:
         hass: Home Assistant instance
         platform: Platform name (sensor, button, etc.)
-        prefix: Entity ID prefix to filter (default "kc_")
+        suffix: Entity ID suffix to filter (default "_kidschores_")
 
     Returns:
         Count of matching entities
     """
     count = 0
-    entity_prefix = f"{platform}.{prefix}"
 
     for entity_id in hass.states.async_entity_ids(platform):
-        if entity_id.startswith(entity_prefix):
+        if suffix in entity_id:
             count += 1
 
     return count
@@ -386,14 +385,13 @@ def count_entities_by_kid(
         Count of matching entities
     """
     count = 0
-    kid_prefix = f"kc_{kid_slug}_"
+    kid_pattern = f"{kid_slug}_kidschores_"
 
     platforms = [platform] if platform else ["sensor", "button", "select", "datetime"]
 
     for p in platforms:
-        entity_prefix = f"{p}.{kid_prefix}"
         for entity_id in hass.states.async_entity_ids(p):
-            if entity_id.startswith(entity_prefix):
+            if kid_pattern in entity_id:
                 count += 1
 
     return count
@@ -415,14 +413,13 @@ def get_kid_entity_ids(
         List of matching entity IDs
     """
     entity_ids = []
-    kid_prefix = f"kc_{kid_slug}_"
+    kid_pattern = f"{kid_slug}_kidschores_"
 
     platforms = [platform] if platform else ["sensor", "button", "select", "datetime"]
 
     for p in platforms:
-        entity_prefix = f"{p}.{kid_prefix}"
         for entity_id in hass.states.async_entity_ids(p):
-            if entity_id.startswith(entity_prefix):
+            if kid_pattern in entity_id:
                 entity_ids.append(entity_id)
 
     return sorted(entity_ids)
@@ -467,7 +464,7 @@ def verify_kid_entities(
     # Check sensors
     if expected_sensors:
         for suffix in expected_sensors:
-            entity_id = f"sensor.kc_{kid_slug}_{suffix}"
+            entity_id = f"sensor.{kid_slug}_kidschores_{suffix}"
             state = hass.states.get(entity_id)
 
             if state is None:
@@ -482,7 +479,7 @@ def verify_kid_entities(
     # Check buttons
     if expected_buttons:
         for suffix in expected_buttons:
-            entity_id = f"button.kc_{kid_slug}_{suffix}"
+            entity_id = f"button.{kid_slug}_kidschores_{suffix}"
             state = hass.states.get(entity_id)
 
             if state is None:
