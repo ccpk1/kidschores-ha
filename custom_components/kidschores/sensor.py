@@ -1178,13 +1178,12 @@ class KidPointsSensor(KidsChoresCoordinatorEntity, SensorEntity):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Expose all point stats as attributes.
 
-        Dynamically includes all DATA_KID_POINT_STATS fields prefixed with
-        'point_stat_' for frontend access to detailed breakdowns (earned, spent,
-        bonuses, penalties, sources, etc.).
+        Phase 7G.1: All point data now comes from two sources:
+        1. Persistent all_time stats from point_data.periods.all_time.all_time
+           (earned, spent, by_source, highest_balance)
+        2. Temporal stats from PRES_* cache (today, week, month, year)
 
-        Phase 7.5: Merges persistent stats (all_time, highest) from storage
-        with temporal stats (today, week, month, year) from presentation cache.
-        Temporal stats use PRES_* keys mapped to backward-compatible attribute names.
+        Net values are DERIVED (earned + spent), never stored.
 
         Attribute order: common fields first (purpose, kid_name),
         then all point_stat_* fields sorted alphabetically.
@@ -1192,8 +1191,6 @@ class KidPointsSensor(KidsChoresCoordinatorEntity, SensorEntity):
         kid_info: KidData = cast(
             "KidData", self.coordinator.kids_data.get(self._kid_id, {})
         )
-        # Get persistent stats from storage (all_time values, highest_balance, etc.)
-        point_stats = kid_info.get(const.DATA_KID_POINT_STATS, {})
 
         # Common fields first (consistent ordering across sensors)
         attributes: dict[str, Any] = {
@@ -1201,11 +1198,46 @@ class KidPointsSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.ATTR_KID_NAME: self._kid_name,
         }
 
-        # Add persistent stats from storage (sorted)
-        for key in sorted(point_stats.keys()):
-            attributes[f"{const.ATTR_PREFIX_POINT_STAT}{key}"] = point_stats[key]
+        # === Phase 7G.1: Get persistent all_time stats from periods bucket ===
+        all_time_entry = (
+            kid_info.get(const.DATA_KID_POINT_DATA, {})
+            .get(const.DATA_KID_POINT_DATA_PERIODS, {})
+            .get(const.DATA_KID_POINT_DATA_PERIODS_ALL_TIME, {})
+            .get(const.PERIOD_ALL_TIME, {})
+        )
 
-        # Phase 7.5: Add temporal stats from presentation cache
+        # Extract all_time values
+        earned_all_time = all_time_entry.get(
+            const.DATA_KID_POINT_DATA_PERIOD_POINTS_EARNED, 0.0
+        )
+        spent_all_time = all_time_entry.get(
+            const.DATA_KID_POINT_DATA_PERIOD_POINTS_SPENT, 0.0
+        )
+        by_source_all_time = all_time_entry.get(
+            const.DATA_KID_POINT_DATA_PERIOD_BY_SOURCE, {}
+        )
+        highest_balance = all_time_entry.get(
+            const.DATA_KID_POINT_DATA_PERIOD_HIGHEST_BALANCE, 0.0
+        )
+
+        # Add persistent all_time stats with backward-compatible attribute names
+        attributes[f"{const.ATTR_PREFIX_POINT_STAT}points_earned_all_time"] = (
+            earned_all_time
+        )
+        attributes[f"{const.ATTR_PREFIX_POINT_STAT}points_spent_all_time"] = (
+            spent_all_time
+        )
+        attributes[f"{const.ATTR_PREFIX_POINT_STAT}points_net_all_time"] = round(
+            earned_all_time + spent_all_time, const.DATA_FLOAT_PRECISION
+        )
+        attributes[f"{const.ATTR_PREFIX_POINT_STAT}points_by_source_all_time"] = (
+            by_source_all_time
+        )
+        attributes[f"{const.ATTR_PREFIX_POINT_STAT}highest_balance_all_time"] = (
+            highest_balance
+        )
+
+        # === Add temporal stats from presentation cache ===
         # PRES_KID_* keys map to backward-compatible names by stripping "pres_kid_" prefix
         pres_stats = self.coordinator.statistics_manager.get_stats(self._kid_id)
         for pres_key, value in pres_stats.items():

@@ -977,3 +977,71 @@ class RewardManager(BaseManager):
             reward_name,
             reward_id,
         )
+
+    # =========================================================================
+    # DATA RESET - Transactional Data Reset for Rewards Domain
+    # =========================================================================
+
+    async def data_reset_rewards(
+        self,
+        scope: str,
+        kid_id: str | None = None,
+        item_id: str | None = None,
+    ) -> None:
+        """Reset runtime data for rewards domain.
+
+        Clears per-kid reward_data tracking (claim counts, timestamps)
+        while preserving reward definitions and configured values.
+
+        Args:
+            scope: Reset scope (global, kid, item_type, item)
+            kid_id: Target kid ID for kid scope (optional)
+            item_id: Target reward ID for item scope (optional)
+
+        Emits:
+            SIGNAL_SUFFIX_REWARD_DATA_RESET_COMPLETE with scope, kid_id, item_id
+        """
+        const.LOGGER.info(
+            "Data reset: rewards domain - scope=%s, kid_id=%s, item_id=%s",
+            scope,
+            kid_id,
+            item_id,
+        )
+
+        kids_data = self.coordinator._data.get(const.DATA_KIDS, {})
+
+        # Determine which kids to process
+        if kid_id:
+            kid_ids = [kid_id] if kid_id in kids_data else []
+        else:
+            kid_ids = list(kids_data.keys())
+
+        for loop_kid_id in kid_ids:
+            kid_info = kids_data.get(loop_kid_id)
+            if not kid_info:
+                continue
+
+            # Reset reward_data tracking
+            reward_data = kid_info.get(const.DATA_KID_REWARD_DATA, {})
+            if item_id:
+                # Item scope - only clear specific reward tracking
+                reward_data.pop(item_id, None)
+            else:
+                # Clear all reward tracking
+                reward_data.clear()
+
+        # Persist → Emit (per DEVELOPMENT_STANDARDS.md § 5.3)
+        self.coordinator._persist()
+
+        # Emit completion signal
+        self.emit(
+            const.SIGNAL_SUFFIX_REWARD_DATA_RESET_COMPLETE,
+            scope=scope,
+            kid_id=kid_id,
+            item_id=item_id,
+        )
+
+        const.LOGGER.info(
+            "Data reset: rewards domain complete - %d kids affected",
+            len(kid_ids),
+        )

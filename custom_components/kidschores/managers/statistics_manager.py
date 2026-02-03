@@ -37,7 +37,6 @@ from typing import TYPE_CHECKING, Any, cast
 from homeassistant.core import callback
 
 from .. import const
-from ..engines.statistics_engine import filter_persistent_stats
 from ..utils.dt_utils import dt_now_local, dt_parse
 from .base_manager import BaseManager
 
@@ -163,6 +162,41 @@ class StatisticsManager(BaseManager):
         # Clears 'today' cache keys at midnight so sensors show 0 immediately
         self.listen(const.SIGNAL_SUFFIX_MIDNIGHT_ROLLOVER, self._on_midnight_rollover)
 
+        # Data reset completion signals - invalidate caches when data is reset
+        # Each domain manager emits completion signal after reset; we listen to all
+        self.listen(
+            const.SIGNAL_SUFFIX_CHORE_DATA_RESET_COMPLETE,
+            self._on_data_reset_complete,
+        )
+        self.listen(
+            const.SIGNAL_SUFFIX_POINTS_DATA_RESET_COMPLETE,
+            self._on_data_reset_complete,
+        )
+        self.listen(
+            const.SIGNAL_SUFFIX_BADGE_DATA_RESET_COMPLETE,
+            self._on_data_reset_complete,
+        )
+        self.listen(
+            const.SIGNAL_SUFFIX_ACHIEVEMENT_DATA_RESET_COMPLETE,
+            self._on_data_reset_complete,
+        )
+        self.listen(
+            const.SIGNAL_SUFFIX_CHALLENGE_DATA_RESET_COMPLETE,
+            self._on_data_reset_complete,
+        )
+        self.listen(
+            const.SIGNAL_SUFFIX_REWARD_DATA_RESET_COMPLETE,
+            self._on_data_reset_complete,
+        )
+        self.listen(
+            const.SIGNAL_SUFFIX_PENALTY_DATA_RESET_COMPLETE,
+            self._on_data_reset_complete,
+        )
+        self.listen(
+            const.SIGNAL_SUFFIX_BONUS_DATA_RESET_COMPLETE,
+            self._on_data_reset_complete,
+        )
+
         # Note: Startup hydration is now triggered by CHORES_READY signal (cascade)
         # See _on_chores_ready() handler below
 
@@ -181,6 +215,44 @@ class StatisticsManager(BaseManager):
         """
         const.LOGGER.info("StatisticsManager: Midnight rollover - clearing cache")
         self.invalidate_cache()
+
+    @callback
+    def _on_data_reset_complete(self, payload: dict[str, Any]) -> None:
+        """Handle data reset completion - invalidate affected caches.
+
+        When any domain manager completes a data reset operation, we need to
+        invalidate statistics caches so derived values are recalculated from
+        the updated source data.
+
+        Payload format (standard across all *_DATA_RESET_COMPLETE signals):
+            scope: "global" | "kid" | "item_type" | "item"
+            kid_id: str | None - specific kid for kid scope
+            item_id: str | None - specific item for item scope
+
+        Args:
+            payload: Event data with scope, kid_id, item_id
+        """
+        scope = payload.get("scope", "global")
+        kid_id = payload.get("kid_id")
+
+        const.LOGGER.debug(
+            "StatisticsManager: Data reset complete - scope=%s, kid_id=%s",
+            scope,
+            kid_id,
+        )
+
+        if scope in {"global", "item_type"}:
+            # Full reset - invalidate all caches
+            self.invalidate_cache()
+        elif scope == "kid" and kid_id:
+            # Kid-specific reset - only invalidate that kid's cache
+            self.invalidate_cache(kid_id)
+        elif scope == "item":
+            # Item-specific reset - may affect stats, invalidate all for safety
+            if kid_id:
+                self.invalidate_cache(kid_id)
+            else:
+                self.invalidate_cache()
 
     async def _on_chores_ready(self, payload: dict[str, Any]) -> None:
         """Handle startup cascade - hydrate stats after chores are ready.
@@ -218,22 +290,8 @@ class StatisticsManager(BaseManager):
         """
         return self._coordinator.kids_data.get(kid_id)  # type: ignore[return-value]
 
-    def _recalculate_point_stats(self, kid_info: dict[str, Any]) -> None:
-        """Recalculate aggregated point stats for a kid.
-
-        Aggregates all kid_point_stats by delegating to the StatisticsEngine,
-        which owns the period data structure knowledge.
-
-        Note: Only persistent stats (all_time, highest, etc.) are written to
-        storage. Temporal stats (today/week/month) live in the presentation
-        cache (Phase 7.5 Architecture).
-
-        Args:
-            kid_info: The kid data dictionary to update.
-        """
-        stats = self._stats_engine.generate_point_stats(kid_info)
-        # Only persist non-temporal stats (Phase 7.5: temporal lives in cache)
-        kid_info[const.DATA_KID_POINT_STATS] = filter_persistent_stats(stats)
+    # NOTE: _recalculate_point_stats() DELETED in Phase 7G.1
+    # All point stats now live in point_data.periods - no separate aggregation needed
 
     # =========================================================================
     # Event Handlers
@@ -244,11 +302,14 @@ class StatisticsManager(BaseManager):
         """Handle POINTS_CHANGED event - update point statistics.
 
         This is called whenever EconomyManager.deposit() or .withdraw() is invoked.
-        Updates:
-        - Period-based point_data (daily/weekly/monthly/yearly)
-        - All-time point_stats
-        - Cumulative badge progress (for positive deltas)
-        - Highest balance tracking
+        Updates period-based point_data (daily/weekly/monthly/yearly/all_time):
+        - points_earned (positive deltas)
+        - points_spent (negative deltas)
+        - by_source breakdown
+        - highest_balance (all_time only)
+
+        Phase 7G.1 Architecture: All point stats live in point_data.periods.
+        No separate point_stats dict - data is single source of truth.
 
         Args:
             payload: Event data containing:
@@ -274,48 +335,43 @@ class StatisticsManager(BaseManager):
             )
             return
 
-        # 1) Update all-time stats (incrementally)
-        point_stats: dict[str, Any] = kid_info.setdefault(
-            const.DATA_KID_POINT_STATS, {}
-        )
-        point_stats.setdefault(const.DATA_KID_POINT_STATS_EARNED_ALL_TIME, 0.0)
-        point_stats.setdefault(const.DATA_KID_POINT_STATS_SPENT_ALL_TIME, 0.0)
-        point_stats.setdefault(const.DATA_KID_POINT_STATS_NET_ALL_TIME, 0.0)
-        point_stats.setdefault(const.DATA_KID_POINT_STATS_BY_SOURCE_ALL_TIME, {})
-        point_stats.setdefault(const.DATA_KID_POINT_STATS_HIGHEST_BALANCE, 0.0)
-
-        if delta > 0:
-            earned = point_stats.get(const.DATA_KID_POINT_STATS_EARNED_ALL_TIME, 0.0)
-            point_stats[const.DATA_KID_POINT_STATS_EARNED_ALL_TIME] = round(
-                earned + delta, const.DATA_FLOAT_PRECISION
+        # Phase 3B Tenant Rule: Guard against missing point_data
+        # EconomyManager (Landlord) creates point_data on-demand before emitting POINTS_CHANGED
+        point_data: dict[str, Any] | None = kid_info.get(const.DATA_KID_POINT_DATA)
+        if point_data is None:
+            const.LOGGER.warning(
+                "StatisticsManager._on_points_changed: point_data missing for kid '%s' - "
+                "skipping (EconomyManager should have created it before emitting signal)",
+                kid_id,
             )
-        elif delta < 0:
-            spent = point_stats.get(const.DATA_KID_POINT_STATS_SPENT_ALL_TIME, 0.0)
-            point_stats[const.DATA_KID_POINT_STATS_SPENT_ALL_TIME] = round(
-                spent + delta, const.DATA_FLOAT_PRECISION
-            )
-        net = point_stats.get(const.DATA_KID_POINT_STATS_NET_ALL_TIME, 0.0)
-        point_stats[const.DATA_KID_POINT_STATS_NET_ALL_TIME] = round(
-            net + delta, const.DATA_FLOAT_PRECISION
-        )
+            return
 
-        # 3) Record in period-based point_data
-        periods_data: dict[str, Any] = kid_info.setdefault(
-            const.DATA_KID_POINT_DATA, {}
-        ).setdefault(const.DATA_KID_POINT_DATA_PERIODS, {})
+        # === 1) Record earned/spent to period buckets ===
+        periods_data: dict[str, Any] = point_data.setdefault(
+            const.DATA_KID_POINT_DATA_PERIODS, {}
+        )
 
         now_local = dt_now_local()
-        period_mapping = self._stats_engine.get_period_keys(now_local)
 
-        # Record points_total using StatisticsEngine
+        # Determine earned vs spent based on delta sign
+        # Positive delta → points_earned, Negative delta → points_spent
+        if delta > 0:
+            increment_key = const.DATA_KID_POINT_DATA_PERIOD_POINTS_EARNED
+        else:
+            increment_key = const.DATA_KID_POINT_DATA_PERIOD_POINTS_SPENT
+
+        # Record earned OR spent using StatisticsEngine (handles daily/weekly/monthly/yearly)
+        # NOTE: all_time is handled manually below due to nested bucket structure (all_time.all_time)
         self._stats_engine.record_transaction(
             periods_data,
-            {const.DATA_KID_POINT_DATA_PERIOD_POINTS_TOTAL: delta},
-            period_key_mapping=period_mapping,
+            {increment_key: delta},
+            reference_date=now_local,
+            include_all_time=False,
         )
 
-        # Handle by_source tracking (nested structure not handled by engine)
-        for period_key, period_id in period_mapping.items():
+        # === 2) Record by_source to period buckets (nested structure) ===
+        period_ids = self._stats_engine.get_period_keys(now_local)
+        for period_key, period_id in period_ids.items():
             bucket: dict[str, Any] = periods_data.setdefault(period_key, {})
             entry: dict[str, Any] = bucket.setdefault(period_id, {})
             if (
@@ -331,13 +387,15 @@ class StatisticsManager(BaseManager):
                 const.DATA_FLOAT_PRECISION,
             )
 
-        # Also record by_source for all_time bucket
+        # === 3) Record by_source and highest_balance to all_time bucket ===
         all_time_bucket: dict[str, Any] = periods_data.setdefault(
             const.DATA_KID_POINT_DATA_PERIODS_ALL_TIME, {}
         )
         all_time_entry: dict[str, Any] = all_time_bucket.setdefault(
             const.PERIOD_ALL_TIME, {}
         )
+
+        # by_source for all_time
         if (
             const.DATA_KID_POINT_DATA_PERIOD_BY_SOURCE not in all_time_entry
             or not isinstance(
@@ -353,29 +411,43 @@ class StatisticsManager(BaseManager):
             const.DATA_FLOAT_PRECISION,
         )
 
-        # 4) Recalculate aggregated stats (generates period summaries)
-        self._recalculate_point_stats(kid_info)
+        # points_earned/spent tracking (all_time only - nested bucket requires manual handling)
+        # record_transaction() writes to periods["all_time"] directly, but we need
+        # periods["all_time"]["all_time"] for consistency with other period structures
+        if delta > 0:
+            current_earned = all_time_entry.get(
+                const.DATA_KID_POINT_DATA_PERIOD_POINTS_EARNED, 0.0
+            )
+            all_time_entry[const.DATA_KID_POINT_DATA_PERIOD_POINTS_EARNED] = round(
+                current_earned + delta, const.DATA_FLOAT_PRECISION
+            )
+        else:
+            current_spent = all_time_entry.get(
+                const.DATA_KID_POINT_DATA_PERIOD_POINTS_SPENT, 0.0
+            )
+            all_time_entry[const.DATA_KID_POINT_DATA_PERIOD_POINTS_SPENT] = round(
+                current_spent + delta, const.DATA_FLOAT_PRECISION
+            )
 
-        # 5) Update all-time by-source AFTER recalculate (to avoid being overwritten)
-        by_source_all_time: dict[str, float] = point_stats.get(
-            const.DATA_KID_POINT_STATS_BY_SOURCE_ALL_TIME, {}
+        # highest_balance tracking (all_time only)
+        highest = all_time_entry.get(
+            const.DATA_KID_POINT_DATA_PERIOD_HIGHEST_BALANCE, 0.0
         )
-        by_source_all_time.setdefault(source, 0.0)
-        by_source_all_time[source] = round(
-            by_source_all_time[source] + delta, const.DATA_FLOAT_PRECISION
-        )
-
-        # Update highest balance
-        highest = point_stats.get(const.DATA_KID_POINT_STATS_HIGHEST_BALANCE, 0.0)
-        point_stats[const.DATA_KID_POINT_STATS_HIGHEST_BALANCE] = max(
+        all_time_entry[const.DATA_KID_POINT_DATA_PERIOD_HIGHEST_BALANCE] = max(
             highest, new_balance
         )
 
-        # 6) Prune old period data
+        # === 4) Prune old period data ===
         self._stats_engine.prune_history(periods_data, self.get_retention_config())
 
-        # 7) Persist changes
+        # === 5) Persist changes ===
         self._coordinator._persist()
+
+        # === 6) Refresh presentation cache (BEFORE notifying sensors) ===
+        # Must refresh cache synchronously before async_set_updated_data() triggers sensor reads
+        self._refresh_point_cache(kid_id)
+
+        # === 7) Notify Home Assistant of data update ===
         self._coordinator.async_set_updated_data(self._coordinator._data)
 
         const.LOGGER.debug(
@@ -426,9 +498,30 @@ class StatisticsManager(BaseManager):
             )
             return False
 
-        # Get/create chore_data for this kid+chore
-        chore_data = kid_info.setdefault(const.DATA_KID_CHORE_DATA, {})
-        kid_chore_data = chore_data.setdefault(chore_id, {})
+        # Phase 3B Tenant Rule: Guard against missing landlord-owned structures
+        # ChoreManager (Landlord) creates chore_data on-demand via _get_kid_chore_data()
+        chore_data: dict[str, Any] | None = kid_info.get(const.DATA_KID_CHORE_DATA)
+        if chore_data is None:
+            const.LOGGER.warning(
+                "StatisticsManager._record_chore_transaction: chore_data missing for kid '%s' - "
+                "skipping (ChoreManager should have created it before emitting signal)",
+                kid_id,
+            )
+            return False
+
+        # Phase 3B Tenant Rule: Guard against missing per-chore entry
+        # ChoreManager creates per-chore entries on-demand via _get_kid_chore_data()
+        kid_chore_data: dict[str, Any] | None = chore_data.get(chore_id)
+        if kid_chore_data is None:
+            const.LOGGER.warning(
+                "StatisticsManager._record_chore_transaction: chore_data entry missing for "
+                "kid '%s', chore '%s' - skipping (ChoreManager should create on assignment)",
+                kid_id,
+                chore_id,
+            )
+            return False
+
+        # Get or create periods (StatisticsManager owns these sub-keys within chore_data entry)
         periods = kid_chore_data.setdefault(
             const.DATA_KID_CHORE_DATA_PERIODS,
             {
@@ -784,7 +877,7 @@ class StatisticsManager(BaseManager):
         kid_info = self._get_kid(kid_id)
         if not kid_info:
             return {}
-        return kid_info.get(const.DATA_KID_POINT_STATS, {})
+        return kid_info.get(const.DATA_KID_POINT_STATS_LEGACY, {})
 
     def get_period_stats_for_kid(self, kid_id: str, period_type: str) -> dict[str, Any]:
         """Get period-based statistics for a kid.
@@ -891,22 +984,26 @@ class StatisticsManager(BaseManager):
         def get_period_values(
             period_key: str, period_id: str
         ) -> tuple[float, float, float, dict[str, float]]:
-            """Extract earned, spent, net, and by_source from a period bucket."""
+            """Extract earned, spent, net, and by_source from a period bucket.
+
+            Phase 7G.1: Now reads earned/spent directly from period entry,
+            derives net as (earned + spent). No longer reads points_total.
+            """
             period = pts_periods.get(period_key, {})
             entry = period.get(period_id, {})
             by_source = entry.get(const.DATA_KID_POINT_DATA_PERIOD_BY_SOURCE, {})
+
+            # Read earned/spent directly from period entry (v44+ structure)
             earned = round(
-                sum(v for v in by_source.values() if v > 0),
+                entry.get(const.DATA_KID_POINT_DATA_PERIOD_POINTS_EARNED, 0.0),
                 const.DATA_FLOAT_PRECISION,
             )
             spent = round(
-                sum(v for v in by_source.values() if v < 0),
+                entry.get(const.DATA_KID_POINT_DATA_PERIOD_POINTS_SPENT, 0.0),
                 const.DATA_FLOAT_PRECISION,
             )
-            net = round(
-                entry.get(const.DATA_KID_POINT_DATA_PERIOD_POINTS_TOTAL, 0.0),
-                const.DATA_FLOAT_PRECISION,
-            )
+            # Net is DERIVED (earned + spent, where spent is negative)
+            net = round(earned + spent, const.DATA_FLOAT_PRECISION)
             return earned, spent, net, dict(by_source)
 
         # Daily

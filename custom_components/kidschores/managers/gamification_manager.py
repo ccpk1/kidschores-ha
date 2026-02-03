@@ -1046,10 +1046,15 @@ class GamificationManager(BaseManager):
         # Get today's ISO date using helper
         today_iso = dt_today_iso()
 
-        # Get point stats for total earned (nested in point_stats dict)
-        point_stats = kid_data.get(const.DATA_KID_POINT_STATS, {})
+        # Get total earned from all_time period bucket (v43+)
+        point_data = kid_data.get(const.DATA_KID_POINT_DATA, {})
+        periods = point_data.get(const.DATA_KID_POINT_DATA_PERIODS, {})
+        all_time_periods = periods.get(const.DATA_KID_POINT_DATA_PERIODS_ALL_TIME, {})
+        all_time_bucket = all_time_periods.get(
+            const.DATA_KID_POINT_DATA_PERIODS_ALL_TIME, {}
+        )
         total_earned = float(
-            point_stats.get(const.DATA_KID_POINT_STATS_EARNED_ALL_TIME, 0.0)
+            all_time_bucket.get(const.DATA_KID_POINT_DATA_PERIOD_POINTS_EARNED, 0.0)
         )
 
         # Get badge progress from kid data
@@ -1364,6 +1369,9 @@ class GamificationManager(BaseManager):
     def update_point_multiplier_for_kid(self, kid_id: str) -> None:
         """Update the kid's points multiplier based on current cumulative badge.
 
+        Phase 3B Landlord/Tenant: GamificationManager calculates the multiplier
+        but emits a signal for EconomyManager (the Landlord) to perform the write.
+
         Args:
             kid_id: Kid's internal ID
         """
@@ -1389,7 +1397,13 @@ class GamificationManager(BaseManager):
                 if isinstance(raw_multiplier, (int, float)):
                     multiplier = float(raw_multiplier)
 
-        kid_info[const.DATA_KID_POINTS_MULTIPLIER] = multiplier
+        # Phase 3B: Emit signal for EconomyManager (Landlord) to write
+        self.emit(
+            const.SIGNAL_SUFFIX_POINTS_MULTIPLIER_CHANGE_REQUESTED,
+            kid_id=kid_id,
+            multiplier=multiplier,
+            reference_id=current_badge_id,
+        )
 
     # =========================================================================
     # BADGE CORE OPERATIONS (State-Modifying Methods)
@@ -3025,4 +3039,224 @@ class GamificationManager(BaseManager):
             "Deleted challenge '%s' (ID: %s)",
             challenge_name,
             challenge_id,
+        )
+
+    # =========================================================================
+    # DATA RESET - Transactional Data Reset for Gamification Domain
+    # =========================================================================
+
+    async def data_reset_badges(
+        self,
+        scope: str,
+        kid_id: str | None = None,
+        item_id: str | None = None,
+    ) -> None:
+        """Reset runtime data for badges domain.
+
+        Clears per-kid badge state including badge_data tracking and
+        badge-related lists while preserving badge definitions.
+
+        Args:
+            scope: Reset scope (global, kid, item_type, item)
+            kid_id: Target kid ID for kid scope (optional)
+            item_id: Target badge ID for item scope (optional)
+
+        Emits:
+            SIGNAL_SUFFIX_BADGE_DATA_RESET_COMPLETE with scope, kid_id, item_id
+        """
+        const.LOGGER.info(
+            "Data reset: badges domain - scope=%s, kid_id=%s, item_id=%s",
+            scope,
+            kid_id,
+            item_id,
+        )
+
+        kids_data = self.coordinator._data.get(const.DATA_KIDS, {})
+
+        # Determine which kids to process
+        if kid_id:
+            kid_ids = [kid_id] if kid_id in kids_data else []
+        else:
+            kid_ids = list(kids_data.keys())
+
+        for loop_kid_id in kid_ids:
+            kid_info = kids_data.get(loop_kid_id)
+            if not kid_info:
+                continue
+
+            # Reset badge-related fields from _BADGE_KID_RUNTIME_FIELDS
+            for field in db._BADGE_KID_RUNTIME_FIELDS:
+                if field not in kid_info:
+                    continue
+                field_data = kid_info[field]
+                if item_id and isinstance(field_data, dict):
+                    # Item scope - only clear specific badge
+                    field_data.pop(item_id, None)
+                elif isinstance(field_data, (dict, list)):
+                    field_data.clear()
+
+        # Persist → Emit (per DEVELOPMENT_STANDARDS.md § 5.3)
+        self.coordinator._persist()
+
+        # Recalculate multiplier for affected kids after clearing badge data
+        # With cumulative badge progress cleared, this will emit signal with 1.0
+        # (same pattern as demote_cumulative_badge)
+        for loop_kid_id in kid_ids:
+            self.update_point_multiplier_for_kid(loop_kid_id)
+
+        # Emit completion signal
+        self.emit(
+            const.SIGNAL_SUFFIX_BADGE_DATA_RESET_COMPLETE,
+            scope=scope,
+            kid_id=kid_id,
+            item_id=item_id,
+        )
+
+        const.LOGGER.info(
+            "Data reset: badges domain complete - %d kids affected",
+            len(kid_ids),
+        )
+
+    async def data_reset_achievements(
+        self,
+        scope: str,
+        kid_id: str | None = None,
+        item_id: str | None = None,
+    ) -> None:
+        """Reset runtime data for achievements domain.
+
+        Clears per-kid achievement progress stored in the achievement's
+        progress dict while preserving achievement definitions.
+
+        Args:
+            scope: Reset scope (global, kid, item_type, item)
+            kid_id: Target kid ID for kid scope (optional)
+            item_id: Target achievement ID for item scope (optional)
+
+        Emits:
+            SIGNAL_SUFFIX_ACHIEVEMENT_DATA_RESET_COMPLETE with scope, kid_id, item_id
+        """
+        const.LOGGER.info(
+            "Data reset: achievements domain - scope=%s, kid_id=%s, item_id=%s",
+            scope,
+            kid_id,
+            item_id,
+        )
+
+        achievements_data = self.coordinator._data.get(const.DATA_ACHIEVEMENTS, {})
+        kids_data = self.coordinator._data.get(const.DATA_KIDS, {})
+
+        # Determine which achievements to process
+        if item_id:
+            achievement_ids = [item_id] if item_id in achievements_data else []
+        else:
+            achievement_ids = list(achievements_data.keys())
+
+        # Validate kid_id if provided
+        if kid_id and kid_id not in kids_data:
+            const.LOGGER.warning(
+                "Data reset: achievements - kid_id '%s' not found",
+                kid_id,
+            )
+            return
+
+        affected_count = 0
+        for achievement_id in achievement_ids:
+            achievement_info = achievements_data.get(achievement_id)
+            if not achievement_info:
+                continue
+
+            progress = achievement_info.get(const.DATA_ACHIEVEMENT_PROGRESS, {})
+            if kid_id:
+                # Kid scope - only clear this kid's progress
+                if kid_id in progress:
+                    del progress[kid_id]
+                    affected_count += 1
+            else:
+                # Global/item_type/item scope - clear all progress
+                affected_count += len(progress)
+                progress.clear()
+
+        # Persist → Emit (per DEVELOPMENT_STANDARDS.md § 5.3)
+        self.coordinator._persist()
+
+        # Emit completion signal
+        self.emit(
+            const.SIGNAL_SUFFIX_ACHIEVEMENT_DATA_RESET_COMPLETE,
+            scope=scope,
+            kid_id=kid_id,
+            item_id=item_id,
+        )
+
+        const.LOGGER.info(
+            "Data reset: achievements domain complete - %d progress entries cleared",
+            affected_count,
+        )
+
+    async def data_reset_challenges(
+        self,
+        scope: str,
+        kid_id: str | None = None,
+        item_id: str | None = None,
+    ) -> None:
+        """Reset runtime data for challenges domain.
+
+        Clears challenge progress while preserving challenge definitions.
+        Progress is stored in challenge[progress][kid_id].
+
+        Args:
+            scope: Reset scope (global, kid, item_type, item)
+            kid_id: Target kid ID for kid scope (optional)
+            item_id: Target challenge ID for item scope (optional)
+
+        Emits:
+            SIGNAL_SUFFIX_CHALLENGE_DATA_RESET_COMPLETE with scope, kid_id, item_id
+        """
+        const.LOGGER.info(
+            "Data reset: challenges domain - scope=%s, kid_id=%s, item_id=%s",
+            scope,
+            kid_id,
+            item_id,
+        )
+
+        challenges_data = self.coordinator._data.get(const.DATA_CHALLENGES, {})
+
+        # Determine which challenges to process
+        if item_id:
+            challenge_ids = [item_id] if item_id in challenges_data else []
+        else:
+            challenge_ids = list(challenges_data.keys())
+
+        affected_count = 0
+        # Reset challenge progress
+        for challenge_id in challenge_ids:
+            challenge_info = challenges_data.get(challenge_id)
+            if not challenge_info:
+                continue
+
+            progress = challenge_info.get(const.DATA_CHALLENGE_PROGRESS, {})
+            if kid_id:
+                # Kid scope - only clear this kid's progress
+                if kid_id in progress:
+                    del progress[kid_id]
+                    affected_count += 1
+            else:
+                # Global/item_type/item scope - reset all progress
+                affected_count += len(progress)
+                progress.clear()
+
+        # Persist → Emit (per DEVELOPMENT_STANDARDS.md § 5.3)
+        self.coordinator._persist()
+
+        # Emit completion signal
+        self.emit(
+            const.SIGNAL_SUFFIX_CHALLENGE_DATA_RESET_COMPLETE,
+            scope=scope,
+            kid_id=kid_id,
+            item_id=item_id,
+        )
+
+        const.LOGGER.info(
+            "Data reset: challenges domain complete - %d progress entries cleared",
+            affected_count,
         )

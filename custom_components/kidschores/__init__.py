@@ -292,7 +292,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: KidsChoresConfigEntry) 
     unload_ok = await hass.config_entries.async_unload_platforms(entry, const.PLATFORMS)
 
     if unload_ok:
-        # Await service unloading
+        # Unload services
         await async_unload_services(hass)
 
     return unload_ok
@@ -312,6 +312,13 @@ async def async_remove_entry(hass: HomeAssistant, entry: KidsChoresConfigEntry) 
     const.LOGGER.info("INFO: Removing KidsChores entry: %s", entry.entry_id)
 
     # Access store via coordinator.store (modern HA pattern)
+    # runtime_data may not exist if setup failed or entry was never loaded
+    if not hasattr(entry, "runtime_data"):
+        const.LOGGER.info(
+            "Entry %s has no runtime_data - nothing to remove", entry.entry_id
+        )
+        return
+
     coordinator = entry.runtime_data
     if coordinator and coordinator.store:
         store = coordinator.store

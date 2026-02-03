@@ -1178,6 +1178,120 @@ class NotificationManager(BaseManager):
             perf_duration,
         )
 
+    async def broadcast_to_all_parents(
+        self,
+        title_key: str,
+        message_key: str,
+        placeholders: dict[str, str] | None = None,
+    ) -> None:
+        """Broadcast a notification to ALL parents (system-level announcements).
+
+        Unlike notify_parents_translated(), this sends to every parent regardless
+        of kid association. Used for system-wide notifications like data resets.
+
+        Each parent receives the notification in their preferred language.
+
+        Args:
+            title_key: Translation key for the notification title
+            message_key: Translation key for the notification message
+            placeholders: Optional placeholder values for message formatting
+        """
+        perf_start = time.perf_counter()
+        notification_tasks: list[tuple[str, Any]] = []
+        message_data = placeholders or {}
+
+        for parent_id, parent_info in self.coordinator.parents_data.items():
+            # Use parent's language preference, fall back to system language
+            parent_language = (
+                parent_info.get(const.DATA_PARENT_DASHBOARD_LANGUAGE)
+                or self.hass.config.language
+            )
+
+            # Load notification translations for this parent's language
+            translations = await th.load_notification_translation(
+                self.hass, parent_language
+            )
+
+            # Convert const key to JSON key and look up translations
+            json_key = self._convert_notification_key(title_key)
+            notification = translations.get(json_key, {})
+
+            # Format both title and message with placeholders
+            title = self._format_notification_text(
+                notification.get("title", title_key), message_data, json_key, "title"
+            )
+            message = self._format_notification_text(
+                notification.get("message", message_key),
+                message_data,
+                json_key,
+                "message",
+            )
+
+            mobile_notify_service = parent_info.get(
+                const.DATA_PARENT_MOBILE_NOTIFY_SERVICE, const.SENTINEL_EMPTY
+            )
+            persistent_enabled = parent_info.get(
+                const.DATA_PARENT_USE_PERSISTENT_NOTIFICATIONS, True
+            )
+
+            if mobile_notify_service:
+                notification_tasks.append(
+                    (
+                        parent_id,
+                        self._send_notification(
+                            mobile_notify_service,
+                            title,
+                            message,
+                        ),
+                    )
+                )
+            elif persistent_enabled:
+                notification_tasks.append(
+                    (
+                        parent_id,
+                        self.hass.services.async_call(
+                            const.NOTIFY_PERSISTENT_NOTIFICATION,
+                            const.NOTIFY_CREATE,
+                            {
+                                const.NOTIFY_TITLE: title,
+                                const.NOTIFY_MESSAGE: message,
+                                const.NOTIFY_NOTIFICATION_ID: f"kc_system_{parent_id}",
+                            },
+                            blocking=True,
+                        ),
+                    )
+                )
+            else:
+                const.LOGGER.debug(
+                    "No notification method configured for Parent ID '%s'",
+                    parent_id,
+                )
+
+        # Send all notifications concurrently
+        parent_count = len(notification_tasks)
+        if notification_tasks:
+            results = await asyncio.gather(
+                *[coro for _, coro in notification_tasks],
+                return_exceptions=True,
+            )
+
+            # Log any errors
+            for idx, result in enumerate(results):
+                if isinstance(result, Exception):
+                    parent_id = notification_tasks[idx][0]
+                    const.LOGGER.warning(
+                        "Failed to send broadcast notification to parent '%s': %s",
+                        parent_id,
+                        result,
+                    )
+
+        perf_duration = time.perf_counter() - perf_start
+        const.LOGGER.debug(
+            "PERF: broadcast_to_all_parents() sent %d notifications in %.3fs",
+            parent_count,
+            perf_duration,
+        )
+
     # =========================================================================
     # Notification Management
     # =========================================================================

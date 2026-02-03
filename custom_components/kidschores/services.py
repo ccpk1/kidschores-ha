@@ -145,12 +145,6 @@ RESET_OVERDUE_CHORES_SCHEMA = vol.Schema(
     }
 )
 
-RESET_PENALTIES_SCHEMA = vol.Schema(_OPTIONAL_KID_PENALTY_FILTER)
-
-RESET_BONUSES_SCHEMA = vol.Schema(_OPTIONAL_KID_BONUS_FILTER)
-
-RESET_REWARDS_SCHEMA = vol.Schema(_OPTIONAL_KID_REWARD_FILTER)
-
 REMOVE_AWARDED_BADGES_SCHEMA = vol.Schema(
     {
         vol.Optional(const.FIELD_KID_NAME): vol.Any(cv.string, None),
@@ -158,9 +152,35 @@ REMOVE_AWARDED_BADGES_SCHEMA = vol.Schema(
     }
 )
 
-RESET_ALL_DATA_SCHEMA = vol.Schema({})
+FACTORY_RESET_SCHEMA = vol.Schema({})  # Renamed from RESET_ALL_DATA_SCHEMA
 
-RESET_ALL_CHORES_SCHEMA = vol.Schema({})
+RESET_CHORES_TO_PENDING_STATE_SCHEMA = vol.Schema(
+    {}
+)  # Renamed from RESET_ALL_CHORES_SCHEMA
+
+# Unified Data Reset Service V2 (replaces reset_rewards, reset_penalties, reset_bonuses)
+RESET_TRANSACTIONAL_DATA_SCHEMA = vol.Schema(
+    {
+        vol.Required(const.SERVICE_FIELD_CONFIRM_DESTRUCTIVE): cv.boolean,
+        vol.Optional(const.SERVICE_FIELD_SCOPE): vol.In(
+            [const.DATA_RESET_SCOPE_GLOBAL, const.DATA_RESET_SCOPE_KID]
+        ),
+        vol.Optional(const.SERVICE_FIELD_KID_NAME): cv.string,
+        vol.Optional(const.SERVICE_FIELD_ITEM_TYPE): vol.In(
+            [
+                const.DATA_RESET_ITEM_TYPE_POINTS,
+                const.DATA_RESET_ITEM_TYPE_CHORES,
+                const.DATA_RESET_ITEM_TYPE_REWARDS,
+                const.DATA_RESET_ITEM_TYPE_BADGES,
+                const.DATA_RESET_ITEM_TYPE_ACHIEVEMENTS,
+                const.DATA_RESET_ITEM_TYPE_CHALLENGES,
+                const.DATA_RESET_ITEM_TYPE_PENALTIES,
+                const.DATA_RESET_ITEM_TYPE_BONUSES,
+            ]
+        ),
+        vol.Optional(const.SERVICE_FIELD_ITEM_NAME): cv.string,
+    }
+)
 
 SET_CHORE_DUE_DATE_SCHEMA = vol.Schema(
     {
@@ -1845,74 +1865,8 @@ def async_setup_services(hass: HomeAssistant):
         schema=DISAPPROVE_REWARD_SCHEMA,
     )
 
-    async def handle_reset_rewards(call: ServiceCall):
-        """Handle resetting rewards counts."""
-        entry_id = get_first_kidschores_entry(hass)
-        if not entry_id:
-            const.LOGGER.warning(
-                "Reset Rewards: %s", const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND
-            )
-            return
-
-        coordinator = _get_coordinator_by_entry_id(hass, entry_id)
-
-        kid_name = call.data.get(const.FIELD_KID_NAME)
-        reward_name = call.data.get(const.FIELD_REWARD_NAME)
-
-        # Map names to IDs (optional parameters)
-        kid_id = None
-        reward_id = None
-        try:
-            if kid_name:
-                kid_id = get_item_id_or_raise(
-                    coordinator, const.ENTITY_TYPE_KID, kid_name
-                )
-            if reward_name:
-                reward_id = get_item_id_or_raise(
-                    coordinator, const.ENTITY_TYPE_REWARD, reward_name
-                )
-        except HomeAssistantError as err:
-            const.LOGGER.warning("Reset Rewards: %s", err)
-            raise
-
-        # Check if user is authorized
-        user_id = call.context.user_id
-        if user_id and not await is_user_authorized_for_global_action(
-            hass, user_id, const.SERVICE_RESET_REWARDS
-        ):
-            const.LOGGER.warning(
-                "Reset Rewards: %s", const.TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION_GLOBAL
-            )
-            raise HomeAssistantError(
-                translation_domain=const.DOMAIN,
-                translation_key=const.TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION_GLOBAL,
-                translation_placeholders={"action": const.ERROR_ACTION_RESET_REWARDS},
-            )
-
-        # Log action based on parameters provided
-        if kid_id is None and reward_id is None:
-            const.LOGGER.info("Resetting all rewards for all kids.")
-        elif kid_id is None:
-            const.LOGGER.info("Resetting reward '%s' for all kids.", reward_name)
-        elif reward_id is None:
-            const.LOGGER.info("Resetting all rewards for kid '%s'.", kid_name)
-        else:
-            const.LOGGER.info(
-                "Resetting reward '%s' for kid '%s'.", reward_name, kid_name
-            )
-
-        # Reset rewards
-        await coordinator.reward_manager.reset_rewards(
-            kid_id=kid_id, reward_id=reward_id
-        )
-        await coordinator.async_request_refresh()
-
-    hass.services.async_register(
-        const.DOMAIN,
-        const.SERVICE_RESET_REWARDS,
-        handle_reset_rewards,
-        schema=RESET_REWARDS_SCHEMA,
-    )
+    # NOTE: reset_rewards service REMOVED - superseded by reset_transactional_data
+    # with scope="kid" or scope="global" and item_type="rewards"
 
     # ==========================================================================
     # PENALTY SERVICE HANDLERS
@@ -1978,75 +1932,8 @@ def async_setup_services(hass: HomeAssistant):
         schema=APPLY_PENALTY_SCHEMA,
     )
 
-    async def handle_reset_penalties(call: ServiceCall):
-        """Handle resetting penalties."""
-        entry_id = get_first_kidschores_entry(hass)
-        if not entry_id:
-            const.LOGGER.warning(
-                "Reset Penalties: %s", const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND
-            )
-            return
-
-        coordinator = _get_coordinator_by_entry_id(hass, entry_id)
-
-        kid_name = call.data.get(const.FIELD_KID_NAME)
-        penalty_name = call.data.get(const.FIELD_PENALTY_NAME)
-
-        # Map names to IDs (optional parameters)
-        kid_id = None
-        penalty_id = None
-        try:
-            if kid_name:
-                kid_id = get_item_id_or_raise(
-                    coordinator, const.ENTITY_TYPE_KID, kid_name
-                )
-            if penalty_name:
-                penalty_id = get_item_id_or_raise(
-                    coordinator, const.ENTITY_TYPE_PENALTY, penalty_name
-                )
-        except HomeAssistantError as err:
-            const.LOGGER.warning("Reset Penalties: %s", err)
-            raise
-
-        # Check if user is authorized
-        user_id = call.context.user_id
-        if user_id and not await is_user_authorized_for_global_action(
-            hass, user_id, const.SERVICE_RESET_PENALTIES
-        ):
-            const.LOGGER.warning(
-                "Reset Penalties: %s",
-                const.TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION_GLOBAL,
-            )
-            raise HomeAssistantError(
-                translation_domain=const.DOMAIN,
-                translation_key=const.TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION_GLOBAL,
-                translation_placeholders={"action": const.ERROR_ACTION_RESET_PENALTIES},
-            )
-
-        # Log action based on parameters provided
-        if kid_id is None and penalty_id is None:
-            const.LOGGER.info("Resetting all penalties for all kids.")
-        elif kid_id is None:
-            const.LOGGER.info("Resetting penalty '%s' for all kids.", penalty_name)
-        elif penalty_id is None:
-            const.LOGGER.info("Resetting all penalties for kid '%s'.", kid_name)
-        else:
-            const.LOGGER.info(
-                "Resetting penalty '%s' for kid '%s'.", penalty_name, kid_name
-            )
-
-        # Reset penalties
-        await coordinator.economy_manager.reset_penalties(
-            kid_id=kid_id, penalty_id=penalty_id
-        )
-        await coordinator.async_request_refresh()
-
-    hass.services.async_register(
-        const.DOMAIN,
-        const.SERVICE_RESET_PENALTIES,
-        handle_reset_penalties,
-        schema=RESET_PENALTIES_SCHEMA,
-    )
+    # NOTE: reset_penalties service REMOVED - superseded by reset_transactional_data
+    # with scope="kid" or scope="global" and item_type="penalties"
 
     # ==========================================================================
     # BONUS SERVICE HANDLERS
@@ -2110,74 +1997,8 @@ def async_setup_services(hass: HomeAssistant):
         schema=APPLY_BONUS_SCHEMA,
     )
 
-    async def handle_reset_bonuses(call: ServiceCall):
-        """Handle resetting bonuses."""
-        entry_id = get_first_kidschores_entry(hass)
-        if not entry_id:
-            const.LOGGER.warning(
-                "Reset Bonuses: %s", const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND
-            )
-            return
-
-        coordinator = _get_coordinator_by_entry_id(hass, entry_id)
-
-        kid_name = call.data.get(const.FIELD_KID_NAME)
-        bonus_name = call.data.get(const.FIELD_BONUS_NAME)
-
-        # Map names to IDs (optional parameters)
-        kid_id = None
-        bonus_id = None
-        try:
-            if kid_name:
-                kid_id = get_item_id_or_raise(
-                    coordinator, const.ENTITY_TYPE_KID, kid_name
-                )
-            if bonus_name:
-                bonus_id = get_item_id_or_raise(
-                    coordinator, const.ENTITY_TYPE_BONUS, bonus_name
-                )
-        except HomeAssistantError as err:
-            const.LOGGER.warning("Reset Bonuses: %s", err)
-            raise
-
-        # Check if user is authorized
-        user_id = call.context.user_id
-        if user_id and not await is_user_authorized_for_global_action(
-            hass, user_id, const.SERVICE_RESET_BONUSES
-        ):
-            const.LOGGER.warning(
-                "Reset Bonuses: %s", const.TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION_GLOBAL
-            )
-            raise HomeAssistantError(
-                translation_domain=const.DOMAIN,
-                translation_key=const.TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION_GLOBAL,
-                translation_placeholders={"action": const.ERROR_ACTION_RESET_BONUSES},
-            )
-
-        # Log action based on parameters provided
-        if kid_id is None and bonus_id is None:
-            const.LOGGER.info("Resetting all bonuses for all kids.")
-        elif kid_id is None:
-            const.LOGGER.info("Resetting bonus '%s' for all kids.", bonus_name)
-        elif bonus_id is None:
-            const.LOGGER.info("Resetting all bonuses for kid '%s'.", kid_name)
-        else:
-            const.LOGGER.info(
-                "Resetting bonus '%s' for kid '%s'.", bonus_name, kid_name
-            )
-
-        # Reset bonuses
-        await coordinator.economy_manager.reset_bonuses(
-            kid_id=kid_id, bonus_id=bonus_id
-        )
-        await coordinator.async_request_refresh()
-
-    hass.services.async_register(
-        const.DOMAIN,
-        const.SERVICE_RESET_BONUSES,
-        handle_reset_bonuses,
-        schema=RESET_BONUSES_SCHEMA,
-    )
+    # NOTE: reset_bonuses service REMOVED - superseded by reset_transactional_data
+    # with scope="kid" or scope="global" and item_type="bonuses"
 
     # ==========================================================================
     # BADGE SERVICE HANDLERS
@@ -2237,11 +2058,11 @@ def async_setup_services(hass: HomeAssistant):
     # RESET SERVICE HANDLERS
     # ==========================================================================
 
-    async def handle_reset_all_data(_call: ServiceCall):
+    async def handle_factory_reset(_call: ServiceCall):
         """Handle manually resetting ALL data in KidsChores (factory reset)."""
         entry_id = get_first_kidschores_entry(hass)
         if not entry_id:
-            const.LOGGER.warning("Reset All Data: No KidsChores entry found")
+            const.LOGGER.warning("Factory Reset: No KidsChores entry found")
             return
 
         coordinator = _get_coordinator_by_entry_id(hass, entry_id)
@@ -2291,16 +2112,18 @@ def async_setup_services(hass: HomeAssistant):
 
     hass.services.async_register(
         const.DOMAIN,
-        const.SERVICE_RESET_ALL_DATA,
-        handle_reset_all_data,
-        schema=RESET_ALL_DATA_SCHEMA,
+        const.SERVICE_FACTORY_RESET,
+        handle_factory_reset,
+        schema=FACTORY_RESET_SCHEMA,
     )
 
-    async def handle_reset_all_chores(_call: ServiceCall):
+    async def handle_reset_chores_to_pending_state(_call: ServiceCall):
         """Handle manually resetting all chores to pending, clearing claims/approvals."""
         entry_id = get_first_kidschores_entry(hass)
         if not entry_id:
-            const.LOGGER.warning("Reset All Chores: No KidsChores entry found")
+            const.LOGGER.warning(
+                "Reset Chores To Pending State: No KidsChores entry found"
+            )
             return
 
         coordinator = _get_coordinator_by_entry_id(hass, entry_id)
@@ -2310,9 +2133,9 @@ def async_setup_services(hass: HomeAssistant):
 
     hass.services.async_register(
         const.DOMAIN,
-        const.SERVICE_RESET_ALL_CHORES,
-        handle_reset_all_chores,
-        schema=RESET_ALL_CHORES_SCHEMA,
+        const.SERVICE_RESET_CHORES_TO_PENDING_STATE,
+        handle_reset_chores_to_pending_state,
+        schema=RESET_CHORES_TO_PENDING_STATE_SCHEMA,
     )
 
     async def handle_reset_overdue_chores(call: ServiceCall) -> None:
@@ -2370,10 +2193,42 @@ def async_setup_services(hass: HomeAssistant):
         schema=RESET_OVERDUE_CHORES_SCHEMA,
     )
 
+    # ==========================================================================
+    # UNIFIED DATA RESET SERVICE (V2)
+    # ==========================================================================
+
+    async def handle_reset_transactional_data(call: ServiceCall) -> None:
+        """Handle unified data reset service.
+
+        Delegates to SystemManager.orchestrate_data_reset() for validation,
+        backup creation, and domain manager orchestration.
+
+        Args:
+            call: Service call with confirm_destructive, scope, kid_name,
+                  item_type, item_name fields
+        """
+        entry_id = get_first_kidschores_entry(hass)
+        if not entry_id:
+            const.LOGGER.warning("Reset Transactional Data: No KidsChores entry found")
+            return
+
+        coordinator = _get_coordinator_by_entry_id(hass, entry_id)
+
+        # Delegate to SystemManager for orchestration
+        # SystemManager handles: validation, backup, manager calls, notification
+        await coordinator.system_manager.orchestrate_data_reset(dict(call.data))
+
+    hass.services.async_register(
+        const.DOMAIN,
+        const.SERVICE_RESET_TRANSACTIONAL_DATA,
+        handle_reset_transactional_data,
+        schema=RESET_TRANSACTIONAL_DATA_SCHEMA,
+    )
+
     const.LOGGER.info("KidsChores services have been registered successfully")
 
 
-async def async_unload_services(hass: HomeAssistant):
+async def async_unload_services(hass: HomeAssistant) -> None:
     """Unregister KidsChores services when unloading the integration."""
     services = [
         const.SERVICE_CLAIM_CHORE,
@@ -2389,12 +2244,12 @@ async def async_unload_services(hass: HomeAssistant):
         const.SERVICE_APPLY_PENALTY,
         const.SERVICE_APPLY_BONUS,
         const.SERVICE_APPROVE_REWARD,
-        const.SERVICE_RESET_ALL_DATA,
-        const.SERVICE_RESET_ALL_CHORES,
+        const.SERVICE_FACTORY_RESET,  # Renamed from SERVICE_RESET_ALL_DATA
+        const.SERVICE_RESET_CHORES_TO_PENDING_STATE,  # Renamed from SERVICE_RESET_ALL_CHORES
         const.SERVICE_RESET_OVERDUE_CHORES,
-        const.SERVICE_RESET_PENALTIES,
-        const.SERVICE_RESET_BONUSES,
-        const.SERVICE_RESET_REWARDS,
+        const.SERVICE_RESET_TRANSACTIONAL_DATA,
+        # NOTE: SERVICE_RESET_PENALTIES, SERVICE_RESET_BONUSES, SERVICE_RESET_REWARDS
+        # removed in v0.6.0 - superseded by SERVICE_RESET_TRANSACTIONAL_DATA
         const.SERVICE_UPDATE_CHORE,
         const.SERVICE_UPDATE_REWARD,
         const.SERVICE_REMOVE_AWARDED_BADGES,

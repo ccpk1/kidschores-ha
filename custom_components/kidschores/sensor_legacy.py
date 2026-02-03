@@ -835,9 +835,15 @@ class KidPointsMaxEverSensor(KidsChoresCoordinatorEntity, SensorEntity):
         kid_info: KidData = cast(
             "KidData", self.coordinator.kids_data.get(self._kid_id, {})
         )
-        point_stats = kid_info.get(const.DATA_KID_POINT_STATS, {})
-        value = point_stats.get(
-            const.DATA_KID_POINT_STATS_HIGHEST_BALANCE, const.DEFAULT_ZERO
+        # Read highest_balance from periods.all_time.all_time (v43+)
+        point_data = kid_info.get(const.DATA_KID_POINT_DATA, {})
+        periods = point_data.get(const.DATA_KID_POINT_DATA_PERIODS, {})
+        all_time_periods = periods.get(const.DATA_KID_POINT_DATA_PERIODS_ALL_TIME, {})
+        all_time_bucket = all_time_periods.get(
+            const.DATA_KID_POINT_DATA_PERIODS_ALL_TIME, {}
+        )
+        value = all_time_bucket.get(
+            const.DATA_KID_POINT_DATA_PERIOD_HIGHEST_BALANCE, const.DEFAULT_ZERO
         )
         return int(value)
 

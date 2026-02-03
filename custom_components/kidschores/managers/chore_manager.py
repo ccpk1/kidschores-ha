@@ -2794,6 +2794,10 @@ class ChoreManager(BaseManager):
     def _get_kid_chore_data(self, kid_id: str, chore_id: str) -> dict[str, Any]:
         """Get or create kid's chore data entry.
 
+        Phase 3B Landlord/Tenant: ChoreManager owns chore_data and chore_stats.
+        This method creates structures on-demand (not at kid genesis).
+        StatisticsManager (tenant) writes to sub-keys but never creates top-level.
+
         Args:
             kid_id: The kid's internal ID
             chore_id: The chore's internal ID
@@ -2802,9 +2806,19 @@ class ChoreManager(BaseManager):
             The kid_chore_data dict for this kid+chore
         """
         kid_info = self._coordinator.kids_data[kid_id]
-        kid_chores: dict[str, dict[str, Any]] = kid_info.setdefault(
-            const.DATA_KID_CHORE_DATA, {}
+
+        # Phase 3B Landlord duty: Ensure chore_data container exists
+        kid_chores: dict[str, dict[str, Any]] | None = kid_info.get(
+            const.DATA_KID_CHORE_DATA
         )
+        if kid_chores is None:
+            kid_chores = {}
+            kid_info[const.DATA_KID_CHORE_DATA] = kid_chores
+
+        # Phase 3B Landlord duty: Ensure chore_stats exists
+        # StatisticsManager (tenant) creates and writes the sub-keys
+        if const.DATA_KID_CHORE_STATS not in kid_info:
+            kid_info[const.DATA_KID_CHORE_STATS] = {}
 
         if chore_id not in kid_chores:
             default_data: dict[str, Any] = {
@@ -3462,4 +3476,123 @@ class ChoreManager(BaseManager):
             chore_info.get(const.DATA_CHORE_NAME),
             kid_info.get(const.DATA_KID_NAME),
             dt_util.as_local(next_due_utc).isoformat() if next_due_utc else "None",
+        )
+
+    # =========================================================================
+    # DATA RESET - Transactional Data Reset for Chores Domain
+    # =========================================================================
+
+    async def data_reset_chores(
+        self,
+        scope: str,
+        kid_id: str | None = None,
+        item_id: str | None = None,
+    ) -> None:
+        """Reset runtime data for chores domain.
+
+        Clears transactional/runtime data while preserving configuration.
+        Uses field frozensets from data_builders as source of truth.
+
+        Args:
+            scope: Reset scope (global, kid, item_type, item)
+            kid_id: Target kid ID for kid/item scopes (optional)
+            item_id: Target chore ID for item scope (optional)
+
+        Emits:
+            SIGNAL_SUFFIX_CHORE_DATA_RESET_COMPLETE with scope, kid_id, item_id
+        """
+        const.LOGGER.info(
+            "Data reset: chores domain - scope=%s, kid_id=%s, item_id=%s",
+            scope,
+            kid_id,
+            item_id,
+        )
+
+        chores_data = self._coordinator.chores_data
+        kids_data = self._coordinator.kids_data
+
+        # Determine which chores to reset
+        if item_id:
+            # Item scope - single chore
+            chore_ids = [item_id] if item_id in chores_data else []
+        else:
+            # Global, kid, or item_type scope - all chores
+            chore_ids = list(chores_data.keys())
+
+        # Reset chore-side runtime fields
+        for chore_id in chore_ids:
+            chore_info = chores_data.get(chore_id)
+            if not chore_info:
+                continue
+
+            # Cast for dynamic field access (TypedDict requires literal keys)
+            chore_dict = cast("dict[str, Any]", chore_info)
+
+            # Reset state to pending
+            chore_dict[const.DATA_CHORE_STATE] = const.CHORE_STATE_PENDING
+
+            # Clear per-kid tracking lists
+            for field in db._CHORE_PER_KID_RUNTIME_LISTS:
+                if kid_id:
+                    # Remove specific kid from lists
+                    if field in chore_dict and isinstance(chore_dict[field], list):
+                        if kid_id in chore_dict[field]:
+                            chore_dict[field].remove(kid_id)
+                else:
+                    # Clear entire list
+                    chore_dict[field] = []
+
+            # Clear timestamp fields
+            chore_dict[const.DATA_CHORE_LAST_CLAIMED] = None
+            chore_dict[const.DATA_CHORE_LAST_COMPLETED] = None
+
+            # Clear per-kid due dates if global/item_type scope (full reset)
+            if not kid_id:
+                chore_dict[const.DATA_CHORE_PER_KID_DUE_DATES] = {}
+            elif const.DATA_CHORE_PER_KID_DUE_DATES in chore_dict:
+                # Kid scope - only remove that kid's due date
+                chore_dict[const.DATA_CHORE_PER_KID_DUE_DATES].pop(kid_id, None)
+
+        # Determine which kids to process
+        if kid_id:
+            kid_ids = [kid_id] if kid_id in kids_data else []
+        else:
+            kid_ids = list(kids_data.keys())
+
+        # Reset kid-side chore runtime structures
+        for loop_kid_id in kid_ids:
+            kid_info = kids_data.get(loop_kid_id)
+            if not kid_info:
+                continue
+
+            # Cast for dynamic field access (TypedDict requires literal keys)
+            kid_dict = cast("dict[str, Any]", kid_info)
+
+            for field in db._CHORE_KID_RUNTIME_FIELDS:
+                if field == const.DATA_KID_CHORE_DATA and item_id:
+                    # Item scope - only clear data for specific chore
+                    chore_data_dict = kid_dict.get(const.DATA_KID_CHORE_DATA, {})
+                    chore_data_dict.pop(item_id, None)
+                elif field in kid_dict:
+                    # Clear entire structure
+                    if isinstance(kid_dict[field], dict):
+                        kid_dict[field] = {}
+                    elif isinstance(kid_dict[field], list):
+                        kid_dict[field] = []
+
+        # Persist → Emit (per DEVELOPMENT_STANDARDS.md § 5.3)
+        self._coordinator._persist()
+
+        # Emit completion signal
+        self.emit(
+            const.SIGNAL_SUFFIX_CHORE_DATA_RESET_COMPLETE,
+            scope=scope,
+            kid_id=kid_id,
+            item_id=item_id,
+        )
+
+        const.LOGGER.info(
+            "Data reset: chores domain complete - %d chores, %d kids affected",
+            len(chore_ids),
+            len(kid_ids),
         )

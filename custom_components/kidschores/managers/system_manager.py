@@ -29,11 +29,14 @@ import time
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.core import callback
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import async_track_time_change
 
 from .. import const
+from ..helpers import backup_helpers as bh
 from ..helpers.entity_helpers import (
+    get_item_id_or_raise,
     is_shadow_kid,
     parse_entity_reference,
     remove_entities_by_item_id,
@@ -542,3 +545,276 @@ class SystemManager(BaseManager):
 
         # Signal that caller should reload config entry
         return True
+
+    # =========================================================================
+    # Data Reset Orchestration
+    # =========================================================================
+
+    async def orchestrate_data_reset(self, service_data: dict[str, Any]) -> None:
+        """Orchestrate transactional data reset across domain managers.
+
+        Central orchestration for the reset_transactional_data service.
+        Validates input, creates backup, calls domain managers, sends notification.
+
+        Args:
+            service_data: Service call data containing:
+                - confirm_destructive: bool (required, must be True)
+                - scope: str (optional, defaults to "global")
+                - kid_name: str (optional, required if scope="kid")
+                - item_type: str (optional, filters to specific domain)
+                - item_name: str (optional, filters to specific item)
+
+        Raises:
+            ServiceValidationError: If validation fails (confirmation, scope, etc.)
+        """
+        # =====================================================================
+        # 4B: Safety Validation
+        # =====================================================================
+        confirm = service_data.get(const.SERVICE_FIELD_CONFIRM_DESTRUCTIVE)
+        if confirm is not True:  # Exact boolean check, not truthy
+            raise ServiceValidationError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_DATA_RESET_CONFIRMATION_REQUIRED,
+            )
+
+        # =====================================================================
+        # 4C: Scope Parsing
+        # =====================================================================
+        scope = service_data.get(
+            const.SERVICE_FIELD_SCOPE, const.DATA_RESET_SCOPE_GLOBAL
+        )
+        if not scope:
+            scope = const.DATA_RESET_SCOPE_GLOBAL
+
+        # Validate scope value
+        valid_scopes = {const.DATA_RESET_SCOPE_GLOBAL, const.DATA_RESET_SCOPE_KID}
+        if scope not in valid_scopes:
+            raise ServiceValidationError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_DATA_RESET_INVALID_SCOPE,
+                translation_placeholders={"scope": str(scope)},
+            )
+
+        kid_name = service_data.get(const.SERVICE_FIELD_KID_NAME)
+        item_type = service_data.get(const.SERVICE_FIELD_ITEM_TYPE)
+        item_name = service_data.get(const.SERVICE_FIELD_ITEM_NAME)
+
+        # Validate scope=kid requires kid_name
+        if scope == const.DATA_RESET_SCOPE_KID and not kid_name:
+            raise ServiceValidationError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_DATA_RESET_INVALID_SCOPE,
+                translation_placeholders={"scope": "kid (requires kid_name)"},
+            )
+
+        # Validate item_type if provided
+        valid_item_types = {
+            const.DATA_RESET_ITEM_TYPE_POINTS,
+            const.DATA_RESET_ITEM_TYPE_CHORES,
+            const.DATA_RESET_ITEM_TYPE_REWARDS,
+            const.DATA_RESET_ITEM_TYPE_BADGES,
+            const.DATA_RESET_ITEM_TYPE_ACHIEVEMENTS,
+            const.DATA_RESET_ITEM_TYPE_CHALLENGES,
+            const.DATA_RESET_ITEM_TYPE_PENALTIES,
+            const.DATA_RESET_ITEM_TYPE_BONUSES,
+        }
+        if item_type and item_type not in valid_item_types:
+            raise ServiceValidationError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_DATA_RESET_INVALID_ITEM_TYPE,
+                translation_placeholders={"item_type": str(item_type)},
+            )
+
+        # =====================================================================
+        # 4D: Name→ID Resolution
+        # =====================================================================
+        kid_id: str | None = None
+        item_id: str | None = None
+
+        if kid_name:
+            try:
+                kid_id = get_item_id_or_raise(
+                    self.coordinator, const.ENTITY_TYPE_KID, kid_name
+                )
+            except HomeAssistantError:
+                raise ServiceValidationError(
+                    translation_domain=const.DOMAIN,
+                    translation_key=const.TRANS_KEY_ERROR_DATA_RESET_KID_NOT_FOUND,
+                    translation_placeholders={"kid_name": str(kid_name)},
+                ) from None
+
+        if item_name and item_type:
+            # Map item_type to entity_type for lookup
+            item_type_to_entity_type = {
+                const.DATA_RESET_ITEM_TYPE_CHORES: const.ENTITY_TYPE_CHORE,
+                const.DATA_RESET_ITEM_TYPE_REWARDS: const.ENTITY_TYPE_REWARD,
+                const.DATA_RESET_ITEM_TYPE_BADGES: const.ENTITY_TYPE_BADGE,
+                const.DATA_RESET_ITEM_TYPE_ACHIEVEMENTS: const.ENTITY_TYPE_ACHIEVEMENT,
+                const.DATA_RESET_ITEM_TYPE_CHALLENGES: const.ENTITY_TYPE_CHALLENGE,
+                const.DATA_RESET_ITEM_TYPE_PENALTIES: const.ENTITY_TYPE_PENALTY,
+                const.DATA_RESET_ITEM_TYPE_BONUSES: const.ENTITY_TYPE_BONUS,
+            }
+            entity_type = item_type_to_entity_type.get(item_type)
+            if entity_type:
+                try:
+                    item_id = get_item_id_or_raise(
+                        self.coordinator, entity_type, item_name
+                    )
+                except HomeAssistantError:
+                    raise ServiceValidationError(
+                        translation_domain=const.DOMAIN,
+                        translation_key=const.TRANS_KEY_ERROR_DATA_RESET_ITEM_NOT_FOUND,
+                        translation_placeholders={
+                            "item_type": str(item_type),
+                            "item_name": str(item_name),
+                        },
+                    ) from None
+
+        const.LOGGER.info(
+            "Data reset orchestration: scope=%s, kid_id=%s, item_type=%s, item_id=%s",
+            scope,
+            kid_id,
+            item_type,
+            item_id,
+        )
+
+        # =====================================================================
+        # 4E: Backup Creation
+        # =====================================================================
+        backup_name = await bh.create_timestamped_backup(
+            self.hass,
+            self.coordinator.store,
+            const.BACKUP_TAG_DATA_RESET,
+            self.coordinator.config_entry,
+        )
+        if backup_name:
+            const.LOGGER.info("Data reset backup created: %s", backup_name)
+        else:
+            const.LOGGER.warning(
+                "Data reset backup creation failed - proceeding anyway"
+            )
+
+        # =====================================================================
+        # 4F: Call Managers (Based on Scope + Item Type)
+        # =====================================================================
+        await self._call_data_reset_managers(scope, kid_id, item_type, item_id)
+
+        # =====================================================================
+        # 4G: Send Notification
+        # =====================================================================
+        await self._send_data_reset_notification(scope, kid_name, item_type, item_name)
+
+        const.LOGGER.info("Data reset orchestration complete")
+
+    async def _call_data_reset_managers(
+        self,
+        scope: str,
+        kid_id: str | None,
+        item_type: str | None,
+        item_id: str | None,
+    ) -> None:
+        """Call domain manager data_reset methods based on scope and item_type.
+
+        Args:
+            scope: Reset scope (global or kid)
+            kid_id: Target kid ID (None for global scope without kid filter)
+            item_type: Domain to reset (None = all domains)
+            item_id: Specific item to reset (None = all items in domain)
+        """
+        coord = self.coordinator
+
+        # If item_type specified, only call that domain's manager
+        if item_type:
+            await self._call_single_domain_reset(scope, kid_id, item_type, item_id)
+            return
+
+        # No item_type = reset ALL domains
+        # Order: downstream → upstream (gamification → rewards → chores → economy)
+        # This ensures dependent data is cleared before foundation data
+        # 1. Gamification (furthest downstream - consumes points/chores)
+        await coord.gamification_manager.data_reset_badges(scope, kid_id, item_id)
+        await coord.gamification_manager.data_reset_achievements(scope, kid_id, item_id)
+        await coord.gamification_manager.data_reset_challenges(scope, kid_id, item_id)
+        # 2. Rewards (intermediate - consumes points)
+        await coord.reward_manager.data_reset_rewards(scope, kid_id, item_id)
+        # 3. Chores (upstream producer of points)
+        await coord.chore_manager.data_reset_chores(scope, kid_id, item_id)
+        # 4. Economy (foundation - owns points, multiplier, bonuses, penalties)
+        await coord.economy_manager.data_reset_points(scope, kid_id, item_id)
+        await coord.economy_manager.data_reset_penalties(scope, kid_id, item_id)
+        await coord.economy_manager.data_reset_bonuses(scope, kid_id, item_id)
+
+    async def _call_single_domain_reset(
+        self,
+        scope: str,
+        kid_id: str | None,
+        item_type: str,
+        item_id: str | None,
+    ) -> None:
+        """Call the appropriate manager for a specific item_type.
+
+        Args:
+            scope: Reset scope (global or kid)
+            kid_id: Target kid ID
+            item_type: Domain to reset
+            item_id: Specific item to reset
+        """
+        coord = self.coordinator
+
+        if item_type == const.DATA_RESET_ITEM_TYPE_POINTS:
+            await coord.economy_manager.data_reset_points(scope, kid_id, item_id)
+        elif item_type == const.DATA_RESET_ITEM_TYPE_CHORES:
+            await coord.chore_manager.data_reset_chores(scope, kid_id, item_id)
+        elif item_type == const.DATA_RESET_ITEM_TYPE_REWARDS:
+            await coord.reward_manager.data_reset_rewards(scope, kid_id, item_id)
+        elif item_type == const.DATA_RESET_ITEM_TYPE_BADGES:
+            await coord.gamification_manager.data_reset_badges(scope, kid_id, item_id)
+        elif item_type == const.DATA_RESET_ITEM_TYPE_ACHIEVEMENTS:
+            await coord.gamification_manager.data_reset_achievements(
+                scope, kid_id, item_id
+            )
+        elif item_type == const.DATA_RESET_ITEM_TYPE_CHALLENGES:
+            await coord.gamification_manager.data_reset_challenges(
+                scope, kid_id, item_id
+            )
+        elif item_type == const.DATA_RESET_ITEM_TYPE_PENALTIES:
+            await coord.economy_manager.data_reset_penalties(scope, kid_id, item_id)
+        elif item_type == const.DATA_RESET_ITEM_TYPE_BONUSES:
+            await coord.economy_manager.data_reset_bonuses(scope, kid_id, item_id)
+
+    async def _send_data_reset_notification(
+        self,
+        scope: str,
+        kid_name: str | None,
+        item_type: str | None,
+        item_name: str | None,
+    ) -> None:
+        """Send notification about data reset completion.
+
+        Args:
+            scope: Reset scope used
+            kid_name: Kid name if kid scope
+            item_type: Item type if filtered
+            item_name: Item name if specific item
+        """
+        # Determine which message key to use based on what was reset
+        if item_name and item_type:
+            message_key = const.TRANS_KEY_NOTIF_MESSAGE_DATA_RESET_ITEM
+            placeholders = {"item_name": str(item_name), "item_type": str(item_type)}
+        elif item_type:
+            message_key = const.TRANS_KEY_NOTIF_MESSAGE_DATA_RESET_ITEM_TYPE
+            placeholders = {"item_type": str(item_type)}
+        elif scope == const.DATA_RESET_SCOPE_KID and kid_name:
+            message_key = const.TRANS_KEY_NOTIF_MESSAGE_DATA_RESET_KID
+            placeholders = {"kid_name": str(kid_name)}
+        else:
+            message_key = const.TRANS_KEY_NOTIF_MESSAGE_DATA_RESET_GLOBAL
+            placeholders = {}
+
+        # Send notification to all parents via NotificationManager
+        # Use a broadcast approach - notify ALL parents regardless of kid association
+        await self.coordinator.notification_manager.broadcast_to_all_parents(
+            title_key=const.TRANS_KEY_NOTIF_TITLE_DATA_RESET,
+            message_key=message_key,
+            placeholders=placeholders,
+        )

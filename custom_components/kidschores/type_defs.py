@@ -551,8 +551,9 @@ class KidData(TypedDict):
     penalty_applies: dict[str, bool]  # penalty_id -> applied?
     bonus_applies: dict[str, bool]  # bonus_id -> applied?
 
-    # Point statistics
+    # Point statistics and period data (Genesis-initialized, Phase 3B)
     point_stats: NotRequired[KidPointStats]
+    point_data: NotRequired[dict[str, Any]]  # Period point tracking
 
     # Current streak (daily approval streak)
     current_streak: NotRequired[int]

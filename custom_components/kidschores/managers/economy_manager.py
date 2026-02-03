@@ -19,7 +19,7 @@ to evaluate badges/achievements/challenges automatically.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.exceptions import HomeAssistantError
 
@@ -121,6 +121,39 @@ class EconomyManager(BaseManager):
             const.SIGNAL_SUFFIX_REWARD_APPROVED,
             self._on_reward_approved,
         )
+        # Listen for multiplier change requests (Phase 3B Landlord/Tenant ownership)
+        # EconomyManager owns all kid point data - GamificationManager emits requests
+        self.listen(
+            const.SIGNAL_SUFFIX_POINTS_MULTIPLIER_CHANGE_REQUESTED,
+            self._on_points_multiplier_change_requested,
+        )
+
+    def _on_points_multiplier_change_requested(self, payload: dict[str, Any]) -> None:
+        """Handle points multiplier change request - EconomyManager owns multiplier writes.
+
+        Phase 3B Landlord/Tenant: GamificationManager calculates multipliers,
+        but EconomyManager (the Landlord) performs the actual write to kid data.
+
+        Args:
+            payload: Event data containing:
+                - kid_id: Kid's internal ID
+                - multiplier: New multiplier value
+                - reference_id: Optional reference (badge_id, etc.) for audit
+        """
+        kid_id = payload.get("kid_id")
+        multiplier = payload.get("multiplier")
+        reference_id = payload.get("reference_id")
+
+        if not kid_id or multiplier is None:
+            const.LOGGER.warning(
+                "EconomyManager: Invalid multiplier change request - kid_id=%s, multiplier=%s",
+                kid_id,
+                multiplier,
+            )
+            return
+
+        self._update_multiplier(kid_id, float(multiplier), reference_id)
+        self._coordinator._persist()
 
     def _on_badge_earned(self, payload: dict[str, Any]) -> None:
         """Handle badge earned event - process full Award Manifest.
@@ -368,6 +401,21 @@ class EconomyManager(BaseManager):
             kid_data[const.DATA_KID_LEDGER] = []  # type: ignore[typeddict-unknown-key]
         return kid_data[const.DATA_KID_LEDGER]  # type: ignore[typeddict-item]
 
+    def _ensure_point_structures(self, kid_data: KidData) -> None:
+        """Ensure point_stats and point_data structures exist (Landlord duty).
+
+        Phase 3B Landlord/Tenant: EconomyManager owns these structures.
+        Creates them on-demand before first transaction, not at kid genesis.
+        StatisticsManager (tenant) writes to sub-keys but never creates top-level.
+
+        Args:
+            kid_data: The kid's data dict (modified in-place)
+        """
+        # point_data: Period buckets container
+        # StatisticsManager (tenant) creates and writes the period sub-keys
+        if const.DATA_KID_POINT_DATA not in kid_data:
+            kid_data[const.DATA_KID_POINT_DATA] = {}
+
     def get_balance(self, kid_id: str) -> float:
         """Get current point balance for a kid.
 
@@ -478,6 +526,10 @@ class EconomyManager(BaseManager):
         ledger.append(entry)
         EconomyEngine.prune_ledger(ledger, const.DEFAULT_LEDGER_MAX_ENTRIES)
 
+        # Ensure point structures exist (Landlord duty) before emitting signal
+        # StatisticsManager (tenant) expects these to exist when it receives the event
+        self._ensure_point_structures(kid)
+
         # Emit event for listeners (StatisticsManager will handle stats)
         self.emit(
             const.SIGNAL_SUFFIX_POINTS_CHANGED,
@@ -574,6 +626,10 @@ class EconomyManager(BaseManager):
         ledger = self._ensure_ledger(kid)
         ledger.append(entry)
         EconomyEngine.prune_ledger(ledger, const.DEFAULT_LEDGER_MAX_ENTRIES)
+
+        # Ensure point structures exist (Landlord duty) before emitting signal
+        # StatisticsManager (tenant) expects these to exist when it receives the event
+        self._ensure_point_structures(kid)
 
         # Emit event for listeners (StatisticsManager will handle stats)
         self.emit(
@@ -1288,4 +1344,211 @@ class EconomyManager(BaseManager):
             "Deleted penalty '%s' (ID: %s)",
             penalty_name,
             penalty_id,
+        )
+
+    # =========================================================================
+    # DATA RESET - Transactional Data Reset for Economy Domain
+    # =========================================================================
+
+    async def data_reset_points(
+        self,
+        scope: str,
+        kid_id: str | None = None,
+        item_id: str | None = None,
+    ) -> None:
+        """Reset runtime data for points domain (economy-owned fields).
+
+        Clears points, ledger, and economy-owned tracking while preserving
+        kid configuration (name, user_id, notifications, language).
+
+        Args:
+            scope: Reset scope (global = all kids, kid = one kid)
+            kid_id: Target kid ID for kid scope (optional)
+            item_id: Not used for points domain (ignored)
+
+        Emits:
+            SIGNAL_SUFFIX_POINTS_DATA_RESET_COMPLETE with scope, kid_id, item_id
+        """
+        const.LOGGER.info(
+            "Data reset: points domain - scope=%s, kid_id=%s",
+            scope,
+            kid_id,
+        )
+
+        kids_data = self._coordinator.kids_data
+
+        # Determine which kids to process
+        if kid_id:
+            kid_ids = [kid_id] if kid_id in kids_data else []
+        else:
+            kid_ids = list(kids_data.keys())
+
+        # Reset kid economy runtime fields
+        for loop_kid_id in kid_ids:
+            kid_info = kids_data.get(loop_kid_id)
+            if not kid_info:
+                continue
+
+            # Cast for dynamic field access (TypedDict requires literal keys)
+            kid_dict = cast("dict[str, Any]", kid_info)
+
+            # Reset economy-owned scalar fields
+            for field in db._ECONOMY_KID_RUNTIME_FIELDS:
+                if field == const.DATA_KID_POINTS:
+                    kid_dict[field] = const.DEFAULT_ZERO
+                elif field == const.DATA_KID_POINTS_MULTIPLIER:
+                    kid_dict[field] = const.DEFAULT_KID_POINTS_MULTIPLIER
+                elif field == const.DATA_KID_LEDGER:
+                    kid_dict[field] = []
+                elif field in kid_dict:
+                    # Clear any other economy fields
+                    if isinstance(kid_dict[field], dict):
+                        kid_dict[field] = {}
+                    elif isinstance(kid_dict[field], list):
+                        kid_dict[field] = []
+                    else:
+                        kid_dict[field] = const.DEFAULT_ZERO
+
+        # Persist → Emit (per DEVELOPMENT_STANDARDS.md § 5.3)
+        self._coordinator._persist()
+
+        # Emit completion signal
+        self.emit(
+            const.SIGNAL_SUFFIX_POINTS_DATA_RESET_COMPLETE,
+            scope=scope,
+            kid_id=kid_id,
+            item_id=item_id,
+        )
+
+        const.LOGGER.info(
+            "Data reset: points domain complete - %d kids affected",
+            len(kid_ids),
+        )
+
+    async def data_reset_penalties(
+        self,
+        scope: str,
+        kid_id: str | None = None,
+        item_id: str | None = None,
+    ) -> None:
+        """Reset runtime data for penalties domain.
+
+        Clears penalty application tracking (penalty_applies counters).
+        Does NOT restore points - only clears "times applied" counters.
+
+        Args:
+            scope: Reset scope (global, kid, item_type, item)
+            kid_id: Target kid ID for kid scope (optional)
+            item_id: Target penalty ID for item scope (optional)
+
+        Emits:
+            SIGNAL_SUFFIX_PENALTY_DATA_RESET_COMPLETE with scope, kid_id, item_id
+        """
+        const.LOGGER.info(
+            "Data reset: penalties domain - scope=%s, kid_id=%s, item_id=%s",
+            scope,
+            kid_id,
+            item_id,
+        )
+
+        kids_data = self._coordinator.kids_data
+
+        # Determine which kids to process
+        if kid_id:
+            kid_ids = [kid_id] if kid_id in kids_data else []
+        else:
+            kid_ids = list(kids_data.keys())
+
+        # Reset kid-side penalty tracking
+        for loop_kid_id in kid_ids:
+            kid_info = kids_data.get(loop_kid_id)
+            if not kid_info:
+                continue
+
+            penalty_applies = kid_info.get(const.DATA_KID_PENALTY_APPLIES, {})
+            if item_id:
+                # Item scope - only clear specific penalty
+                penalty_applies.pop(item_id, None)
+            else:
+                # Clear all penalty tracking
+                penalty_applies.clear()
+
+        # Persist → Emit (per DEVELOPMENT_STANDARDS.md § 5.3)
+        self._coordinator._persist()
+
+        # Emit completion signal
+        self.emit(
+            const.SIGNAL_SUFFIX_PENALTY_DATA_RESET_COMPLETE,
+            scope=scope,
+            kid_id=kid_id,
+            item_id=item_id,
+        )
+
+        const.LOGGER.info(
+            "Data reset: penalties domain complete - %d kids affected",
+            len(kid_ids),
+        )
+
+    async def data_reset_bonuses(
+        self,
+        scope: str,
+        kid_id: str | None = None,
+        item_id: str | None = None,
+    ) -> None:
+        """Reset runtime data for bonuses domain.
+
+        Clears bonus application tracking (bonus_applies counters).
+        Does NOT reverse points - only clears "times applied" counters.
+
+        Args:
+            scope: Reset scope (global, kid, item_type, item)
+            kid_id: Target kid ID for kid scope (optional)
+            item_id: Target bonus ID for item scope (optional)
+
+        Emits:
+            SIGNAL_SUFFIX_BONUS_DATA_RESET_COMPLETE with scope, kid_id, item_id
+        """
+        const.LOGGER.info(
+            "Data reset: bonuses domain - scope=%s, kid_id=%s, item_id=%s",
+            scope,
+            kid_id,
+            item_id,
+        )
+
+        kids_data = self._coordinator.kids_data
+
+        # Determine which kids to process
+        if kid_id:
+            kid_ids = [kid_id] if kid_id in kids_data else []
+        else:
+            kid_ids = list(kids_data.keys())
+
+        # Reset kid-side bonus tracking
+        for loop_kid_id in kid_ids:
+            kid_info = kids_data.get(loop_kid_id)
+            if not kid_info:
+                continue
+
+            bonus_applies = kid_info.get(const.DATA_KID_BONUS_APPLIES, {})
+            if item_id:
+                # Item scope - only clear specific bonus
+                bonus_applies.pop(item_id, None)
+            else:
+                # Clear all bonus tracking
+                bonus_applies.clear()
+
+        # Persist → Emit (per DEVELOPMENT_STANDARDS.md § 5.3)
+        self._coordinator._persist()
+
+        # Emit completion signal
+        self.emit(
+            const.SIGNAL_SUFFIX_BONUS_DATA_RESET_COMPLETE,
+            scope=scope,
+            kid_id=kid_id,
+            item_id=item_id,
+        )
+
+        const.LOGGER.info(
+            "Data reset: bonuses domain complete - %d kids affected",
+            len(kid_ids),
         )

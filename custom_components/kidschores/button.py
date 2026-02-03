@@ -454,7 +454,8 @@ class KidChoreClaimButton(KidsChoresCoordinatorEntity, ButtonEntity):
                 self._kid_name,
                 user_name,
             )
-            await self.coordinator.async_request_refresh()
+            # No need to call async_request_refresh() - ChoreManager emits signals
+            # that trigger StatisticsManager to persist and update coordinator
 
         except HomeAssistantError as e:
             const.LOGGER.error(
@@ -584,7 +585,8 @@ class ParentChoreApproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
                 self._chore_name,
                 self._kid_name,
             )
-            await self.coordinator.async_request_refresh()
+            # No need to call async_request_refresh() - ChoreManager emits signals
+            # that trigger StatisticsManager to persist and update coordinator
 
         except HomeAssistantError as e:
             const.LOGGER.error(
@@ -748,7 +750,8 @@ class ParentChoreDisapproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
                     self._kid_name,
                     parent_name,
                 )
-            await self.coordinator.async_request_refresh()
+            # No need to call async_request_refresh() - ChoreManager emits signals
+            # that trigger StatisticsManager to persist and update coordinator
 
         except HomeAssistantError as e:
             const.LOGGER.error(
@@ -877,7 +880,8 @@ class KidRewardRedeemButton(KidsChoresCoordinatorEntity, ButtonEntity):
                 self._kid_name,
                 parent_name,
             )
-            await self.coordinator.async_request_refresh()
+            # No need to call async_request_refresh() - RewardManager emits signals
+            # that trigger StatisticsManager to persist and update coordinator
 
         except HomeAssistantError as e:
             const.LOGGER.error(
@@ -1007,7 +1011,8 @@ class ParentRewardApproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
                 self._kid_name,
                 parent_name,
             )
-            await self.coordinator.async_request_refresh()
+            # No need to call async_request_refresh() - RewardManager emits signals
+            # that trigger StatisticsManager to persist and update coordinator
 
         except HomeAssistantError as e:
             const.LOGGER.error(
@@ -1171,7 +1176,8 @@ class ParentRewardDisapproveButton(KidsChoresCoordinatorEntity, ButtonEntity):
                     self._kid_name,
                     parent_name,
                 )
-            await self.coordinator.async_request_refresh()
+            # No need to call async_request_refresh() - RewardManager emits signals
+            # that trigger StatisticsManager to persist and update coordinator
 
         except HomeAssistantError as e:
             const.LOGGER.error(
@@ -1312,7 +1318,8 @@ class ParentBonusApplyButton(KidsChoresCoordinatorEntity, ButtonEntity):
                 self._kid_name,
                 parent_name,
             )
-            await self.coordinator.async_request_refresh()
+            # No need to call async_request_refresh() - EconomyManager emits signals
+            # that trigger StatisticsManager to persist and update coordinator
 
         except HomeAssistantError as e:
             const.LOGGER.error(
@@ -1460,7 +1467,8 @@ class ParentPenaltyApplyButton(KidsChoresCoordinatorEntity, ButtonEntity):
                 self._kid_name,
                 parent_name,
             )
-            await self.coordinator.async_request_refresh()
+            # No need to call async_request_refresh() - EconomyManager emits signals
+            # that trigger StatisticsManager to persist and update coordinator
 
         except HomeAssistantError as e:
             const.LOGGER.error(
@@ -1529,7 +1537,6 @@ class ParentPointsAdjustButton(KidsChoresCoordinatorEntity, ButtonEntity):
             delta: Points adjustment value (positive for increment, negative for decrement).
             points_label: User-configured label for points (e.g., "Points", "Stars").
         """
-
         super().__init__(coordinator)
         self._entry = entry
         self._kid_id = kid_id
@@ -1578,16 +1585,25 @@ class ParentPointsAdjustButton(KidsChoresCoordinatorEntity, ButtonEntity):
         """Synchronous press - not used, Home Assistant calls async_press."""
 
     async def async_press(self) -> None:
-        """Handle the button press event.
+        """Handle button press event."""
+        await self._internal_press_logic()
+
+    async def _internal_press_logic(self) -> None:
+        """Execute the actual points adjustment logic.
 
         Validates global parent authorization, uses EconomyManager.deposit() or
-        .withdraw() based on delta sign, logs adjustment, and triggers coordinator
-        refresh to update points balance and all dependent entities.
+        .withdraw() based on delta sign, and logs adjustment.
 
         Raises:
             HomeAssistantError: If user not authorized for global parent actions.
         """
         try:
+            const.LOGGER.debug(
+                "ParentPointsAdjustButton._internal_press_logic: entity_id=%s, kid=%s, delta=%s",
+                self.entity_id,
+                self._kid_name,
+                self._delta,
+            )
             user_id = self._context.user_id if self._context else None
             if user_id and not await is_user_authorized_for_global_action(
                 self.hass, user_id, const.SERVICE_ADJUST_POINTS
@@ -1618,7 +1634,8 @@ class ParentPointsAdjustButton(KidsChoresCoordinatorEntity, ButtonEntity):
                 self._kid_name,
                 self._delta,
             )
-            await self.coordinator.async_request_refresh()
+            # No need to call async_request_refresh() - StatisticsManager handles
+            # persistence and coordinator updates via POINTS_CHANGED signal
 
         except HomeAssistantError as e:
             const.LOGGER.error(

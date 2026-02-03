@@ -1545,7 +1545,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
 
     async def async_step_reconfigure(
         self, user_input: dict[str, Any] | None = None
-    ) -> config_entries.FlowResult:
+    ) -> config_entries.ConfigFlowResult:
         """Handle reconfiguration (editing system settings via Configure button).
 
         This flow allows users to update all 9 system settings via the standard
@@ -1554,11 +1554,11 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
         """
         entry_id = self.context.get("entry_id")
         if not entry_id or not isinstance(entry_id, str):
-            return self.async_abort(reason=const.CONFIG_FLOW_ABORT_RECONFIGURE_FAILED)  # type: ignore[return-value]
+            return self.async_abort(reason=const.CONFIG_FLOW_ABORT_RECONFIGURE_FAILED)
 
         config_entry = self.hass.config_entries.async_get_entry(entry_id)
         if not config_entry:
-            return self.async_abort(reason=const.CONFIG_FLOW_ABORT_RECONFIGURE_FAILED)  # type: ignore[return-value]
+            return self.async_abort(reason=const.CONFIG_FLOW_ABORT_RECONFIGURE_FAILED)
 
         errors: dict[str, str] = {}
 
@@ -1588,7 +1588,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
 
                 return self.async_abort(
                     reason=const.CONFIG_FLOW_ABORT_RECONFIGURE_SUCCESSFUL
-                )  # type: ignore[return-value]
+                )
 
         # Build the comprehensive schema with all 9 settings using current values
         all_settings_schema = fh.build_all_system_settings_schema(
@@ -1621,7 +1621,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             ),
         )
 
-        return self.async_show_form(  # type: ignore[return-value]
+        return self.async_show_form(
             step_id=const.CONFIG_FLOW_STEP_RECONFIGURE,
             data_schema=all_settings_schema,
             errors=errors,

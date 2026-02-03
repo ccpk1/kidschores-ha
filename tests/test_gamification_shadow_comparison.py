@@ -93,9 +93,11 @@ class TestBadgeShadowComparison:
         # Set kid's points above threshold
         kid_data[const.DATA_KID_POINTS] = float(threshold + 50)
 
-        # Also update point_stats for total_earned
-        point_stats = kid_data.setdefault(const.DATA_KID_POINT_STATS, {})
-        point_stats[const.DATA_KID_POINT_STATS_EARNED_ALL_TIME] = float(threshold + 50)
+        # Also update point_stats for total_earned (LEGACY - kept for test compatibility)
+        point_stats = kid_data.setdefault(const.DATA_KID_POINT_STATS_LEGACY, {})
+        point_stats[const.DATA_KID_POINT_STATS_EARNED_ALL_TIME_LEGACY] = float(
+            threshold + 50
+        )
 
         # Build evaluation context for new engine
         context: EvaluationContext = {
@@ -103,7 +105,7 @@ class TestBadgeShadowComparison:
             "kid_name": kid_name,
             "current_points": float(kid_data.get(const.DATA_KID_POINTS, 0.0)),
             "total_points_earned": float(
-                point_stats.get(const.DATA_KID_POINT_STATS_EARNED_ALL_TIME, 0.0)
+                point_stats.get(const.DATA_KID_POINT_STATS_EARNED_ALL_TIME_LEGACY, 0.0)
             ),
             "badge_progress": kid_data.get(const.DATA_KID_BADGE_PROGRESS, {}),
             "cumulative_badge_progress": kid_data.get(

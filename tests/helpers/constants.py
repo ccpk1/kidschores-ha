@@ -419,8 +419,14 @@ from custom_components.kidschores.const import (
     DATA_KID_IS_SHADOW,
     DATA_KID_LINKED_PARENT_ID,
     DATA_KID_NAME,
-    DATA_KID_OVERDUE_CHORES,
-    DATA_KID_POINT_STATS,
+    # DATA_KID_OVERDUE_CHORES removed - dead code, see DATA_KID_OVERDUE_CHORES_LEGACY
+    DATA_KID_POINT_DATA,
+    DATA_KID_POINT_DATA_PERIOD_HIGHEST_BALANCE,
+    DATA_KID_POINT_DATA_PERIOD_POINTS_EARNED,
+    DATA_KID_POINT_DATA_PERIOD_POINTS_SPENT,
+    DATA_KID_POINT_DATA_PERIODS,
+    DATA_KID_POINT_DATA_PERIODS_ALL_TIME,
+    DATA_KID_POINT_STATS_LEGACY,
     DATA_KID_POINTS,
     DATA_KID_REWARD_DATA,
     DATA_KID_REWARD_DATA_PENDING_COUNT,
@@ -535,7 +541,8 @@ from custom_components.kidschores.const import (
     SERVICE_DELETE_REWARD,
     SERVICE_UPDATE_REWARD,
     SERVICE_MANAGE_SHADOW_LINK,
-    SERVICE_RESET_ALL_CHORES,
+    SERVICE_FACTORY_RESET,  # Renamed from SERVICE_RESET_ALL_DATA
+    SERVICE_RESET_CHORES_TO_PENDING_STATE,  # Renamed from SERVICE_RESET_ALL_CHORES
     # =========================================================================
     # SERVICE FIELD NAMES (for service call payloads)
     # =========================================================================

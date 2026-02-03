@@ -225,17 +225,75 @@ apply_bonus:
       selector:
         text:
 
-reset_all_data:
-  name: "Reset All Data"
+# NOTE: reset_all_data renamed to factory_reset, reset_all_chores renamed to reset_chores_to_pending_state in v0.6.0
+
+factory_reset:
+  name: "Factory Reset"
   description: >
     Factory reset: Creates backup, cleans entity registry, and completely clears all KidsChores data from storage.
     Backup file is saved as kidschores_data_<timestamp>_reset in the .storage directory.
   fields: {}
 
-reset_all_chores:
-  name: "Reset All Chores"
-  description: "Manually reset chores to pending state, removing claims and approvals."
+reset_chores_to_pending_state:
+  name: "Reset Chores To Pending State"
+  description: "Manually reset all chores to pending state, removing claims and approvals."
   fields: {}
+
+reset_transactional_data:
+  name: "Reset Transactional Data"
+  description: >
+    Reset runtime/transactional data while preserving configuration (kids, chores, rewards, etc.).
+    Creates automatic backup before reset. Use scope to target specific kids or domains.
+    IMPORTANT: Requires confirm_destructive: true as a safety mechanism.
+  fields:
+    confirm_destructive:
+      name: "Confirm Destructive"
+      description: "Must be set to true to confirm you want to proceed with the reset. This is a safety mechanism."
+      required: true
+      example: true
+      selector:
+        boolean:
+    scope:
+      name: "Scope"
+      description: "Reset scope: 'global' resets all data, 'kid' resets data for a specific kid only."
+      required: false
+      default: "global"
+      example: "global"
+      selector:
+        select:
+          options:
+            - "global"
+            - "kid"
+    kid_name:
+      name: "Kid Name"
+      description: "Required if scope is 'kid'. The name of the kid whose data should be reset."
+      required: false
+      example: "Alice"
+      selector:
+        text:
+    item_type:
+      name: "Item Type"
+      description: "Optional filter to reset only a specific domain (e.g., just points or just chores)."
+      required: false
+      example: "chores"
+      selector:
+        select:
+          options:
+            - "points"
+            - "chores"
+            - "rewards"
+            - "badges"
+            - "achievements"
+            - "challenges"
+            - "penalties"
+            - "bonuses"
+    item_name:
+      name: "Item Name"
+      description: "Optional filter to reset a specific item within the item_type domain."
+      required: false
+      example: "Wash Dishes"
+      selector:
+        text:
 
 reset_overdue_chores:
   name: "Reset Overdue Chores"
@@ -353,71 +411,8 @@ skip_chore_due_date:
       selector:
         text:
 
-reset_penalties:
-  name: "Reset Penalties"
-  description: >
-    Reset all applied penalties for all kids. Optionally, provide penalty_name to reset a
-    specific penalty across all kids. Use kid_name to reset all penalties for a specific kid.
-    Combine both to reset a specific penalty for a specific kid.
-  fields:
-    kid_name:
-      name: "Kid Name"
-      description: "The kid penalites will be reset for."
-      example: "Bob"
-      required: false
-      selector:
-        text:
-    penalty_name:
-      name: "Penalty Name"
-      description: "The name of the penalty to reset."
-      example: "Yelling"
-      required: false
-      selector:
-        text:
-
-reset_bonuses:
-  name: "Reset Bonuses"
-  description: >
-    Reset all applied bonuses for all kids. Optionally, provide bonus_name to reset a
-    specific bonus across all kids. Use kid_name to reset all bonuses for a specific kid.
-    Combine both to reset a specific bonus for a specific kid.
-  fields:
-    kid_name:
-      name: "Kid Name"
-      description: "The kid bonuses will be reset for."
-      example: "Bob"
-      required: false
-      selector:
-        text:
-    bonus_name:
-      name: "Bonus Name"
-      description: "The name of the bonus to reset."
-      example: "Helping"
-      required: false
-      selector:
-        text:
-
-reset_rewards:
-  name: "Reset Rewards"
-  description: >
-    Reset all reward claim and approval counts for all kids. Optionally, provide reward_name to reset a
-    specific reward counts across all kids. Use kid_name to reset all reward counts for a specific kid.
-    Combine both to reset a specific reward for a specific kid.
-  fields:
-    kid_name:
-      name: "Kid Name"
-      description: "The kid reward counts will be reset for."
-      example: "Bob"
-      required: false
-      selector:
-        text:
-    reward_name:
-      name: "Reward Name"
-      description: "The name of the reward to reset count."
-      example: "Ice Cream"
-      required: false
-      selector:
-        text:
+# NOTE: reset_penalties, reset_bonuses, reset_rewards services removed in v0.6.0
+# Superseded by reset_transactional_data with scope="kid" or "global" and item_type filter
 
 remove_awarded_badges:
   name: "Remove Awarded Badges"

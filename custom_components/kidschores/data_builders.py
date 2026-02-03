@@ -309,6 +309,38 @@ def build_reward(
     )
 
 
+# --- Reward Data Reset Support ---
+# MAINTENANCE CONTRACT: When adding fields to build_reward():
+# - CONFIG fields: Add to _REWARD_DATA_RESET_PRESERVE_FIELDS (preserved during data reset)
+# - RUNTIME fields: No change needed (auto-cleared to defaults on data reset)
+#
+# NOTE: Rewards have no runtime fields on the reward record itself.
+# All runtime state is in kid-side DATA_KID_REWARD_DATA structure.
+
+_REWARD_DATA_RESET_PRESERVE_FIELDS: frozenset[str] = frozenset(
+    {
+        # Core identification
+        const.DATA_REWARD_INTERNAL_ID,
+        const.DATA_REWARD_NAME,
+        # Configuration
+        const.DATA_REWARD_COST,
+        const.DATA_REWARD_DESCRIPTION,
+        const.DATA_REWARD_ICON,
+        const.DATA_REWARD_LABELS,
+    }
+)
+
+# --- Reward Kid Runtime Fields (for data_reset_rewards) ---
+# These are kid-side structures owned by RewardManager.
+# On data reset: CLEAR these structures for affected kid(s).
+
+_REWARD_KID_RUNTIME_FIELDS: frozenset[str] = frozenset(
+    {
+        const.DATA_KID_REWARD_DATA,  # Per-reward claim tracking
+    }
+)
+
+
 # ==============================================================================
 # BONUSES & PENALTIES (Unified)
 # ==============================================================================
@@ -499,6 +531,69 @@ def build_bonus_or_penalty(
         icon_key: str(get_field(icon_key, default_icon)),
         internal_id_key: internal_id,
     }
+
+
+# --- Bonus Data Reset Support ---
+# MAINTENANCE CONTRACT: When adding fields to build_bonus_or_penalty():
+# - CONFIG fields: Add to _BONUS_DATA_RESET_PRESERVE_FIELDS (preserved during data reset)
+# - RUNTIME fields: No change needed (auto-cleared to defaults on data reset)
+#
+# NOTE: Bonuses have no runtime fields on the bonus record itself.
+# All runtime state is in kid-side DATA_KID_BONUS_APPLIES structure.
+
+_BONUS_DATA_RESET_PRESERVE_FIELDS: frozenset[str] = frozenset(
+    {
+        # Core identification
+        const.DATA_BONUS_INTERNAL_ID,
+        const.DATA_BONUS_NAME,
+        # Configuration
+        const.DATA_BONUS_POINTS,
+        const.DATA_BONUS_DESCRIPTION,
+        const.DATA_BONUS_ICON,
+        const.DATA_BONUS_LABELS,
+    }
+)
+
+# --- Bonus Kid Runtime Fields (for data_reset_bonuses) ---
+# These are kid-side structures owned by EconomyManager (via bonuses domain).
+# On data reset: CLEAR these structures for affected kid(s).
+
+_BONUS_KID_RUNTIME_FIELDS: frozenset[str] = frozenset(
+    {
+        const.DATA_KID_BONUS_APPLIES,  # Active bonus tracking
+    }
+)
+
+# --- Penalty Data Reset Support ---
+# MAINTENANCE CONTRACT: When adding fields to build_bonus_or_penalty():
+# - CONFIG fields: Add to _PENALTY_DATA_RESET_PRESERVE_FIELDS (preserved during data reset)
+# - RUNTIME fields: No change needed (auto-cleared to defaults on data reset)
+#
+# NOTE: Penalties have no runtime fields on the penalty record itself.
+# All runtime state is in kid-side DATA_KID_PENALTY_APPLIES structure.
+
+_PENALTY_DATA_RESET_PRESERVE_FIELDS: frozenset[str] = frozenset(
+    {
+        # Core identification
+        const.DATA_PENALTY_INTERNAL_ID,
+        const.DATA_PENALTY_NAME,
+        # Configuration
+        const.DATA_PENALTY_POINTS,
+        const.DATA_PENALTY_DESCRIPTION,
+        const.DATA_PENALTY_ICON,
+        const.DATA_PENALTY_LABELS,
+    }
+)
+
+# --- Penalty Kid Runtime Fields (for data_reset_penalties) ---
+# These are kid-side structures owned by EconomyManager (via penalties domain).
+# On data reset: CLEAR these structures for affected kid(s).
+
+_PENALTY_KID_RUNTIME_FIELDS: frozenset[str] = frozenset(
+    {
+        const.DATA_KID_PENALTY_APPLIES,  # Active penalty tracking
+    }
+)
 
 
 # ==============================================================================
@@ -729,10 +824,7 @@ def build_kid(
         const.DATA_KID_BONUS_APPLIES: (
             existing.get(const.DATA_KID_BONUS_APPLIES, {}) if existing else {}
         ),
-        # Overdue tracking (runtime initialized)
-        const.DATA_KID_OVERDUE_CHORES: (
-            existing.get(const.DATA_KID_OVERDUE_CHORES, []) if existing else []
-        ),
+        # NOTE: DATA_KID_OVERDUE_CHORES removed - dead code, overdue tracked in chore_data[chore_id].state
     }
 
     # --- Shadow kid markers (only set if requested) ---
@@ -748,6 +840,44 @@ def build_kid(
             )
 
     return kid_data
+
+
+# --- Kid Data Reset Support ---
+# MAINTENANCE CONTRACT: When adding fields to build_kid():
+# - CONFIG fields: Add to _KID_DATA_RESET_PRESERVE_FIELDS (preserved during data reset)
+# - RUNTIME fields: No change needed (auto-cleared to defaults on data reset)
+
+_KID_DATA_RESET_PRESERVE_FIELDS: frozenset[str] = frozenset(
+    {
+        # System identity (never changes)
+        const.DATA_KID_INTERNAL_ID,
+        # User-configured fields
+        const.DATA_KID_NAME,
+        const.DATA_KID_HA_USER_ID,
+        const.DATA_KID_MOBILE_NOTIFY_SERVICE,
+        const.DATA_KID_USE_PERSISTENT_NOTIFICATIONS,
+        const.DATA_KID_DASHBOARD_LANGUAGE,
+        const.DATA_KID_POINTS_MULTIPLIER,
+        # System-managed linkage (preserved but not user-editable)
+        const.DATA_KID_IS_SHADOW,
+        const.DATA_KID_LINKED_PARENT_ID,
+    }
+)
+
+
+# --- Economy Manager Kid Runtime Fields (for data_reset_kids) ---
+# These are kid-side fields owned by EconomyManager.
+# EconomyManager creates these on-demand before recording transactions.
+# On data reset: reset points to 0, clear ledger, clear point stats/data.
+
+_ECONOMY_KID_RUNTIME_FIELDS: frozenset[str] = frozenset(
+    {
+        const.DATA_KID_POINTS,  # Current point balance
+        const.DATA_KID_POINTS_MULTIPLIER,  # Reset to DEFAULT_KID_POINTS_MULTIPLIER
+        const.DATA_KID_LEDGER,  # Transaction history
+        const.DATA_KID_POINT_DATA,  # Period point breakdowns (EconomyManager owns)
+    }
+)
 
 
 # ==============================================================================
@@ -1382,6 +1512,100 @@ def build_chore(
     )
 
 
+# --- Chore Data Reset Support ---
+# MAINTENANCE CONTRACT: When adding fields to build_chore():
+# - CONFIG fields: Add to _CHORE_DATA_RESET_PRESERVE_FIELDS (preserved during data reset)
+# - RUNTIME fields: No change needed (auto-cleared to defaults on data reset)
+
+_CHORE_DATA_RESET_PRESERVE_FIELDS: frozenset[str] = frozenset(
+    {
+        # Core identification
+        const.DATA_CHORE_INTERNAL_ID,
+        const.DATA_CHORE_NAME,
+        # Points and configuration
+        const.DATA_CHORE_DEFAULT_POINTS,
+        const.DATA_CHORE_APPROVAL_RESET_TYPE,
+        const.DATA_CHORE_OVERDUE_HANDLING_TYPE,
+        const.DATA_CHORE_APPROVAL_RESET_PENDING_CLAIM_ACTION,
+        # Description and display
+        const.DATA_CHORE_DESCRIPTION,
+        const.DATA_CHORE_LABELS,
+        const.DATA_CHORE_ICON,
+        # Assignment (per-kid CONFIG, not runtime)
+        const.DATA_CHORE_ASSIGNED_KIDS,
+        # Scheduling configuration
+        const.DATA_CHORE_RECURRING_FREQUENCY,
+        const.DATA_CHORE_CUSTOM_INTERVAL,
+        const.DATA_CHORE_CUSTOM_INTERVAL_UNIT,
+        const.DATA_CHORE_DAILY_MULTI_TIMES,
+        # Due date configuration (per-kid CONFIG)
+        const.DATA_CHORE_DUE_DATE,
+        const.DATA_CHORE_PER_KID_DUE_DATES,
+        const.DATA_CHORE_APPLICABLE_DAYS,
+        const.DATA_CHORE_PER_KID_APPLICABLE_DAYS,
+        const.DATA_CHORE_PER_KID_DAILY_MULTI_TIMES,
+        # Due window configuration
+        const.DATA_CHORE_DUE_WINDOW_OFFSET,
+        const.DATA_CHORE_DUE_REMINDER_OFFSET,
+        # Notification settings
+        const.DATA_CHORE_NOTIFY_ON_CLAIM,
+        const.DATA_CHORE_NOTIFY_ON_APPROVAL,
+        const.DATA_CHORE_NOTIFY_ON_DISAPPROVAL,
+        const.DATA_CHORE_NOTIFY_ON_REMINDER,
+        # Calendar and features
+        const.DATA_CHORE_SHOW_ON_CALENDAR,
+        const.DATA_CHORE_AUTO_APPROVE,
+        # Completion criteria
+        const.DATA_CHORE_COMPLETION_CRITERIA,
+    }
+)
+
+# --- Chore Runtime Fields (cleared on FULL data reset) ---
+# These are fields in the chore record that track runtime state.
+# On FULL chore data reset, they are CLEARED to their defaults.
+#
+# NOTE: Per-kid tracking lists (claimed_by, completed_by) are cleared entirely
+# on full reset. Per-kid CONFIG (assigned_kids, per_kid_due_dates) is PRESERVED.
+
+_CHORE_RUNTIME_DATA_FIELDS: frozenset[str] = frozenset(
+    {
+        const.DATA_CHORE_STATE,  # Reset to PENDING
+        const.DATA_CHORE_LAST_COMPLETED,  # Clear to None
+        const.DATA_CHORE_LAST_CLAIMED,  # Clear to None
+        const.DATA_CHORE_APPROVAL_PERIOD_START,  # Reset to now
+        const.DATA_CHORE_CLAIMED_BY,  # Clear to []
+        const.DATA_CHORE_COMPLETED_BY,  # Clear to []
+    }
+)
+
+# --- Chore Per-Kid Runtime Lists (for PER-KID data reset) ---
+# These are chore-level lists that track kid_ids for runtime state.
+# On PER-KID data reset: REMOVE the specific kid_id from these lists.
+# On FULL data reset: CLEAR these lists entirely (handled by build_chore defaults).
+#
+# MAINTENANCE CONTRACT: When adding new chore-level kid tracking lists,
+# add them here so per-kid data reset removes the kid from them.
+
+_CHORE_PER_KID_RUNTIME_LISTS: frozenset[str] = frozenset(
+    {
+        const.DATA_CHORE_CLAIMED_BY,  # List of kid_ids who claimed
+        const.DATA_CHORE_COMPLETED_BY,  # List of kid_ids who completed
+    }
+)
+
+# --- Chore Kid Runtime Fields (for data_reset_chores) ---
+# These are kid-side structures owned by ChoreManager.
+# ChoreManager creates these on-demand before recording data (not at kid genesis).
+# On data reset: CLEAR these structures for affected kid(s).
+
+_CHORE_KID_RUNTIME_FIELDS: frozenset[str] = frozenset(
+    {
+        const.DATA_KID_CHORE_DATA,  # Per-chore tracking (ChoreManager creates on-demand)
+        const.DATA_KID_CHORE_STATS,  # Aggregate chore stats (ChoreManager creates on-demand)
+    }
+)
+
+
 # ==============================================================================
 # BADGES
 # ==============================================================================
@@ -1795,6 +2019,51 @@ def build_badge(
     return cast("BadgeData", badge_data)
 
 
+# --- Badge Data Reset Support ---
+# MAINTENANCE CONTRACT: When adding fields to build_badge():
+# - CONFIG fields: Add to _BADGE_DATA_RESET_PRESERVE_FIELDS (preserved during data reset)
+# - RUNTIME fields: No change needed (auto-cleared to defaults on data reset)
+#
+# NOTE: Badges have complex, type-dependent structures. The preserve set includes
+# all base fields and nested config dicts (target, awards, reset_schedule, etc.).
+# The only true RUNTIME field is 'earned_by' (list of kid_ids who earned the badge).
+
+_BADGE_DATA_RESET_PRESERVE_FIELDS: frozenset[str] = frozenset(
+    {
+        # Core identification
+        const.DATA_BADGE_INTERNAL_ID,
+        const.DATA_BADGE_NAME,
+        const.DATA_BADGE_TYPE,
+        # Description and display
+        const.DATA_BADGE_DESCRIPTION,
+        const.DATA_BADGE_LABELS,
+        const.DATA_BADGE_ICON,
+        # Type-specific config dicts (entire nested structures are config)
+        const.DATA_BADGE_TARGET,  # Threshold/maintenance rules (config)
+        const.DATA_BADGE_AWARDS,  # Points/multiplier/items (config)
+        const.DATA_BADGE_RESET_SCHEDULE,  # Periodic reset rules (config)
+        const.DATA_BADGE_TRACKED_CHORES,  # Tracked chore selection (config)
+        # Assignment and linking (config)
+        const.DATA_BADGE_ASSIGNED_TO,
+        const.DATA_BADGE_SPECIAL_OCCASION_TYPE,
+        const.DATA_BADGE_ASSOCIATED_ACHIEVEMENT,
+        const.DATA_BADGE_ASSOCIATED_CHALLENGE,
+    }
+)
+
+# --- Badge Kid Runtime Fields (for data_reset_badges) ---
+# These are kid-side structures owned by GamificationManager.
+# On data reset: CLEAR these structures for affected kid(s).
+
+_BADGE_KID_RUNTIME_FIELDS: frozenset[str] = frozenset(
+    {
+        const.DATA_KID_BADGES_EARNED,  # Badge award history
+        const.DATA_KID_BADGE_PROGRESS,  # Current badge progress
+        const.DATA_KID_CUMULATIVE_BADGE_PROGRESS,  # Cumulative badge tracking
+    }
+)
+
+
 # ==============================================================================
 # ACHIEVEMENTS
 # ==============================================================================
@@ -2020,6 +2289,35 @@ def build_achievement(
             get_field(const.DATA_ACHIEVEMENT_PROGRESS, {})
         ),
     }
+
+
+# --- Achievement Data Reset Support ---
+# MAINTENANCE CONTRACT: When adding fields to build_achievement():
+# - CONFIG fields: Add to _ACHIEVEMENT_DATA_RESET_PRESERVE_FIELDS (preserved during data reset)
+# - RUNTIME fields: No change needed (auto-cleared to defaults on data reset)
+#
+# NOTE: Achievements store progress directly on the achievement record (not kid-side).
+# On data reset, PROGRESS is cleared but CONFIG fields are preserved.
+
+_ACHIEVEMENT_DATA_RESET_PRESERVE_FIELDS: frozenset[str] = frozenset(
+    {
+        # Core identification
+        const.DATA_ACHIEVEMENT_INTERNAL_ID,
+        const.DATA_ACHIEVEMENT_NAME,
+        # Description and display
+        const.DATA_ACHIEVEMENT_DESCRIPTION,
+        const.DATA_ACHIEVEMENT_LABELS,
+        const.DATA_ACHIEVEMENT_ICON,
+        # Configuration
+        const.DATA_ACHIEVEMENT_ASSIGNED_KIDS,
+        const.DATA_ACHIEVEMENT_TYPE,
+        const.DATA_ACHIEVEMENT_SELECTED_CHORE_ID,
+        const.DATA_ACHIEVEMENT_CRITERIA,
+        const.DATA_ACHIEVEMENT_TARGET_VALUE,
+        const.DATA_ACHIEVEMENT_REWARD_POINTS,
+        # NOTE: PROGRESS is NOT preserved - it's the only runtime field
+    }
+)
 
 
 # ==============================================================================
@@ -2298,3 +2596,34 @@ def build_challenge(
             get_field(const.DATA_CHALLENGE_PROGRESS, {})
         ),
     }
+
+
+# --- Challenge Data Reset Support ---
+# MAINTENANCE CONTRACT: When adding fields to build_challenge():
+# - CONFIG fields: Add to _CHALLENGE_DATA_RESET_PRESERVE_FIELDS (preserved during data reset)
+# - RUNTIME fields: No change needed (auto-cleared to defaults on data reset)
+#
+# NOTE: Challenges store progress directly on the challenge record (not kid-side).
+# On data reset, PROGRESS is cleared but CONFIG fields are preserved.
+
+_CHALLENGE_DATA_RESET_PRESERVE_FIELDS: frozenset[str] = frozenset(
+    {
+        # Core identification
+        const.DATA_CHALLENGE_INTERNAL_ID,
+        const.DATA_CHALLENGE_NAME,
+        # Description and display
+        const.DATA_CHALLENGE_DESCRIPTION,
+        const.DATA_CHALLENGE_LABELS,
+        const.DATA_CHALLENGE_ICON,
+        # Configuration
+        const.DATA_CHALLENGE_ASSIGNED_KIDS,
+        const.DATA_CHALLENGE_TYPE,
+        const.DATA_CHALLENGE_SELECTED_CHORE_ID,
+        const.DATA_CHALLENGE_CRITERIA,
+        const.DATA_CHALLENGE_TARGET_VALUE,
+        const.DATA_CHALLENGE_REWARD_POINTS,
+        const.DATA_CHALLENGE_START_DATE,
+        const.DATA_CHALLENGE_END_DATE,
+        # NOTE: PROGRESS is NOT preserved - it's the only runtime field
+    }
+)

@@ -46,7 +46,7 @@ from tests.helpers import (
     DATA_KID_CHORE_DATA_STATE,
     DATA_KID_POINTS,
     DOMAIN,
-    SERVICE_RESET_ALL_CHORES,
+    SERVICE_RESET_CHORES_TO_PENDING_STATE,
 )
 from tests.helpers.setup import SetupResult, setup_from_yaml
 
@@ -774,11 +774,11 @@ class TestResetAllChoresService:
             == CHORE_STATE_APPROVED
         )
 
-        # Call the reset_all_chores service via hass.services.async_call
+        # Call the reset_chores_to_pending_state service via hass.services.async_call
         # The service is registered under the kidschores domain
         await hass.services.async_call(
             DOMAIN,
-            SERVICE_RESET_ALL_CHORES,
+            SERVICE_RESET_CHORES_TO_PENDING_STATE,
             {},
             blocking=True,
         )

@@ -250,6 +250,22 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             - Use immediate=True only for critical paths where data integrity
               or user feedback timing is essential
         """
+        # Thread safety: Schedule to event loop if called from worker thread
+        # This can happen when dispatcher signals are fired from sync contexts
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = None
+
+        if loop is None or loop != self.hass.loop:
+            # Not in event loop thread - schedule to run in event loop
+            self.hass.loop.call_soon_threadsafe(self._persist_impl, immediate)
+            return
+
+        self._persist_impl(immediate)
+
+    def _persist_impl(self, immediate: bool = False) -> None:
+        """Implementation of _persist - must be called from event loop thread."""
         # Treat 0 debounce (test mode) as immediate to avoid task overhead
         effective_immediate = immediate or self._persist_debounce_seconds == 0
 

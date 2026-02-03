@@ -99,6 +99,9 @@ SIGNAL_SUFFIX_MIDNIGHT_ROLLOVER: Final = "midnight_rollover"  # Daily reset broa
 # Economy Events (EconomyManager)
 SIGNAL_SUFFIX_POINTS_CHANGED: Final = "points_changed"
 SIGNAL_SUFFIX_TRANSACTION_FAILED: Final = "transaction_failed"
+SIGNAL_SUFFIX_POINTS_MULTIPLIER_CHANGE_REQUESTED: Final = (
+    "points_multiplier_change_requested"
+)
 
 # Chore Events (ChoreManager)
 SIGNAL_SUFFIX_CHORE_CLAIMED: Final = "chore_claimed"
@@ -191,6 +194,17 @@ SIGNAL_SUFFIX_PENALTY_DELETED: Final = "penalty_deleted"
 SIGNAL_SUFFIX_BONUS_CREATED: Final = "bonus_created"
 SIGNAL_SUFFIX_BONUS_UPDATED: Final = "bonus_updated"
 SIGNAL_SUFFIX_BONUS_DELETED: Final = "bonus_deleted"
+
+# Data Reset Completion Signals (emitted AFTER data reset work is done)
+# Payload: scope: str, kid_id: str | None, item_id: str | None
+SIGNAL_SUFFIX_CHORE_DATA_RESET_COMPLETE: Final = "chore_data_reset_complete"
+SIGNAL_SUFFIX_POINTS_DATA_RESET_COMPLETE: Final = "points_data_reset_complete"
+SIGNAL_SUFFIX_BADGE_DATA_RESET_COMPLETE: Final = "badge_data_reset_complete"
+SIGNAL_SUFFIX_ACHIEVEMENT_DATA_RESET_COMPLETE: Final = "achievement_data_reset_complete"
+SIGNAL_SUFFIX_CHALLENGE_DATA_RESET_COMPLETE: Final = "challenge_data_reset_complete"
+SIGNAL_SUFFIX_REWARD_DATA_RESET_COMPLETE: Final = "reward_data_reset_complete"
+SIGNAL_SUFFIX_PENALTY_DATA_RESET_COMPLETE: Final = "penalty_data_reset_complete"
+SIGNAL_SUFFIX_BONUS_DATA_RESET_COMPLETE: Final = "bonus_data_reset_complete"
 
 # Default timezone (set once hass is available)
 # pylint: disable=invalid-name
@@ -688,6 +702,9 @@ MAX_BACKUPS_MAX_RETAINED: Final = 10  # Maximum number of backups to retain
 BACKUP_TAG_RECOVERY: Final = "recovery"  # Data recovery actions
 BACKUP_TAG_REMOVAL: Final = "removal"  # Integration removal
 BACKUP_TAG_RESET: Final = "reset"  # Factory reset
+BACKUP_TAG_DATA_RESET: Final = (
+    "data_reset"  # Transactional data reset (unified service)
+)
 BACKUP_TAG_PRE_MIGRATION: Final = (
     "pre-migration"  # Before schema upgrade (never deleted)
 )
@@ -1015,7 +1032,7 @@ DATA_KID_LAST_CHORE_DATE: Final = "last_chore_date"
 DATA_KID_LAST_STREAK_DATE: Final = "last_date"
 DATA_KID_MOBILE_NOTIFY_SERVICE: Final = "mobile_notify_service"
 DATA_KID_NAME: Final = "name"
-DATA_KID_OVERDUE_CHORES: Final = "overdue_chores"
+# NOTE: DATA_KID_OVERDUE_CHORES removed - dead code, see DATA_KID_OVERDUE_CHORES_LEGACY
 DATA_KID_OVERALL_CHORE_STREAK: Final = "overall_chore_streak"
 DATA_KID_PENALTY_APPLIES: Final = "penalty_applies"
 DATA_KID_POINTS: Final = "points"
@@ -1033,7 +1050,7 @@ DATA_LEDGER_SOURCE: Final = "source"  # Transaction source type (uses POINTS_SOU
 DATA_LEDGER_REFERENCE_ID: Final = "reference_id"  # Related entity ID (optional)
 
 # Default ledger limit to prevent storage bloat
-DEFAULT_LEDGER_MAX_ENTRIES: Final = 50
+DEFAULT_LEDGER_MAX_ENTRIES: Final = 200
 
 # ——————————————————————————————————————————————
 # Kid Reward Data Structure Constants (Modern - v0.5.0+)
@@ -1137,10 +1154,18 @@ DATA_KID_POINT_DATA_PERIODS_YEARLY: Final = "yearly"
 DATA_KID_POINT_DATA_PERIODS_ALL_TIME: Final = "all_time"
 
 # Within each period entry:
-#   – points_total: net delta for that period
+#   – points_earned: sum of positive deltas (v44+)
+#   – points_spent: sum of negative deltas (v44+)
 #   – by_source: breakdown of delta by source type
-DATA_KID_POINT_DATA_PERIOD_POINTS_TOTAL: Final = "points_total"
+#   – highest_balance: cumulative peak (all_time bucket only, v44+)
+# DEPRECATED (v44): points_total will be deleted after migration
+DATA_KID_POINT_DATA_PERIOD_POINTS_EARNED: Final = "points_earned"
+DATA_KID_POINT_DATA_PERIOD_POINTS_SPENT: Final = "points_spent"
+DATA_KID_POINT_DATA_PERIOD_HIGHEST_BALANCE: Final = "highest_balance"
 DATA_KID_POINT_DATA_PERIOD_BY_SOURCE: Final = "by_source"
+DATA_KID_POINT_DATA_PERIOD_POINTS_TOTAL_LEGACY: Final = (
+    "points_total"  # LEGACY: Migration only - use earned+spent
+)
 
 # Point Sources
 # --- Point Source Types (all plural) ---
@@ -1168,60 +1193,119 @@ POINTS_SOURCE_OPTIONS = [
 ]
 
 # --- Kid Point Stats (modeled after chore stats) ---
-DATA_KID_POINT_STATS: Final = "point_stats"
+# LEGACY (v44): Entire point_stats structure will be deleted - data moved to periods.all_time
+DATA_KID_POINT_STATS_LEGACY: Final = "point_stats"
 
 # --- Per-period totals ---
 # NOTE: *_TODAY/*_WEEK/*_MONTH/*_YEAR keys are computed at runtime by statistics_engine.py
 # but NOT persisted to storage (Phase 7.5: Derivative Data is Ephemeral).
 # Only *_ALL_TIME keys are persisted. Temporal values live in StatisticsManager cache.
-DATA_KID_POINT_STATS_EARNED_TODAY: Final = "points_earned_today"
-DATA_KID_POINT_STATS_EARNED_WEEK: Final = "points_earned_week"
-DATA_KID_POINT_STATS_EARNED_MONTH: Final = "points_earned_month"
-DATA_KID_POINT_STATS_EARNED_YEAR: Final = "points_earned_year"
-DATA_KID_POINT_STATS_EARNED_ALL_TIME: Final = "points_earned_all_time"
+# LEGACY (v44): All point_stats fields will be deleted - use period buckets instead
+DATA_KID_POINT_STATS_EARNED_TODAY_LEGACY: Final = (
+    "points_earned_today"  # Use periods.daily.*
+)
+DATA_KID_POINT_STATS_EARNED_WEEK_LEGACY: Final = (
+    "points_earned_week"  # Use periods.weekly.*
+)
+DATA_KID_POINT_STATS_EARNED_MONTH_LEGACY: Final = (
+    "points_earned_month"  # Use periods.monthly.*
+)
+DATA_KID_POINT_STATS_EARNED_YEAR_LEGACY: Final = (
+    "points_earned_year"  # Use periods.yearly.*
+)
+DATA_KID_POINT_STATS_EARNED_ALL_TIME_LEGACY: Final = (
+    "points_earned_all_time"  # Use periods.all_time.all_time.points_earned
+)
 
 # --- Per-period by-source breakdowns ---
 # NOTE: *_TODAY/*_WEEK/*_MONTH/*_YEAR keys are NOT persisted (Phase 7.5).
-DATA_KID_POINT_STATS_BY_SOURCE_TODAY: Final = "points_by_source_today"
-DATA_KID_POINT_STATS_BY_SOURCE_WEEK: Final = "points_by_source_week"
-DATA_KID_POINT_STATS_BY_SOURCE_MONTH: Final = "points_by_source_month"
-DATA_KID_POINT_STATS_BY_SOURCE_YEAR: Final = "points_by_source_year"
-DATA_KID_POINT_STATS_BY_SOURCE_ALL_TIME: Final = "points_by_source_all_time"
+# LEGACY (v44): All point_stats fields will be deleted - use period buckets instead
+DATA_KID_POINT_STATS_BY_SOURCE_TODAY_LEGACY: Final = (
+    "points_by_source_today"  # Use periods.daily.*.by_source
+)
+DATA_KID_POINT_STATS_BY_SOURCE_WEEK_LEGACY: Final = (
+    "points_by_source_week"  # Use periods.weekly.*.by_source
+)
+DATA_KID_POINT_STATS_BY_SOURCE_MONTH_LEGACY: Final = (
+    "points_by_source_month"  # Use periods.monthly.*.by_source
+)
+DATA_KID_POINT_STATS_BY_SOURCE_YEAR_LEGACY: Final = (
+    "points_by_source_year"  # Use periods.yearly.*.by_source
+)
+DATA_KID_POINT_STATS_BY_SOURCE_ALL_TIME_LEGACY: Final = (
+    "points_by_source_all_time"  # Use periods.all_time.all_time.by_source
+)
 
 # --- Per-period spent (negative deltas) ---
 # NOTE: *_TODAY/*_WEEK/*_MONTH/*_YEAR keys are NOT persisted (Phase 7.5).
-DATA_KID_POINT_STATS_SPENT_TODAY: Final = "points_spent_today"
-DATA_KID_POINT_STATS_SPENT_WEEK: Final = "points_spent_week"
-DATA_KID_POINT_STATS_SPENT_MONTH: Final = "points_spent_month"
-DATA_KID_POINT_STATS_SPENT_YEAR: Final = "points_spent_year"
-DATA_KID_POINT_STATS_SPENT_ALL_TIME: Final = "points_spent_all_time"
+# LEGACY (v44): All point_stats fields will be deleted - use period buckets instead
+DATA_KID_POINT_STATS_SPENT_TODAY_LEGACY: Final = (
+    "points_spent_today"  # Use periods.daily.*.points_spent
+)
+DATA_KID_POINT_STATS_SPENT_WEEK_LEGACY: Final = (
+    "points_spent_week"  # Use periods.weekly.*.points_spent
+)
+DATA_KID_POINT_STATS_SPENT_MONTH_LEGACY: Final = (
+    "points_spent_month"  # Use periods.monthly.*.points_spent
+)
+DATA_KID_POINT_STATS_SPENT_YEAR_LEGACY: Final = (
+    "points_spent_year"  # Use periods.yearly.*.points_spent
+)
+DATA_KID_POINT_STATS_SPENT_ALL_TIME_LEGACY: Final = (
+    "points_spent_all_time"  # Use periods.all_time.all_time.points_spent
+)
 
 # --- Per-period net (earned - spent) ---
 # NOTE: *_TODAY/*_WEEK/*_MONTH/*_YEAR keys are NOT persisted (Phase 7.5).
-DATA_KID_POINT_STATS_NET_TODAY: Final = "points_net_today"
-DATA_KID_POINT_STATS_NET_WEEK: Final = "points_net_week"
-DATA_KID_POINT_STATS_NET_MONTH: Final = "points_net_month"
-DATA_KID_POINT_STATS_NET_YEAR: Final = "points_net_year"
-DATA_KID_POINT_STATS_NET_ALL_TIME: Final = "points_net_all_time"
+# LEGACY (v44): All point_stats fields DERIVED - never stored, calculate as earned + spent
+DATA_KID_POINT_STATS_NET_TODAY_LEGACY: Final = "points_net_today"  # DERIVED: periods.daily.*.points_earned + periods.daily.*.points_spent
+DATA_KID_POINT_STATS_NET_WEEK_LEGACY: Final = "points_net_week"  # DERIVED: periods.weekly.*.points_earned + periods.weekly.*.points_spent
+DATA_KID_POINT_STATS_NET_MONTH_LEGACY: Final = "points_net_month"  # DERIVED: periods.monthly.*.points_earned + periods.monthly.*.points_spent
+DATA_KID_POINT_STATS_NET_YEAR_LEGACY: Final = "points_net_year"  # DERIVED: periods.yearly.*.points_earned + periods.yearly.*.points_spent
+DATA_KID_POINT_STATS_NET_ALL_TIME_LEGACY: Final = "points_net_all_time"  # DERIVED: periods.all_time.all_time.points_earned + periods.all_time.all_time.points_spent
 
 # --- Streaks (days with positive points) ---
-DATA_KID_POINT_STATS_EARNING_STREAK_CURRENT: Final = "points_earning_streak_current"
-DATA_KID_POINT_STATS_EARNING_STREAK_LONGEST: Final = "points_earning_streak_longest"
+# LEGACY (v44): All point_stats fields will be deleted - move to PRES_* cache or period data
+DATA_KID_POINT_STATS_EARNING_STREAK_CURRENT_LEGACY: Final = (
+    "points_earning_streak_current"  # TODO: Move to PRES_* cache
+)
+DATA_KID_POINT_STATS_EARNING_STREAK_LONGEST_LEGACY: Final = (
+    "points_earning_streak_longest"  # TODO: Move to period data
+)
 
 # --- Averages ---
 # NOTE: avg_*_week/month keys are NOT persisted (Phase 7.5). avg_per_chore is persisted.
-DATA_KID_POINT_STATS_AVG_PER_DAY_WEEK: Final = "avg_points_per_day_week"
-DATA_KID_POINT_STATS_AVG_PER_DAY_MONTH: Final = "avg_points_per_day_month"
-DATA_KID_POINT_STATS_AVG_PER_CHORE: Final = "avg_points_per_chore"
+# LEGACY (v44): All point_stats fields will be deleted - DERIVED from period buckets
+DATA_KID_POINT_STATS_AVG_PER_DAY_WEEK_LEGACY: Final = (
+    "avg_points_per_day_week"  # DERIVED from weekly period
+)
+DATA_KID_POINT_STATS_AVG_PER_DAY_MONTH_LEGACY: Final = (
+    "avg_points_per_day_month"  # DERIVED from monthly period
+)
+DATA_KID_POINT_STATS_AVG_PER_CHORE_LEGACY: Final = (
+    "avg_points_per_chore"  # DERIVED from all-time stats
+)
 
-# --- Highest balance ever (highest balance) ---
-DATA_KID_POINT_STATS_HIGHEST_BALANCE: Final = "highest_balance"
+# --- Maximum Balance ---
+# LEGACY (v44): Moved to periods.all_time.all_time.highest_balance
+DATA_KID_POINT_STATS_HIGHEST_BALANCE_ALL_TIME_LEGACY: Final = (
+    "highest_balance_all_time"  # Use periods.all_time.all_time.highest_balance
+)
 
 # --- All time point stats ---
-DATA_KID_POINTS_EARNED_ALL_TIME: Final = "points_earned_all_time"
-DATA_KID_POINTS_SPENT_ALL_TIME: Final = "points_spent_all_time"
-DATA_KID_POINTS_NET_ALL_TIME: Final = "points_net_all_time"
-DATA_KID_POINTS_BY_SOURCE_ALL_TIME: Final = "points_by_source_all_time"
+# LEGACY (v44): These top-level keys are obsolete - use point_data.periods for all stats
+DATA_KID_POINTS_EARNED_ALL_TIME_LEGACY: Final = (
+    "points_earned_all_time"  # Use periods.all_time.all_time.points_earned
+)
+DATA_KID_POINTS_SPENT_ALL_TIME_LEGACY: Final = (
+    "points_spent_all_time"  # Use periods.all_time.all_time.points_spent
+)
+DATA_KID_POINTS_NET_ALL_TIME_LEGACY: Final = (
+    "points_net_all_time"  # DERIVED: earned + spent
+)
+DATA_KID_POINTS_BY_SOURCE_ALL_TIME_LEGACY: Final = (
+    "points_by_source_all_time"  # Use periods.all_time.all_time.by_source
+)
 
 # =============================================================================
 # PRESENTATION CONSTANTS (PRES_KID_*) - Memory-only cache keys (NOT in storage)
@@ -1314,7 +1398,7 @@ PRES_KID_CACHE_VERSION: Final = "pres_kid_cache_version"
 # These suffixes identify temporal keys in *_stats dicts that should NOT be
 # persisted to storage. Used by migration_pre_v50._strip_temporal_stats() and
 # statistics_engine filter functions. Keys ending with these ARE temporal.
-# Note: all_time and highest_balance are NOT temporal - they persist.
+# Note: all_time and highest_balance_all_time are NOT temporal - they persist.
 STATS_TEMPORAL_SUFFIXES: Final[tuple[str, ...]] = (
     "_today",
     "_week",
@@ -1790,6 +1874,7 @@ TRANS_KEY_NOTIF_TITLE_CHALLENGE_COMPLETED: Final = (
 
 TRANS_KEY_NOTIF_TITLE_PENALTY_APPLIED: Final = "notification_title_penalty_applied"
 TRANS_KEY_NOTIF_TITLE_BONUS_APPLIED: Final = "notification_title_bonus_applied"
+TRANS_KEY_NOTIF_TITLE_DATA_RESET: Final = "notif_title_data_reset"
 
 # Notification Message Translation Keys
 TRANS_KEY_NOTIF_MESSAGE_CHORE_ASSIGNED: Final = "notification_message_chore_assigned"
@@ -1841,6 +1926,12 @@ TRANS_KEY_NOTIF_MESSAGE_CHALLENGE_COMPLETED_PARENT: Final = (
 
 TRANS_KEY_NOTIF_MESSAGE_PENALTY_APPLIED: Final = "notification_message_penalty_applied"
 TRANS_KEY_NOTIF_MESSAGE_BONUS_APPLIED: Final = "notification_message_bonus_applied"
+TRANS_KEY_NOTIF_MESSAGE_DATA_RESET_GLOBAL: Final = "notif_message_data_reset_global"
+TRANS_KEY_NOTIF_MESSAGE_DATA_RESET_KID: Final = "notif_message_data_reset_kid"
+TRANS_KEY_NOTIF_MESSAGE_DATA_RESET_ITEM_TYPE: Final = (
+    "notif_message_data_reset_item_type"
+)
+TRANS_KEY_NOTIF_MESSAGE_DATA_RESET_ITEM: Final = "notif_message_data_reset_item"
 
 # Tag-based aggregated notification keys (v0.5.0+)
 TRANS_KEY_NOTIF_TITLE_PENDING_CHORES: Final = "notification_title_pending_chores"
@@ -2486,14 +2577,17 @@ SERVICE_DELETE_CHORE: Final = "delete_chore"
 SERVICE_DELETE_REWARD: Final = "delete_reward"
 SERVICE_DISAPPROVE_CHORE: Final = "disapprove_chore"
 SERVICE_DISAPPROVE_REWARD: Final = "disapprove_reward"
+SERVICE_FACTORY_RESET: Final = "factory_reset"  # Renamed from reset_all_data
 SERVICE_REDEEM_REWARD: Final = "redeem_reward"
 SERVICE_REMOVE_AWARDED_BADGES: Final = "remove_awarded_badges"
-SERVICE_RESET_ALL_CHORES: Final = "reset_all_chores"
-SERVICE_RESET_ALL_DATA: Final = "reset_all_data"
-SERVICE_RESET_BONUSES: Final = "reset_bonuses"
+SERVICE_RESET_CHORES_TO_PENDING_STATE: Final = (
+    "reset_chores_to_pending_state"  # Renamed from reset_all_chores
+)
+# NOTE: SERVICE_RESET_ALL_DATA, SERVICE_RESET_ALL_CHORES renamed in v0.6.0 to factory_reset, reset_chores_to_pending_state
+# NOTE: SERVICE_RESET_BONUSES, SERVICE_RESET_PENALTIES, SERVICE_RESET_REWARDS removed in v0.6.0
+# Superseded by SERVICE_RESET_TRANSACTIONAL_DATA with scope="kid" or "global" and item_type filter
 SERVICE_RESET_OVERDUE_CHORES: Final = "reset_overdue_chores"
-SERVICE_RESET_PENALTIES: Final = "reset_penalties"
-SERVICE_RESET_REWARDS: Final = "reset_rewards"
+SERVICE_RESET_TRANSACTIONAL_DATA: Final = "reset_transactional_data"
 SERVICE_SET_CHORE_DUE_DATE: Final = "set_chore_due_date"
 SERVICE_SKIP_CHORE_DUE_DATE: Final = "skip_chore_due_date"
 SERVICE_MANAGE_SHADOW_LINK: Final = "manage_shadow_link"
@@ -2508,6 +2602,32 @@ SERVICE_UPDATE_REWARD: Final = "update_reward"
 # - User-friendly ("name" not "reward_name" for create_reward service)
 # - Consistent across similar services
 # - Mapped to CFOF_* constants internally via _SERVICE_TO_*_FORM_MAPPING
+
+# Data Reset Service Fields
+SERVICE_FIELD_CONFIRM_DESTRUCTIVE: Final = "confirm_destructive"
+SERVICE_FIELD_SCOPE: Final = "scope"
+SERVICE_FIELD_ITEM_NAME: Final = "item_name"
+SERVICE_FIELD_ITEM_TYPE: Final = (
+    "item_type"  # Used for both item_type scope AND item scope
+)
+
+# Data reset service scope types (NEVER use "reset" alone - always qualify)
+# Scope = WHO is affected (all kids vs one kid)
+DATA_RESET_SCOPE_GLOBAL: Final = "global"  # All kids
+DATA_RESET_SCOPE_KID: Final = "kid"  # One kid (requires kid_name)
+
+# Data reset service item type values (WHAT domain to reset)
+# Optional - if omitted, resets ALL domains for the scope
+DATA_RESET_ITEM_TYPE_POINTS: Final = (
+    "points"  # Points, ledger, point_data (EconomyManager)
+)
+DATA_RESET_ITEM_TYPE_CHORES: Final = "chores"
+DATA_RESET_ITEM_TYPE_REWARDS: Final = "rewards"
+DATA_RESET_ITEM_TYPE_BADGES: Final = "badges"
+DATA_RESET_ITEM_TYPE_ACHIEVEMENTS: Final = "achievements"
+DATA_RESET_ITEM_TYPE_CHALLENGES: Final = "challenges"
+DATA_RESET_ITEM_TYPE_PENALTIES: Final = "penalties"
+DATA_RESET_ITEM_TYPE_BONUSES: Final = "bonuses"
 #
 # Pattern: SERVICE_FIELD_{ENTITY}_{FIELD} for entity-specific fields
 #          SERVICE_FIELD_{FIELD} for cross-entity fields (kid_name, parent_name)
@@ -2827,6 +2947,17 @@ TRANS_KEY_ERROR_COMPLETION_CRITERIA_IMMUTABLE: Final = (
 TRANS_KEY_ERROR_REWARD_NOT_FOUND: Final = (
     "reward_not_found"  # Reward with ID '{reward_id}' not found
 )
+TRANS_KEY_ERROR_DATA_RESET_CONFIRMATION_REQUIRED: Final = (
+    "data_reset_confirmation_required"  # Must set confirm_destructive: true
+)
+TRANS_KEY_ERROR_DATA_RESET_KID_NOT_FOUND: Final = (
+    "data_reset_kid_not_found"  # Kid '{kid_name}' not found
+)
+TRANS_KEY_ERROR_DATA_RESET_ITEM_NOT_FOUND: Final = (
+    "data_reset_item_not_found"  # {item_type} '{item_name}' not found
+)
+TRANS_KEY_ERROR_DATA_RESET_INVALID_SCOPE: Final = "data_reset_invalid_scope"  # Invalid scope '{scope}'. Must be: global, kid, item_type, or item
+TRANS_KEY_ERROR_DATA_RESET_INVALID_ITEM_TYPE: Final = "data_reset_invalid_item_type"  # Invalid item_type '{item_type}'. Must be: kids, chores, etc.
 
 # Translation Keys for Phase 2-4 Error Migration (Action Templating)
 # These map to templated exceptions in translations/en.json using action labels
@@ -3858,6 +3989,7 @@ DATA_KID_MAX_POINTS_EVER_LEGACY: Final = (
 DATA_KID_MAX_STREAK_LEGACY: Final = (
     "max_streak"  # Legacy field - use CHORE_STATS_LONGEST_STREAK_ALL_TIME instead
 )
+DATA_KID_OVERDUE_CHORES_LEGACY: Final = "overdue_chores"  # LEGACY: Dead code - overdue tracked in chore_data[chore_id].state
 
 # Legacy Reward Fields (v0.4.0): Replaced by reward_data structure
 # Keep constants for backward-compat migration code in migration_pre_v42.py

@@ -23,7 +23,7 @@ from . import const, data_builders as db
 from .helpers import backup_helpers as bh, entity_helpers as eh
 from .helpers.entity_helpers import get_item_id_by_name
 from .store import KidsChoresStore
-from .utils.dt_utils import dt_now_local, dt_to_utc, dt_today_iso, dt_today_local
+from .utils.dt_utils import dt_now_local, dt_to_utc, dt_today_iso
 from .utils.math_utils import parse_points_adjust_values
 
 if TYPE_CHECKING:
@@ -357,6 +357,10 @@ class PreV50Migrator:
         # Phase 4: Add new optional chore fields (defaults for existing chores)
         self._add_chore_optional_fields()
 
+        # Phase 4b: Stats consolidation - Migrate max_points_ever → periods.all_time,
+        # MUST run BEFORE _remove_legacy_fields which deletes max_points_ever
+        self._consolidate_point_stats()
+
         # Phase 5: Clean up all legacy fields that have been migrated
         # This removes fields that were READ during migration but are no longer needed
         self._remove_legacy_fields()
@@ -387,7 +391,7 @@ class PreV50Migrator:
         # Phase 9: Strip temporal stats from storage (Phase 7.5 - The Great Stripping)
         # Derivative Data is Ephemeral - clock-based stats MUST NOT be saved to JSON.
         # These fields are now derived on-demand from period buckets (point_data.periods).
-        # Keep: earned_all_time, highest_balance, longest_streak_all_time (High-Water Marks)
+        # Keep: earned_all_time, highest_balance_all_time, longest_streak_all_time (High-Water Marks)
         self._strip_temporal_stats()
 
         # Phase 10: Backfill 'completed' metric from 'approved' (v0.5.0-beta4)
@@ -1380,147 +1384,36 @@ class PreV50Migrator:
         self.coordinator.async_set_updated_data(self.coordinator._data)
 
     def _migrate_legacy_point_stats(self) -> None:
-        """Migrate legacy rolling point stats into the new point_data period structure for each kid."""
-        for kid_info in self.coordinator.kids_data.values():
-            # Legacy values
-            legacy_today = round(  # type: ignore[call-overload]
-                kid_info.get(const.DATA_KID_POINTS_EARNED_TODAY_LEGACY, 0.0),
-                const.DATA_FLOAT_PRECISION,
-            )
-            legacy_week = round(  # type: ignore[call-overload]
-                kid_info.get(const.DATA_KID_POINTS_EARNED_WEEKLY_LEGACY, 0.0),
-                const.DATA_FLOAT_PRECISION,
-            )
-            legacy_month = round(  # type: ignore[call-overload]
-                kid_info.get(const.DATA_KID_POINTS_EARNED_MONTHLY_LEGACY, 0.0),
-                const.DATA_FLOAT_PRECISION,
-            )
-            legacy_max = round(  # type: ignore[call-overload]
-                kid_info.get(const.DATA_KID_MAX_POINTS_EVER_LEGACY, 0.0),
-                const.DATA_FLOAT_PRECISION,
-            )
+        """Initialize period structure for legacy data - actual migration done by _consolidate_point_stats.
 
-            # Get or create point_data periods
-            point_data = kid_info.setdefault(const.DATA_KID_POINT_DATA, {})  # type: ignore[typeddict-item]
+        NOTE: Legacy point stat fields (points_earned_today/weekly/monthly/yearly, max_points_ever)
+        are rolling counters WITHOUT time attribution. They CANNOT be written to specific
+        period buckets (daily/weekly/monthly/yearly) as they don't represent activity in those
+        specific periods.
+
+        The actual migration of max_points_ever → all_time bucket is handled by _consolidate_point_stats
+        at Phase 4b (BEFORE legacy fields are deleted). This function just ensures the period structure exists.
+        """
+        for kid_info in self.coordinator.kids_data.values():
+            # Get or create point_data periods structure
+            point_data = kid_info.setdefault(const.DATA_KID_POINT_DATA, {})
             periods = point_data.setdefault(const.DATA_KID_POINT_DATA_PERIODS, {})
 
-            # Get period keys
-            today_local_iso = dt_today_local().isoformat()
-            now_local = dt_now_local()
-            week_local_iso = now_local.strftime("%Y-W%V")
-            month_local_iso = now_local.strftime("%Y-%m")
-            year_local_iso = now_local.strftime("%Y")
-
-            # Helper to migrate if legacy > 0 and period is missing or zero
-            def migrate_period(
-                periods_dict: dict,
-                period_key: str,
-                period_id: str,
-                legacy_value: float,
-            ) -> None:
-                """Migrate a single period if legacy value exists and period is empty."""
-                if legacy_value > 0:
-                    bucket = periods_dict.setdefault(period_key, {})
-                    entry = bucket.setdefault(
-                        period_id,
-                        {
-                            const.DATA_KID_POINT_DATA_PERIOD_POINTS_TOTAL: 0.0,
-                            const.DATA_KID_POINT_DATA_PERIOD_BY_SOURCE: {},
-                        },
-                    )
-                    if entry[const.DATA_KID_POINT_DATA_PERIOD_POINTS_TOTAL] == 0.0:
-                        entry[const.DATA_KID_POINT_DATA_PERIOD_POINTS_TOTAL] = (
-                            legacy_value
-                        )
-                        # Use a point source of other
-                        entry[const.DATA_KID_POINT_DATA_PERIOD_BY_SOURCE][
-                            const.POINTS_SOURCE_OTHER
-                        ] = legacy_value
-
-            migrate_period(
-                periods,
-                const.DATA_KID_POINT_DATA_PERIODS_DAILY,
-                today_local_iso,
-                legacy_today,
+            # Ensure all_time bucket exists (structure only - values set by _consolidate_point_stats)
+            all_time_bucket = periods.setdefault(
+                const.DATA_KID_POINT_DATA_PERIODS_ALL_TIME, {}
             )
-            migrate_period(
-                periods,
-                const.DATA_KID_POINT_DATA_PERIODS_WEEKLY,
-                week_local_iso,
-                legacy_week,
-            )
-            migrate_period(
-                periods,
-                const.DATA_KID_POINT_DATA_PERIODS_MONTHLY,
-                month_local_iso,
-                legacy_month,
+            all_time_bucket.setdefault(
+                const.PERIOD_ALL_TIME,
+                {
+                    const.DATA_KID_POINT_DATA_PERIOD_POINTS_EARNED: 0.0,
+                    const.DATA_KID_POINT_DATA_PERIOD_POINTS_SPENT: 0.0,
+                    const.DATA_KID_POINT_DATA_PERIOD_BY_SOURCE: {},
+                    const.DATA_KID_POINT_DATA_PERIOD_HIGHEST_BALANCE: 0.0,
+                },
             )
 
-            # Set yearly period points to legacy_max if > 0
-            if legacy_max > 0:
-                yearly_bucket = periods.setdefault(
-                    const.DATA_KID_POINT_DATA_PERIODS_YEARLY, {}
-                )
-                yearly_entry = yearly_bucket.setdefault(
-                    year_local_iso,
-                    {
-                        const.DATA_KID_POINT_DATA_PERIOD_POINTS_TOTAL: 0.0,
-                        const.DATA_KID_POINT_DATA_PERIOD_BY_SOURCE: {},
-                    },
-                )
-                yearly_entry[const.DATA_KID_POINT_DATA_PERIOD_POINTS_TOTAL] = legacy_max
-                yearly_entry[const.DATA_KID_POINT_DATA_PERIOD_BY_SOURCE][
-                    const.POINTS_SOURCE_OTHER
-                ] = legacy_max
-
-            # Create all_time period bucket for points
-            # Use max(max_points_ever_legacy, current_points) as best estimate
-            current_points = round(
-                kid_info.get(const.DATA_KID_POINTS, 0.0),
-                const.DATA_FLOAT_PRECISION,
-            )
-            all_time_points = max(legacy_max, current_points)
-            if all_time_points > 0:
-                all_time_bucket = periods.setdefault(
-                    const.DATA_KID_POINT_DATA_PERIODS_ALL_TIME, {}
-                )
-                all_time_entry = all_time_bucket.setdefault(
-                    const.PERIOD_ALL_TIME,
-                    {
-                        const.DATA_KID_POINT_DATA_PERIOD_POINTS_TOTAL: 0.0,
-                        const.DATA_KID_POINT_DATA_PERIOD_BY_SOURCE: {},
-                    },
-                )
-                # Only set if not already populated (idempotent)
-                if all_time_entry[const.DATA_KID_POINT_DATA_PERIOD_POINTS_TOTAL] == 0.0:
-                    all_time_entry[const.DATA_KID_POINT_DATA_PERIOD_POINTS_TOTAL] = (
-                        all_time_points
-                    )
-                    all_time_entry[const.DATA_KID_POINT_DATA_PERIOD_BY_SOURCE][
-                        const.POINTS_SOURCE_OTHER
-                    ] = all_time_points
-
-            # Migrate legacy max points ever to point_stats highest balance if needed
-            point_stats = kid_info.setdefault(const.DATA_KID_POINT_STATS, {})
-            if legacy_max > 0 and legacy_max > point_stats.get(
-                const.DATA_KID_POINT_STATS_HIGHEST_BALANCE, 0.0
-            ):
-                point_stats[const.DATA_KID_POINT_STATS_HIGHEST_BALANCE] = legacy_max
-
-            # Set points_earned_all_time using same logic as all_time period bucket
-            # This ensures current balance is considered if higher than legacy max
-            if all_time_points > 0:
-                point_stats[const.DATA_KID_POINT_STATS_EARNED_ALL_TIME] = (
-                    all_time_points
-                )
-
-            # --- Migrate all-time points by source ---
-            if all_time_points > 0:
-                point_stats[const.DATA_KID_POINT_STATS_BY_SOURCE_ALL_TIME] = {
-                    const.POINTS_SOURCE_OTHER: all_time_points
-                }
-
-        const.LOGGER.info("Legacy point stats migration complete.")
+        const.LOGGER.info("Period structure initialized for point stats.")
 
     def _migrate_completed_metric(self) -> None:
         """Backfill 'completed' metric from 'approved' in period buckets (v0.5.0-beta4).
@@ -2109,8 +2002,10 @@ class PreV50Migrator:
             const.DATA_KID_REDEEMED_REWARDS_LEGACY,
             const.DATA_KID_REWARD_CLAIMS_LEGACY,
             const.DATA_KID_REWARD_APPROVALS_LEGACY,
-            # Point statistics (max_points_ever migrated to point_stats.highest_balance)
+            # Point statistics (max_points_ever migrated to point_stats.highest_balance_all_time)
             const.DATA_KID_MAX_POINTS_EVER_LEGACY,
+            # Dead code fields (v0.5.0+ - overdue tracked in chore_data[chore_id].state)
+            const.DATA_KID_OVERDUE_CHORES_LEGACY,
         ]
 
         kids_data = self.coordinator._data.get(const.DATA_KIDS, {})
@@ -2177,7 +2072,7 @@ class PreV50Migrator:
                         values_rounded += 1
 
             # --- point_stats fields ---
-            point_stats = kid_info.get(const.DATA_KID_POINT_STATS, {})
+            point_stats = kid_info.get(const.DATA_KID_POINT_STATS_LEGACY, {})
             for key, val in list(point_stats.items()):
                 if isinstance(val, (int, float)):
                     old_val = val
@@ -2415,6 +2310,166 @@ class PreV50Migrator:
 
         const.LOGGER.info("INFO: ==========================================")
 
+    def _consolidate_point_stats(self) -> None:
+        """Migrate point_stats → periods.all_time using current balance as baseline.
+
+        Phase 7b: Stats Consolidation
+        The point_stats dict was generated from periods. Now we store all_time values
+        directly in the all_time period bucket, eliminating the redundant dict.
+
+        MIGRATION STRATEGY:
+        Use kid's CURRENT POINTS BALANCE as the baseline for all_time stats.
+        This ensures the math works: points_earned + points_spent = current balance.
+
+        What this migration does:
+        1. Set all_time.points_earned = current kid points balance
+        2. Set all_time.points_spent = 0.0 (fresh start)
+        3. Set all_time.by_source.other = current kid points (pre-migration activity)
+        4. Set all_time.highest_balance = max(current balance, old highest if available)
+        5. Delete legacy point_stats key from kid_info
+        6. Convert points_total → points_earned in period buckets
+        """
+        const.LOGGER.info("Phase 7b: Consolidating point_stats → periods.all_time")
+
+        kids_data = self.coordinator._data.get(const.DATA_KIDS, {})
+        if not kids_data:
+            const.LOGGER.info("  No kids found, skipping stats consolidation")
+            return
+
+        stats_migrated = 0
+        buckets_converted = 0
+
+        for kid_id, kid_info in kids_data.items():
+            kid_name = kid_info.get(const.DATA_KID_NAME, kid_id)
+
+            # Get kid's CURRENT points balance - this is the source of truth
+            current_balance = float(kid_info.get(const.DATA_KID_POINTS, 0.0))
+
+            # Get point_data container
+            point_data = kid_info.get(const.DATA_KID_POINT_DATA, {})
+            if not point_data:
+                # Create point_data if it doesn't exist
+                point_data = {}
+                kid_info[const.DATA_KID_POINT_DATA] = point_data
+
+            # Get or create periods container
+            periods = point_data.setdefault(const.DATA_KID_POINT_DATA_PERIODS, {})
+
+            # --- Step 1: Set up all_time bucket ---
+            # Get or create all_time period type
+            all_time_periods = periods.setdefault(
+                const.DATA_KID_POINT_DATA_PERIODS_ALL_TIME, {}
+            )
+
+            # Get or create the all_time bucket (nested: all_time.all_time)
+            all_time_bucket = all_time_periods.setdefault(const.PERIOD_ALL_TIME, {})
+
+            # Find highest known historical value from legacy sources:
+            # 1. Legacy max_points_ever (v30/v31/v40 - direct kid field)
+            # 2. Current balance (fallback minimum)
+
+            # Source 1: Legacy max_points_ever (the original field in v30/v31/v40beta1)
+            legacy_max_points = float(
+                kid_info.get(const.DATA_KID_MAX_POINTS_EVER_LEGACY, 0.0)
+            )
+
+            # Use max_points_ever if available, otherwise fall back to current balance
+            historical_earned = max(legacy_max_points, current_balance)
+
+            const.LOGGER.debug(
+                "  %s: max_points_ever=%.2f, current=%.2f, using=%.2f",
+                kid_name,
+                legacy_max_points,
+                current_balance,
+                historical_earned,
+            )
+
+            # MIGRATION STRATEGY:
+            # points_earned = highest known historical value (represents all earnings ever)
+            # points_spent = offset to bring net down to current balance
+            # by_source.other = current balance (net pre-migration activity, unknown +/-)
+            # Math: earned + spent = current_balance
+            #
+            # Example: highest=2980, current=1504 → earned=2980, spent=-1476
+            # Check: 2980 + (-1476) = 1504 ✓
+            calculated_spent = current_balance - historical_earned
+
+            # ALWAYS overwrite to ensure clean state
+            all_time_bucket[const.DATA_KID_POINT_DATA_PERIOD_POINTS_EARNED] = (
+                historical_earned
+            )
+            all_time_bucket[const.DATA_KID_POINT_DATA_PERIOD_POINTS_SPENT] = (
+                calculated_spent
+            )
+            all_time_bucket[const.DATA_KID_POINT_DATA_PERIOD_BY_SOURCE] = {
+                const.POINTS_SOURCE_OTHER: current_balance
+            }
+            all_time_bucket[const.DATA_KID_POINT_DATA_PERIOD_HIGHEST_BALANCE] = (
+                historical_earned
+            )
+
+            stats_migrated += 1
+
+            # Delete legacy point_stats if present
+            if const.DATA_KID_POINT_STATS_LEGACY in kid_info:
+                del kid_info[const.DATA_KID_POINT_STATS_LEGACY]
+
+            const.LOGGER.debug(
+                "  Set all_time for %s: earned=%.2f, spent=%.2f, net=%.2f, highest=%.2f",
+                kid_name,
+                historical_earned,
+                calculated_spent,
+                current_balance,
+                all_time_bucket[const.DATA_KID_POINT_DATA_PERIOD_HIGHEST_BALANCE],
+            )
+
+            # --- Step 2: Convert points_total → points_earned in all period buckets ---
+            for _period_type, period_buckets in periods.items():
+                if not isinstance(period_buckets, dict):
+                    continue
+
+                for _bucket_id, bucket_data in period_buckets.items():
+                    if not isinstance(bucket_data, dict):
+                        continue
+
+                    # Check for legacy points_total field
+                    if (
+                        const.DATA_KID_POINT_DATA_PERIOD_POINTS_TOTAL_LEGACY
+                        in bucket_data
+                    ):
+                        total = bucket_data.pop(
+                            const.DATA_KID_POINT_DATA_PERIOD_POINTS_TOTAL_LEGACY
+                        )
+
+                        # points_total was net (earned + spent where spent is negative)
+                        # For non-all_time buckets, treat positive as earned, negative as spent
+                        if (
+                            const.DATA_KID_POINT_DATA_PERIOD_POINTS_EARNED
+                            not in bucket_data
+                        ):
+                            if total >= 0:
+                                bucket_data[
+                                    const.DATA_KID_POINT_DATA_PERIOD_POINTS_EARNED
+                                ] = total
+                                bucket_data[
+                                    const.DATA_KID_POINT_DATA_PERIOD_POINTS_SPENT
+                                ] = 0
+                            else:
+                                bucket_data[
+                                    const.DATA_KID_POINT_DATA_PERIOD_POINTS_EARNED
+                                ] = 0
+                                bucket_data[
+                                    const.DATA_KID_POINT_DATA_PERIOD_POINTS_SPENT
+                                ] = total
+
+                        buckets_converted += 1
+
+        const.LOGGER.info(
+            "  Stats consolidated: %d point_stats migrated, %d buckets converted",
+            stats_migrated,
+            buckets_converted,
+        )
+
     def _strip_temporal_stats(self) -> None:
         """Remove temporal (clock-derived) fields from point_stats and chore_stats (Phase 7.5).
 
@@ -2425,7 +2480,7 @@ class PreV50Migrator:
         High-Water Marks to KEEP (require persistence):
         - points_earned_all_time: Cumulative total (bucket aggregate)
         - points_spent_all_time: Cumulative spent (bucket aggregate)
-        - highest_balance: All-time peak balance (cannot be recalculated from buckets)
+        - highest_balance_all_time: All-time peak balance (cannot be recalculated from buckets)
         - longest_streak_all_time: Peak streak (cannot be recalculated from buckets)
         - approved_all_time: Cumulative chore completions (bucket aggregate)
 
@@ -2442,29 +2497,29 @@ class PreV50Migrator:
         # Note: We use the raw string values to match what's actually in storage
         point_stats_temporal_fields = [
             # Earned (temporal periods - all-time stays)
-            const.DATA_KID_POINT_STATS_EARNED_TODAY,
-            const.DATA_KID_POINT_STATS_EARNED_WEEK,
-            const.DATA_KID_POINT_STATS_EARNED_MONTH,
-            const.DATA_KID_POINT_STATS_EARNED_YEAR,
+            const.DATA_KID_POINT_STATS_EARNED_TODAY_LEGACY,
+            const.DATA_KID_POINT_STATS_EARNED_WEEK_LEGACY,
+            const.DATA_KID_POINT_STATS_EARNED_MONTH_LEGACY,
+            const.DATA_KID_POINT_STATS_EARNED_YEAR_LEGACY,
             # Spent (temporal periods - all-time stays)
-            const.DATA_KID_POINT_STATS_SPENT_TODAY,
-            const.DATA_KID_POINT_STATS_SPENT_WEEK,
-            const.DATA_KID_POINT_STATS_SPENT_MONTH,
-            const.DATA_KID_POINT_STATS_SPENT_YEAR,
+            const.DATA_KID_POINT_STATS_SPENT_TODAY_LEGACY,
+            const.DATA_KID_POINT_STATS_SPENT_WEEK_LEGACY,
+            const.DATA_KID_POINT_STATS_SPENT_MONTH_LEGACY,
+            const.DATA_KID_POINT_STATS_SPENT_YEAR_LEGACY,
             # Net (temporal periods - all-time stays)
-            const.DATA_KID_POINT_STATS_NET_TODAY,
-            const.DATA_KID_POINT_STATS_NET_WEEK,
-            const.DATA_KID_POINT_STATS_NET_MONTH,
-            const.DATA_KID_POINT_STATS_NET_YEAR,
+            const.DATA_KID_POINT_STATS_NET_TODAY_LEGACY,
+            const.DATA_KID_POINT_STATS_NET_WEEK_LEGACY,
+            const.DATA_KID_POINT_STATS_NET_MONTH_LEGACY,
+            const.DATA_KID_POINT_STATS_NET_YEAR_LEGACY,
             # By-source breakdowns (temporal periods)
-            const.DATA_KID_POINT_STATS_BY_SOURCE_TODAY,
-            const.DATA_KID_POINT_STATS_BY_SOURCE_WEEK,
-            const.DATA_KID_POINT_STATS_BY_SOURCE_MONTH,
-            const.DATA_KID_POINT_STATS_BY_SOURCE_YEAR,
+            const.DATA_KID_POINT_STATS_BY_SOURCE_TODAY_LEGACY,
+            const.DATA_KID_POINT_STATS_BY_SOURCE_WEEK_LEGACY,
+            const.DATA_KID_POINT_STATS_BY_SOURCE_MONTH_LEGACY,
+            const.DATA_KID_POINT_STATS_BY_SOURCE_YEAR_LEGACY,
             # Averages (derived values)
-            const.DATA_KID_POINT_STATS_AVG_PER_DAY_WEEK,
-            const.DATA_KID_POINT_STATS_AVG_PER_DAY_MONTH,
-            const.DATA_KID_POINT_STATS_AVG_PER_CHORE,
+            const.DATA_KID_POINT_STATS_AVG_PER_DAY_WEEK_LEGACY,
+            const.DATA_KID_POINT_STATS_AVG_PER_DAY_MONTH_LEGACY,
+            const.DATA_KID_POINT_STATS_AVG_PER_CHORE_LEGACY,
         ]
 
         # Define temporal fields to strip from chore_stats
@@ -2522,7 +2577,7 @@ class PreV50Migrator:
             kid_had_changes = False
 
             # Strip temporal fields from point_stats
-            point_stats = kid_info.get(const.DATA_KID_POINT_STATS, {})
+            point_stats = kid_info.get(const.DATA_KID_POINT_STATS_LEGACY, {})
             for field in point_stats_temporal_fields:
                 if field in point_stats:
                     del point_stats[field]
@@ -2928,7 +2983,7 @@ class PreV50Migrator:
             const.DATA_KID_USE_PERSISTENT_NOTIFICATIONS: kid_data.get(
                 const.DATA_KID_USE_PERSISTENT_NOTIFICATIONS, True
             ),
-            const.DATA_KID_OVERDUE_CHORES: [],
+            # NOTE: DATA_KID_OVERDUE_CHORES removed - dead code, overdue tracked in chore_data[chore_id].state
         }
 
         const.LOGGER.debug(
