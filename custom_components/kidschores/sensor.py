@@ -2495,27 +2495,31 @@ class KidRewardStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
         weekly = periods.get(const.DATA_KID_REWARD_DATA_PERIODS_WEEKLY, {})
         monthly = periods.get(const.DATA_KID_REWARD_DATA_PERIODS_MONTHLY, {})
         yearly = periods.get(const.DATA_KID_REWARD_DATA_PERIODS_YEARLY, {})
+        all_time_bucket = periods.get(const.DATA_KID_REWARD_DATA_PERIODS_ALL_TIME, {})
 
         # Calculate period stats
         today_stats: PeriodicStatsEntry = daily.get(today_local_iso, {})
         week_stats: PeriodicStatsEntry = weekly.get(week_local_iso, {})
         month_stats: PeriodicStatsEntry = monthly.get(month_local_iso, {})
         year_stats: PeriodicStatsEntry = yearly.get(year_local_iso, {})
+        all_time_stats: PeriodicStatsEntry = all_time_bucket.get(
+            const.PERIOD_ALL_TIME, {}
+        )
 
         claimed_today = today_stats.get(const.DATA_KID_REWARD_DATA_PERIOD_CLAIMED, 0)
         claimed_week = week_stats.get(const.DATA_KID_REWARD_DATA_PERIOD_CLAIMED, 0)
         claimed_month = month_stats.get(const.DATA_KID_REWARD_DATA_PERIOD_CLAIMED, 0)
         claimed_year = year_stats.get(const.DATA_KID_REWARD_DATA_PERIOD_CLAIMED, 0)
-        claimed_all_time = reward_data.get(
-            const.DATA_KID_REWARD_DATA_TOTAL_CLAIMS, const.DEFAULT_ZERO
+        claimed_all_time = all_time_stats.get(
+            const.DATA_KID_REWARD_DATA_PERIOD_CLAIMED, const.DEFAULT_ZERO
         )
 
         approved_today = today_stats.get(const.DATA_KID_REWARD_DATA_PERIOD_APPROVED, 0)
         approved_week = week_stats.get(const.DATA_KID_REWARD_DATA_PERIOD_APPROVED, 0)
         approved_month = month_stats.get(const.DATA_KID_REWARD_DATA_PERIOD_APPROVED, 0)
         approved_year = year_stats.get(const.DATA_KID_REWARD_DATA_PERIOD_APPROVED, 0)
-        approved_all_time = reward_data.get(
-            const.DATA_KID_REWARD_DATA_TOTAL_APPROVED, const.DEFAULT_ZERO
+        approved_all_time = all_time_stats.get(
+            const.DATA_KID_REWARD_DATA_PERIOD_APPROVED, const.DEFAULT_ZERO
         )
 
         disapproved_today = today_stats.get(
@@ -2530,8 +2534,8 @@ class KidRewardStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
         disapproved_year = year_stats.get(
             const.DATA_KID_REWARD_DATA_PERIOD_DISAPPROVED, 0
         )
-        disapproved_all_time = reward_data.get(
-            const.DATA_KID_REWARD_DATA_TOTAL_DISAPPROVED, const.DEFAULT_ZERO
+        disapproved_all_time = all_time_stats.get(
+            const.DATA_KID_REWARD_DATA_PERIOD_DISAPPROVED, const.DEFAULT_ZERO
         )
 
         points_spent_today = today_stats.get(
@@ -2542,8 +2546,8 @@ class KidRewardStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.DATA_KID_REWARD_DATA_PERIOD_POINTS, 0
         )
         points_spent_year = year_stats.get(const.DATA_KID_REWARD_DATA_PERIOD_POINTS, 0)
-        points_spent_all_time = reward_data.get(
-            const.DATA_KID_REWARD_DATA_TOTAL_POINTS_SPENT, const.DEFAULT_ZERO
+        points_spent_all_time = all_time_stats.get(
+            const.DATA_KID_REWARD_DATA_PERIOD_POINTS, const.DEFAULT_ZERO
         )
 
         # Calculate rates

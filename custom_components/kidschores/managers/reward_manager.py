@@ -172,14 +172,11 @@ class RewardManager(BaseManager):
                 ).get(const.DATA_REWARD_NAME)
                 or "",
                 const.DATA_KID_REWARD_DATA_PENDING_COUNT: 0,
-                const.DATA_KID_REWARD_DATA_NOTIFICATION_IDS: [],
                 const.DATA_KID_REWARD_DATA_LAST_CLAIMED: "",
                 const.DATA_KID_REWARD_DATA_LAST_APPROVED: "",
                 const.DATA_KID_REWARD_DATA_LAST_DISAPPROVED: "",
-                const.DATA_KID_REWARD_DATA_TOTAL_CLAIMS: 0,
-                const.DATA_KID_REWARD_DATA_TOTAL_APPROVED: 0,
-                const.DATA_KID_REWARD_DATA_TOTAL_DISAPPROVED: 0,
-                const.DATA_KID_REWARD_DATA_TOTAL_POINTS_SPENT: 0,
+                # REMOVED v43: total_* fields - use periods.all_time.* instead
+                # REMOVED v43: notification_ids - NotificationManager owns lifecycle
                 const.DATA_KID_REWARD_DATA_PERIODS: {
                     const.DATA_KID_REWARD_DATA_PERIODS_DAILY: {},
                     const.DATA_KID_REWARD_DATA_PERIODS_WEEKLY: {},
@@ -188,6 +185,43 @@ class RewardManager(BaseManager):
                 },
             }
         return cast("dict[str, Any]", reward_data.get(reward_id, {}))
+
+    def _ensure_kid_structures(self, kid_id: str, reward_id: str | None = None) -> None:
+        """Landlord genesis - ensure kid has reward_periods bucket and per-reward periods.
+
+        Creates empty reward_periods dict if missing. StatisticsEngine (Tenant)
+        creates and writes the period sub-keys (daily/weekly/etc.) on-demand.
+
+        Optionally ensures per-reward periods structure exists if reward_id provided.
+        This maintains consistency - RewardManager (Landlord) creates containers,
+        StatisticsEngine (Tenant) populates data.
+
+        This is the "Landlord" pattern - RewardManager owns kid.reward_periods
+        top-level dict, StatisticsEngine manages everything inside it.
+
+        Args:
+            kid_id: Kid UUID to ensure structure for
+            reward_id: Optional reward UUID to ensure per-reward periods for
+        """
+        kids = self.coordinator._data.get(const.DATA_KIDS, {})
+        kid = kids.get(kid_id)
+        if kid is None:
+            return  # Kid not found - caller should validate first
+
+        # Kid-level reward_periods bucket (v44+)
+        if const.DATA_KID_REWARD_PERIODS not in kid:
+            kid[const.DATA_KID_REWARD_PERIODS] = {}  # Tenant populates sub-keys
+
+        # Per-reward periods structure (if reward_id provided)
+        if reward_id:
+            kid_reward_data = self.get_kid_reward_data(kid_id, reward_id, create=False)
+            if (
+                kid_reward_data
+                and const.DATA_KID_REWARD_DATA_PERIODS not in kid_reward_data
+            ):
+                kid_reward_data[
+                    const.DATA_KID_REWARD_DATA_PERIODS
+                ] = {}  # Tenant populates sub-keys
 
     def get_pending_approvals(self) -> list[dict[str, Any]]:
         """Compute pending reward approvals dynamically from kid_reward_data.
@@ -266,23 +300,6 @@ class RewardManager(BaseManager):
             periods, self.coordinator.statistics_manager.get_retention_config()
         )
 
-    def _recalculate_stats_for_kid(self, kid_id: str) -> None:
-        """Delegate reward stats aggregation to StatisticsEngine.
-
-        This method aggregates all kid_reward_stats for a given kid by
-        delegating to the StatisticsEngine.
-
-        Args:
-            kid_id: The internal ID of the kid.
-        """
-        kid_info: KidData | None = self.coordinator.kids_data.get(kid_id)
-        if not kid_info:
-            return
-        stats = self.coordinator.stats.generate_reward_stats(
-            kid_info, self.coordinator.rewards_data
-        )
-        kid_info[const.DATA_KID_REWARD_STATS] = stats
-
     # =========================================================================
     # Public API: Redeem
     # =========================================================================
@@ -318,6 +335,9 @@ class RewardManager(BaseManager):
         Raises:
             HomeAssistantError: If kid/reward not found or insufficient points
         """
+        # Landlord genesis - ensure reward_periods and per-reward periods exist
+        self._ensure_kid_structures(kid_id, reward_id)
+
         reward_info: RewardData | None = self.coordinator.rewards_data.get(reward_id)
         if not reward_info:
             raise HomeAssistantError(
@@ -360,25 +380,18 @@ class RewardManager(BaseManager):
         reward_entry[const.DATA_KID_REWARD_DATA_LAST_CLAIMED] = (
             dt_util.utcnow().isoformat()
         )
-        reward_entry[const.DATA_KID_REWARD_DATA_TOTAL_CLAIMS] = (
-            reward_entry.get(const.DATA_KID_REWARD_DATA_TOTAL_CLAIMS, 0) + 1
-        )
+        # REMOVED v43: total_claims increment - StatisticsManager writes to periods
 
-        # Update period-based tracking for claimed
+        # Update period-based tracking for claimed (per-reward periods only)
         self._increment_period_counter(
             reward_entry, const.DATA_KID_REWARD_DATA_PERIOD_CLAIMED
         )
 
-        # Recalculate aggregated reward stats
-        self._recalculate_stats_for_kid(kid_id)
+        # REMOVED v43: _recalculate_stats_for_kid() - reward_stats dict deleted
 
-        # Generate a unique notification ID for this claim
+        # Generate a unique notification ID for signal payload
+        # NotificationManager embeds this in action buttons for stale detection
         notif_id = uuid.uuid4().hex
-
-        # Track notification ID for this claim
-        reward_entry.setdefault(const.DATA_KID_REWARD_DATA_NOTIFICATION_IDS, []).append(
-            notif_id
-        )
 
         # Build notification metadata for event
         actions = NotificationManager.build_reward_actions(kid_id, reward_id, notif_id)
@@ -441,6 +454,9 @@ class RewardManager(BaseManager):
         cost_override: float | None = None,
     ) -> None:
         """Internal approval logic executed under lock protection."""
+        # Landlord genesis - ensure reward_periods and per-reward periods exist
+        self._ensure_kid_structures(kid_id, reward_id)
+
         kid_info: KidData | None = self.coordinator.kids_data.get(kid_id)
         if not kid_info:
             raise HomeAssistantError(
@@ -497,8 +513,7 @@ class RewardManager(BaseManager):
             is_pending_claim=is_pending,
         )
 
-        # Recalculate aggregated reward stats
-        self._recalculate_stats_for_kid(kid_id)
+        # REMOVED v43: _recalculate_stats_for_kid() - reward_stats dict deleted
 
         # NOTE: Badge checks handled by GamificationManager via POINTS_CHANGED event
 
@@ -559,19 +574,9 @@ class RewardManager(BaseManager):
                 dt_util.utcnow().isoformat()
             )
 
-        # Update total counters
-        reward_entry[const.DATA_KID_REWARD_DATA_TOTAL_APPROVED] = (
-            reward_entry.get(const.DATA_KID_REWARD_DATA_TOTAL_APPROVED, 0) + 1
-        )
+        # REMOVED v43: total_approved, total_points_spent increments - StatisticsManager writes to periods
 
-        # Track points spent only if cost > 0 (badges grant free rewards)
-        if cost_deducted > const.DEFAULT_ZERO:
-            reward_entry[const.DATA_KID_REWARD_DATA_TOTAL_POINTS_SPENT] = (
-                reward_entry.get(const.DATA_KID_REWARD_DATA_TOTAL_POINTS_SPENT, 0)
-                + cost_deducted
-            )
-
-        # Update period-based tracking for approved count
+        # Update period-based tracking for approved count (per-reward periods only)
         self._increment_period_counter(
             reward_entry, const.DATA_KID_REWARD_DATA_PERIOD_APPROVED
         )
@@ -584,13 +589,8 @@ class RewardManager(BaseManager):
                 amount=int(cost_deducted),
             )
 
-        # Remove notification ID if provided
-        if notif_id:
-            notif_ids = reward_entry.get(
-                const.DATA_KID_REWARD_DATA_NOTIFICATION_IDS, []
-            )
-            if notif_id in notif_ids:
-                notif_ids.remove(notif_id)
+        # Note: NotificationManager handles notification lifecycle via signal payloads.
+        # notif_id is embedded in action buttons for stale detection, no storage needed.
 
     # =========================================================================
     # Public API: Disapprove
@@ -618,6 +618,9 @@ class RewardManager(BaseManager):
         self, parent_name: str, kid_id: str, reward_id: str
     ) -> None:
         """Internal disapproval logic executed under lock protection."""
+        # Landlord genesis - ensure reward_periods and per-reward periods exist
+        self._ensure_kid_structures(kid_id, reward_id)
+
         reward_info: RewardData | None = self.coordinator.rewards_data.get(reward_id)
         if not reward_info:
             raise HomeAssistantError(
@@ -641,18 +644,15 @@ class RewardManager(BaseManager):
                 reward_entry[const.DATA_KID_REWARD_DATA_LAST_DISAPPROVED] = (
                     dt_util.utcnow().isoformat()
                 )
-                reward_entry[const.DATA_KID_REWARD_DATA_TOTAL_DISAPPROVED] = (
-                    reward_entry.get(const.DATA_KID_REWARD_DATA_TOTAL_DISAPPROVED, 0)
-                    + 1
-                )
+                # REMOVED v43: total_disapproved increment - StatisticsManager writes to periods
 
-                # Update period-based tracking for disapproved
+                # Update period-based tracking for disapproved (per-reward periods only)
                 self._increment_period_counter(
                     reward_entry, const.DATA_KID_REWARD_DATA_PERIOD_DISAPPROVED
                 )
 
-            # Recalculate aggregated reward stats
-            self._recalculate_stats_for_kid(kid_id)
+            # REMOVED v43: _recalculate_stats_for_kid() - reward_stats dict deleted
+            # StatisticsManager derives stats from reward_periods on-demand
 
         # Persist → Emit (per DEVELOPMENT_STANDARDS.md § 5.3)
         self.coordinator._persist()
@@ -716,8 +716,7 @@ class RewardManager(BaseManager):
                 0, reward_entry.get(const.DATA_KID_REWARD_DATA_PENDING_COUNT, 0) - 1
             )
 
-        # Recalculate aggregated reward stats (pending count changed)
-        self._recalculate_stats_for_kid(kid_id)
+        # REMOVED v43: _recalculate_stats_for_kid() - reward_stats dict deleted
 
         # No notification sent (silent undo)
 

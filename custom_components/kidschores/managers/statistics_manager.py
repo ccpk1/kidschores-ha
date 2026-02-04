@@ -576,6 +576,124 @@ class StatisticsManager(BaseManager):
 
         return True
 
+    def _record_reward_transaction(
+        self,
+        kid_id: str,
+        reward_id: str,
+        increments: dict[str, int | float],
+        effective_date: str | None = None,
+        persist: bool = True,
+    ) -> bool:
+        """Record a reward transaction to period buckets (dual-bucket pattern).
+
+        Common helper for REWARD_APPROVED, REWARD_CLAIMED, and REWARD_DISAPPROVED
+        signals. Handles:
+        - Getting per-reward periods structure (reward_data[uuid].periods)
+        - Getting kid-level reward_periods structure (aggregated bucket)
+        - Recording increments to BOTH buckets via StatisticsEngine
+        - Pruning old period data
+        - Optionally persisting and refreshing cache
+
+        Args:
+            kid_id: The kid's internal ID.
+            reward_id: The reward's internal ID.
+            increments: Dict of metric keys to increment values.
+            effective_date: ISO timestamp for parent-lag-proof bucketing.
+                           If None, uses current time.
+            persist: If True, calls _persist() and _refresh_reward_cache().
+                    Set to False when batching multiple rewards.
+
+        Returns:
+            True if successful, False if kid not found or structures missing.
+        """
+        kid_info = self._get_kid(kid_id)
+        if not kid_info:
+            const.LOGGER.warning(
+                "StatisticsManager._record_reward_transaction: Kid '%s' not found",
+                kid_id,
+            )
+            return False
+
+        # Phase 3 Tenant Rule: Guard against missing landlord-owned structures
+        # RewardManager (Landlord) creates reward_data on-demand via get_kid_reward_data()
+        reward_data: dict[str, Any] | None = kid_info.get(const.DATA_KID_REWARD_DATA)
+        if reward_data is None:
+            const.LOGGER.warning(
+                "StatisticsManager._record_reward_transaction: reward_data missing for kid '%s' - "
+                "skipping (RewardManager should have created it before emitting signal)",
+                kid_id,
+            )
+            return False
+
+        # Phase 3 Tenant Rule: Guard against missing per-reward entry
+        # RewardManager creates per-reward entries on-demand via get_kid_reward_data(create=True)
+        kid_reward_data: dict[str, Any] | None = reward_data.get(reward_id)
+        if kid_reward_data is None:
+            const.LOGGER.warning(
+                "StatisticsManager._record_reward_transaction: reward_data entry missing for "
+                "kid '%s', reward '%s' - skipping (RewardManager should create on redemption)",
+                kid_id,
+                reward_id,
+            )
+            return False
+
+        # Phase 3 Tenant Rule: Use RewardManager's Landlord-created periods structure
+        # RewardManager (Landlord) should have called _ensure_kid_structures(kid_id, reward_id)
+        # before emitting the signal that triggered this transaction
+        periods = kid_reward_data.get(const.DATA_KID_REWARD_DATA_PERIODS)
+        if periods is None:
+            const.LOGGER.warning(
+                "StatisticsManager._record_reward_transaction: periods structure missing for "
+                "kid '%s', reward '%s' - RewardManager should have called _ensure_kid_structures()",
+                kid_id,
+                reward_id,
+            )
+            return False
+
+        # Use effective_date for parent-lag-proof bucketing
+        bucket_dt = (
+            cast("datetime | None", dt_parse(effective_date))
+            if effective_date
+            else None
+        )
+
+        # Record transaction to per-reward period buckets
+        self._stats_engine.record_transaction(
+            periods,
+            increments,
+            reference_date=bucket_dt,
+        )
+
+        # PHASE 3: Also record to kid-level reward_periods bucket (v43+)
+        # RewardManager (Landlord) should have created this via _ensure_kid_structures(kid_id)
+        kid_reward_periods = kid_info.get(const.DATA_KID_REWARD_PERIODS)
+        if kid_reward_periods is not None:
+            # Record same transaction to aggregated bucket
+            self._stats_engine.record_transaction(
+                kid_reward_periods,
+                increments,
+                reference_date=bucket_dt,
+            )
+        else:
+            const.LOGGER.warning(
+                "StatisticsManager._record_reward_transaction: kid-level reward_periods missing for "
+                "kid '%s' - RewardManager should have called _ensure_kid_structures(kid_id)",
+                kid_id,
+            )
+
+        # Prune old period data from both buckets (after all writes complete)
+        retention_config = self.get_retention_config()
+        self._stats_engine.prune_history(periods, retention_config)
+        if kid_reward_periods is not None:
+            self._stats_engine.prune_history(kid_reward_periods, retention_config)
+
+        # Optionally persist and refresh cache
+        if persist:
+            self._coordinator._persist()
+            self._refresh_reward_cache(kid_id)
+
+        return True
+
     # ────────────────────────────────────────────────────────────────
     # Chore Event Listeners
     # ────────────────────────────────────────────────────────────────
@@ -888,15 +1006,18 @@ class StatisticsManager(BaseManager):
 
     @callback
     def _on_reward_approved(self, payload: dict[str, Any]) -> None:
-        """Handle REWARD_APPROVED event - update reward statistics and refresh cache.
+        """Handle REWARD_APPROVED signal.
 
-        This is called when RewardManager approves a reward redemption.
+        Signal emitted by RewardManager when a reward is approved by parent.
+        Records transaction with points deducted and approval count to BOTH
+        per-reward periods and kid-level reward_periods (dual-bucket pattern).
+
+        Phase 3: StatisticsManager (Tenant) writes to RewardManager (Landlord) structures.
 
         Note: Point stats are handled separately by _on_points_changed
         when EconomyManager.withdraw() is called for the reward cost.
 
-        Uses Transactional Flush pattern: synchronous refresh then notify sensors.
-        No debounce needed - cache calculation is microseconds.
+        Uses Transactional Flush pattern: synchronous write+refresh then notify sensors.
 
         Args:
             payload: Event data containing:
@@ -904,21 +1025,43 @@ class StatisticsManager(BaseManager):
                 - reward_id: The reward's internal ID
                 - cost_deducted: Points deducted for reward
                 - parent_name: Name of approving parent
+                - effective_date: ISO timestamp for parent-lag-proof bucketing
         """
         # Extract payload values
         kid_id = payload.get("kid_id", "")
         reward_id = payload.get("reward_id", "")
         cost_deducted = payload.get("cost_deducted", 0.0)
+        effective_date = payload.get("effective_date")
 
-        kid_info = self._get_kid(kid_id)
-        if not kid_info:
+        if not kid_id or not reward_id:
             const.LOGGER.warning(
-                "StatisticsManager._on_reward_approved: Kid '%s' not found",
-                kid_id,
+                "StatisticsManager._on_reward_approved: Missing kid_id or reward_id in signal payload"
             )
             return
 
-        # Transactional Flush: Refresh caches synchronously, then notify sensors
+        # Phase 3: Record transaction to BOTH per-reward periods and kid-level reward_periods
+        # RewardManager (Landlord) should have called _ensure_kid_structures(kid_id, reward_id)
+        success = self._record_reward_transaction(
+            kid_id=kid_id,
+            reward_id=reward_id,
+            increments={
+                "approved": 1,
+                "points": cost_deducted,  # Points deducted for this approval
+            },
+            effective_date=effective_date,
+            persist=False,  # Persist manually after refresh for transactional flush
+        )
+
+        if not success:
+            const.LOGGER.warning(
+                "StatisticsManager._on_reward_approved: Failed to record transaction for kid=%s, reward=%s",
+                kid_id,
+                reward_id,
+            )
+            return
+
+        # Transactional Flush: Persist, refresh caches synchronously, then notify sensors
+        self._coordinator._persist()
         # Point cache was already refreshed by _on_points_changed (EconomyManager.withdraw)
         # Reward cache needs update for reward-specific stats (claim counts, etc.)
         self._refresh_reward_cache(kid_id)
@@ -933,34 +1076,54 @@ class StatisticsManager(BaseManager):
 
     @callback
     def _on_reward_claimed(self, payload: dict[str, Any]) -> None:
-        """Handle REWARD_CLAIMED event - refresh reward cache after period update.
+        """Handle REWARD_CLAIMED signal.
 
-        RewardManager writes to period buckets (claimed count) before emitting this signal.
-        We refresh the cache and notify sensors.
+        Signal emitted by RewardManager when a kid claims a reward.
+        Records transaction with claimed count to BOTH per-reward periods
+        and kid-level reward_periods (dual-bucket pattern).
 
-        Uses Transactional Flush pattern: synchronous refresh then notify sensors.
+        Phase 3: StatisticsManager (Tenant) writes to RewardManager (Landlord) structures.
+
+        Uses Transactional Flush pattern: synchronous write+refresh then notify sensors.
 
         Args:
             payload: Event data containing:
                 - kid_id: The kid's internal ID
                 - reward_id: The reward's internal ID
                 - reward_name: The reward's display name
+                - effective_date: ISO timestamp for parent-lag-proof bucketing
         """
         kid_id = payload.get("kid_id", "")
         reward_id = payload.get("reward_id", "")
+        effective_date = payload.get("effective_date")
 
-        if not kid_id:
-            return
-
-        kid_info = self._get_kid(kid_id)
-        if not kid_info:
+        if not kid_id or not reward_id:
             const.LOGGER.warning(
-                "StatisticsManager._on_reward_claimed: Kid '%s' not found",
-                kid_id,
+                "StatisticsManager._on_reward_claimed: Missing kid_id or reward_id in signal payload"
             )
             return
 
-        # Transactional Flush: Refresh cache synchronously, then notify sensors
+        # Phase 3: Record transaction to BOTH per-reward periods and kid-level reward_periods
+        success = self._record_reward_transaction(
+            kid_id=kid_id,
+            reward_id=reward_id,
+            increments={
+                "claimed": 1,
+            },
+            effective_date=effective_date,
+            persist=False,  # Persist manually after refresh for transactional flush
+        )
+
+        if not success:
+            const.LOGGER.warning(
+                "StatisticsManager._on_reward_claimed: Failed to record transaction for kid=%s, reward=%s",
+                kid_id,
+                reward_id,
+            )
+            return
+
+        # Transactional Flush: Persist, refresh cache synchronously, then notify sensors
+        self._coordinator._persist()
         self._refresh_reward_cache(kid_id)
         self._coordinator.async_set_updated_data(self._coordinator._data)
 
@@ -972,34 +1135,54 @@ class StatisticsManager(BaseManager):
 
     @callback
     def _on_reward_disapproved(self, payload: dict[str, Any]) -> None:
-        """Handle REWARD_DISAPPROVED event - refresh reward cache after period update.
+        """Handle REWARD_DISAPPROVED signal.
 
-        RewardManager writes to period buckets (disapproved count) before emitting this signal.
-        We refresh the cache and notify sensors.
+        Signal emitted by RewardManager when a parent disapproves a reward.
+        Records transaction with disapproved count to BOTH per-reward periods
+        and kid-level reward_periods (dual-bucket pattern).
 
-        Uses Transactional Flush pattern: synchronous refresh then notify sensors.
+        Phase 3: StatisticsManager (Tenant) writes to RewardManager (Landlord) structures.
+
+        Uses Transactional Flush pattern: synchronous write+refresh then notify sensors.
 
         Args:
             payload: Event data containing:
                 - kid_id: The kid's internal ID
                 - reward_id: The reward's internal ID
                 - reward_name: The reward's display name
+                - effective_date: ISO timestamp for parent-lag-proof bucketing
         """
         kid_id = payload.get("kid_id", "")
         reward_id = payload.get("reward_id", "")
+        effective_date = payload.get("effective_date")
 
-        if not kid_id:
-            return
-
-        kid_info = self._get_kid(kid_id)
-        if not kid_info:
+        if not kid_id or not reward_id:
             const.LOGGER.warning(
-                "StatisticsManager._on_reward_disapproved: Kid '%s' not found",
-                kid_id,
+                "StatisticsManager._on_reward_disapproved: Missing kid_id or reward_id in signal payload"
             )
             return
 
-        # Transactional Flush: Refresh cache synchronously, then notify sensors
+        # Phase 3: Record transaction to BOTH per-reward periods and kid-level reward_periods
+        success = self._record_reward_transaction(
+            kid_id=kid_id,
+            reward_id=reward_id,
+            increments={
+                "disapproved": 1,
+            },
+            effective_date=effective_date,
+            persist=False,  # Persist manually after refresh for transactional flush
+        )
+
+        if not success:
+            const.LOGGER.warning(
+                "StatisticsManager._on_reward_disapproved: Failed to record transaction for kid=%s, reward=%s",
+                kid_id,
+                reward_id,
+            )
+            return
+
+        # Transactional Flush: Persist, refresh cache synchronously, then notify sensors
+        self._coordinator._persist()
         self._refresh_reward_cache(kid_id)
         self._coordinator.async_set_updated_data(self._coordinator._data)
 

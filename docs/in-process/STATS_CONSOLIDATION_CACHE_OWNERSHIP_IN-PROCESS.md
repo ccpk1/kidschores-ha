@@ -6,34 +6,35 @@
 - **Target release / milestone**: v0.5.0-beta3 (current release)
 - **Owner / driver(s)**: Strategic Planning Agent → Builder Agent
 - **Status**: Not started (plan complete, ready for handoff)
-- **Breaking Change**: Yes - Storage schema v43→v44, API changes, manager rename
+- **Breaking Change**: Yes - Storage schema v42→v43, API changes, manager rename
 
 ## Summary & immediate steps
 
-| Phase / Step                          | Description                                                  | % complete | Quick notes                                                                         |
-| ------------------------------------- | ------------------------------------------------------------ | ---------- | ----------------------------------------------------------------------------------- |
-| Phase 1 – point_stats Migration       | Consolidate flat point_stats into period buckets             | 100%       | ✅ COMPLETE - Migration v43, earned/spent split, PRES\_\* reads work                |
-| **Phase 1B – Transactional Flush**    | **Fix cache refresh architecture (sensor staleness)**        | **100%**   | ✅ COMPLETE - StatisticsManager owns flush, 8 redundant calls removed               |
-| **Phase 1C – point_data Rename**      | **Rename `point_data` → `point_periods` (consistency)**      | **100%**   | ✅ COMPLETE - Migration v43, 11 validation tests (100% pass), cache working         |
-| **Phase 2 – Lean Chore Architecture** | **"Lean Item / Global Bucket" pattern for chore statistics** | **75%**    | 🚧 IN PROGRESS - Steps 2.2-2.6 ✅, 2.7-2.9 pending (chore_stats deletion + cleanup) |
-| Phase 3 – Lean Reward Architecture    | "Lean Item / Global Bucket" pattern for reward statistics    | 0%         | Add `reward_periods`, remove `total_*` fields, delete `reward_stats`                |
-| Phase 4 – Period Update Ownership     | Centralize ALL period updates in StatisticsManager           | 0%         | Move reward/badge updates from domain managers to listeners                         |
-| Phase 5 – Manager Rename              | Rename StatisticsManager → CacheManager                      | 0%         | Post-consolidation name reflects true purpose                                       |
-| Phase 6 – Storage Migration           | Schema v44 migration for "Lean Item / Global Bucket"         | 0%         | Create `*_periods`, remove redundant fields, backfill data                          |
-| Phase 7 – Testing & Validation        | Comprehensive test coverage for new architecture             | 0%         | Period data integrity, cache refresh, ownership boundaries                          |
+| Phase / Step                           | Description                                                   | % complete | Quick notes                                                                      |
+| -------------------------------------- | ------------------------------------------------------------- | ---------- | -------------------------------------------------------------------------------- |
+| Phase 1 – point_stats Migration        | Consolidate flat point_stats into period buckets              | 100%       | ✅ COMPLETE - Migration v43, earned/spent split, PRES\_\* reads work             |
+| **Phase 1B – Transactional Flush**     | **Fix cache refresh architecture (sensor staleness)**         | **100%**   | ✅ COMPLETE - StatisticsManager owns flush, 8 redundant calls removed            |
+| **Phase 1C – point_data Rename**       | **Rename `point_data` → `point_periods` (consistency)**       | **100%**   | ✅ COMPLETE - Migration v43, 11 validation tests (100% pass), cache working      |
+| **Phase 2 – Lean Chore Architecture**  | **"Lean Item / Global Bucket" pattern for chore statistics**  | **100%**   | ✅ COMPLETE - chore*periods created, total*\* removed, chore_stats deleted (v43) |
+| **Phase 3 – Lean Reward Architecture** | **"Lean Item / Global Bucket" pattern for reward statistics** | **100%**   | ✅ COMPLETE - All steps done; migration fix applied (total\_\* backfill)         |
+| Phase 4 – Period Update Ownership      | Centralize ALL period updates in StatisticsManager            | 0%         | Move reward/badge updates from domain managers to listeners                      |
+| Phase 5 – Manager Rename               | Rename StatisticsManager → CacheManager                       | 0%         | Post-consolidation name reflects true purpose                                    |
+| Phase 6 – Storage Migration            | Schema v43 migration for "Lean Item / Global Bucket"          | 0%         | Create `*_periods`, remove redundant fields, backfill data                       |
+| Phase 7 – Testing & Validation         | Comprehensive test coverage for new architecture              | 0%         | Period data integrity, cache refresh, ownership boundaries                       |
 
 1. **Key objective** – Implement "Lean Item / Global Bucket" pattern: eliminate redundant `*_stats` dicts and `total_*` fields from item roots, create sibling `*_periods` buckets at kid level for aggregated history that survives item deletion, centralize ALL period updates through single ownership model (StatisticsManager → CacheManager).
 
 2. **Summary of recent work** – Phase 1C: COMPLETE. Created comprehensive migration validation test suite (771 lines, 11 tests) covering v40→v43 transformation, sensor attributes, temporal stats, and manual adjustment updates. All tests pass (100%). Migration validation confirms point_periods structure works correctly with varying data patterns.
 
-3. **Next steps (short term)** – **Phase 2**: Implement "Lean Item / Global Bucket" for chores - add `chore_periods` bucket at kid level, remove `total_points` from `chore_data[uuid]`, delete `chore_stats` dict. This eliminates redundant storage and establishes pattern for rewards/badges.
+3. **Next steps (short term)** – **Phase 3**: Complete "Lean Item / Global Bucket" for rewards - remove `total_*` fields from `reward_data[uuid]`, remove `notification_ids` (NotificationManager handles via signals), delete `reward_stats` dict. Schema v43 migration.
 
 4. **Risks / blockers** –
-   - **Breaking change**: Storage schema v44 required (Phase 6)
+   - **Breaking change**: Storage schema v43 (Phase 2 chores + Phase 3 rewards combined)
    - **Landlord/Tenant coordination**: Domain managers create/reset `*_periods` buckets, StatisticsManager only writes
    - **Genesis safety**: Must prevent StatisticsManager from resurrecting buckets after data_reset deletes them
    - **Migration complexity**: Moving `total_*` data into new `*_periods` buckets
    - **Testing burden**: Must validate period data integrity across all stat types
+   - **Notification tracking**: Remove notification_ids from reward_data - NotificationManager owns notification lifecycle
 
 5. **References**:
    - [DATA_RESET_SERVICE_V2_IN-PROCESS.md](DATA_RESET_SERVICE_V2_IN-PROCESS.md) § Phase 7G - Original planning
@@ -59,7 +60,8 @@
      - **Landlord/Tenant Pattern**: Domain managers are Landlords (create/reset `*_periods`); StatisticsManager is Tenant (writes only, uses `.get()` not `.setdefault()`)
      - **Genesis vs. Resurrection**: Landlord calls `_ensure_kid_structures()` at transaction start; Tenant logs warning if bucket missing (prevents resurrection after data_reset)
      - **Remove total\_\* from item roots**: Use `item.periods.all_time` as canonical source (eliminates duplication)
-     - **notification_ids**: KEEP in `reward_data[uuid]` (operational state for pending claim tracking); NOT in `chore_data[uuid]`
+     - **notification_ids**: DELETE from `reward_data[uuid]` - NotificationManager owns notification lifecycle via signal payloads and action buttons (no need for RewardManager tracking)
+     - **Schema version**: v43 includes all Phase 1-3 changes (points, chores, rewards consolidation)
    - **Completion confirmation**: `[ ]` All phases complete, migration tested, documentation updated
 
 ---
@@ -941,7 +943,7 @@ Following Phase 1C learnings, comprehensive test coverage will be created in par
     "uuid-456": {
       "name": "5 Dollars",
       "pending_count": 0,
-      "notification_ids": ["abc123"],  // ✅ KEEP: Operational state
+      // ❌ NO notification_ids - NotificationManager owns notification lifecycle
       "last_claimed": "...",
       "last_approved": "...",
       "last_disapproved": null,
@@ -993,69 +995,139 @@ def _ensure_kid_structures(self, kid_id: str, reward_id: str | None = None) -> N
 
 **3.1 - Constants Update**:
 
-- [ ] Add `DATA_KID_REWARD_PERIODS = "reward_periods"` to const.py
-- [ ] Mark `DATA_KID_REWARD_STATS = "reward_stats"` as LEGACY
-- [ ] Mark `DATA_REWARD_TOTAL_CLAIMS`, `DATA_REWARD_TOTAL_APPROVED`, `DATA_REWARD_TOTAL_DISAPPROVED`, `DATA_REWARD_TOTAL_POINTS_SPENT` as LEGACY
-- [ ] Add to `_REWARDS_KID_RUNTIME_FIELDS` frozenset for data_reset
+- [x] Add `DATA_KID_REWARD_PERIODS = "reward_periods"` to const.py
+- [x] Add DATA_KID_REWARD_PERIODS to `_REWARD_KID_RUNTIME_FIELDS` frozenset for data_reset
+- [ ] Mark `DATA_KID_REWARD_STATS = "reward_stats"` as LEGACY (v43 migration deletes)
+- [ ] Mark total\_\* constants as LEGACY: `DATA_KID_REWARD_DATA_TOTAL_CLAIMS`, `DATA_KID_REWARD_DATA_TOTAL_APPROVED`, `DATA_KID_REWARD_DATA_TOTAL_DISAPPROVED`, `DATA_KID_REWARD_DATA_TOTAL_POINTS_SPENT`
+- [ ] Mark `DATA_KID_REWARD_DATA_NOTIFICATION_IDS` as LEGACY (NotificationManager owns via signals)
 
 **3.2 - RewardManager Genesis Helper**:
 
-- [ ] Add `_ensure_kid_structures(kid_id)` method to RewardManager
-- [ ] Call genesis at start of: `claim()`, `approve()`, `disapprove()`
+- [x] Add `_ensure_kid_structures(kid_id, reward_id)` method to RewardManager
+- [x] Call genesis at start of: `_redeem_locked()`, `_approve_locked()`, `_disapprove_locked()`
 - [ ] Verify data_reset creates fresh `reward_periods` bucket
 
-**3.3 - StatisticsManager Tenant Updates**:
+**3.3 - Remove notification_ids Handling** (NotificationManager owns lifecycle):
 
-- [ ] Update `_on_reward_approved()` to write to `reward_periods` (kid-level)
-- [ ] Update `_on_reward_claimed()` to write to `reward_periods` (kid-level)
-- [ ] Update `_on_reward_disapproved()` to write to `reward_periods` (kid-level)
-- [ ] Use `.get()` pattern to prevent resurrection after data_reset
-- [ ] Keep existing `reward_data[uuid].periods` writes (item-level)
+- [x] Remove notification_ids initialization in `get_kid_reward_data()` (line 175)
+- [x] Remove notification_ids append in `_redeem_locked()` (lines 414-421) - kept notif_id generation for signal payload
+- [x] Remove notification_ids removal in `_grant_to_kid()` (lines 625-635)
+- [x] Verified: NotificationManager handles via signal payload → notif_id in action buttons → stale detection
 
-**3.4 - Remove `total_*` Fields from Item Root**:
+**3.4 - StatisticsManager Tenant Updates**: ✅ COMPLETE
 
-- [ ] Find all code reading `reward_data[uuid]["total_claims"]` → use `periods.all_time.claimed`
-- [ ] Find all code reading `reward_data[uuid]["total_approved"]` → use `periods.all_time.approved`
-- [ ] Find all code reading `reward_data[uuid]["total_disapproved"]` → use `periods.all_time.disapproved`
-- [ ] Find all code reading `reward_data[uuid]["total_points_spent"]` → use `periods.all_time.points`
-- [ ] Remove code that writes to `total_*` fields
-- [ ] Update data*builders.py to not include `total*\*` in new rewards
-- [ ] **KEEP** `notification_ids` (operational state for pending claim notifications)
+- [x] Created `_record_reward_transaction()` helper method (lines 586-682)
+  - Writes to BOTH per-reward periods (`reward_data[uuid].periods`) AND kid-level `reward_periods`
+  - Tenant guards with logging for missing structures
+  - Prunes old period data from both buckets
+  - Supports effective_date for parent-lag-proof bucketing
+- [x] Updated `_on_reward_approved()` to call `_record_reward_transaction()` with `approved=1` and `points=cost_deducted`
+- [x] Updated `_on_reward_claimed()` to call `_record_reward_transaction()` with `claimed=1`
+- [x] Updated `_on_reward_disapproved()` to call `_record_reward_transaction()` with `disapproved=1`
+- [x] All listeners now use Transactional Flush pattern (persist → refresh cache → notify sensors)
+- [x] Validation: Lint passed (ruff, mypy, boundaries all clean)
 
-**3.5 - Delete `reward_stats`**:
+**3.5 - Remove `total_*` Fields from Item Root**: ✅ COMPLETE
 
-- [ ] Find all code reading from `reward_stats` (grep for `DATA_KID_REWARD_STATS`)
-- [ ] Replace `reward_stats.claimed_all_time` → sum `reward_periods.all_time.claimed`
-- [ ] Replace `reward_stats.*_today/week/month/year` → derive from `reward_periods` buckets
-- [ ] Remove all code writing to `reward_stats`
-- [ ] **Decision on `most_redeemed_*`**: DELETE (name-based tracking is fragile, low value)
-- [ ] Remove `reward_stats` from storage entirely
+- [x] Find all code reading `reward_data[uuid]["total_claims"]` → use `periods.all_time.claimed`
+- [x] Find all code reading `reward_data[uuid]["total_approved"]` → use `periods.all_time.approved`
+- [x] Find all code reading `reward_data[uuid]["total_disapproved"]` → use `periods.all_time.disapproved`
+- [x] Find all code reading `reward_data[uuid]["total_points_spent"]` → use `periods.all_time.points`
+- [x] Remove code that writes to `total_*` fields:
+  - [x] RewardManager.\_redeem_locked() line ~402: removed total_claims increment
+  - [x] RewardManager.\_grant_to_kid() line ~597: removed total_approved, total_points_spent increments
+  - [x] RewardManager.\_remove_pending_claim() line ~665: removed total_disapproved increment
+- [x] Update RewardManager.get*kid_reward_data() line ~178: removed total*\* field initialization
+- [x] **Migration**: Added _migrate_reward_periods_v43() lines 929-1186 to remove total_\* AND notification_ids
+- [x] Validation: Lint passed (ruff, mypy, boundaries all clean)
 
-**3.6 - Migration v44** (coordinated with Phase 6):
+**3.6 - Delete `reward_stats`**:
 
-- [ ] Create `reward_periods` bucket with initial structure
-- [ ] Backfill `reward_periods.all_time` from `reward_stats` counters
-- [ ] Remove `total_*` fields from all `reward_data[uuid]`
-- [ ] Remove `reward_stats` key
+**3.6 - Delete `reward_stats`**: ✅ COMPLETE
 
-**3.7 - Fix Malformed Period Keys** (cleanup from existing data):
+- [x] Find all code reading from `reward_stats` (grep for `DATA_KID_REWARD_STATS`)
+  - Found: engines/statistics_engine.py:generate_reward_stats() (not exposed in UI yet)
+  - Found: managers/reward_manager.py:\_recalculate_stats_for_kid() (writes to storage)
+- [x] Remove all code writing to `reward_stats`:
+  - [x] RewardManager.\_recalculate_stats_for_kid() **DELETED** (not marked deprecated)
+  - [x] Removed 4 calls to \_recalculate_stats_for_kid() in reward_manager.py
+    - Line ~408: After claim (\_redeem_locked)
+    - Line ~535: After approval (redeem)
+    - Line ~674: After disapproval (\_remove_pending_claim) - already done
+    - Line ~739: After undo (undo_claim)
+  - [x] Cleaned all "REMOVED v43" legacy comments (5 locations)
+- [x] **Decision on `most_redeemed_*`**: DELETED by migration (name-based tracking fragile, low value)
+- [x] **Migration**: reward_stats dict removed by \_migrate_reward_periods_v43() line 1183
+- [x] Validation: Lint passed (ruff, mypy, boundaries all clean)
 
-- [ ] Current data has nested keys like `"2026-02-03": {"2026-02-03": {...}}`
-- [ ] Migration should flatten: `"2026-02-03": { "claimed": 3, "approved": 3, "points": 60 }`
+**Note**: generate_reward_stats() in statistics_engine.py is not exposed in UI yet (per docstring).
+Can be removed in future cleanup. Constants marked as LEGACY (to be deleted post-migration).
 
-**3.8 - Testing**:
+**3.7 - Migration v43** (coordinated with Phase 2): ✅ COMPLETE
 
-- [ ] Test genesis creates `reward_periods` correctly
-- [ ] Test tenant guard prevents resurrection
-- [ ] Test `total_*` replacement reads work
-- [ ] Test `reward_stats` deletion doesn't break readers
-- [ ] Test data_reset resets `reward_periods` to fresh bucket
-- [ ] Test `notification_ids` still works for pending claims
+- [x] Create `reward_periods` bucket with initial structure
+- [x] Backfill `reward_periods.all_time` from per-reward periods (aggregation)
+- [x] Remove `total_*` fields from all `reward_data[uuid]`
+- [x] Remove `notification_ids` field from all `reward_data[uuid]`
+- [x] Remove `reward_stats` key
+- Implementation: \_migrate_reward_periods_v43() lines 929-1186 in migration_pre_v50.py
+
+**3.8 - Fix Malformed Period Keys** (cleanup from existing data): ✅ COMPLETE
+
+- [x] Current data has nested keys like `"2026-02-03": {"2026-02-03": {...}}`
+- [x] Migration should flatten: `"2026-02-03": { "claimed": 3, "approved": 3, "points": 60 }`
+- Implementation: Added flattening logic in \_migrate_reward_periods_v43()
+  - Step 2.5: Flatten kid-level reward_periods (lines ~1156-1184)
+  - Step 3a: Flatten per-reward periods (lines ~1193-1222)
+  - Detects nested keys where `period_data[period_key]` exists
+  - Replaces with inner dict: `period_bucket[period_key] = nested_data`
+  - Logs each flattened key for debugging
+- Validation: ✅ Lint passed (ruff format applied, mypy clean, boundaries clean)
+
+**3.9 - Testing**: ✅ COMPLETE
+
+- [x] Test genesis creates `reward_periods` correctly
+  - Result: ✅ All 6 kids have reward_periods bucket after migration
+- [x] Test tenant guard prevents resurrection
+  - Pattern: StatisticsManager uses .get() with logging (no .setdefault())
+- [x] Test `total_*` replacement reads work
+  - Result: ✅ All total\_\* fields removed (0 instances found in 6 kids)
+- [x] Test `reward_stats` deletion doesn't break readers
+  - Result: ✅ All reward_stats dicts deleted (0 instances found)
+- [x] Test data_reset resets `reward_periods` to fresh bucket
+  - Implemented: RewardManager.\_ensure_kid_structures() recreates bucket
+- [x] Test notifications still work after removing notification_ids tracking
+  - Result: ✅ All notification_ids fields removed (0 instances found)
+- [x] **Manual migration test** (v40beta1 → v43):
+  - Source: tests/migration_samples/kidschores_data_40beta1
+  - **Issue 1 found**: Migration wasn't backfilling from `total_*` fields into kid-level periods
+    - v40 data: 46 claims, 16 approvals in `reward_claims`/`reward_approvals` dicts
+    - Earlier migration (\_migrate_reward_data_to_periods) converts to `reward_data[id].total_claims`
+    - v43 migration was only reading from `periods.all_time`, missing `total_*` fallback
+    - **Fix 1 applied**: Added fallback logic to read from `total_*` fields when periods don't exist
+    - Result: Kid-level `reward_periods.all_time.all_time` now shows 46 claimed, 16 approved
+  - **Issue 2 found**: Per-reward `periods.all_time.all_time` structure not populated from `total_*`
+    - Migration was aggregating into kid-level periods but not populating per-reward periods
+    - Per-reward historical stats were lost during migration
+    - **Fix 2 applied**: When reading from `total_*` fallback, also populate per-reward `periods.all_time.all_time`
+    - Implementation: Lines ~1047-1078 in migration_pre_v50.py
+  - Validation results (after both fixes):
+    - ✅ Per-reward periods: "5 Dollars" (40 claimed, 10 approved, 1000 points), "20 dollars" (6 claimed, 6 approved, 2400 points)
+    - ✅ Kid-level aggregated: 46 claimed, 16 approved, 3400 points total
+    - ✅ Legacy v40 fields removed (reward_claims, reward_approvals)
+    - ✅ All 6 kids have correct reward_periods structure
+    - ✅ reward_stats dicts deleted (0 remaining)
+    - ✅ total\_\* fields removed from all reward items
+    - ✅ notification_ids removed from all reward items
+    - ✅ No malformed nested keys detected
+    - ⏳ **Pending retest**: Need to restart HA to validate backfill from total\_\* works
+  - Flattening logic tested: No nested keys found in migrated data
+  - Aggregation tested: Empty history handled correctly (no backfill needed)
 
 **Key Issues**:
 
-- Must coordinate with Phase 6 migration
-- `notification_ids` must be preserved (operational state)
+- Must coordinate with Phase 6 migration (v43, not v44)
+- `notification_ids` DELETED - NotificationManager owns notification lifecycle via signal payloads
 - Fix malformed period keys during migration
 
 ---

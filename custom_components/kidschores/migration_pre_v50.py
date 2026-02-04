@@ -409,6 +409,13 @@ class PreV50Migrator:
         # - Delete chore_stats dict entirely (now fully ephemeral)
         self._migrate_chore_periods_v43()
 
+        # Phase 12b: Reward periods migration (v43) - "Lean Reward Architecture"
+        # - Create kid-level reward_periods bucket for aggregated history
+        # - Remove total_* fields from reward_data items (use periods.all_time.*)
+        # - Remove notification_ids from reward_data items (NotificationManager owns lifecycle)
+        # - Delete reward_stats dict entirely (now fully ephemeral)
+        self._migrate_reward_periods_v43()
+
         # Phase 13: Finalize migration metadata (MUST be last)
         # Sets v50+ meta section and cleans up legacy keys
         self._finalize_migration_meta()
@@ -913,6 +920,401 @@ class PreV50Migrator:
             "Completed v43 chore_periods migration: "
             "%d kids got chore_periods bucket, %d backfilled all_time, "
             "%d items had total_points removed, %d chore_stats deleted",
+            kids_migrated,
+            backfilled_count,
+            items_cleaned,
+            stats_deleted,
+        )
+
+    def _migrate_reward_periods_v43(self) -> None:
+        """Create kid-level reward_periods bucket and remove deprecated fields (v43).
+
+        v42 structure:
+            kid["reward_stats"] = {...}  # Aggregated dict (to be deleted)
+            kid["reward_data"][uuid]["total_claims"] = 40  # Redundant field
+            kid["reward_data"][uuid]["total_approved"] = 10  # Redundant field
+            kid["reward_data"][uuid]["total_disapproved"] = 0  # Redundant field
+            kid["reward_data"][uuid]["total_points_spent"] = 1000.0  # Redundant field
+            kid["reward_data"][uuid]["notification_ids"] = [...]  # NotificationManager owns
+            kid["reward_data"][uuid]["periods"]["all_time"]["all_time"]["claimed"] = 40  # Canonical
+
+        v43 structure:
+            kid["reward_periods"] = {}  # New: Aggregated across ALL rewards, survives deletion
+            kid["reward_data"][uuid]["periods"]...  # Keep per-reward periods
+            # REMOVED: kid["reward_stats"] (now fully ephemeral - generate_reward_stats())
+            # REMOVED: kid["reward_data"][uuid]["total_*"] (use periods.all_time.*)
+            # REMOVED: kid["reward_data"][uuid]["notification_ids"] (NotificationManager owns)
+
+        This migration (Phase 12b - Lean Reward Architecture):
+        1. Creates empty reward_periods bucket at kid level (StatisticsEngine populates on-demand)
+        2. Removes total_* fields from each reward item (periods.all_time.* is canonical)
+        3. Removes notification_ids from each reward item (NotificationManager owns lifecycle)
+        4. Deletes reward_stats dict entirely (now fully ephemeral)
+
+        This migration is idempotent - safe to run multiple times.
+        """
+        const.LOGGER.info(
+            "Starting v43 reward_periods migration: Create reward_periods, "
+            "remove total_*/notification_ids, delete reward_stats"
+        )
+
+        kids_data = self.coordinator._data.get(const.DATA_KIDS, {})
+        kids_migrated = 0
+        items_cleaned = 0
+        stats_deleted = 0
+        backfilled_count = 0
+
+        for kid_id, kid_info in kids_data.items():
+            kid_name = kid_info.get(const.DATA_KID_NAME, kid_id)
+
+            # Step 1: Create reward_periods bucket if missing (Landlord genesis)
+            # AND backfill all_time from per-reward periods to preserve historical totals
+            if const.DATA_KID_REWARD_PERIODS not in kid_info:
+                kid_info[const.DATA_KID_REWARD_PERIODS] = {}
+                kids_migrated += 1
+                const.LOGGER.debug(
+                    "Created reward_periods bucket for kid '%s' (%s)",
+                    kid_name,
+                    kid_id,
+                )
+
+            # Step 1b: Backfill reward_periods from per-reward periods
+            # This aggregates all reward_data[uuid].periods into global buckets
+            reward_periods = kid_info[const.DATA_KID_REWARD_PERIODS]
+
+            # Check if backfill is needed
+            needs_backfill = (
+                const.DATA_KID_REWARD_DATA_PERIODS_ALL_TIME not in reward_periods
+            )
+            if not needs_backfill:
+                # Check if existing all_time is empty/zero
+                existing_all_time = reward_periods.get(
+                    const.DATA_KID_REWARD_DATA_PERIODS_ALL_TIME, {}
+                ).get(const.PERIOD_ALL_TIME, {})
+                existing_approved = existing_all_time.get("approved", 0)
+                existing_claimed = existing_all_time.get("claimed", 0)
+                # If both are zero, check if per-reward data has non-zero values
+                if existing_approved == 0 and existing_claimed == 0:
+                    reward_data = kid_info.get(const.DATA_KID_REWARD_DATA, {})
+                    for _rid, reward_item in reward_data.items():
+                        per_reward_all_time = (
+                            reward_item.get(const.DATA_KID_REWARD_DATA_PERIODS, {})
+                            .get(const.DATA_KID_REWARD_DATA_PERIODS_ALL_TIME, {})
+                            .get(const.PERIOD_ALL_TIME, {})
+                        )
+                        if per_reward_all_time.get("approved", 0) > 0:
+                            needs_backfill = True
+                            const.LOGGER.info(
+                                "Re-aggregating reward_periods for kid '%s' - "
+                                "found per-reward data but kid-level was zero",
+                                kid_name,
+                            )
+                            break
+
+            if needs_backfill:
+                # Aggregate all-time stats from all rewards
+                total_claimed = 0
+                total_approved = 0
+                total_disapproved = 0
+                total_points = 0.0
+
+                # Period aggregation buckets (by date/week/month/year key)
+                daily_totals: dict[str, dict[str, int | float]] = defaultdict(
+                    lambda: defaultdict(int)
+                )
+                weekly_totals: dict[str, dict[str, int | float]] = defaultdict(
+                    lambda: defaultdict(int)
+                )
+                monthly_totals: dict[str, dict[str, int | float]] = defaultdict(
+                    lambda: defaultdict(int)
+                )
+                yearly_totals: dict[str, dict[str, int | float]] = defaultdict(
+                    lambda: defaultdict(int)
+                )
+
+                reward_data = kid_info.get(const.DATA_KID_REWARD_DATA, {})
+                for _reward_id, reward_item in reward_data.items():
+                    periods = reward_item.get(const.DATA_KID_REWARD_DATA_PERIODS, {})
+
+                    # Aggregate all_time totals from periods (preferred source)
+                    all_time_data = periods.get(
+                        const.DATA_KID_REWARD_DATA_PERIODS_ALL_TIME, {}
+                    ).get(const.PERIOD_ALL_TIME, {})
+
+                    # Fallback: If periods.all_time doesn't exist, read from total_* fields
+                    # (for data migrated from v40 → v42 but not yet to period structure)
+                    if not all_time_data:
+                        claimed_from_total = reward_item.get(
+                            const.DATA_KID_REWARD_DATA_TOTAL_CLAIMS, 0
+                        )
+                        approved_from_total = reward_item.get(
+                            const.DATA_KID_REWARD_DATA_TOTAL_APPROVED, 0
+                        )
+                        disapproved_from_total = reward_item.get(
+                            const.DATA_KID_REWARD_DATA_TOTAL_DISAPPROVED, 0
+                        )
+                        points_from_total = reward_item.get(
+                            const.DATA_KID_REWARD_DATA_TOTAL_POINTS_SPENT, 0.0
+                        )
+
+                        # Populate per-reward periods.all_time.all_time from total_* fields
+                        if not periods:
+                            periods = reward_item[
+                                const.DATA_KID_REWARD_DATA_PERIODS
+                            ] = {
+                                const.DATA_KID_REWARD_DATA_PERIODS_DAILY: {},
+                                const.DATA_KID_REWARD_DATA_PERIODS_WEEKLY: {},
+                                const.DATA_KID_REWARD_DATA_PERIODS_MONTHLY: {},
+                                const.DATA_KID_REWARD_DATA_PERIODS_YEARLY: {},
+                                const.DATA_KID_REWARD_DATA_PERIODS_ALL_TIME: {},
+                            }
+
+                        all_time_bucket = periods.setdefault(
+                            const.DATA_KID_REWARD_DATA_PERIODS_ALL_TIME, {}
+                        )
+                        all_time_bucket[const.PERIOD_ALL_TIME] = {
+                            "claimed": claimed_from_total,
+                            "approved": approved_from_total,
+                            "disapproved": disapproved_from_total,
+                            "points": points_from_total,
+                        }
+
+                        total_claimed += claimed_from_total
+                        total_approved += approved_from_total
+                        total_disapproved += disapproved_from_total
+                        total_points += points_from_total
+                    else:
+                        # Use period data (modern structure)
+                        total_claimed += all_time_data.get("claimed", 0)
+                        total_approved += all_time_data.get("approved", 0)
+                        total_disapproved += all_time_data.get("disapproved", 0)
+                        total_points += all_time_data.get("points", 0.0)
+
+                    # Aggregate daily periods
+                    for day_key, daily_data in periods.get(
+                        const.PERIOD_DAILY, {}
+                    ).items():
+                        daily_totals[day_key]["claimed"] += daily_data.get("claimed", 0)
+                        daily_totals[day_key]["approved"] += daily_data.get(
+                            "approved", 0
+                        )
+                        daily_totals[day_key]["disapproved"] += daily_data.get(
+                            "disapproved", 0
+                        )
+                        daily_totals[day_key]["points"] += daily_data.get("points", 0.0)
+
+                    # Aggregate weekly periods
+                    for week_key, weekly_data in periods.get(
+                        const.PERIOD_WEEKLY, {}
+                    ).items():
+                        weekly_totals[week_key]["claimed"] += weekly_data.get(
+                            "claimed", 0
+                        )
+                        weekly_totals[week_key]["approved"] += weekly_data.get(
+                            "approved", 0
+                        )
+                        weekly_totals[week_key]["disapproved"] += weekly_data.get(
+                            "disapproved", 0
+                        )
+                        weekly_totals[week_key]["points"] += weekly_data.get(
+                            "points", 0.0
+                        )
+
+                    # Aggregate monthly periods
+                    for month_key, monthly_data in periods.get(
+                        const.PERIOD_MONTHLY, {}
+                    ).items():
+                        monthly_totals[month_key]["claimed"] += monthly_data.get(
+                            "claimed", 0
+                        )
+                        monthly_totals[month_key]["approved"] += monthly_data.get(
+                            "approved", 0
+                        )
+                        monthly_totals[month_key]["disapproved"] += monthly_data.get(
+                            "disapproved", 0
+                        )
+                        monthly_totals[month_key]["points"] += monthly_data.get(
+                            "points", 0.0
+                        )
+
+                    # Aggregate yearly periods
+                    for year_key, yearly_data in periods.get(
+                        const.PERIOD_YEARLY, {}
+                    ).items():
+                        yearly_totals[year_key]["claimed"] += yearly_data.get(
+                            "claimed", 0
+                        )
+                        yearly_totals[year_key]["approved"] += yearly_data.get(
+                            "approved", 0
+                        )
+                        yearly_totals[year_key]["disapproved"] += yearly_data.get(
+                            "disapproved", 0
+                        )
+                        yearly_totals[year_key]["points"] += yearly_data.get(
+                            "points", 0.0
+                        )
+
+                # Store aggregated all_time bucket (nested: all_time.all_time for consistency)
+                reward_periods[const.DATA_KID_REWARD_DATA_PERIODS_ALL_TIME] = {
+                    const.PERIOD_ALL_TIME: {
+                        "claimed": total_claimed,
+                        "approved": total_approved,
+                        "disapproved": total_disapproved,
+                        "points": round(total_points, const.DATA_FLOAT_PRECISION),
+                    }
+                }
+
+                # Store aggregated period buckets (convert defaultdict to dict)
+                if daily_totals:
+                    reward_periods[const.PERIOD_DAILY] = {
+                        k: dict(v) for k, v in daily_totals.items()
+                    }
+                if weekly_totals:
+                    reward_periods[const.PERIOD_WEEKLY] = {
+                        k: dict(v) for k, v in weekly_totals.items()
+                    }
+                if monthly_totals:
+                    reward_periods[const.PERIOD_MONTHLY] = {
+                        k: dict(v) for k, v in monthly_totals.items()
+                    }
+                if yearly_totals:
+                    reward_periods[const.PERIOD_YEARLY] = {
+                        k: dict(v) for k, v in yearly_totals.items()
+                    }
+
+                backfilled_count += 1
+                const.LOGGER.debug(
+                    "Backfilled reward_periods for kid '%s': "
+                    "all_time(claimed=%d, approved=%d, disapproved=%d, points=%.2f), "
+                    "daily=%d, weekly=%d, monthly=%d, yearly=%d",
+                    kid_name,
+                    total_claimed,
+                    total_approved,
+                    total_disapproved,
+                    total_points,
+                    len(daily_totals),
+                    len(weekly_totals),
+                    len(monthly_totals),
+                    len(yearly_totals),
+                )
+
+            # Step 2.5: Flatten malformed nested keys in reward_periods
+            # Some legacy data may have nested keys like "2026-02-03": {"2026-02-03": {...}}
+            # This flattens them to "2026-02-03": {"claimed": 3, ...}
+            flattened_count = 0
+            for period_type in [
+                const.PERIOD_DAILY,
+                const.PERIOD_WEEKLY,
+                const.PERIOD_MONTHLY,
+                const.PERIOD_YEARLY,
+            ]:
+                if period_type not in reward_periods:
+                    continue
+
+                period_bucket = reward_periods[period_type]
+                for period_key, period_data in list(period_bucket.items()):
+                    # Check if period_data has a nested key matching period_key
+                    if isinstance(period_data, dict) and period_key in period_data:
+                        # Extract the nested data and replace
+                        nested_data = period_data[period_key]
+                        if isinstance(nested_data, dict):
+                            period_bucket[period_key] = nested_data
+                            flattened_count += 1
+                            const.LOGGER.debug(
+                                "Flattened nested key '%s' in %s reward_periods for kid '%s'",
+                                period_key,
+                                period_type,
+                                kid_name,
+                            )
+
+            if flattened_count > 0:
+                const.LOGGER.info(
+                    "Flattened %d malformed nested keys in reward_periods for kid '%s'",
+                    flattened_count,
+                    kid_name,
+                )
+
+            # Step 3: Remove total_* fields from each reward item
+            reward_data = kid_info.get(const.DATA_KID_REWARD_DATA, {})
+            for _reward_id, reward_item in reward_data.items():
+                # Step 3a: Flatten malformed nested keys in per-reward periods
+                if const.DATA_KID_REWARD_DATA_PERIODS in reward_item:
+                    periods = reward_item[const.DATA_KID_REWARD_DATA_PERIODS]
+                    per_reward_flattened = 0
+                    for period_type in [
+                        const.PERIOD_DAILY,
+                        const.PERIOD_WEEKLY,
+                        const.PERIOD_MONTHLY,
+                        const.PERIOD_YEARLY,
+                    ]:
+                        if period_type not in periods:
+                            continue
+
+                        period_bucket = periods[period_type]
+                        for period_key, period_data in list(period_bucket.items()):
+                            # Check if period_data has a nested key matching period_key
+                            if (
+                                isinstance(period_data, dict)
+                                and period_key in period_data
+                            ):
+                                # Extract the nested data and replace
+                                nested_data = period_data[period_key]
+                                if isinstance(nested_data, dict):
+                                    period_bucket[period_key] = nested_data
+                                    per_reward_flattened += 1
+
+                    if per_reward_flattened > 0:
+                        const.LOGGER.debug(
+                            "Flattened %d malformed nested keys in per-reward periods for reward %s, kid '%s'",
+                            per_reward_flattened,
+                            _reward_id,
+                            kid_name,
+                        )
+
+                # Step 3b: Remove total_* fields
+                removed_fields = []
+                if const.DATA_KID_REWARD_DATA_TOTAL_CLAIMS in reward_item:
+                    del reward_item[const.DATA_KID_REWARD_DATA_TOTAL_CLAIMS]
+                    removed_fields.append("total_claims")
+                    items_cleaned += 1
+                if const.DATA_KID_REWARD_DATA_TOTAL_APPROVED in reward_item:
+                    del reward_item[const.DATA_KID_REWARD_DATA_TOTAL_APPROVED]
+                    removed_fields.append("total_approved")
+                    items_cleaned += 1
+                if const.DATA_KID_REWARD_DATA_TOTAL_DISAPPROVED in reward_item:
+                    del reward_item[const.DATA_KID_REWARD_DATA_TOTAL_DISAPPROVED]
+                    removed_fields.append("total_disapproved")
+                    items_cleaned += 1
+                if const.DATA_KID_REWARD_DATA_TOTAL_POINTS_SPENT in reward_item:
+                    del reward_item[const.DATA_KID_REWARD_DATA_TOTAL_POINTS_SPENT]
+                    removed_fields.append("total_points_spent")
+                    items_cleaned += 1
+
+                # Step 3c: Remove notification_ids (NotificationManager owns lifecycle)
+                if "notification_ids" in reward_item:
+                    del reward_item["notification_ids"]
+                    removed_fields.append("notification_ids")
+                    items_cleaned += 1
+
+                if removed_fields:
+                    const.LOGGER.debug(
+                        "Cleaned reward item for kid '%s': removed %s",
+                        kid_name,
+                        ", ".join(removed_fields),
+                    )
+
+            # Step 4: Delete reward_stats dict (now fully ephemeral)
+            if const.DATA_KID_REWARD_STATS in kid_info:
+                del kid_info[const.DATA_KID_REWARD_STATS]
+                stats_deleted += 1
+                const.LOGGER.debug(
+                    "Deleted reward_stats dict for kid '%s' (%s)", kid_name, kid_id
+                )
+
+        const.LOGGER.info(
+            "Completed v43 reward_periods migration: "
+            "%d kids got reward_periods bucket, %d backfilled all_time, "
+            "%d items cleaned (total_*/notification_ids), %d reward_stats deleted",
             kids_migrated,
             backfilled_count,
             items_cleaned,

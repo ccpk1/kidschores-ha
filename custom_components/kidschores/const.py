@@ -984,15 +984,21 @@ DATA_KID_REWARD_DATA_PENDING_COUNT: Final = "pending_count"  # Number of pending
 DATA_KID_REWARD_DATA_LAST_CLAIMED: Final = "last_claimed"
 DATA_KID_REWARD_DATA_LAST_APPROVED: Final = "last_approved"
 DATA_KID_REWARD_DATA_LAST_DISAPPROVED: Final = "last_disapproved"
-DATA_KID_REWARD_DATA_TOTAL_CLAIMS: Final = "total_claims"  # All-time claim count
-DATA_KID_REWARD_DATA_TOTAL_APPROVED: Final = "total_approved"  # All-time approved count
+
+# LEGACY v43: Removed - use periods.all_time.* instead
+DATA_KID_REWARD_DATA_TOTAL_CLAIMS: Final = (
+    "total_claims"  # LEGACY v43: Use periods.all_time.claimed
+)
+DATA_KID_REWARD_DATA_TOTAL_APPROVED: Final = (
+    "total_approved"  # LEGACY v43: Use periods.all_time.approved
+)
 DATA_KID_REWARD_DATA_TOTAL_DISAPPROVED: Final = (
-    "total_disapproved"  # All-time disapproved
+    "total_disapproved"  # LEGACY v43: Use periods.all_time.disapproved
 )
-DATA_KID_REWARD_DATA_TOTAL_POINTS_SPENT: Final = "total_points_spent"  # All-time points
-DATA_KID_REWARD_DATA_NOTIFICATION_IDS: Final = (
-    "notification_ids"  # Notification tracking
+DATA_KID_REWARD_DATA_TOTAL_POINTS_SPENT: Final = (
+    "total_points_spent"  # LEGACY v43: Use periods.all_time.points
 )
+DATA_KID_REWARD_DATA_NOTIFICATION_IDS: Final = "notification_ids"  # LEGACY v43: NotificationManager owns lifecycle (embeds in action buttons)
 
 # Period-based reward tracking (aligned with chore_data and point_data patterns)
 DATA_KID_REWARD_DATA_PERIODS: Final = "periods"
@@ -1005,6 +1011,16 @@ DATA_KID_REWARD_DATA_PERIOD_CLAIMED: Final = "claimed"
 DATA_KID_REWARD_DATA_PERIOD_APPROVED: Final = "approved"
 DATA_KID_REWARD_DATA_PERIOD_DISAPPROVED: Final = "disapproved"
 DATA_KID_REWARD_DATA_PERIOD_POINTS: Final = "points"
+
+# Reward Periods (Global Bucket) - v43+ (Phase 3)
+DATA_KID_REWARD_PERIODS: Final = "reward_periods"
+# Reward periods use the same bucket keys as reward_data periods
+# (daily, weekly, monthly, yearly, all_time) - see DATA_KID_REWARD_DATA_PERIODS_*
+
+# NOTE: DATA_KID_REWARD_STATS and all sub-keys (DATA_KID_REWARD_STATS_*) will be
+# DELETED in v0.5.0-beta3 (schema v43). The reward_stats storage bucket will be
+# removed - all stats will be derived from reward_periods.all_time and
+# reward_data[uuid].periods buckets. See _LEGACY constants at end of file.
 
 # Reward Stats Keys (aggregated stats across all rewards for a kid)
 DATA_KID_REWARD_STATS: Final = "reward_stats"

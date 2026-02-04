@@ -333,10 +333,12 @@ _REWARD_DATA_RESET_PRESERVE_FIELDS: frozenset[str] = frozenset(
 # --- Reward Kid Runtime Fields (for data_reset_rewards) ---
 # These are kid-side structures owned by RewardManager.
 # On data reset: CLEAR these structures for affected kid(s).
+# Note: reward_stats will be deleted in v43; reward_periods holds aggregated all-time stats.
 
 _REWARD_KID_RUNTIME_FIELDS: frozenset[str] = frozenset(
     {
         const.DATA_KID_REWARD_DATA,  # Per-reward claim tracking
+        const.DATA_KID_REWARD_PERIODS,  # Aggregated reward periods (v43+, all_time bucket)
     }
 )
 
