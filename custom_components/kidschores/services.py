@@ -2077,13 +2077,6 @@ def async_setup_services(hass: HomeAssistant):
             )
             if backup_name:
                 const.LOGGER.info("Created pre-reset backup: %s", backup_name)
-
-                # Cleanup old backups per retention setting
-                retention = coordinator.config_entry.options.get(
-                    const.CONF_BACKUPS_MAX_RETAINED,
-                    const.DEFAULT_BACKUPS_MAX_RETAINED,
-                )
-                await bh.cleanup_old_backups(hass, coordinator.store, retention)
             else:
                 const.LOGGER.warning("No data available to include in pre-reset backup")
         except Exception as err:

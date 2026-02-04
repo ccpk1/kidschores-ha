@@ -3984,13 +3984,6 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
                         const.LOGGER.info("Successfully imported JSON data to storage")
 
-                        # Cleanup old backups
-                        from .store import KidsChoresStore
-
-                        store = KidsChoresStore(self.hass)
-                        max_backups = const.DEFAULT_BACKUPS_MAX_RETAINED
-                        await bh.cleanup_old_backups(self.hass, store, max_backups)
-
                         # Reload and return to init
                         self._mark_reload_needed()
                         return await self.async_step_init()
@@ -4086,11 +4079,6 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 await store.async_save()
 
             const.LOGGER.info("Restored backup: %s", backup_filename)
-
-            # Cleanup old backups
-            store = KidsChoresStore(self.hass)
-            max_backups = const.DEFAULT_BACKUPS_MAX_RETAINED
-            await bh.cleanup_old_backups(self.hass, store, max_backups)
 
             # Reload and return to init
             self._mark_reload_needed()
@@ -4316,12 +4304,6 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
                 if backup_filename:
                     const.LOGGER.info("Manual backup created: %s", backup_filename)
-                    # Run cleanup with current retention setting
-                    retention = self._entry_options.get(
-                        const.CONF_BACKUPS_MAX_RETAINED,
-                        const.DEFAULT_BACKUPS_MAX_RETAINED,
-                    )
-                    await bh.cleanup_old_backups(self.hass, store, retention)
 
                     # Show success message and return to backup menu
                     const.LOGGER.info(
@@ -4492,13 +4474,6 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                         const.LOGGER.info(
                             "Backup does not contain system settings, keeping current settings"
                         )
-
-                    # Cleanup old backups
-                    retention = self._entry_options.get(
-                        const.CONF_BACKUPS_MAX_RETAINED,
-                        const.DEFAULT_BACKUPS_MAX_RETAINED,
-                    )
-                    await bh.cleanup_old_backups(self.hass, store, retention)
 
                     # Clear context and reload integration to pick up restored data
                     self._backup_to_restore = None

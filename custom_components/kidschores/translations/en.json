@@ -1310,7 +1310,7 @@
           "retention_monthly": "Number of months of monthly historical data to retain before cleanup. Minimum 1, maximum 24.",
           "retention_yearly": "Number of years of yearly historical data to retain before cleanup. Minimum 1, maximum 10.",
           "show_legacy_entities": "Show extra entities like sensor and selects that are now consolidated into the dashboard helper sensor. These entities are optional for backward compatibility with existing automations.",
-          "backups_max_retained": "Maximum number of backup files to keep. Older backups will be automatically deleted. Set to 0 to disable automatic backups.",
+          "backups_max_retained": "Maximum number of backup files to keep per tag (e.g., 5 manual backups, 5 data_reset backups). Older backups are automatically deleted after each new backup is created. Set to 0 to disable automatic backups completely.",
           "backup_action_selection": "Choose a backup management action: create a manual backup, delete a backup, or restore from a backup."
         }
       },

@@ -158,12 +158,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: KidsChoresConfigEntry) -
 
     # Always cleanup old backups based on current retention setting
     # This ensures changes to max_backups are applied immediately
-    max_backups = int(
-        entry.options.get(
-            const.CONF_BACKUPS_MAX_RETAINED, const.DEFAULT_BACKUPS_MAX_RETAINED
-        )
-    )
-    await bh.cleanup_old_backups(hass, store, max_backups)
+    await bh.cleanup_old_backups(hass, store, entry)
 
     # Coordinator was already created in PHASE 4 (before cleanup)
     # Reuse the temp_coordinator instance instead of creating a new one

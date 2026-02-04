@@ -388,11 +388,6 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
                     "Backup does not contain system settings, using defaults"
                 )
 
-            # Cleanup old backups
-            store = KidsChoresStore(self.hass)
-            max_backups = const.DEFAULT_BACKUPS_MAX_RETAINED
-            await bh.cleanup_old_backups(self.hass, store, max_backups)
-
             # Backup successfully restored - create config entry with settings
             # No need to collect kids/chores/points since they were in the backup
             return self.async_create_entry(

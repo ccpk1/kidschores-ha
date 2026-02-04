@@ -709,7 +709,7 @@ BACKUP_TAG_RECOVERY: Final = "recovery"  # Data recovery actions
 BACKUP_TAG_REMOVAL: Final = "removal"  # Integration removal
 BACKUP_TAG_RESET: Final = "reset"  # Factory reset
 BACKUP_TAG_DATA_RESET: Final = (
-    "data_reset"  # Transactional data reset (unified service)
+    "data-reset"  # Transactional data reset (unified service)
 )
 BACKUP_TAG_PRE_MIGRATION: Final = (
     "pre-migration"  # Before schema upgrade (never deleted)

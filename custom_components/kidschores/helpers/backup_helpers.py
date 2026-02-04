@@ -91,11 +91,27 @@ async def create_timestamped_backup(
 
     Returns:
         Filename of created backup (e.g., 'kidschores_data_2025-12-18_14-30-22_removal')
-        or None if backup creation failed.
+        or None if backup creation failed or backups are disabled.
 
     File naming format: kidschores_data_YYYY-MM-DD_HH-MM-SS_<tag>
     Example: kidschores_data_2025-12-18_14-30-22_removal
+
+    Note: If config_entry is provided and max_backups is 0, no backup is created.
     """
+    # Check if backups are disabled (max_backups = 0)
+    if config_entry:
+        max_backups = int(
+            config_entry.options.get(const.CONF_BACKUPS_MAX_RETAINED)
+            or const.DEFAULT_BACKUPS_MAX_RETAINED
+        )
+        if max_backups == 0:
+            const.LOGGER.debug(
+                "Backups disabled (max_backups=0), skipping %s backup", tag
+            )
+            # Still cleanup existing backups even though we're not creating a new one
+            await cleanup_old_backups(hass, store, config_entry)
+            return None
+
     try:
         # Get current UTC timestamp in filesystem-safe ISO 8601 format
         timestamp = dt_util.utcnow().strftime("%Y-%m-%d_%H-%M-%S")
@@ -149,6 +165,11 @@ async def create_timestamped_backup(
                 )
 
         const.LOGGER.debug("Created backup: %s", filename)
+
+        # Automatically cleanup old backups after successful creation
+        if config_entry:
+            await cleanup_old_backups(hass, store, config_entry)
+
         return filename
 
     except (OSError, ValueError) as ex:
@@ -159,32 +180,41 @@ async def create_timestamped_backup(
 async def cleanup_old_backups(
     hass: HomeAssistant,
     store,
-    max_backups: int,
+    config_entry: ConfigEntry,
 ) -> None:
     """Delete old backups beyond max_backups limit per tag.
 
     Args:
         hass: Home Assistant instance
         store: Store instance (unused but kept for API consistency)
-        max_backups: Maximum number of backups to retain per tag (0 = no limit)
+        config_entry: Config entry to get max_backups setting from
 
     Behavior:
+        - Gets max_backups from config_entry (defaults to 5 if None/missing)
+        - If max_backups is 0, deletes ALL backups (backups disabled)
         - Keeps newest N backups per tag (e.g., 5 manual, 5 recovery, etc.)
         - Retention applies equally to ALL backup types
-        - If max_backups is 0, no cleanup is performed (unlimited retention)
         - Logs warnings for deletion failures but continues processing
     """
-    # Ensure max_backups is an integer (defensive programming for config entry options)
-    max_backups = int(max_backups)
-
-    if max_backups <= 0:
-        const.LOGGER.debug("Backup cleanup disabled (max_backups=%s)", max_backups)
-        return
+    # Get max_backups from config entry with proper default handling
+    max_backups = int(
+        config_entry.options.get(const.CONF_BACKUPS_MAX_RETAINED)
+        or const.DEFAULT_BACKUPS_MAX_RETAINED
+    )
 
     try:
         # Discover all backups
         backups_list = await discover_backups(hass, store)
-        const.LOGGER.debug("Backup cleanup: found %d total backups", len(backups_list))
+
+        if max_backups == 0:
+            const.LOGGER.info(
+                "Backups disabled (max_backups=0), deleting all %d existing backups",
+                len(backups_list),
+            )
+        else:
+            const.LOGGER.debug(
+                "Backup cleanup: found %d total backups", len(backups_list)
+            )
 
         # Group backups by tag
         backups_by_tag: dict[str, list[dict]] = {}
