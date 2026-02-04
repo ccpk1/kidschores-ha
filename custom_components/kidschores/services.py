@@ -10,16 +10,12 @@ from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers import (
-    config_validation as cv,
-    device_registry as dr,
-    entity_registry as er,
-)
+from homeassistant.helpers import config_validation as cv, device_registry as dr
 from homeassistant.util import dt as dt_util
 import voluptuous as vol
 
 from . import const
-from .helpers import backup_helpers as bh, flow_helpers
+from .helpers import flow_helpers
 from .helpers.auth_helpers import (
     is_user_authorized_for_global_action,
     is_user_authorized_for_kid,
@@ -151,8 +147,6 @@ REMOVE_AWARDED_BADGES_SCHEMA = vol.Schema(
         vol.Optional(const.FIELD_BADGE_NAME): vol.Any(cv.string, None),
     }
 )
-
-FACTORY_RESET_SCHEMA = vol.Schema({})  # Renamed from RESET_ALL_DATA_SCHEMA
 
 RESET_CHORES_TO_PENDING_STATE_SCHEMA = vol.Schema(
     {}
@@ -2058,65 +2052,6 @@ def async_setup_services(hass: HomeAssistant):
     # RESET SERVICE HANDLERS
     # ==========================================================================
 
-    async def handle_factory_reset(_call: ServiceCall):
-        """Handle manually resetting ALL data in KidsChores (factory reset)."""
-        entry_id = get_first_kidschores_entry(hass)
-        if not entry_id:
-            const.LOGGER.warning("Factory Reset: No KidsChores entry found")
-            return
-
-        coordinator = _get_coordinator_by_entry_id(hass, entry_id)
-
-        # Step 1: Create backup before factory reset
-        try:
-            backup_name = await bh.create_timestamped_backup(
-                hass,
-                coordinator.store,
-                const.BACKUP_TAG_RESET,
-                coordinator.config_entry,
-            )
-            if backup_name:
-                const.LOGGER.info("Created pre-reset backup: %s", backup_name)
-            else:
-                const.LOGGER.warning("No data available to include in pre-reset backup")
-        except Exception as err:
-            const.LOGGER.warning("Failed to create pre-reset backup: %s", err)
-
-        # Step 2: Clean up entity registry BEFORE clearing storage
-        # This prevents orphaned registry entries that cause _2 suffixes when re-adding entities
-        ent_reg = er.async_get(hass)
-        entity_count = 0
-        for entity_entry in er.async_entries_for_config_entry(ent_reg, entry_id):
-            ent_reg.async_remove(entity_entry.entity_id)
-            entity_count += 1
-            const.LOGGER.debug(
-                "Removed entity registry entry: %s (unique_id: %s)",
-                entity_entry.entity_id,
-                entity_entry.unique_id,
-            )
-
-        const.LOGGER.info("Removed %d entity registry entries", entity_count)
-
-        # Step 3: Delegate storage clear to SystemManager (per Platinum Architecture)
-        # SystemManager owns destructive storage operations
-        should_reload = await coordinator.system_manager.async_factory_reset()
-
-        # Step 4: Reload config entry to clean up platforms and reinitialize
-        # This ensures all internal state is properly reset
-        if should_reload:
-            await hass.config_entries.async_reload(entry_id)
-
-        const.LOGGER.info(
-            "Factory reset complete. Backup created, entity registry cleaned, all data cleared."
-        )
-
-    hass.services.async_register(
-        const.DOMAIN,
-        const.SERVICE_FACTORY_RESET,
-        handle_factory_reset,
-        schema=FACTORY_RESET_SCHEMA,
-    )
-
     async def handle_reset_chores_to_pending_state(_call: ServiceCall):
         """Handle manually resetting all chores to pending, clearing claims/approvals."""
         entry_id = get_first_kidschores_entry(hass)
@@ -2244,7 +2179,6 @@ async def async_unload_services(hass: HomeAssistant) -> None:
         const.SERVICE_APPLY_PENALTY,
         const.SERVICE_APPLY_BONUS,
         const.SERVICE_APPROVE_REWARD,
-        const.SERVICE_FACTORY_RESET,  # Renamed from SERVICE_RESET_ALL_DATA
         const.SERVICE_RESET_CHORES_TO_PENDING_STATE,  # Renamed from SERVICE_RESET_ALL_CHORES
         const.SERVICE_RESET_OVERDUE_CHORES,
         const.SERVICE_RESET_TRANSACTIONAL_DATA,

@@ -94,8 +94,8 @@ class EconomyManager(BaseManager):
             self._on_badge_earned,
         )
         self.listen(
-            const.SIGNAL_SUFFIX_ACHIEVEMENT_UNLOCKED,
-            self._on_achievement_unlocked,
+            const.SIGNAL_SUFFIX_ACHIEVEMENT_EARNED,
+            self._on_achievement_earned,
         )
         self.listen(
             const.SIGNAL_SUFFIX_CHALLENGE_COMPLETED,
@@ -245,8 +245,8 @@ class EconomyManager(BaseManager):
                 reference_id or "manual",
             )
 
-    def _on_achievement_unlocked(self, payload: dict[str, Any]) -> None:
-        """Handle achievement unlocked event - deposit award points.
+    def _on_achievement_earned(self, payload: dict[str, Any]) -> None:
+        """Handle achievement earned event - deposit award points.
 
         Args:
             payload: Event data containing kid_id, achievement_id, achievement_points

@@ -136,7 +136,7 @@ SIGNAL_SUFFIX_BADGE_REVOKED: Final = "badge_revoked"
 SIGNAL_SUFFIX_BADGE_PROGRESS_UPDATED: Final = "badge_progress_updated"
 
 # Gamification Events (GamificationManager) - Achievement
-SIGNAL_SUFFIX_ACHIEVEMENT_UNLOCKED: Final = "achievement_unlocked"
+SIGNAL_SUFFIX_ACHIEVEMENT_EARNED: Final = "achievement_earned"
 SIGNAL_SUFFIX_ACHIEVEMENT_PROGRESS_UPDATED: Final = "achievement_progress_updated"
 
 # Gamification Events (GamificationManager) - Challenge
@@ -2447,7 +2447,7 @@ SERVICE_DELETE_CHORE: Final = "delete_chore"
 SERVICE_DELETE_REWARD: Final = "delete_reward"
 SERVICE_DISAPPROVE_CHORE: Final = "disapprove_chore"
 SERVICE_DISAPPROVE_REWARD: Final = "disapprove_reward"
-SERVICE_FACTORY_RESET: Final = "factory_reset"  # Renamed from reset_all_data
+
 SERVICE_REDEEM_REWARD: Final = "redeem_reward"
 SERVICE_REMOVE_AWARDED_BADGES: Final = "remove_awarded_badges"
 SERVICE_RESET_CHORES_TO_PENDING_STATE: Final = (

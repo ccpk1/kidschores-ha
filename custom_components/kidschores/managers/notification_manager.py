@@ -151,7 +151,7 @@ class NotificationManager(BaseManager):
 
         # Achievement/Challenge events
         self.listen(
-            const.SIGNAL_SUFFIX_ACHIEVEMENT_UNLOCKED, self._handle_achievement_unlocked
+            const.SIGNAL_SUFFIX_ACHIEVEMENT_EARNED, self._handle_achievement_earned
         )
         self.listen(
             const.SIGNAL_SUFFIX_CHALLENGE_COMPLETED, self._handle_challenge_completed
@@ -1565,8 +1565,8 @@ class NotificationManager(BaseManager):
         )
 
     @callback
-    def _handle_achievement_unlocked(self, payload: dict[str, Any]) -> None:
-        """Handle ACHIEVEMENT_UNLOCKED event - send notifications to kid and parents.
+    def _handle_achievement_earned(self, payload: dict[str, Any]) -> None:
+        """Handle ACHIEVEMENT_EARNED event - send notifications to kid and parents.
 
         Args:
             payload: Event data containing kid_id, achievement_id, achievement_name

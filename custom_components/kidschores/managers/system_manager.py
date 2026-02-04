@@ -519,34 +519,6 @@ class SystemManager(BaseManager):
         return removed_count
 
     # =========================================================================
-    # Factory Reset
-    # =========================================================================
-
-    async def async_factory_reset(self) -> bool:
-        """Execute factory reset - clear all user data from storage.
-
-        Per Platinum Architecture:
-        - SystemManager owns destructive storage operations
-        - Service layer handles entity registry cleanup BEFORE calling this
-        - Service layer handles reload AFTER this returns
-
-        Returns:
-            True if reset was successful and caller should reload config entry
-        """
-        const.LOGGER.info("SystemManager executing factory reset")
-
-        # Clear all user data from storage (resets to empty structure)
-        await self.coordinator.store.async_clear_data()
-
-        const.LOGGER.info(
-            "Factory reset complete - storage cleared for entry %s",
-            self.entry_id,
-        )
-
-        # Signal that caller should reload config entry
-        return True
-
-    # =========================================================================
     # Data Reset Orchestration
     # =========================================================================
 

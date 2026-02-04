@@ -546,7 +546,6 @@ from custom_components.kidschores.const import (
     SERVICE_DELETE_REWARD,
     SERVICE_UPDATE_REWARD,
     SERVICE_MANAGE_SHADOW_LINK,
-    SERVICE_FACTORY_RESET,  # Renamed from SERVICE_RESET_ALL_DATA
     SERVICE_RESET_CHORES_TO_PENDING_STATE,  # Renamed from SERVICE_RESET_ALL_CHORES
     # =========================================================================
     # SERVICE FIELD NAMES (for service call payloads)

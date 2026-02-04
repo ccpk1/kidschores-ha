@@ -225,14 +225,7 @@ apply_bonus:
       selector:
         text:
 
-# NOTE: reset_all_data renamed to factory_reset, reset_all_chores renamed to reset_chores_to_pending_state in v0.6.0
-
-factory_reset:
-  name: "Factory Reset"
-  description: >
-    Factory reset: Creates backup, cleans entity registry, and completely clears all KidsChores data from storage.
-    Backup file is saved as kidschores_data_<timestamp>_reset in the .storage directory.
-  fields: {}
+# NOTE: reset_all_chores renamed to reset_chores_to_pending_state in v0.6.0
 
 reset_chores_to_pending_state:
   name: "Reset Chores To Pending State"
@@ -243,7 +236,8 @@ reset_transactional_data:
   name: "Reset Transactional Data"
   description: >
     Reset runtime/transactional data while preserving configuration (kids, chores, rewards, etc.).
-    Creates automatic backup before reset. Use scope to target specific kids or domains.
+    An automatic backup is created before reset as kidschores_data_<timestamp>_reset in the .storage directory.
+    Use scope to target specific kids or domains.
     IMPORTANT: Requires confirm_destructive: true as a safety mechanism.
   fields:
     confirm_destructive:

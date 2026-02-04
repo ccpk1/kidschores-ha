@@ -61,7 +61,7 @@ class GamificationManager(BaseManager):
     - Debounce evaluation to batch rapid changes
     - Build evaluation context from coordinator data
     - Apply evaluation results (badge awards, achievements, challenges)
-    - Emit gamification events (badge_earned, achievement_unlocked, etc.)
+    - Emit gamification events (badge_earned, achievement_earned, etc.)
 
     NOT responsible for:
     - Point calculations (handled by EconomyManager)
@@ -393,7 +393,7 @@ class GamificationManager(BaseManager):
         # Emit event for NotificationManager to send notifications
         # EconomyManager listens to this and handles point deposit
         self.emit(
-            const.SIGNAL_SUFFIX_ACHIEVEMENT_UNLOCKED,
+            const.SIGNAL_SUFFIX_ACHIEVEMENT_EARNED,
             kid_id=kid_id,
             achievement_id=achievement_id,
             achievement_name=achievement_info.get(const.DATA_ACHIEVEMENT_NAME, ""),
@@ -952,7 +952,7 @@ class GamificationManager(BaseManager):
 
             # Emit event for any additional listeners
             self.emit(
-                const.SIGNAL_SUFFIX_ACHIEVEMENT_UNLOCKED,
+                const.SIGNAL_SUFFIX_ACHIEVEMENT_EARNED,
                 kid_id=kid_id,
                 achievement_id=achievement_id,
                 achievement_name=achievement_data.get(

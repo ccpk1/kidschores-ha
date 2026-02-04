@@ -1055,7 +1055,7 @@ class BadgeRevokedEvent(TypedDict, total=False):
 
 
 class AchievementUnlockedEvent(TypedDict, total=False):
-    """Event payload for SIGNAL_SUFFIX_ACHIEVEMENT_UNLOCKED.
+    """Event payload for SIGNAL_SUFFIX_ACHIEVEMENT_EARNED.
 
     Emitted by: GamificationManager.evaluate_achievements()
     Consumed by: NotificationManager
