@@ -219,6 +219,61 @@ await self.coordinator.economy_manager.apply_bonus(kid_id, bonus_id)
 
 ---
 
+### 4c. Landlord-Tenant Structure Ownership
+
+**Pattern**: Manager that owns a data structure creates empty containers (Landlord), specialized managers populate data inside those containers (Tenant).
+
+**Why This Matters**:
+
+- **Prevents ownership conflicts**: Clear boundary between structure creation and data population
+- **Enables clean separation**: Domain logic separated from specialized operations (statistics, caching, aggregations)
+- **Simplifies testing**: Landlords test container creation, Tenants test data operations independently
+- **Reduces coupling**: Tenants don't need to know about structure lifecycle, Landlords don't need statistical logic
+
+**Ownership Hierarchy**:
+
+```
+KidManager (Landlord)
+  └─ Creates: kid structure, top-level fields
+      ├─ ChoreManager (Tenant → Landlord)
+      │   └─ Creates: kid["chore_data"], kid["chore_periods"] (empty containers)
+      │       └─ StatisticsManager (Tenant) populates: period buckets, date keys, counters
+      ├─ RewardManager (Tenant → Landlord)
+      │   └─ Creates: kid["reward_data"], kid["reward_periods"] (empty containers)
+      │       └─ StatisticsManager (Tenant) populates: period buckets, date keys, counters
+      └─ EconomyManager (Tenant → Landlord)
+          └─ Creates: kid["point_stats"]["transaction_history"] (empty)
+              └─ StatisticsManager (Tenant) populates: transaction records
+```
+
+**Example - Period Structures**:
+
+```python
+# ✅ Domain Manager (Landlord): Create empty container only
+class RewardManager(BaseManager):
+    def _ensure_kid_structures(self, kid_id: str, reward_id: str) -> None:
+        """Create empty period container."""
+        if const.DATA_KID_REWARD_PERIODS not in kid:
+            kid[const.DATA_KID_REWARD_PERIODS] = {}  # Empty - Tenant populates
+
+# ✅ StatisticsManager (Tenant): Populate data via signal listener
+class StatisticsManager(BaseManager):
+    async def _on_reward_approved(self, event: RewardApprovedEvent) -> None:
+        """Record approval to period counters."""
+        periods = kid[const.DATA_KID_REWARD_PERIODS]
+        self.stats_engine.record_transaction(
+            periods, {"approved": 1}, transaction_type="reward_approval"
+        )
+
+# ❌ WRONG: Domain manager directly populating data (Landlord acting as Tenant)
+class RewardManager(BaseManager):
+    def _increment_counter(self, reward_entry: dict) -> None:
+        periods = reward_entry[const.DATA_KID_REWARD_DATA_PERIODS]
+        self.coordinator.stats.record_transaction(periods, {"approved": 1})  # ❌ Violates boundary
+```
+
+---
+
 ### 5. Utils vs Helpers Boundary
 
 **Rule of Purity**: Files in `utils/` and `engines/` are prohibited from importing `homeassistant.*`. They must be testable in a standard Python environment without HA fixtures.
@@ -264,6 +319,12 @@ def get_chore_points(hass: HomeAssistant, chore_id: str) -> int:  # ✅ HA-aware
     chore = coordinator._data[DATA_CHORES][chore_id]
     return calculate_points(chore["base_points"], chore.get("multiplier", 1.0))
 ```
+
+#### Data & Statistics Helpers
+
+**Rule**: Helper functions that extract data like `_periods` structures MUST live in StatisticsManager, not domain managers or sensors.
+
+**Rationale**: StatisticsManager is the "Accountant" - it owns all historical tallies and period data structures. Domain managers (the "Judges") own current state and rules, but delegate historical queries to Statistics.
 
 ---
 

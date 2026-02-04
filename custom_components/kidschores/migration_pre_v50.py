@@ -399,6 +399,11 @@ class PreV50Migrator:
         # Historical approvals have no 'completed' tracking - backfill with approved counts.
         self._migrate_completed_metric()
 
+        # Phase 11 (4B): Move badge award_count from root to periods.all_time.all_time (v43)
+        # "Lean Item" pattern - remove root-level duplication, use periods as canonical source
+        # Matches Phase 2 (chore total_points) and Phase 3 (reward total_*)
+        self._migrate_badge_award_count_to_periods()
+
         # Phase 11: Flatten point_data → point_periods (v42 → v43, v0.5.0-beta3)
         # Remove nested structure and transform points_total → points_earned/spent
         self._migrate_point_periods_v43()
@@ -2133,9 +2138,21 @@ class PreV50Migrator:
 
             # --- Ensure all required fields and nested structures exist using constants ---
 
-            # assigned_to
-            if const.DATA_BADGE_ASSIGNED_TO not in badge_info:
-                badge_info[const.DATA_BADGE_ASSIGNED_TO] = []
+            # assigned_to: Historically unassigned badges (missing or empty) applied to ALL kids
+            if (
+                const.DATA_BADGE_ASSIGNED_TO not in badge_info
+                or not badge_info[const.DATA_BADGE_ASSIGNED_TO]
+            ):
+                # Get all kid IDs from the kids dictionary
+                all_kid_ids = list(
+                    self.coordinator._data.get(const.DATA_KIDS, {}).keys()
+                )
+                badge_info[const.DATA_BADGE_ASSIGNED_TO] = all_kid_ids
+                const.LOGGER.info(
+                    "Badge '%s' had no/empty assigned_to field - assigned to all %d kids",
+                    badge_info.get(const.DATA_BADGE_NAME, "unknown"),
+                    len(all_kid_ids),
+                )
 
             # reset_schedule
             if const.DATA_BADGE_RESET_SCHEDULE not in badge_info:
@@ -2331,10 +2348,13 @@ class PreV50Migrator:
                     )
                     continue
 
+                # Phase 4B: Create badge entry WITHOUT award_count at root
+                # award_count will be written to periods.all_time.all_time by StatisticsManager
+                # on next badge award (Tenant handles counter, Landlord creates structure only)
                 badges_earned[badge_id] = {
                     const.DATA_KID_BADGES_EARNED_NAME: badge_name,
                     const.DATA_KID_BADGES_EARNED_LAST_AWARDED: today_local_iso,
-                    const.DATA_KID_BADGES_EARNED_AWARD_COUNT: 1,
+                    const.DATA_KID_BADGES_EARNED_PERIODS: {},  # Tenant populates
                 }
 
                 const.LOGGER.info(
@@ -2436,6 +2456,78 @@ class PreV50Migrator:
 
         const.LOGGER.info(
             "✓ Completed metric backfill: Migrated %d period buckets", buckets_migrated
+        )
+
+    def _migrate_badge_award_count_to_periods(self) -> None:
+        """Move badge award_count from root to periods.all_time.all_time (Phase 4B, v43).
+
+        "Lean Item" pattern: Remove root-level award_count duplication, use periods
+        as canonical source. Matches Phase 2 (chore total_points) and Phase 3 (reward total_*).
+
+        Migration logic:
+        1. Read award_count from badge_entry root
+        2. Create periods.all_time.all_time structure if missing
+        3. Write award_count to periods.all_time.all_time.award_count
+        4. Delete award_count from root
+
+        Idempotent: If award_count not in root, skip. If already in periods, preserve it.
+        """
+        const.LOGGER.info(
+            "Starting badge award_count migration to periods (Phase 4B, v43)"
+        )
+
+        kids_data: dict[str, Any] = self.coordinator._data.get(const.DATA_KIDS, {})
+        if not kids_data:
+            const.LOGGER.info(
+                "No kids data found, skipping badge award_count migration"
+            )
+            return
+
+        badges_migrated: int = 0
+
+        for kid_id, kid_info in kids_data.items():
+            badges_earned: dict[str, Any] = kid_info.get(
+                const.DATA_KID_BADGES_EARNED, {}
+            )
+
+            # Handle legacy v41 list format (should already be migrated to dict by _migrate_badges)
+            if not isinstance(badges_earned, dict):
+                const.LOGGER.debug(
+                    "Kid '%s' has legacy list format badges_earned, skipping",
+                    kid_info.get(const.DATA_KID_NAME, kid_id),
+                )
+                continue
+
+            for badge_id, badge_entry in badges_earned.items():
+                # Skip if award_count not at root (already migrated or never existed)
+                if const.DATA_KID_BADGES_EARNED_AWARD_COUNT not in badge_entry:
+                    continue
+
+                count = badge_entry.pop(const.DATA_KID_BADGES_EARNED_AWARD_COUNT)
+
+                # Ensure periods structure exists
+                periods = badge_entry.setdefault(
+                    const.DATA_KID_BADGES_EARNED_PERIODS, {}
+                )
+                all_time_bucket = periods.setdefault(
+                    const.DATA_KID_BADGES_EARNED_PERIODS_ALL_TIME, {}
+                )
+                all_time_data = all_time_bucket.setdefault(const.PERIOD_ALL_TIME, {})
+
+                # Write count to periods (preserve existing value if already present)
+                if const.DATA_KID_BADGES_EARNED_AWARD_COUNT not in all_time_data:
+                    all_time_data[const.DATA_KID_BADGES_EARNED_AWARD_COUNT] = count
+                    badges_migrated += 1
+
+                    const.LOGGER.debug(
+                        "Migrated badge '%s' award_count=%d to periods for kid '%s'",
+                        badge_entry.get(const.DATA_KID_BADGES_EARNED_NAME, badge_id),
+                        count,
+                        kid_info.get(const.DATA_KID_NAME, kid_id),
+                    )
+
+        const.LOGGER.info(
+            "✓ Badge award_count migration: Migrated %d badges", badges_migrated
         )
 
     # -------------------------------------------------------------------------------------

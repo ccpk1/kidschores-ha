@@ -102,29 +102,6 @@ class StatisticsManager(BaseManager):
         """Get the StatisticsEngine from coordinator."""
         return self._coordinator.stats
 
-    def get_retention_config(self) -> dict[str, int]:
-        """Get retention configuration for period data pruning.
-
-        Reads from config_entry.options for user-configurable retention limits.
-
-        Returns:
-            Dict mapping period types to retention counts.
-        """
-        return {
-            "daily": self._coordinator.config_entry.options.get(
-                const.CONF_RETENTION_DAILY, const.DEFAULT_RETENTION_DAILY
-            ),
-            "weekly": self._coordinator.config_entry.options.get(
-                const.CONF_RETENTION_WEEKLY, const.DEFAULT_RETENTION_WEEKLY
-            ),
-            "monthly": self._coordinator.config_entry.options.get(
-                const.CONF_RETENTION_MONTHLY, const.DEFAULT_RETENTION_MONTHLY
-            ),
-            "yearly": self._coordinator.config_entry.options.get(
-                const.CONF_RETENTION_YEARLY, const.DEFAULT_RETENTION_YEARLY
-            ),
-        }
-
     async def async_setup(self) -> None:
         """Set up event subscriptions for statistics tracking.
 
@@ -160,6 +137,9 @@ class StatisticsManager(BaseManager):
         self.listen(const.SIGNAL_SUFFIX_REWARD_APPROVED, self._on_reward_approved)
         self.listen(const.SIGNAL_SUFFIX_REWARD_CLAIMED, self._on_reward_claimed)
         self.listen(const.SIGNAL_SUFFIX_REWARD_DISAPPROVED, self._on_reward_disapproved)
+
+        # Subscribe to badge events (Phase 4: Period Update Ownership)
+        self.listen(const.SIGNAL_SUFFIX_BADGE_EARNED, self._on_badge_earned)
 
         # Midnight rollover - listen to SystemManager's signal (Timer Owner pattern)
         # Clears 'today' cache keys at midnight so sensors show 0 immediately
@@ -205,6 +185,10 @@ class StatisticsManager(BaseManager):
 
         const.LOGGER.debug("StatisticsManager: Event subscriptions initialized")
 
+    # =========================================================================
+    # Event Handlers
+    # =========================================================================
+
     @callback
     def _on_midnight_rollover(self, payload: dict[str, Any]) -> None:
         """Handle midnight rollover - invalidate all caches.
@@ -218,87 +202,6 @@ class StatisticsManager(BaseManager):
         """
         const.LOGGER.info("StatisticsManager: Midnight rollover - clearing cache")
         self.invalidate_cache()
-
-    @callback
-    def _on_data_reset_complete(self, payload: dict[str, Any]) -> None:
-        """Handle data reset completion - invalidate affected caches.
-
-        When any domain manager completes a data reset operation, we need to
-        invalidate statistics caches so derived values are recalculated from
-        the updated source data.
-
-        Payload format (standard across all *_DATA_RESET_COMPLETE signals):
-            scope: "global" | "kid" | "item_type" | "item"
-            kid_id: str | None - specific kid for kid scope
-            item_id: str | None - specific item for item scope
-
-        Args:
-            payload: Event data with scope, kid_id, item_id
-        """
-        scope = payload.get("scope", "global")
-        kid_id = payload.get("kid_id")
-
-        const.LOGGER.debug(
-            "StatisticsManager: Data reset complete - scope=%s, kid_id=%s",
-            scope,
-            kid_id,
-        )
-
-        if scope in {"global", "item_type"}:
-            # Full reset - invalidate all caches
-            self.invalidate_cache()
-        elif scope == "kid" and kid_id:
-            # Kid-specific reset - only invalidate that kid's cache
-            self.invalidate_cache(kid_id)
-        elif scope == "item":
-            # Item-specific reset - may affect stats, invalidate all for safety
-            if kid_id:
-                self.invalidate_cache(kid_id)
-            else:
-                self.invalidate_cache()
-
-    async def _on_chores_ready(self, payload: dict[str, Any]) -> None:
-        """Handle startup cascade - hydrate stats after chores are ready.
-
-        Cascade Position: CHORES_READY → StatisticsManager → STATS_READY
-
-        Hydrates the statistics cache for all kids, then signals downstream
-        managers (GamificationManager) to continue their initialization.
-
-        Args:
-            payload: Event data (unused)
-        """
-        const.LOGGER.debug(
-            "StatisticsManager: Processing CHORES_READY - hydrating cache"
-        )
-
-        # Phase 7.5.7: Startup hydration
-        # Build cache for all existing kids so sensors have data immediately
-        await self._hydrate_cache_all_kids()
-
-        # Signal cascade continues
-        self.emit(const.SIGNAL_SUFFIX_STATS_READY)
-
-    def _get_kid(self, kid_id: str) -> dict[str, Any] | None:
-        """Get kid data by ID.
-
-        Returns dict[str, Any] instead of KidData because StatisticsManager
-        accesses dynamic keys like 'point_data' that aren't in the TypedDict.
-
-        Args:
-            kid_id: The internal UUID of the kid
-
-        Returns:
-            Kid data dict or None if not found
-        """
-        return self._coordinator.kids_data.get(kid_id)  # type: ignore[return-value]
-
-    # NOTE: _recalculate_point_stats() DELETED in Phase 7G.1
-    # All point stats now live in point_data.periods - no separate aggregation needed
-
-    # =========================================================================
-    # Event Handlers
-    # =========================================================================
 
     @callback
     def _on_points_changed(self, payload: dict[str, Any]) -> None:
@@ -450,253 +353,27 @@ class StatisticsManager(BaseManager):
             source,
         )
 
-    # ────────────────────────────────────────────────────────────────
-    # Chore Transaction Helper
-    # ────────────────────────────────────────────────────────────────
+    async def _on_chores_ready(self, payload: dict[str, Any]) -> None:
+        """Handle startup cascade - hydrate stats after chores are ready.
 
-    def _record_chore_transaction(
-        self,
-        kid_id: str,
-        chore_id: str,
-        increments: dict[str, int | float],
-        effective_date: str | None = None,
-        persist: bool = True,
-    ) -> bool:
-        """Record a chore transaction to period buckets.
+        Cascade Position: CHORES_READY → StatisticsManager → STATS_READY
 
-        Common helper for CHORE_APPROVED, CHORE_CLAIMED, CHORE_DISAPPROVED,
-        CHORE_OVERDUE, and CHORE_COMPLETED signals. Handles:
-        - Getting/creating kid_chore_data.periods structure
-        - Recording increments to period buckets via StatisticsEngine
-        - Pruning old period data
-        - Optionally persisting and refreshing cache
+        Hydrates the statistics cache for all kids, then signals downstream
+        managers (GamificationManager) to continue their initialization.
 
         Args:
-            kid_id: The kid's internal ID.
-            chore_id: The chore's internal ID.
-            increments: Dict of metric keys to increment values.
-            effective_date: ISO timestamp for parent-lag-proof bucketing.
-                           If None, uses current time.
-            persist: If True, calls _persist() and _refresh_chore_cache().
-                    Set to False when batching multiple kids.
-
-        Returns:
-            True if successful, False if kid not found.
+            payload: Event data (unused)
         """
-        kid_info = self._get_kid(kid_id)
-        if not kid_info:
-            const.LOGGER.warning(
-                "StatisticsManager._record_chore_transaction: Kid '%s' not found",
-                kid_id,
-            )
-            return False
-
-        # Phase 3B Tenant Rule: Guard against missing landlord-owned structures
-        # ChoreManager (Landlord) creates chore_data on-demand via _get_kid_chore_data()
-        chore_data: dict[str, Any] | None = kid_info.get(const.DATA_KID_CHORE_DATA)
-        if chore_data is None:
-            const.LOGGER.warning(
-                "StatisticsManager._record_chore_transaction: chore_data missing for kid '%s' - "
-                "skipping (ChoreManager should have created it before emitting signal)",
-                kid_id,
-            )
-            return False
-
-        # Phase 3B Tenant Rule: Guard against missing per-chore entry
-        # ChoreManager creates per-chore entries on-demand via _get_kid_chore_data()
-        kid_chore_data: dict[str, Any] | None = chore_data.get(chore_id)
-        if kid_chore_data is None:
-            const.LOGGER.warning(
-                "StatisticsManager._record_chore_transaction: chore_data entry missing for "
-                "kid '%s', chore '%s' - skipping (ChoreManager should create on assignment)",
-                kid_id,
-                chore_id,
-            )
-            return False
-
-        # Phase 3B Tenant Rule: Use ChoreManager's Landlord-created periods structure
-        # ChoreManager (Landlord) should have called _ensure_kid_structures(kid_id, chore_id)
-        # before emitting the signal that triggered this transaction
-        periods = kid_chore_data.get(const.DATA_KID_CHORE_DATA_PERIODS)
-        if periods is None:
-            const.LOGGER.warning(
-                "StatisticsManager._record_chore_transaction: periods structure missing for "
-                "kid '%s', chore '%s' - ChoreManager should have called _ensure_kid_structures()",
-                kid_id,
-                chore_id,
-            )
-            return False
-
-        # Use effective_date for parent-lag-proof bucketing
-        # dt_parse defaults to HELPER_RETURN_DATETIME, returns datetime | None
-        bucket_dt = (
-            cast("datetime | None", dt_parse(effective_date))
-            if effective_date
-            else None
+        const.LOGGER.debug(
+            "StatisticsManager: Processing CHORES_READY - hydrating cache"
         )
 
-        # Record transaction to per-chore period buckets
-        # NOTE: Do NOT pass period_mapping as period_key_mapping!
-        # period_mapping contains date strings like '2026-01-31'
-        # period_key_mapping expects structure keys like DATA_KID_CHORE_DATA_PERIODS_DAILY
-        # Engine will use default mapping which is correct for chore periods
-        self._stats_engine.record_transaction(
-            periods,
-            increments,
-            reference_date=bucket_dt,
-        )
+        # Phase 7.5.7: Startup hydration
+        # Build cache for all existing kids so sensors have data immediately
+        await self._hydrate_cache_all_kids()
 
-        # PHASE 2: Also record to kid-level chore_periods bucket (v44+)
-        # ChoreManager (Landlord) should have created this via _ensure_kid_structures(kid_id)
-        kid_chore_periods = kid_info.get(const.DATA_KID_CHORE_PERIODS)
-        if kid_chore_periods is not None:
-            # Record same transaction to aggregated bucket
-            self._stats_engine.record_transaction(
-                kid_chore_periods,
-                increments,
-                reference_date=bucket_dt,
-            )
-        else:
-            const.LOGGER.warning(
-                "StatisticsManager._record_chore_transaction: kid-level chore_periods missing for "
-                "kid '%s' - ChoreManager should have called _ensure_kid_structures(kid_id)",
-                kid_id,
-            )
-
-        # Prune old period data from both buckets (after all writes complete)
-        retention_config = self.get_retention_config()
-        self._stats_engine.prune_history(periods, retention_config)
-        if kid_chore_periods is not None:
-            self._stats_engine.prune_history(kid_chore_periods, retention_config)
-
-        # Optionally persist and refresh cache
-        if persist:
-            self._coordinator._persist()
-            self._refresh_chore_cache(kid_id)
-
-        return True
-
-    def _record_reward_transaction(
-        self,
-        kid_id: str,
-        reward_id: str,
-        increments: dict[str, int | float],
-        effective_date: str | None = None,
-        persist: bool = True,
-    ) -> bool:
-        """Record a reward transaction to period buckets (dual-bucket pattern).
-
-        Common helper for REWARD_APPROVED, REWARD_CLAIMED, and REWARD_DISAPPROVED
-        signals. Handles:
-        - Getting per-reward periods structure (reward_data[uuid].periods)
-        - Getting kid-level reward_periods structure (aggregated bucket)
-        - Recording increments to BOTH buckets via StatisticsEngine
-        - Pruning old period data
-        - Optionally persisting and refreshing cache
-
-        Args:
-            kid_id: The kid's internal ID.
-            reward_id: The reward's internal ID.
-            increments: Dict of metric keys to increment values.
-            effective_date: ISO timestamp for parent-lag-proof bucketing.
-                           If None, uses current time.
-            persist: If True, calls _persist() and _refresh_reward_cache().
-                    Set to False when batching multiple rewards.
-
-        Returns:
-            True if successful, False if kid not found or structures missing.
-        """
-        kid_info = self._get_kid(kid_id)
-        if not kid_info:
-            const.LOGGER.warning(
-                "StatisticsManager._record_reward_transaction: Kid '%s' not found",
-                kid_id,
-            )
-            return False
-
-        # Phase 3 Tenant Rule: Guard against missing landlord-owned structures
-        # RewardManager (Landlord) creates reward_data on-demand via get_kid_reward_data()
-        reward_data: dict[str, Any] | None = kid_info.get(const.DATA_KID_REWARD_DATA)
-        if reward_data is None:
-            const.LOGGER.warning(
-                "StatisticsManager._record_reward_transaction: reward_data missing for kid '%s' - "
-                "skipping (RewardManager should have created it before emitting signal)",
-                kid_id,
-            )
-            return False
-
-        # Phase 3 Tenant Rule: Guard against missing per-reward entry
-        # RewardManager creates per-reward entries on-demand via get_kid_reward_data(create=True)
-        kid_reward_data: dict[str, Any] | None = reward_data.get(reward_id)
-        if kid_reward_data is None:
-            const.LOGGER.warning(
-                "StatisticsManager._record_reward_transaction: reward_data entry missing for "
-                "kid '%s', reward '%s' - skipping (RewardManager should create on redemption)",
-                kid_id,
-                reward_id,
-            )
-            return False
-
-        # Phase 3 Tenant Rule: Use RewardManager's Landlord-created periods structure
-        # RewardManager (Landlord) should have called _ensure_kid_structures(kid_id, reward_id)
-        # before emitting the signal that triggered this transaction
-        periods = kid_reward_data.get(const.DATA_KID_REWARD_DATA_PERIODS)
-        if periods is None:
-            const.LOGGER.warning(
-                "StatisticsManager._record_reward_transaction: periods structure missing for "
-                "kid '%s', reward '%s' - RewardManager should have called _ensure_kid_structures()",
-                kid_id,
-                reward_id,
-            )
-            return False
-
-        # Use effective_date for parent-lag-proof bucketing
-        bucket_dt = (
-            cast("datetime | None", dt_parse(effective_date))
-            if effective_date
-            else None
-        )
-
-        # Record transaction to per-reward period buckets
-        self._stats_engine.record_transaction(
-            periods,
-            increments,
-            reference_date=bucket_dt,
-        )
-
-        # PHASE 3: Also record to kid-level reward_periods bucket (v43+)
-        # RewardManager (Landlord) should have created this via _ensure_kid_structures(kid_id)
-        kid_reward_periods = kid_info.get(const.DATA_KID_REWARD_PERIODS)
-        if kid_reward_periods is not None:
-            # Record same transaction to aggregated bucket
-            self._stats_engine.record_transaction(
-                kid_reward_periods,
-                increments,
-                reference_date=bucket_dt,
-            )
-        else:
-            const.LOGGER.warning(
-                "StatisticsManager._record_reward_transaction: kid-level reward_periods missing for "
-                "kid '%s' - RewardManager should have called _ensure_kid_structures(kid_id)",
-                kid_id,
-            )
-
-        # Prune old period data from both buckets (after all writes complete)
-        retention_config = self.get_retention_config()
-        self._stats_engine.prune_history(periods, retention_config)
-        if kid_reward_periods is not None:
-            self._stats_engine.prune_history(kid_reward_periods, retention_config)
-
-        # Optionally persist and refresh cache
-        if persist:
-            self._coordinator._persist()
-            self._refresh_reward_cache(kid_id)
-
-        return True
-
-    # ────────────────────────────────────────────────────────────────
-    # Chore Event Listeners
-    # ────────────────────────────────────────────────────────────────
+        # Signal cascade continues
+        self.emit(const.SIGNAL_SUFFIX_STATS_READY)
 
     @callback
     def _on_chore_approved(self, payload: dict[str, Any]) -> None:
@@ -1023,14 +700,14 @@ class StatisticsManager(BaseManager):
             payload: Event data containing:
                 - kid_id: The kid's internal ID
                 - reward_id: The reward's internal ID
-                - cost_deducted: Points deducted for reward
+                - cost: Points deducted for reward
                 - parent_name: Name of approving parent
                 - effective_date: ISO timestamp for parent-lag-proof bucketing
         """
         # Extract payload values
         kid_id = payload.get("kid_id", "")
         reward_id = payload.get("reward_id", "")
-        cost_deducted = payload.get("cost_deducted", 0.0)
+        cost = payload.get("cost", 0.0)
         effective_date = payload.get("effective_date")
 
         if not kid_id or not reward_id:
@@ -1046,7 +723,7 @@ class StatisticsManager(BaseManager):
             reward_id=reward_id,
             increments={
                 "approved": 1,
-                "points": cost_deducted,  # Points deducted for this approval
+                "points": cost,  # Points deducted for this approval
             },
             effective_date=effective_date,
             persist=False,  # Persist manually after refresh for transactional flush
@@ -1071,7 +748,7 @@ class StatisticsManager(BaseManager):
             "StatisticsManager._on_reward_approved: kid=%s, reward=%s, cost=%.2f",
             kid_id,
             reward_id,
-            cost_deducted,
+            cost,
         )
 
     @callback
@@ -1192,9 +869,412 @@ class StatisticsManager(BaseManager):
             reward_id,
         )
 
+    @callback
+    def _on_badge_earned(self, payload: dict[str, Any]) -> None:
+        """Handle BADGE_EARNED signal.
+
+        Signal emitted by GamificationManager when a badge is awarded to a kid.
+        Records transaction to badges_earned periods (award_count incremented).
+
+        Phase 4: StatisticsManager (Tenant) ONLY writes to period buckets.
+        GamificationManager (Landlord) creates structure, increments award_count.
+
+        Landlord-Tenant Contract:
+        - GamificationManager creates badges_earned[badge_id] with periods structure
+        - GamificationManager increments award_count (business logic)
+        - StatisticsManager ONLY updates period data in existing structure
+
+        Args:
+            payload: Event data containing:
+                - kid_id: The kid's internal ID
+                - badge_id: The badge's internal ID
+        """
+        kid_id = payload.get("kid_id", "")
+        badge_id = payload.get("badge_id", "")
+
+        if not kid_id or not badge_id:
+            const.LOGGER.warning(
+                "StatisticsManager._on_badge_earned: Missing kid_id or badge_id"
+            )
+            return
+
+        kid_info = self._coordinator.kids_data.get(kid_id)
+        if not kid_info:
+            const.LOGGER.warning(
+                "StatisticsManager._on_badge_earned: Kid not found: %s", kid_id
+            )
+            return
+
+        # Tenant responsibility: Update period data ONLY (no structure creation)
+        badges_earned = kid_info.get(const.DATA_KID_BADGES_EARNED, {})
+        badge_entry = badges_earned.get(badge_id)
+
+        if not badge_entry:
+            # Landlord violation - structure should exist before signal emission
+            const.LOGGER.warning(
+                "StatisticsManager._on_badge_earned: Badge entry not found (Landlord should create): kid=%s, badge=%s",
+                kid_id,
+                badge_id,
+            )
+            return
+
+        # Get periods bucket (Landlord should have created this)
+        periods = badge_entry.get(const.DATA_KID_BADGES_EARNED_PERIODS)
+        if not periods:
+            const.LOGGER.warning(
+                "StatisticsManager._on_badge_earned: Periods bucket missing (Landlord should create): kid=%s, badge=%s",
+                kid_id,
+                badge_id,
+            )
+            return
+
+        # Tenant operation: Update period data using StatisticsEngine
+        now_local = dt_now_local()
+        period_mapping = self._stats_engine.get_period_keys(now_local)
+
+        self._stats_engine.record_transaction(
+            cast("dict[str, Any]", periods),
+            {const.DATA_KID_BADGES_EARNED_AWARD_COUNT: 1},
+            period_key_mapping=period_mapping,
+        )
+
+        # Cleanup old period data
+        self._stats_engine.prune_history(
+            cast("dict[str, Any]", periods), self.get_retention_config()
+        )
+
+        # Persist and notify
+        self._coordinator._persist()
+        self._coordinator.async_set_updated_data(self._coordinator._data)
+
+        const.LOGGER.debug(
+            "StatisticsManager._on_badge_earned: kid=%s, badge=%s",
+            kid_id,
+            badge_id,
+        )
+
+    @callback
+    def _on_data_reset_complete(self, payload: dict[str, Any]) -> None:
+        """Handle data reset completion - invalidate affected caches.
+
+        When any domain manager completes a data reset operation, we need to
+        invalidate statistics caches so derived values are recalculated from
+        the updated source data.
+
+        Payload format (standard across all *_DATA_RESET_COMPLETE signals):
+            scope: "global" | "kid" | "item_type" | "item"
+            kid_id: str | None - specific kid for kid scope
+            item_id: str | None - specific item for item scope
+
+        Args:
+            payload: Event data with scope, kid_id, item_id
+        """
+        scope = payload.get("scope", "global")
+        kid_id = payload.get("kid_id")
+
+        const.LOGGER.debug(
+            "StatisticsManager: Data reset complete - scope=%s, kid_id=%s",
+            scope,
+            kid_id,
+        )
+
+        if scope in {"global", "item_type"}:
+            # Full reset - invalidate all caches
+            self.invalidate_cache()
+        elif scope == "kid" and kid_id:
+            # Kid-specific reset - only invalidate that kid's cache
+            self.invalidate_cache(kid_id)
+        elif scope == "item":
+            # Item-specific reset - may affect stats, invalidate all for safety
+            if kid_id:
+                self.invalidate_cache(kid_id)
+            else:
+                self.invalidate_cache()
+
+    # ────────────────────────────────────────────────────────────────
+    # Transaction Helpers
+    # ────────────────────────────────────────────────────────────────
+
+    def _record_chore_transaction(
+        self,
+        kid_id: str,
+        chore_id: str,
+        increments: dict[str, int | float],
+        effective_date: str | None = None,
+        persist: bool = True,
+    ) -> bool:
+        """Record a chore transaction to period buckets.
+
+        Common helper for CHORE_APPROVED, CHORE_CLAIMED, CHORE_DISAPPROVED,
+        CHORE_OVERDUE, and CHORE_COMPLETED signals. Handles:
+        - Getting/creating kid_chore_data.periods structure
+        - Recording increments to period buckets via StatisticsEngine
+        - Pruning old period data
+        - Optionally persisting and refreshing cache
+
+        Args:
+            kid_id: The kid's internal ID.
+            chore_id: The chore's internal ID.
+            increments: Dict of metric keys to increment values.
+            effective_date: ISO timestamp for parent-lag-proof bucketing.
+                           If None, uses current time.
+            persist: If True, calls _persist() and _refresh_chore_cache().
+                    Set to False when batching multiple kids.
+
+        Returns:
+            True if successful, False if kid not found.
+        """
+        kid_info = self._get_kid(kid_id)
+        if not kid_info:
+            const.LOGGER.warning(
+                "StatisticsManager._record_chore_transaction: Kid '%s' not found",
+                kid_id,
+            )
+            return False
+
+        # Phase 3B Tenant Rule: Guard against missing landlord-owned structures
+        # ChoreManager (Landlord) creates chore_data on-demand via _get_kid_chore_data()
+        chore_data: dict[str, Any] | None = kid_info.get(const.DATA_KID_CHORE_DATA)
+        if chore_data is None:
+            const.LOGGER.warning(
+                "StatisticsManager._record_chore_transaction: chore_data missing for kid '%s' - "
+                "skipping (ChoreManager should have created it before emitting signal)",
+                kid_id,
+            )
+            return False
+
+        # Phase 3B Tenant Rule: Guard against missing per-chore entry
+        # ChoreManager creates per-chore entries on-demand via _get_kid_chore_data()
+        kid_chore_data: dict[str, Any] | None = chore_data.get(chore_id)
+        if kid_chore_data is None:
+            const.LOGGER.warning(
+                "StatisticsManager._record_chore_transaction: chore_data entry missing for "
+                "kid '%s', chore '%s' - skipping (ChoreManager should create on assignment)",
+                kid_id,
+                chore_id,
+            )
+            return False
+
+        # Phase 3B Tenant Rule: Use ChoreManager's Landlord-created periods structure
+        # ChoreManager (Landlord) should have called _ensure_kid_structures(kid_id, chore_id)
+        # before emitting the signal that triggered this transaction
+        periods = kid_chore_data.get(const.DATA_KID_CHORE_DATA_PERIODS)
+        if periods is None:
+            const.LOGGER.warning(
+                "StatisticsManager._record_chore_transaction: periods structure missing for "
+                "kid '%s', chore '%s' - ChoreManager should have called _ensure_kid_structures()",
+                kid_id,
+                chore_id,
+            )
+            return False
+
+        # Use effective_date for parent-lag-proof bucketing
+        # dt_parse defaults to HELPER_RETURN_DATETIME, returns datetime | None
+        bucket_dt = (
+            cast("datetime | None", dt_parse(effective_date))
+            if effective_date
+            else None
+        )
+
+        # Record transaction to per-chore period buckets
+        # NOTE: Do NOT pass period_mapping as period_key_mapping!
+        # period_mapping contains date strings like '2026-01-31'
+        # period_key_mapping expects structure keys like DATA_KID_CHORE_DATA_PERIODS_DAILY
+        # Engine will use default mapping which is correct for chore periods
+        self._stats_engine.record_transaction(
+            periods,
+            increments,
+            reference_date=bucket_dt,
+        )
+
+        # PHASE 2: Also record to kid-level chore_periods bucket (v44+)
+        # ChoreManager (Landlord) should have created this via _ensure_kid_structures(kid_id)
+        kid_chore_periods = kid_info.get(const.DATA_KID_CHORE_PERIODS)
+        if kid_chore_periods is not None:
+            # Record same transaction to aggregated bucket
+            self._stats_engine.record_transaction(
+                kid_chore_periods,
+                increments,
+                reference_date=bucket_dt,
+            )
+        else:
+            const.LOGGER.warning(
+                "StatisticsManager._record_chore_transaction: kid-level chore_periods missing for "
+                "kid '%s' - ChoreManager should have called _ensure_kid_structures(kid_id)",
+                kid_id,
+            )
+
+        # Prune old period data from both buckets (after all writes complete)
+        retention_config = self.get_retention_config()
+        self._stats_engine.prune_history(periods, retention_config)
+        if kid_chore_periods is not None:
+            self._stats_engine.prune_history(kid_chore_periods, retention_config)
+
+        # Optionally persist and refresh cache
+        if persist:
+            self._coordinator._persist()
+            self._refresh_chore_cache(kid_id)
+
+        return True
+
+    def _record_reward_transaction(
+        self,
+        kid_id: str,
+        reward_id: str,
+        increments: dict[str, int | float],
+        effective_date: str | None = None,
+        persist: bool = True,
+    ) -> bool:
+        """Record a reward transaction to period buckets (dual-bucket pattern).
+
+        Common helper for REWARD_APPROVED, REWARD_CLAIMED, and REWARD_DISAPPROVED
+        signals. Handles:
+        - Getting per-reward periods structure (reward_data[uuid].periods)
+        - Getting kid-level reward_periods structure (aggregated bucket)
+        - Recording increments to BOTH buckets via StatisticsEngine
+        - Pruning old period data
+        - Optionally persisting and refreshing cache
+
+        Args:
+            kid_id: The kid's internal ID.
+            reward_id: The reward's internal ID.
+            increments: Dict of metric keys to increment values.
+            effective_date: ISO timestamp for parent-lag-proof bucketing.
+                           If None, uses current time.
+            persist: If True, calls _persist() and _refresh_reward_cache().
+                    Set to False when batching multiple rewards.
+
+        Returns:
+            True if successful, False if kid not found or structures missing.
+        """
+        kid_info = self._get_kid(kid_id)
+        if not kid_info:
+            const.LOGGER.warning(
+                "StatisticsManager._record_reward_transaction: Kid '%s' not found",
+                kid_id,
+            )
+            return False
+
+        # Phase 3 Tenant Rule: Guard against missing landlord-owned structures
+        # RewardManager (Landlord) creates reward_data on-demand via get_kid_reward_data()
+        reward_data: dict[str, Any] | None = kid_info.get(const.DATA_KID_REWARD_DATA)
+        if reward_data is None:
+            const.LOGGER.warning(
+                "StatisticsManager._record_reward_transaction: reward_data missing for kid '%s' - "
+                "skipping (RewardManager should have created it before emitting signal)",
+                kid_id,
+            )
+            return False
+
+        # Phase 3 Tenant Rule: Guard against missing per-reward entry
+        # RewardManager creates per-reward entries on-demand via get_kid_reward_data(create=True)
+        kid_reward_data: dict[str, Any] | None = reward_data.get(reward_id)
+        if kid_reward_data is None:
+            const.LOGGER.warning(
+                "StatisticsManager._record_reward_transaction: reward_data entry missing for "
+                "kid '%s', reward '%s' - skipping (RewardManager should create on redemption)",
+                kid_id,
+                reward_id,
+            )
+            return False
+
+        # Phase 3 Tenant Rule: Use RewardManager's Landlord-created periods structure
+        # RewardManager (Landlord) should have called _ensure_kid_structures(kid_id, reward_id)
+        # before emitting the signal that triggered this transaction
+        periods = kid_reward_data.get(const.DATA_KID_REWARD_DATA_PERIODS)
+        if periods is None:
+            const.LOGGER.warning(
+                "StatisticsManager._record_reward_transaction: periods structure missing for "
+                "kid '%s', reward '%s' - RewardManager should have called _ensure_kid_structures()",
+                kid_id,
+                reward_id,
+            )
+            return False
+
+        # Use effective_date for parent-lag-proof bucketing
+        bucket_dt = (
+            cast("datetime | None", dt_parse(effective_date))
+            if effective_date
+            else None
+        )
+
+        # Record transaction to per-reward period buckets
+        self._stats_engine.record_transaction(
+            periods,
+            increments,
+            reference_date=bucket_dt,
+        )
+
+        # PHASE 3: Also record to kid-level reward_periods bucket (v43+)
+        # RewardManager (Landlord) should have created this via _ensure_kid_structures(kid_id)
+        kid_reward_periods = kid_info.get(const.DATA_KID_REWARD_PERIODS)
+        if kid_reward_periods is not None:
+            # Record same transaction to aggregated bucket
+            self._stats_engine.record_transaction(
+                kid_reward_periods,
+                increments,
+                reference_date=bucket_dt,
+            )
+        else:
+            const.LOGGER.warning(
+                "StatisticsManager._record_reward_transaction: kid-level reward_periods missing for "
+                "kid '%s' - RewardManager should have called _ensure_kid_structures(kid_id)",
+                kid_id,
+            )
+
+        # Prune old period data from both buckets (after all writes complete)
+        retention_config = self.get_retention_config()
+        self._stats_engine.prune_history(periods, retention_config)
+        if kid_reward_periods is not None:
+            self._stats_engine.prune_history(kid_reward_periods, retention_config)
+
+        # Optionally persist and refresh cache
+        if persist:
+            self._coordinator._persist()
+            self._refresh_reward_cache(kid_id)
+
+        return True
+
     # =========================================================================
-    # Query Methods (for future use)
+    # Query Methods
     # =========================================================================
+
+    def get_retention_config(self) -> dict[str, int]:
+        """Get retention configuration for period data pruning.
+
+        Reads from config_entry.options for user-configurable retention limits.
+
+        Returns:
+            Dict mapping period types to retention counts.
+        """
+        return {
+            "daily": self._coordinator.config_entry.options.get(
+                const.CONF_RETENTION_DAILY, const.DEFAULT_RETENTION_DAILY
+            ),
+            "weekly": self._coordinator.config_entry.options.get(
+                const.CONF_RETENTION_WEEKLY, const.DEFAULT_RETENTION_WEEKLY
+            ),
+            "monthly": self._coordinator.config_entry.options.get(
+                const.CONF_RETENTION_MONTHLY, const.DEFAULT_RETENTION_MONTHLY
+            ),
+            "yearly": self._coordinator.config_entry.options.get(
+                const.CONF_RETENTION_YEARLY, const.DEFAULT_RETENTION_YEARLY
+            ),
+        }
+
+    def _get_kid(self, kid_id: str) -> dict[str, Any] | None:
+        """Get kid data by ID.
+
+        Returns dict[str, Any] instead of KidData because StatisticsManager
+        accesses dynamic keys like 'point_data' that aren't in the TypedDict.
+
+        Args:
+            kid_id: The internal UUID of the kid
+
+        Returns:
+            Kid data dict or None if not found
+        """
+        return self._coordinator.kids_data.get(kid_id)  # type: ignore[return-value]
 
     def get_point_stats_for_kid(self, kid_id: str) -> dict[str, Any]:
         """Get aggregated point statistics for a kid.
@@ -1228,8 +1308,26 @@ class StatisticsManager(BaseManager):
         periods = point_data.get(const.DATA_KID_POINT_DATA_PERIODS_LEGACY, {})
         return periods.get(period_type, {})
 
+    @staticmethod
+    def get_badge_award_count(badge_entry: dict[str, Any]) -> int:
+        """Get badge award count from periods.all_time.all_time.
+
+        Phase 4B: Lean Item pattern - award_count stored ONLY in periods, not at root.
+        Matches Phase 2 (chores) and Phase 3 (rewards) consolidation.
+
+        Args:
+            badge_entry: badges_earned[badge_id] dict from kid_data
+
+        Returns:
+            Award count from periods.all_time.all_time, or 0 if not found
+        """
+        periods = badge_entry.get(const.DATA_KID_BADGES_EARNED_PERIODS, {})
+        all_time_bucket = periods.get(const.DATA_KID_BADGES_EARNED_PERIODS_ALL_TIME, {})
+        all_time_data = all_time_bucket.get(const.PERIOD_ALL_TIME, {})
+        return all_time_data.get(const.DATA_KID_BADGES_EARNED_AWARD_COUNT, 0)
+
     # =========================================================================
-    # Phase 7.5: Presentation Cache Methods
+    # Presentation Cache Methods
     # =========================================================================
 
     def get_stats(self, kid_id: str) -> dict[str, Any]:

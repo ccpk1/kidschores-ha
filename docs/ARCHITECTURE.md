@@ -3,32 +3,27 @@
 **Integration Version**: 0.5.0+
 **Storage Schema Version**: 43 (Storage-Only Mode with Meta Section)
 **Quality Scale Level**: ⭐ **Platinum** (Meets All Quality Standards)
-**Date**: January 2026
+**Date**: February 2026
 
 ---
 
 ## 🎯 Platinum Quality Standards
 
-This integration meets **Home Assistant Platinum** quality level requirements. See [quality_scale.yaml](../custom_components/kidschores/quality_scale.yaml) for current rule status and [AGENTS.md](../../core/AGENTS.md) and [Home Assistant's Integration Quality Scale](https://developers.home-assistant.io/docs/integration_quality_scale_index/) for ongoing Home Assistant quality standards.
+This integration **unofficially** meets **Home Assistant Platinum** quality level requirements. See [quality_scale.yaml](../custom_components/kidschores/quality_scale.yaml) for current rule status and [AGENTS.md](../../core/AGENTS.md) and [Home Assistant's Integration Quality Scale](https://developers.home-assistant.io/docs/integration_quality_scale_index/) for ongoing Home Assistant quality standards.
 
 ### Home Assistant Quality Standards Reference
 
 For ongoing reference and to maintain Platinum certification, consult:
 
-- **[AGENTS.md](../../core/AGENTS.md)** - Home Assistant's authoritative code quality guide
-  - Covers all quality scale levels (Bronze, Silver, Gold, Platinum)
-  - Documents async patterns, exception handling, entity development
-  - Provides code examples and best practices
+- **[QUALITY_REFERENCE.md](QUALITY_REFERENCE.md)** - Platinum compliance mapping
+  - Maps KidsChores architecture to Home Assistant Platinum requirements
+  - Documents how layered architecture enforces quality standards
+  - Provides evidence locations and architectural validation references
 
-- **[quality_scale.yaml](../custom_components/kidschores/quality_scale.yaml)** - Current rule status
-  - Shows which Platinum rules are "done"
-  - Indicates if any rules are "exempt" with rationale
-
-- **[CODE_REVIEW_GUIDE.md](../docs/CODE_REVIEW_GUIDE.md)** - KidsChores-specific review patterns
-  - Phase 0 audit framework for new files
-  - Platform-specific review checklists
-  - Common issues and fixes
-  - Performance optimization guidelines
+- **[DEVELOPMENT_STANDARDS.md](DEVELOPMENT_STANDARDS.md)** - Prescriptive coding standards
+  - Git workflows, constant naming conventions, data write standards
+  - Localization patterns, type hints, logging practices
+  - Event-driven communication and manager coupling rules
 
 ---
 
@@ -127,7 +122,7 @@ DATA_READY → ChoreManager → CHORES_READY
 │                        │        │ • bonuses                │
 │ (9 settings total)     │        │ • achievements           │
 │                        │        │ • challenges             │
-│ Requires Reload: YES   │        │ • pending_approvals      │
+│ Requires Reload: YES   │        │                          │
 │                        │        │ • meta.schema_version:50+│
 │                        │        │                          │
 │                        │        │ Requires Reload: NO      │
@@ -301,6 +296,52 @@ KidsChores separates **source data** (persisted) from **derived data** (computed
 **Why**: A kid in New York completing a chore at 10 PM Monday should see stats recorded under "Monday", not "Tuesday" (which would occur if using UTC date at 3 AM Tuesday).
 
 **Application**: Affects streak calculations, period statistics, and any logic that needs to query "yesterday's data" or "last week's totals".
+
+---
+
+## Landlord-Tenant Period Structure Data Ownership
+
+**Pattern**: Managers create empty period containers (Landlord role), StatisticsEngine populates counter data (Tenant role).
+
+### Ownership Division
+
+**Domain Managers (Landlords)** responsible for ownership, creation, and deletion top-level period containers:
+
+**StatisticsEngine (Tenant)** creates and writes all data inside those containers:
+
+### Structure Hierarchy
+
+```
+┌──────────────────────────────────────────────────────┐
+│ Landlord Layer (Managers)                            │
+│ Creates: Empty top-level dicts                       │
+├──────────────────────────────────────────────────────┤
+│ kid["reward_periods"] = {}                  ← Empty  │
+│ reward_data["periods"] = {}                 ← Empty  │
+└──────────────────────────────────────────────────────┘
+                      ↓
+┌──────────────────────────────────────────────────────┐
+│ Tenant Layer (StatisticsEngine)                      │
+│ Populates: Period buckets, date keys, counter keys   │
+├──────────────────────────────────────────────────────┤
+│ periods["daily"] = {}                       ← Bucket │
+│ periods["daily"]["2025-01-17"] = {}        ← Date   │
+│ periods["daily"]["2025-01-17"]["claimed"] = 1        │
+│ periods["daily"]["2025-01-17"]["approved"] = 0       │
+│ periods["daily"]["2025-01-17"]["disapproved"] = 0    │
+│ periods["daily"]["2025-01-17"]["points"] = 0.0       │
+└──────────────────────────────────────────────────────┘
+```
+
+### Manager Responsibilities
+
+| Manager            | Landlord Containers Created                       | Tenant Counters Tracked                      |
+| ------------------ | ------------------------------------------------- | -------------------------------------------- |
+| **ChoreManager**   | `kid["chore_periods"]`, `chore_data["periods"]`   | completed, approved, disapproved, points     |
+| **RewardManager**  | `kid["reward_periods"]`, `reward_data["periods"]` | claimed, approved, disapproved, points       |
+| **EconomyManager** | `kid["point_stats"]["transaction_history"]`       | deposits, withdrawals (via StatisticsEngine) |
+
+**Analogy**: Manager builds the empty apartment building (landlord), StatisticsManager rents it and furnishes every room (tenant). No landlord should be doing interior decorating.
 
 ---
 

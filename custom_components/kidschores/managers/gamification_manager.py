@@ -27,12 +27,7 @@ from homeassistant.exceptions import HomeAssistantError
 from .. import const, data_builders as db
 from ..engines.gamification_engine import GamificationEngine
 from ..helpers.entity_helpers import get_item_id_by_name, remove_entities_by_item_id
-from ..utils.dt_utils import (
-    dt_add_interval,
-    dt_next_schedule,
-    dt_now_local,
-    dt_today_iso,
-)
+from ..utils.dt_utils import dt_add_interval, dt_next_schedule, dt_today_iso
 from .base_manager import BaseManager
 
 if TYPE_CHECKING:
@@ -1457,68 +1452,42 @@ class GamificationManager(BaseManager):
             return
 
         today_local_iso = dt_today_iso()
-        now_local = dt_now_local()
 
         badges_earned = kid_info.setdefault(const.DATA_KID_BADGES_EARNED, {})
 
-        # Get period mapping from StatisticsEngine
-        period_mapping = self.coordinator.stats.get_period_keys(now_local)
-
-        # Declare periods variable for use in both branches
-        periods: dict[str, Any]
+        # Phase 4: GamificationManager (Landlord) creates/updates structure only
+        # StatisticsManager (Tenant) handles period updates via _on_badge_earned listener
 
         if badge_id not in badges_earned:
-            # Create new badge tracking entry with all_time bucket
+            # Create new badge tracking entry with empty periods (Landlord creates structure only)
+            # StatisticsEngine creates daily/weekly/monthly/yearly keys on-demand
+            # award_count stored ONLY in periods.all_time.all_time (Tenant writes)
             badges_earned[badge_id] = {  # pyright: ignore[reportArgumentType]
                 const.DATA_KID_BADGES_EARNED_NAME: badge_info.get(
                     const.DATA_BADGE_NAME, ""
                 ),
                 const.DATA_KID_BADGES_EARNED_LAST_AWARDED: today_local_iso,
-                const.DATA_KID_BADGES_EARNED_AWARD_COUNT: 1,
-                const.DATA_KID_BADGES_EARNED_PERIODS: {
-                    const.DATA_KID_BADGES_EARNED_PERIODS_DAILY: {},
-                    const.DATA_KID_BADGES_EARNED_PERIODS_WEEKLY: {},
-                    const.DATA_KID_BADGES_EARNED_PERIODS_MONTHLY: {},
-                    const.DATA_KID_BADGES_EARNED_PERIODS_YEARLY: {},
-                    const.DATA_KID_BADGES_EARNED_PERIODS_ALL_TIME: {},
-                },
+                const.DATA_KID_BADGES_EARNED_PERIODS: {},  # Tenant populates sub-keys
             }
-            # Record initial award using StatisticsEngine
-            periods = badges_earned[badge_id][  # type: ignore[assignment]
-                const.DATA_KID_BADGES_EARNED_PERIODS
-            ]
-            self.coordinator.stats.record_transaction(
-                periods,
-                {const.DATA_KID_BADGES_EARNED_AWARD_COUNT: 1},
-                period_key_mapping=period_mapping,
-            )
             const.LOGGER.info(
                 "Update Kid Badges Earned - Created new tracking for badge '%s' for kid '%s'",
                 badge_info.get(const.DATA_BADGE_NAME, badge_id),
                 kid_info.get(const.DATA_KID_NAME, kid_id),
             )
         else:
+            # Update existing badge tracking (Landlord updates metadata fields only)
+            # award_count increment handled by Tenant (periods.all_time.all_time)
             tracking_entry = badges_earned[badge_id]
             tracking_entry[const.DATA_KID_BADGES_EARNED_NAME] = badge_info.get(
                 const.DATA_BADGE_NAME, ""
             )
             tracking_entry[const.DATA_KID_BADGES_EARNED_LAST_AWARDED] = today_local_iso
-            tracking_entry[const.DATA_KID_BADGES_EARNED_AWARD_COUNT] = (
-                tracking_entry.get(const.DATA_KID_BADGES_EARNED_AWARD_COUNT, 0) + 1
-            )
 
-            # Ensure periods structure exists with all_time bucket
-            periods = tracking_entry.setdefault(
+            # Ensure periods structure exists (Landlord ensures container)
+            # StatisticsEngine creates daily/weekly/monthly/yearly keys on-demand
+            tracking_entry.setdefault(
                 const.DATA_KID_BADGES_EARNED_PERIODS,
-                {},  # type: ignore[typeddict-item]
-            )
-            periods.setdefault(const.DATA_KID_BADGES_EARNED_PERIODS_ALL_TIME, {})
-
-            # Record award using StatisticsEngine
-            self.coordinator.stats.record_transaction(
-                periods,
-                {const.DATA_KID_BADGES_EARNED_AWARD_COUNT: 1},
-                period_key_mapping=period_mapping,
+                {},  # type: ignore[typeddict-item]  # Tenant populates sub-keys
             )
 
             const.LOGGER.info(
@@ -1527,10 +1496,8 @@ class GamificationManager(BaseManager):
                 kid_info.get(const.DATA_KID_NAME, kid_id),
             )
 
-            # Cleanup old period data using StatisticsEngine
-            self.coordinator.stats.prune_history(
-                periods, self.coordinator.statistics_manager.get_retention_config()
-            )
+        # Phase 4: Periods updated by StatisticsManager._on_badge_earned listener
+        # No direct StatisticsEngine calls - clean Landlord/Tenant separation
 
         self.coordinator._persist()
         self.coordinator.async_set_updated_data(self.coordinator._data)

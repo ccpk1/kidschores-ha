@@ -31,7 +31,6 @@ from homeassistant.util import dt as dt_util
 
 from .. import const, data_builders as db
 from ..helpers.entity_helpers import remove_entities_by_item_id
-from ..utils.dt_utils import dt_now_local
 from .base_manager import BaseManager
 from .notification_manager import NotificationManager
 
@@ -255,52 +254,6 @@ class RewardManager(BaseManager):
         return pending
 
     # =========================================================================
-    # Period Counter Management
-    # =========================================================================
-
-    def _increment_period_counter(
-        self,
-        reward_entry: dict[str, Any],
-        counter_key: str,
-        amount: int = 1,
-    ) -> None:
-        """Increment a period counter for a reward entry across all period buckets.
-
-        Args:
-            reward_entry: The reward_data[reward_id] dict
-            counter_key: Which counter to increment (claimed/approved/disapproved/points)
-            amount: Amount to add (default 1)
-        """
-        now_local = dt_now_local()
-
-        # Ensure periods structure exists with all_time bucket
-        periods = reward_entry.setdefault(
-            const.DATA_KID_REWARD_DATA_PERIODS,
-            {
-                const.DATA_KID_REWARD_DATA_PERIODS_DAILY: {},
-                const.DATA_KID_REWARD_DATA_PERIODS_WEEKLY: {},
-                const.DATA_KID_REWARD_DATA_PERIODS_MONTHLY: {},
-                const.DATA_KID_REWARD_DATA_PERIODS_YEARLY: {},
-                const.DATA_KID_REWARD_DATA_PERIODS_ALL_TIME: {},
-            },
-        )
-
-        # Get period mapping from StatisticsEngine
-        period_mapping = self.coordinator.stats.get_period_keys(now_local)
-
-        # Record transaction using StatisticsEngine
-        self.coordinator.stats.record_transaction(
-            periods,
-            {counter_key: amount},
-            period_key_mapping=period_mapping,
-        )
-
-        # Clean up old period data
-        self.coordinator.stats.prune_history(
-            periods, self.coordinator.statistics_manager.get_retention_config()
-        )
-
-    # =========================================================================
     # Public API: Redeem
     # =========================================================================
 
@@ -381,11 +334,7 @@ class RewardManager(BaseManager):
             dt_util.utcnow().isoformat()
         )
         # REMOVED v43: total_claims increment - StatisticsManager writes to periods
-
-        # Update period-based tracking for claimed (per-reward periods only)
-        self._increment_period_counter(
-            reward_entry, const.DATA_KID_REWARD_DATA_PERIOD_CLAIMED
-        )
+        # Phase 4: Period updates handled by StatisticsManager._on_reward_claimed listener
 
         # REMOVED v43: _recalculate_stats_for_kid() - reward_stats dict deleted
 
@@ -528,7 +477,7 @@ class RewardManager(BaseManager):
             kid_id=kid_id,
             reward_id=reward_id,
             reward_name=reward_info[const.DATA_REWARD_NAME],
-            cost=cost,  # EconomyManager deducts points
+            cost=cost,  # Reward cost approved/deducted
         )
 
     def _grant_to_kid(
@@ -575,19 +524,7 @@ class RewardManager(BaseManager):
             )
 
         # REMOVED v43: total_approved, total_points_spent increments - StatisticsManager writes to periods
-
-        # Update period-based tracking for approved count (per-reward periods only)
-        self._increment_period_counter(
-            reward_entry, const.DATA_KID_REWARD_DATA_PERIOD_APPROVED
-        )
-
-        # Update period-based tracking for points (only if cost > 0)
-        if cost_deducted > const.DEFAULT_ZERO:
-            self._increment_period_counter(
-                reward_entry,
-                const.DATA_KID_REWARD_DATA_PERIOD_POINTS,
-                amount=int(cost_deducted),
-            )
+        # Phase 4: Period updates handled by StatisticsManager._on_reward_approved listener
 
         # Note: NotificationManager handles notification lifecycle via signal payloads.
         # notif_id is embedded in action buttons for stale detection, no storage needed.
@@ -645,11 +582,7 @@ class RewardManager(BaseManager):
                     dt_util.utcnow().isoformat()
                 )
                 # REMOVED v43: total_disapproved increment - StatisticsManager writes to periods
-
-                # Update period-based tracking for disapproved (per-reward periods only)
-                self._increment_period_counter(
-                    reward_entry, const.DATA_KID_REWARD_DATA_PERIOD_DISAPPROVED
-                )
+                # Phase 4: Period updates handled by StatisticsManager._on_reward_disapproved listener
 
             # REMOVED v43: _recalculate_stats_for_kid() - reward_stats dict deleted
             # StatisticsManager derives stats from reward_periods on-demand

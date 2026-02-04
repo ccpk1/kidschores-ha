@@ -1657,8 +1657,9 @@ class KidBadgesSensor(KidsChoresCoordinatorEntity, SensorEntity):
         last_awarded_date = badge_earned.get(
             const.DATA_KID_BADGES_EARNED_LAST_AWARDED, const.SENTINEL_NONE
         )
-        award_count = badge_earned.get(
-            const.DATA_KID_BADGES_EARNED_AWARD_COUNT, const.DEFAULT_ZERO
+        # Phase 4B: Read award_count from periods.all_time.all_time (Lean Item pattern)
+        award_count = self.coordinator.statistics_manager.get_badge_award_count(
+            cast("dict[str, Any]", badge_earned)
         )
 
         extra_attrs = {}
@@ -1850,8 +1851,9 @@ class KidBadgeProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
         last_awarded_date = badge_earned.get(
             const.DATA_KID_BADGES_EARNED_LAST_AWARDED, const.SENTINEL_NONE
         )
-        award_count = badge_earned.get(
-            const.DATA_KID_BADGES_EARNED_AWARD_COUNT, const.DEFAULT_ZERO
+        # Phase 4B: Read award_count from periods.all_time.all_time (Lean Item pattern)
+        award_count = self.coordinator.statistics_manager.get_badge_award_count(
+            cast("dict[str, Any]", badge_earned)
         )
 
         # Build a dictionary with only the requested fields
