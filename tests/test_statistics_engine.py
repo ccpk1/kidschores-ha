@@ -17,14 +17,7 @@ from unittest.mock import patch
 import pytest
 
 from custom_components.kidschores import const
-from custom_components.kidschores.engines.statistics_engine import (
-    PERIOD_ALL_TIME,
-    PERIOD_DAILY,
-    PERIOD_MONTHLY,
-    PERIOD_WEEKLY,
-    PERIOD_YEARLY,
-    StatisticsEngine,
-)
+from custom_components.kidschores.engines.statistics_engine import StatisticsEngine
 
 
 @pytest.fixture
@@ -52,43 +45,43 @@ class TestGetPeriodKeys:
         """Should return keys for all period types."""
         keys = stats.get_period_keys(reference_date=date(2026, 1, 19))
 
-        assert PERIOD_DAILY in keys
-        assert PERIOD_WEEKLY in keys
-        assert PERIOD_MONTHLY in keys
-        assert PERIOD_YEARLY in keys
+        assert const.PERIOD_DAILY in keys
+        assert const.PERIOD_WEEKLY in keys
+        assert const.PERIOD_MONTHLY in keys
+        assert const.PERIOD_YEARLY in keys
 
     def test_daily_format(self, stats: StatisticsEngine) -> None:
         """Daily key should be YYYY-MM-DD format."""
         keys = stats.get_period_keys(reference_date=date(2026, 1, 19))
 
-        assert keys[PERIOD_DAILY] == "2026-01-19"
+        assert keys[const.PERIOD_DAILY] == "2026-01-19"
 
     def test_weekly_format(self, stats: StatisticsEngine) -> None:
         """Weekly key should be YYYY-WNN format."""
         # Jan 19, 2026 is in week 4 (ISO week number)
         keys = stats.get_period_keys(reference_date=date(2026, 1, 19))
 
-        assert keys[PERIOD_WEEKLY] == "2026-W04"
+        assert keys[const.PERIOD_WEEKLY] == "2026-W04"
 
     def test_monthly_format(self, stats: StatisticsEngine) -> None:
         """Monthly key should be YYYY-MM format."""
         keys = stats.get_period_keys(reference_date=date(2026, 1, 19))
 
-        assert keys[PERIOD_MONTHLY] == "2026-01"
+        assert keys[const.PERIOD_MONTHLY] == "2026-01"
 
     def test_yearly_format(self, stats: StatisticsEngine) -> None:
         """Yearly key should be YYYY format."""
         keys = stats.get_period_keys(reference_date=date(2026, 1, 19))
 
-        assert keys[PERIOD_YEARLY] == "2026"
+        assert keys[const.PERIOD_YEARLY] == "2026"
 
     def test_accepts_datetime(self, stats: StatisticsEngine) -> None:
         """Should accept datetime and extract date."""
         dt = datetime(2026, 7, 15, 14, 30, 0, tzinfo=UTC)
         keys = stats.get_period_keys(reference_date=dt)
 
-        assert keys[PERIOD_DAILY] == "2026-07-15"
-        assert keys[PERIOD_MONTHLY] == "2026-07"
+        assert keys[const.PERIOD_DAILY] == "2026-07-15"
+        assert keys[const.PERIOD_MONTHLY] == "2026-07"
 
     def test_none_uses_today(self, stats: StatisticsEngine) -> None:
         """None reference_date should use today."""
@@ -99,20 +92,20 @@ class TestGetPeriodKeys:
         ):
             keys = stats.get_period_keys(reference_date=None)
 
-        assert keys[PERIOD_DAILY] == "2026-03-10"
-        assert keys[PERIOD_MONTHLY] == "2026-03"
+        assert keys[const.PERIOD_DAILY] == "2026-03-10"
+        assert keys[const.PERIOD_MONTHLY] == "2026-03"
 
     def test_week_boundary_sunday(self, stats: StatisticsEngine) -> None:
         """Test week key at year end boundary."""
         # Dec 31, 2025 is Wednesday - ISO week 1 of 2026 (week starts Monday)
         keys = stats.get_period_keys(reference_date=date(2025, 12, 31))
-        assert keys[PERIOD_WEEKLY] == "2025-W01"
+        assert keys[const.PERIOD_WEEKLY] == "2025-W01"
 
     def test_week_boundary_new_year(self, stats: StatisticsEngine) -> None:
         """Test week key crossing into new year."""
         # Jan 1, 2026 is Thursday - still week 1 of 2026
         keys = stats.get_period_keys(reference_date=date(2026, 1, 1))
-        assert keys[PERIOD_WEEKLY] == "2026-W01"
+        assert keys[const.PERIOD_WEEKLY] == "2026-W01"
 
 
 class TestRecordTransaction:
@@ -229,7 +222,8 @@ class TestRecordTransaction:
             reference_date=date(2026, 1, 19),
         )
 
-        assert sample_period_data["all_time"]["points"] == 50
+        # all_time uses nested structure: all_time.all_time.{metric}
+        assert sample_period_data["all_time"]["all_time"]["points"] == 50
 
     def test_include_all_time_by_default(
         self, stats: StatisticsEngine, sample_period_data: dict[str, Any]
@@ -241,8 +235,8 @@ class TestRecordTransaction:
             reference_date=date(2026, 1, 19),
         )
 
-        # all_time should be updated by default
-        assert sample_period_data["all_time"]["points"] == 50
+        # all_time should be updated by default with nested structure
+        assert sample_period_data["all_time"]["all_time"]["points"] == 50
 
     def test_exclude_all_time_when_disabled(
         self, stats: StatisticsEngine, sample_period_data: dict[str, Any]
@@ -290,10 +284,10 @@ class TestRecordTransaction:
         """Should use custom key mapping when provided."""
         data: dict[str, Any] = {}
         custom_mapping = {
-            PERIOD_DAILY: "d",
-            PERIOD_WEEKLY: "w",
-            PERIOD_MONTHLY: "m",
-            PERIOD_YEARLY: "y",
+            const.PERIOD_DAILY: "d",
+            const.PERIOD_WEEKLY: "w",
+            const.PERIOD_MONTHLY: "m",
+            const.PERIOD_YEARLY: "y",
         }
 
         stats.record_transaction(
@@ -583,10 +577,10 @@ class TestPruneHistory:
             "d": {"2020-01-01": {"count": 1}},
         }
         custom_mapping = {
-            PERIOD_DAILY: "d",
-            PERIOD_WEEKLY: "w",
-            PERIOD_MONTHLY: "m",
-            PERIOD_YEARLY: "y",
+            const.PERIOD_DAILY: "d",
+            const.PERIOD_WEEKLY: "w",
+            const.PERIOD_MONTHLY: "m",
+            const.PERIOD_YEARLY: "y",
         }
 
         pruned = stats.prune_history(
@@ -645,7 +639,7 @@ class TestGetPeriodTotal:
             "_dt_today_local",
             return_value=date(2026, 1, 19),
         ):
-            result = stats.get_period_total(data, PERIOD_DAILY, "approved")
+            result = stats.get_period_total(data, const.PERIOD_DAILY, "approved")
 
         assert result == 5
 
@@ -655,7 +649,7 @@ class TestGetPeriodTotal:
             "all_time": {"total_points": 1500},
         }
 
-        result = stats.get_period_total(data, PERIOD_ALL_TIME, "total_points")
+        result = stats.get_period_total(data, const.PERIOD_ALL_TIME, "total_points")
 
         assert result == 1500
 
@@ -663,7 +657,7 @@ class TestGetPeriodTotal:
         """Should return 0 for missing metric."""
         data: dict[str, Any] = {"daily": {}}
 
-        result = stats.get_period_total(data, PERIOD_DAILY, "nonexistent")
+        result = stats.get_period_total(data, const.PERIOD_DAILY, "nonexistent")
 
         assert result == 0
 
@@ -677,7 +671,10 @@ class TestGetPeriodTotal:
         }
 
         result = stats.get_period_total(
-            data, PERIOD_MONTHLY, "sales", period_key="2025-12"
+            data,
+            const.PERIOD_MONTHLY,
+            "sales",
+            period_key="2025-12",
         )
 
         assert result == 50
@@ -741,8 +738,9 @@ class TestEdgeCases:
 
         # Verify results
         assert streak == 3
-        assert data["all_time"]["approved"] == 4
-        assert data["all_time"]["points"] == 50
+        # all_time uses nested structure: all_time.all_time.{metric}
+        assert data["all_time"]["all_time"]["approved"] == 4
+        assert data["all_time"]["all_time"]["points"] == 50
         assert data["daily"]["2026-01-19"]["approved"] == 2
 
     def test_negative_increments(
@@ -765,7 +763,8 @@ class TestEdgeCases:
             reference_date=date(2026, 1, 19),
         )
 
-        assert sample_period_data["all_time"]["points"] == 70
+        # all_time uses nested structure: all_time.all_time.{metric}
+        assert sample_period_data["all_time"]["all_time"]["points"] == 70
         assert sample_period_data["daily"]["2026-01-19"]["points"] == 70
 
     def test_dst_transition(self, stats: StatisticsEngine) -> None:

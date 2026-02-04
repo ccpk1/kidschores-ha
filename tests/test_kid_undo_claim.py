@@ -110,15 +110,16 @@ def get_chore_stats_disapproved(
 ) -> int:
     """Get all-time disapproved count from chore_data periods.
 
-    Stats are stored per-chore in chore_data[chore_id]["periods"]["all_time"]["disapproved"],
-    NOT in a top-level chore_stats aggregation.
+    Stats are stored per-chore in chore_data[chore_id]["periods"]["all_time"]["all_time"]["disapproved"].
+    The all_time structure uses nested all_time keys for consistency with other periods.
     """
     kid_data = coordinator.kids_data.get(kid_id, {})
     chore_data = kid_data.get(DATA_KID_CHORE_DATA, {})
     per_chore = chore_data.get(chore_id, {})
     periods = per_chore.get("periods", {})
-    all_time = periods.get("all_time", {})
-    return all_time.get("disapproved", 0)
+    all_time_container = periods.get("all_time", {})
+    all_time_data = all_time_container.get("all_time", {})
+    return all_time_data.get("disapproved", 0)
 
 
 def get_reward_pending_count(

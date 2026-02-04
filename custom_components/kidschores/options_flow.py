@@ -369,8 +369,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
             if not errors:
                 try:
-                    # Use UserManager for kid creation
-                    internal_id = coordinator.user_manager.create_kid(user_input)
+                    # Use UserManager for kid creation (immediate persist for reload)
+                    internal_id = coordinator.user_manager.create_kid(
+                        user_input, immediate_persist=True
+                    )
                     kid_name = user_input.get(
                         const.CFOF_KIDS_INPUT_KID_NAME, internal_id
                     )
@@ -422,9 +424,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     # Build merged kid data using data_builders
                     updated_kid = db.build_kid(user_input, existing=kid_data)
 
-                    # Use UserManager for kid update
+                    # Use UserManager for kid update (immediate persist for reload)
                     coordinator.user_manager.update_kid(
-                        str(internal_id), dict(updated_kid)
+                        str(internal_id), dict(updated_kid), immediate_persist=True
                     )
 
                     const.LOGGER.debug(
@@ -502,8 +504,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         kid_name = kids_dict[internal_id][const.DATA_KID_NAME]
 
         if user_input is not None:
-            # Use UserManager for kid deletion
-            coordinator.user_manager.delete_kid(str(internal_id))
+            # Use UserManager for kid deletion (immediate persist for reload)
+            coordinator.user_manager.delete_kid(
+                str(internal_id), immediate_persist=True
+            )
 
             const.LOGGER.debug("Deleted Kid '%s' with ID: %s", kid_name, internal_id)
             return await self.async_step_init()
@@ -534,7 +538,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             if not errors:
                 try:
                     # Use UserManager for parent creation (handles shadow kid internally)
-                    internal_id = coordinator.user_manager.create_parent(user_input)
+                    # Immediate persist for reload
+                    internal_id = coordinator.user_manager.create_parent(
+                        user_input, immediate_persist=True
+                    )
                     parent_name = user_input.get(
                         const.CFOF_PARENTS_INPUT_NAME, internal_id
                     )
@@ -642,8 +649,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                             )
 
                     # Use UserManager for parent update (handles shadow kid create/unlink)
+                    # Immediate persist for reload
                     coordinator.user_manager.update_parent(
-                        str(internal_id), dict(updated_parent)
+                        str(internal_id), dict(updated_parent), immediate_persist=True
                     )
 
                     const.LOGGER.debug(
@@ -725,8 +733,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         parent_name = parents_dict[internal_id][const.DATA_PARENT_NAME]
 
         if user_input is not None:
-            # Use UserManager for parent deletion
-            coordinator.user_manager.delete_parent(str(internal_id))
+            # Use UserManager for parent deletion (immediate persist for reload)
+            coordinator.user_manager.delete_parent(
+                str(internal_id), immediate_persist=True
+            )
 
             const.LOGGER.debug(
                 "Deleted Parent '%s' with ID: %s", parent_name, internal_id
@@ -871,7 +881,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     )
                     # Use Manager-owned CRUD (prebuilt=True since final_chore is ready)
                     coordinator.chore_manager.create_chore(
-                        final_chore, internal_id=internal_id, prebuilt=True
+                        final_chore,
+                        internal_id=internal_id,
+                        prebuilt=True,
+                        immediate_persist=True,
                     )
 
                     # CFE-2026-001 FIX: Single-kid DAILY_MULTI without times
@@ -900,7 +913,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 # Multiple kids: create chore, then show per-kid details helper
                 # Use Manager-owned CRUD (prebuilt=True since new_chore_data is ready)
                 coordinator.chore_manager.create_chore(
-                    new_chore_data, internal_id=internal_id, prebuilt=True
+                    new_chore_data,
+                    internal_id=internal_id,
+                    prebuilt=True,
+                    immediate_persist=True,
                 )
 
                 # Store chore data and template values for helper form
@@ -921,7 +937,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             if recurring_frequency == const.FREQUENCY_DAILY_MULTI:
                 # Use Manager-owned CRUD (prebuilt=True since new_chore_data is ready)
                 coordinator.chore_manager.create_chore(
-                    new_chore_data, internal_id=internal_id, prebuilt=True
+                    new_chore_data,
+                    internal_id=internal_id,
+                    prebuilt=True,
+                    immediate_persist=True,
                 )
 
                 # Store chore data for helper step
@@ -937,7 +956,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             # Standard chore creation (SHARED/SHARED_FIRST or no special handling)
             # Use Manager-owned CRUD (prebuilt=True since new_chore_data is ready)
             coordinator.chore_manager.create_chore(
-                new_chore_data, internal_id=internal_id, prebuilt=True
+                new_chore_data,
+                internal_id=internal_id,
+                prebuilt=True,
+                immediate_persist=True,
             )
 
             const.LOGGER.debug(
@@ -1022,7 +1044,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
             # Use Manager-owned CRUD (handles badge recalc and orphan cleanup)
             merged_chore = coordinator.chore_manager.update_chore(
-                str(internal_id), transformed_data
+                str(internal_id), transformed_data, immediate_persist=True
             )
 
             new_name = merged_chore.get(
@@ -1137,7 +1159,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
                     # Use Manager-owned CRUD for final update
                     final_chore = coordinator.chore_manager.update_chore(
-                        str(internal_id), single_kid_updates
+                        str(internal_id), single_kid_updates, immediate_persist=True
                     )
 
                     # CFE-2026-001 FIX: Single-kid DAILY_MULTI without times
@@ -1503,6 +1525,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     coordinator.chore_manager.update_chore(
                         str(internal_id),
                         {const.DATA_CHORE_PER_KID_DUE_DATES: per_kid_due_dates},
+                        immediate_persist=True,
                     )
                     const.LOGGER.debug(
                         "Updated per-kid due dates for chore %s: %s",
@@ -1779,7 +1802,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     chore_data[const.DATA_CHORE_DAILY_MULTI_TIMES] = None
 
                 # Use Manager-owned CRUD (handles badge recalc and orphan cleanup)
-                coordinator.chore_manager.update_chore(str(internal_id), chore_data)
+                coordinator.chore_manager.update_chore(
+                    str(internal_id), chore_data, immediate_persist=True
+                )
 
                 const.LOGGER.debug(
                     "Updated per-kid details for chore %s: days=%s, dates=%s",
@@ -1964,7 +1989,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 chore_data[const.DATA_CHORE_DAILY_MULTI_TIMES] = times_str
 
                 # Use Manager-owned CRUD (handles badge recalc and orphan cleanup)
-                coordinator.chore_manager.update_chore(str(internal_id), chore_data)
+                coordinator.chore_manager.update_chore(
+                    str(internal_id), chore_data, immediate_persist=True
+                )
 
                 const.LOGGER.info(
                     "Set daily multi times for chore '%s': %s",
@@ -2016,7 +2043,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
         if user_input is not None:
             # Use Manager-owned CRUD method
-            coordinator.chore_manager.delete_chore(str(internal_id))
+            coordinator.chore_manager.delete_chore(
+                str(internal_id), immediate_persist=True
+            )
 
             const.LOGGER.debug(
                 "Deleted Chore '%s' with ID: %s", chore_name, internal_id
@@ -2230,11 +2259,17 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 # Use Manager-owned CRUD methods (handles sync, recalc, persist)
                 if is_edit:
                     coordinator.gamification_manager.update_badge(
-                        str(internal_id), user_input, badge_type=badge_type
+                        str(internal_id),
+                        user_input,
+                        badge_type=badge_type,
+                        immediate_persist=True,
                     )
                 else:
                     coordinator.gamification_manager.create_badge(
-                        user_input, internal_id=internal_id, badge_type=badge_type
+                        user_input,
+                        internal_id=internal_id,
+                        badge_type=badge_type,
+                        immediate_persist=True,
                     )
 
                 const.LOGGER.debug(
@@ -2459,7 +2494,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
         if user_input is not None:
             # Use Manager-owned CRUD method
-            coordinator.gamification_manager.delete_badge(str(internal_id))
+            coordinator.gamification_manager.delete_badge(
+                str(internal_id), immediate_persist=True
+            )
 
             const.LOGGER.debug(
                 "Deleted Badge '%s' with ID: %s", badge_name, internal_id
@@ -2491,7 +2528,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             if not errors:
                 try:
                     # Use Manager-owned CRUD method
-                    reward_data = coordinator.reward_manager.create_reward(user_input)
+                    reward_data = coordinator.reward_manager.create_reward(
+                        user_input, immediate_persist=True
+                    )
 
                     const.LOGGER.debug(
                         "Added Reward '%s' with ID: %s",
@@ -2543,7 +2582,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 try:
                     # Use Manager-owned CRUD method
                     updated_reward = coordinator.reward_manager.update_reward(
-                        str(internal_id), user_input
+                        str(internal_id), user_input, immediate_persist=True
                     )
 
                     const.LOGGER.debug(
@@ -2602,7 +2641,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
         if user_input is not None:
             # Use Manager-owned CRUD method
-            coordinator.reward_manager.delete_reward(str(internal_id))
+            coordinator.reward_manager.delete_reward(
+                str(internal_id), immediate_persist=True
+            )
 
             const.LOGGER.debug(
                 "Deleted Reward '%s' with ID: %s", reward_name, internal_id
@@ -2646,7 +2687,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     ),
                 }
                 # Use Manager-owned CRUD method
-                bonus_data = coordinator.economy_manager.create_bonus(transformed_input)
+                bonus_data = coordinator.economy_manager.create_bonus(
+                    transformed_input, immediate_persist=True
+                )
 
                 bonus_name = user_input[const.CFOF_BONUSES_INPUT_NAME].strip()
                 const.LOGGER.debug(
@@ -2714,7 +2757,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 }
                 # Use Manager-owned CRUD method
                 coordinator.economy_manager.update_bonus(
-                    str(internal_id), transformed_input
+                    str(internal_id), transformed_input, immediate_persist=True
                 )
 
                 const.LOGGER.debug(
@@ -2767,7 +2810,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
         if user_input is not None:
             # Use Manager-owned CRUD method
-            coordinator.economy_manager.delete_bonus(str(internal_id))
+            coordinator.economy_manager.delete_bonus(
+                str(internal_id), immediate_persist=True
+            )
 
             const.LOGGER.debug(
                 "Deleted Bonus '%s' with ID: %s", bonus_name, internal_id
@@ -2814,7 +2859,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 }
                 # Use Manager-owned CRUD method
                 penalty_data = coordinator.economy_manager.create_penalty(
-                    transformed_input
+                    transformed_input, immediate_persist=True
                 )
 
                 penalty_name = user_input[const.CFOF_PENALTIES_INPUT_NAME].strip()
@@ -2902,7 +2947,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 }
                 # Use Manager-owned CRUD method
                 coordinator.economy_manager.update_penalty(
-                    str(internal_id), transformed_input
+                    str(internal_id), transformed_input, immediate_persist=True
                 )
 
                 const.LOGGER.debug(
@@ -2957,7 +3002,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
         if user_input is not None:
             # Use Manager-owned CRUD method
-            coordinator.economy_manager.delete_penalty(str(internal_id))
+            coordinator.economy_manager.delete_penalty(
+                str(internal_id), immediate_persist=True
+            )
 
             const.LOGGER.debug(
                 "Deleted Penalty '%s' with ID: %s", penalty_name, internal_id
@@ -3012,7 +3059,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
                     # Use GamificationManager for achievement creation
                     internal_id = coordinator.gamification_manager.create_achievement(
-                        data_input
+                        data_input, immediate_persist=True
                     )
                     achievement_name = data_input.get(
                         const.DATA_ACHIEVEMENT_NAME, internal_id
@@ -3104,7 +3151,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
                     # Use GamificationManager for achievement update
                     coordinator.gamification_manager.update_achievement(
-                        str(internal_id), data_input
+                        str(internal_id), data_input, immediate_persist=True
                     )
 
                     new_name = user_input[const.CFOF_ACHIEVEMENTS_INPUT_NAME].strip()
@@ -3206,7 +3253,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
         if user_input is not None:
             # Use Manager-owned CRUD method
-            coordinator.gamification_manager.delete_achievement(str(internal_id))
+            coordinator.gamification_manager.delete_achievement(
+                str(internal_id), immediate_persist=True
+            )
 
             const.LOGGER.debug(
                 "Deleted Achievement '%s' with ID: %s",
@@ -3310,7 +3359,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     if not errors:
                         # Use GamificationManager for challenge creation
                         internal_id = coordinator.gamification_manager.create_challenge(
-                            data_input
+                            data_input, immediate_persist=True
                         )
 
                         challenge_name = user_input[
@@ -3451,7 +3500,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     if not errors:
                         # Use GamificationManager for challenge update
                         coordinator.gamification_manager.update_challenge(
-                            str(internal_id), data_input
+                            str(internal_id), data_input, immediate_persist=True
                         )
 
                         new_name = user_input[const.CFOF_CHALLENGES_INPUT_NAME].strip()
@@ -3577,7 +3626,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
         if user_input is not None:
             # Use Manager-owned CRUD method
-            coordinator.gamification_manager.delete_challenge(str(internal_id))
+            coordinator.gamification_manager.delete_challenge(
+                str(internal_id), immediate_persist=True
+            )
 
             const.LOGGER.debug(
                 "Deleted Challenge '%s' with ID: %s", challenge_name, internal_id

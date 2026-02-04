@@ -213,7 +213,7 @@ DEFAULT_TIME_ZONE: ZoneInfo | None = None
 # Schema version for config→storage migration
 DATA_SCHEMA_VERSION: Final = "schema_version"
 SCHEMA_VERSION_STORAGE_ONLY: Final = (
-    43  # v50: Storage-only mode aligns with v0.5.0 (schemas 43-49 skipped)
+    43  # v50: Storage-only mode aligns with v0.5.0-beta3 (schema 43)
 )
 
 # Float precision for stored numeric values (points, chore stats, etc.)
@@ -308,6 +308,12 @@ FREQUENCY_YEARLY: Final = "yearly"
 
 # Periods
 PERIOD_ALL_TIME: Final = "all_time"
+PERIOD_DAILY: Final = "daily"
+PERIOD_WEEKLY: Final = "weekly"
+PERIOD_MONTHLY: Final = "monthly"
+PERIOD_YEARLY: Final = "yearly"
+
+# Period end markers
 PERIOD_DAY_END: Final = "day_end"
 PERIOD_MONTH_END: Final = "month_end"
 PERIOD_QUARTER_END: Final = "quarter_end"
@@ -881,100 +887,18 @@ DATA_KID_CHORE_DATA_PERIOD_OVERDUE: Final = "overdue"
 DATA_KID_CHORE_DATA_PERIOD_POINTS: Final = "points"
 DATA_KID_CHORE_DATA_BADGE_REFS: Final = "badge_refs"
 
-# Chore Stats Keys
-DATA_KID_CHORE_STATS: Final = "chore_stats"
+# Chore Periods (Global Bucket) - v44+ (Phase 2)
+DATA_KID_CHORE_PERIODS: Final = "chore_periods"
+# Chore periods use the same bucket keys as chore_data periods
+# (daily, weekly, monthly, yearly, all_time) - see DATA_KID_CHORE_DATA_PERIODS_*
 
-# --- Approval Counts = Completion Counts ---
-# NOTE: *_TODAY/*_WEEK/*_MONTH/*_YEAR keys are computed at runtime by statistics_engine.py
-# but NOT persisted to storage (Phase 7.5: Derivative Data is Ephemeral).
-# Only *_ALL_TIME keys are persisted. Temporal values live in StatisticsManager cache.
-DATA_KID_CHORE_STATS_APPROVED_TODAY: Final = "approved_today"
-DATA_KID_CHORE_STATS_APPROVED_WEEK: Final = "approved_week"
-DATA_KID_CHORE_STATS_APPROVED_MONTH: Final = "approved_month"
-DATA_KID_CHORE_STATS_APPROVED_YEAR: Final = "approved_year"
-DATA_KID_CHORE_STATS_APPROVED_ALL_TIME: Final = "approved_all_time"
+# NOTE: DATA_KID_CHORE_STATS and all sub-keys (DATA_KID_CHORE_STATS_*) have been
+# DELETED as of v0.5.0-beta3 (schema v43). The chore_stats storage bucket was
+# removed - all stats are now derived from chore_periods.all_time and
+# chore_data[uuid].periods buckets. See _LEGACY constants at end of file.
 
-# --- Completed Counts (Work Date Tracking) ---
-# NOTE: "completed" tracks when work was DONE (claim date), not when approved.
-# This enables parent-lag-proof statistics - kids get credit for the day they did the work.
-# *_TODAY/*_WEEK/*_MONTH/*_YEAR keys are computed at runtime but NOT persisted (Phase 7.5).
-DATA_KID_CHORE_STATS_COMPLETED_TODAY: Final = "completed_today"
-DATA_KID_CHORE_STATS_COMPLETED_WEEK: Final = "completed_week"
-DATA_KID_CHORE_STATS_COMPLETED_MONTH: Final = "completed_month"
-DATA_KID_CHORE_STATS_COMPLETED_YEAR: Final = "completed_year"
-DATA_KID_CHORE_STATS_COMPLETED_ALL_TIME: Final = "completed_all_time"
-
-# --- Most Completed Chore ---
-DATA_KID_CHORE_STATS_MOST_COMPLETED_CHORE_ALL_TIME: Final = (
-    "most_completed_chore_all_time"
-)
-DATA_KID_CHORE_STATS_MOST_COMPLETED_CHORE_WEEK: Final = "most_completed_chore_week"
-DATA_KID_CHORE_STATS_MOST_COMPLETED_CHORE_MONTH: Final = "most_completed_chore_month"
-DATA_KID_CHORE_STATS_MOST_COMPLETED_CHORE_YEAR: Final = "most_completed_chore_year"
-
-# --- Last Completion Date ---
+# --- Last Completion Date (lives in chore_data, NOT in deleted chore_stats) ---
 DATA_KID_CHORE_DATA_APPROVED_LAST_DATE: Final = "approved_last_date"
-
-# --- Total Points from Chores ---
-# NOTE: *_TODAY/*_WEEK/*_MONTH/*_YEAR keys are NOT persisted (Phase 7.5).
-DATA_KID_CHORE_STATS_TOTAL_POINTS_FROM_CHORES_TODAY: Final = (
-    "total_points_from_chores_today"
-)
-DATA_KID_CHORE_STATS_TOTAL_POINTS_FROM_CHORES_WEEK: Final = (
-    "total_points_from_chores_week"
-)
-DATA_KID_CHORE_STATS_TOTAL_POINTS_FROM_CHORES_MONTH: Final = (
-    "total_points_from_chores_month"
-)
-DATA_KID_CHORE_STATS_TOTAL_POINTS_FROM_CHORES_YEAR: Final = (
-    "total_points_from_chores_year"
-)
-DATA_KID_CHORE_STATS_TOTAL_POINTS_FROM_CHORES_ALL_TIME = (
-    "total_points_from_chores_all_time"
-)
-
-# --- Overdue Counts ---
-# NOTE: *_TODAY/*_WEEK/*_MONTH/*_YEAR keys are NOT persisted (Phase 7.5).
-DATA_KID_CHORE_STATS_OVERDUE_TODAY: Final = "overdue_today"
-DATA_KID_CHORE_STATS_OVERDUE_WEEK: Final = "overdue_week"
-DATA_KID_CHORE_STATS_OVERDUE_MONTH: Final = "overdue_month"
-DATA_KID_CHORE_STATS_OVERDUE_YEAR: Final = "overdue_year"
-DATA_KID_CHORE_STATS_OVERDUE_ALL_TIME: Final = "overdue_count_all_time"
-
-# --- Claimed Counts ---
-# NOTE: *_TODAY/*_WEEK/*_MONTH/*_YEAR keys are computed at runtime but NOT persisted (Phase 7.5).
-DATA_KID_CHORE_STATS_CLAIMED_TODAY: Final = "claimed_today"
-DATA_KID_CHORE_STATS_CLAIMED_WEEK: Final = "claimed_week"
-DATA_KID_CHORE_STATS_CLAIMED_MONTH: Final = "claimed_month"
-DATA_KID_CHORE_STATS_CLAIMED_YEAR: Final = "claimed_year"
-DATA_KID_CHORE_STATS_CLAIMED_ALL_TIME: Final = "claimed_all_time"
-
-# --- Claimed but Not Approved ---
-# NOTE: *_TODAY/*_WEEK/*_MONTH/*_YEAR keys are NOT persisted (Phase 7.5).
-DATA_KID_CHORE_STATS_DISAPPROVED_TODAY: Final = "disapproved_today"
-DATA_KID_CHORE_STATS_DISAPPROVED_WEEK: Final = "disapproved_week"
-DATA_KID_CHORE_STATS_DISAPPROVED_MONTH: Final = "disapproved_month"
-DATA_KID_CHORE_STATS_DISAPPROVED_YEAR: Final = "disapproved_year"
-DATA_KID_CHORE_STATS_DISAPPROVED_ALL_TIME: Final = "disapproved_all_time"
-
-# --- Chores Current Stats ---
-# NOTE: current_* keys are NOT persisted (Phase 7.5) - they're point-in-time snapshots.
-DATA_KID_CHORE_STATS_CURRENT_DUE_TODAY: Final = "current_due_today"
-DATA_KID_CHORE_STATS_CURRENT_OVERDUE: Final = "current_overdue"
-DATA_KID_CHORE_STATS_CURRENT_CLAIMED: Final = "current_claimed"
-DATA_KID_CHORE_STATS_CURRENT_APPROVED: Final = "current_approved"
-
-# --- Longest Streaks ---
-# NOTE: *_WEEK/*_MONTH/*_YEAR keys are NOT persisted (Phase 7.5). Only *_ALL_TIME is persisted.
-DATA_KID_CHORE_STATS_LONGEST_STREAK_WEEK: Final = "longest_streak_week"
-DATA_KID_CHORE_STATS_LONGEST_STREAK_MONTH: Final = "longest_streak_month"
-DATA_KID_CHORE_STATS_LONGEST_STREAK_YEAR: Final = "longest_streak_year"
-DATA_KID_CHORE_STATS_LONGEST_STREAK_ALL_TIME: Final = "longest_streak_all_time"
-
-# --- Average Chores Per Day ---
-# NOTE: avg_per_day_* keys are NOT persisted (Phase 7.5).
-DATA_KID_CHORE_STATS_AVG_PER_DAY_MONTH: Final = "avg_per_day_month"
-DATA_KID_CHORE_STATS_AVG_PER_DAY_WEEK: Final = "avg_per_day_week"
 
 
 # --- Badge Progress Tracking ---
@@ -1028,12 +952,10 @@ DATA_KID_HA_USER_ID: Final = "ha_user_id"
 DATA_KID_ID: Final = "kid_id"
 DATA_KID_INTERNAL_ID: Final = "internal_id"
 DATA_KID_LAST_BADGE_RESET: Final = "last_badge_reset"
-DATA_KID_LAST_CHORE_DATE: Final = "last_chore_date"
 DATA_KID_LAST_STREAK_DATE: Final = "last_date"
 DATA_KID_MOBILE_NOTIFY_SERVICE: Final = "mobile_notify_service"
 DATA_KID_NAME: Final = "name"
 # NOTE: DATA_KID_OVERDUE_CHORES removed - dead code, see DATA_KID_OVERDUE_CHORES_LEGACY
-DATA_KID_OVERALL_CHORE_STREAK: Final = "overall_chore_streak"
 DATA_KID_PENALTY_APPLIES: Final = "penalty_applies"
 DATA_KID_POINTS: Final = "points"
 DATA_KID_POINTS_MULTIPLIER: Final = "points_multiplier"
@@ -1140,18 +1062,15 @@ DASHBOARD_TRANSLATIONS_DIR: Final = CUSTOM_TRANSLATIONS_DIR
 # Kid Point History Data Structure
 # ——————————————————————————————————————————————
 
-# Top‑level key for storing period‑by‑period point history
-DATA_KID_POINT_DATA: Final = "point_data"
-
-# Sub‑section containing all period buckets
-DATA_KID_POINT_DATA_PERIODS: Final = "periods"
+# Top‑level key for storing period‑by‑period point history (v43+)
+DATA_KID_POINT_PERIODS: Final = "point_periods"
 
 # Individual period buckets
-DATA_KID_POINT_DATA_PERIODS_DAILY: Final = "daily"
-DATA_KID_POINT_DATA_PERIODS_WEEKLY: Final = "weekly"
-DATA_KID_POINT_DATA_PERIODS_MONTHLY: Final = "monthly"
-DATA_KID_POINT_DATA_PERIODS_YEARLY: Final = "yearly"
-DATA_KID_POINT_DATA_PERIODS_ALL_TIME: Final = "all_time"
+DATA_KID_POINT_PERIODS_DAILY: Final = "daily"
+DATA_KID_POINT_PERIODS_WEEKLY: Final = "weekly"
+DATA_KID_POINT_PERIODS_MONTHLY: Final = "monthly"
+DATA_KID_POINT_PERIODS_YEARLY: Final = "yearly"
+DATA_KID_POINT_PERIODS_ALL_TIME: Final = "all_time"
 
 # Within each period entry:
 #   – points_earned: sum of positive deltas (v44+)
@@ -1159,13 +1078,10 @@ DATA_KID_POINT_DATA_PERIODS_ALL_TIME: Final = "all_time"
 #   – by_source: breakdown of delta by source type
 #   – highest_balance: cumulative peak (all_time bucket only, v44+)
 # DEPRECATED (v44): points_total will be deleted after migration
-DATA_KID_POINT_DATA_PERIOD_POINTS_EARNED: Final = "points_earned"
-DATA_KID_POINT_DATA_PERIOD_POINTS_SPENT: Final = "points_spent"
-DATA_KID_POINT_DATA_PERIOD_HIGHEST_BALANCE: Final = "highest_balance"
-DATA_KID_POINT_DATA_PERIOD_BY_SOURCE: Final = "by_source"
-DATA_KID_POINT_DATA_PERIOD_POINTS_TOTAL_LEGACY: Final = (
-    "points_total"  # LEGACY: Migration only - use earned+spent
-)
+DATA_KID_POINT_PERIOD_POINTS_EARNED: Final = "points_earned"
+DATA_KID_POINT_PERIOD_POINTS_SPENT: Final = "points_spent"
+DATA_KID_POINT_PERIOD_HIGHEST_BALANCE: Final = "highest_balance"
+DATA_KID_POINT_PERIOD_BY_SOURCE: Final = "by_source"
 
 # Point Sources
 # --- Point Source Types (all plural) ---
@@ -1192,86 +1108,6 @@ POINTS_SOURCE_OPTIONS = [
     {"value": POINTS_SOURCE_OTHER, "label": "Other"},
 ]
 
-# --- Kid Point Stats (modeled after chore stats) ---
-# LEGACY (v44): Entire point_stats structure will be deleted - data moved to periods.all_time
-DATA_KID_POINT_STATS_LEGACY: Final = "point_stats"
-
-# --- Per-period totals ---
-# NOTE: *_TODAY/*_WEEK/*_MONTH/*_YEAR keys are computed at runtime by statistics_engine.py
-# but NOT persisted to storage (Phase 7.5: Derivative Data is Ephemeral).
-# Only *_ALL_TIME keys are persisted. Temporal values live in StatisticsManager cache.
-# LEGACY (v44): All point_stats fields will be deleted - use period buckets instead
-DATA_KID_POINT_STATS_EARNED_TODAY_LEGACY: Final = (
-    "points_earned_today"  # Use periods.daily.*
-)
-DATA_KID_POINT_STATS_EARNED_WEEK_LEGACY: Final = (
-    "points_earned_week"  # Use periods.weekly.*
-)
-DATA_KID_POINT_STATS_EARNED_MONTH_LEGACY: Final = (
-    "points_earned_month"  # Use periods.monthly.*
-)
-DATA_KID_POINT_STATS_EARNED_YEAR_LEGACY: Final = (
-    "points_earned_year"  # Use periods.yearly.*
-)
-DATA_KID_POINT_STATS_EARNED_ALL_TIME_LEGACY: Final = (
-    "points_earned_all_time"  # Use periods.all_time.all_time.points_earned
-)
-
-# --- Per-period by-source breakdowns ---
-# NOTE: *_TODAY/*_WEEK/*_MONTH/*_YEAR keys are NOT persisted (Phase 7.5).
-# LEGACY (v44): All point_stats fields will be deleted - use period buckets instead
-DATA_KID_POINT_STATS_BY_SOURCE_TODAY_LEGACY: Final = (
-    "points_by_source_today"  # Use periods.daily.*.by_source
-)
-DATA_KID_POINT_STATS_BY_SOURCE_WEEK_LEGACY: Final = (
-    "points_by_source_week"  # Use periods.weekly.*.by_source
-)
-DATA_KID_POINT_STATS_BY_SOURCE_MONTH_LEGACY: Final = (
-    "points_by_source_month"  # Use periods.monthly.*.by_source
-)
-DATA_KID_POINT_STATS_BY_SOURCE_YEAR_LEGACY: Final = (
-    "points_by_source_year"  # Use periods.yearly.*.by_source
-)
-DATA_KID_POINT_STATS_BY_SOURCE_ALL_TIME_LEGACY: Final = (
-    "points_by_source_all_time"  # Use periods.all_time.all_time.by_source
-)
-
-# --- Per-period spent (negative deltas) ---
-# NOTE: *_TODAY/*_WEEK/*_MONTH/*_YEAR keys are NOT persisted (Phase 7.5).
-# LEGACY (v44): All point_stats fields will be deleted - use period buckets instead
-DATA_KID_POINT_STATS_SPENT_TODAY_LEGACY: Final = (
-    "points_spent_today"  # Use periods.daily.*.points_spent
-)
-DATA_KID_POINT_STATS_SPENT_WEEK_LEGACY: Final = (
-    "points_spent_week"  # Use periods.weekly.*.points_spent
-)
-DATA_KID_POINT_STATS_SPENT_MONTH_LEGACY: Final = (
-    "points_spent_month"  # Use periods.monthly.*.points_spent
-)
-DATA_KID_POINT_STATS_SPENT_YEAR_LEGACY: Final = (
-    "points_spent_year"  # Use periods.yearly.*.points_spent
-)
-DATA_KID_POINT_STATS_SPENT_ALL_TIME_LEGACY: Final = (
-    "points_spent_all_time"  # Use periods.all_time.all_time.points_spent
-)
-
-# --- Per-period net (earned - spent) ---
-# NOTE: *_TODAY/*_WEEK/*_MONTH/*_YEAR keys are NOT persisted (Phase 7.5).
-# LEGACY (v44): All point_stats fields DERIVED - never stored, calculate as earned + spent
-DATA_KID_POINT_STATS_NET_TODAY_LEGACY: Final = "points_net_today"  # DERIVED: periods.daily.*.points_earned + periods.daily.*.points_spent
-DATA_KID_POINT_STATS_NET_WEEK_LEGACY: Final = "points_net_week"  # DERIVED: periods.weekly.*.points_earned + periods.weekly.*.points_spent
-DATA_KID_POINT_STATS_NET_MONTH_LEGACY: Final = "points_net_month"  # DERIVED: periods.monthly.*.points_earned + periods.monthly.*.points_spent
-DATA_KID_POINT_STATS_NET_YEAR_LEGACY: Final = "points_net_year"  # DERIVED: periods.yearly.*.points_earned + periods.yearly.*.points_spent
-DATA_KID_POINT_STATS_NET_ALL_TIME_LEGACY: Final = "points_net_all_time"  # DERIVED: periods.all_time.all_time.points_earned + periods.all_time.all_time.points_spent
-
-# --- Streaks (days with positive points) ---
-# LEGACY (v44): All point_stats fields will be deleted - move to PRES_* cache or period data
-DATA_KID_POINT_STATS_EARNING_STREAK_CURRENT_LEGACY: Final = (
-    "points_earning_streak_current"  # TODO: Move to PRES_* cache
-)
-DATA_KID_POINT_STATS_EARNING_STREAK_LONGEST_LEGACY: Final = (
-    "points_earning_streak_longest"  # TODO: Move to period data
-)
 
 # --- Averages ---
 # NOTE: avg_*_week/month keys are NOT persisted (Phase 7.5). avg_per_chore is persisted.
@@ -1367,9 +1203,13 @@ PRES_KID_CHORES_POINTS_MONTH: Final = "pres_kid_chores_points_month"
 PRES_KID_CHORES_POINTS_YEAR: Final = "pres_kid_chores_points_year"
 PRES_KID_CHORES_POINTS_ALL_TIME: Final = "pres_kid_chores_points_all_time"
 
+PRES_KID_CHORES_AVG_PER_DAY_WEEK: Final = "pres_kid_chores_avg_per_day_week"
+PRES_KID_CHORES_AVG_PER_DAY_MONTH: Final = "pres_kid_chores_avg_per_day_month"
+PRES_KID_CHORES_AVG_PER_DAY_YEAR: Final = "pres_kid_chores_avg_per_day_year"
+
 PRES_KID_TOP_CHORES_WEEK: Final = "pres_kid_top_chores_week"
 PRES_KID_TOP_CHORES_MONTH: Final = "pres_kid_top_chores_month"
-PRES_KID_TOP_CHORES_ALL_TIME: Final = "pres_kid_top_chores_all_time"
+PRES_KID_TOP_CHORES_YEAR: Final = "pres_kid_top_chores_year"
 
 # --- Presentation: Snapshot Counts (current state, not historical) ---
 # These are volatile counts of chores in specific states RIGHT NOW.
@@ -2118,7 +1958,7 @@ ATTR_CHORE_APPROVALS_TODAY: Final = "chore_approvals_today"
 ATTR_CHORE_CLAIMS_COUNT: Final = "chore_claims_count"
 ATTR_CHORE_COMPLETED_COUNT: Final = "chore_completed_count"
 ATTR_CHORE_CURRENT_STREAK: Final = "chore_current_streak"
-ATTR_CHORE_HIGHEST_STREAK: Final = "chore_highest_streak"
+ATTR_CHORE_LONGEST_STREAK: Final = "chore_longest_streak"
 ATTR_CHORE_POINTS_EARNED: Final = "chore_points_earned"
 ATTR_CHORE_OVERDUE_COUNT: Final = "chore_overdue_count"
 ATTR_CHORE_DISAPPROVED_COUNT: Final = "chore_disapproved_count"
@@ -4021,6 +3861,14 @@ DATA_KID_OVERDUE_NOTIFICATIONS_LEGACY: Final = (
     "overdue_notifications"  # LEGACY: Dead code, pop from storage
 )
 
+# Chore Fields (v0.5.0): Obsolete fields that were never used in v0.5.0+
+DATA_CHORE_ASSIGNED_TO_LEGACY: Final = (
+    "assigned_to"  # LEGACY: Never used, replaced by assigned_kids
+)
+DATA_CHORE_LAST_OVERDUE_NOTIFICATION_LEGACY: Final = (
+    "last_overdue_notification"  # LEGACY: Superseded by DATA_NOTIFICATIONS bucket
+)
+
 
 # KC 4.x Beta Cleanup (removed in schema v42)
 # Used in coordinator._migrate_*() functions to clean up deprecated keys from KC 4.x beta
@@ -4047,6 +3895,122 @@ DATA_BADGE_THRESHOLD_TYPE_LEGACY = (
 DATA_BADGE_THRESHOLD_VALUE_LEGACY = (
     "threshold_value"  # Read in _migrate_badge_schema(), deleted after
 )
+
+# Point Data Migration (v42→v43 - used in _migrate_point_periods_v43())
+# v42 used nested point_data.periods structure; v43+ uses flat point_periods
+DATA_KID_POINT_DATA_LEGACY: Final = (
+    "point_data"  # v42 top-level key → v43+ use DATA_KID_POINT_PERIODS
+)
+DATA_KID_POINT_DATA_PERIODS_LEGACY: Final = (
+    "periods"  # v42 nested key → v43+ flat structure
+)
+DATA_KID_POINT_DATA_PERIOD_POINTS_TOTAL_LEGACY: Final = (
+    "points_total"  # v42 NET value → v43+ use earned+spent
+)
+
+# Point Stats Migration (v43→v44 - used in point_stats consolidation)
+# v43 had separate point_stats bucket; v44+ moves all data to point_periods.all_time
+DATA_KID_POINT_STATS_LEGACY: Final = "point_stats"
+DATA_KID_POINT_STATS_EARNED_TODAY_LEGACY: Final = "points_earned_today"
+DATA_KID_POINT_STATS_EARNED_WEEK_LEGACY: Final = "points_earned_week"
+DATA_KID_POINT_STATS_EARNED_MONTH_LEGACY: Final = "points_earned_month"
+DATA_KID_POINT_STATS_EARNED_YEAR_LEGACY: Final = "points_earned_year"
+DATA_KID_POINT_STATS_EARNED_ALL_TIME_LEGACY: Final = "points_earned_all_time"
+DATA_KID_POINT_STATS_BY_SOURCE_TODAY_LEGACY: Final = "points_by_source_today"
+DATA_KID_POINT_STATS_BY_SOURCE_WEEK_LEGACY: Final = "points_by_source_week"
+DATA_KID_POINT_STATS_BY_SOURCE_MONTH_LEGACY: Final = "points_by_source_month"
+DATA_KID_POINT_STATS_BY_SOURCE_YEAR_LEGACY: Final = "points_by_source_year"
+DATA_KID_POINT_STATS_BY_SOURCE_ALL_TIME_LEGACY: Final = "points_by_source_all_time"
+DATA_KID_POINT_STATS_SPENT_TODAY_LEGACY: Final = "points_spent_today"
+DATA_KID_POINT_STATS_SPENT_WEEK_LEGACY: Final = "points_spent_week"
+DATA_KID_POINT_STATS_SPENT_MONTH_LEGACY: Final = "points_spent_month"
+DATA_KID_POINT_STATS_SPENT_YEAR_LEGACY: Final = "points_spent_year"
+DATA_KID_POINT_STATS_SPENT_ALL_TIME_LEGACY: Final = "points_spent_all_time"
+DATA_KID_POINT_STATS_NET_TODAY_LEGACY: Final = "points_net_today"
+DATA_KID_POINT_STATS_NET_WEEK_LEGACY: Final = "points_net_week"
+DATA_KID_POINT_STATS_NET_MONTH_LEGACY: Final = "points_net_month"
+DATA_KID_POINT_STATS_NET_YEAR_LEGACY: Final = "points_net_year"
+DATA_KID_POINT_STATS_NET_ALL_TIME_LEGACY: Final = "points_net_all_time"
+DATA_KID_POINT_STATS_EARNING_STREAK_CURRENT_LEGACY: Final = (
+    "points_earning_streak_current"
+)
+DATA_KID_POINT_STATS_EARNING_STREAK_LONGEST_LEGACY: Final = (
+    "points_earning_streak_longest"
+)
+
+# Chore Stats Migration (v43→v44 - used in chore_periods consolidation Phase 2)
+# v43 had separate chore_stats bucket; v44+ moves all data to chore_periods bucket
+# Individual chore items also had total_points field that duplicated periods.all_time.points
+DATA_KID_CHORE_STATS_LEGACY: Final = "chore_stats"
+DATA_CHORE_TOTAL_POINTS_LEGACY: Final = (
+    "total_points"  # Removed from chore items in v44+
+)
+
+# Chore stats sub-keys (all removed in v44+ when chore_stats dict deleted)
+# Temporal keys (*_TODAY/*_WEEK/*_MONTH/*_YEAR) were ephemeral (not persisted)
+# All data now lives in chore_periods bucket with same period structure as per-chore periods
+DATA_KID_CHORE_STATS_APPROVED_TODAY_LEGACY: Final = "approved_today"
+DATA_KID_CHORE_STATS_APPROVED_WEEK_LEGACY: Final = "approved_week"
+DATA_KID_CHORE_STATS_APPROVED_MONTH_LEGACY: Final = "approved_month"
+DATA_KID_CHORE_STATS_APPROVED_YEAR_LEGACY: Final = "approved_year"
+DATA_KID_CHORE_STATS_APPROVED_ALL_TIME_LEGACY: Final = "approved_all_time"
+DATA_KID_CHORE_STATS_COMPLETED_TODAY_LEGACY: Final = "completed_today"
+DATA_KID_CHORE_STATS_COMPLETED_WEEK_LEGACY: Final = "completed_week"
+DATA_KID_CHORE_STATS_COMPLETED_MONTH_LEGACY: Final = "completed_month"
+DATA_KID_CHORE_STATS_COMPLETED_YEAR_LEGACY: Final = "completed_year"
+DATA_KID_CHORE_STATS_COMPLETED_ALL_TIME_LEGACY: Final = "completed_all_time"
+DATA_KID_CHORE_STATS_MOST_COMPLETED_CHORE_ALL_TIME_LEGACY: Final = (
+    "most_completed_chore_all_time"
+)
+DATA_KID_CHORE_STATS_MOST_COMPLETED_CHORE_WEEK_LEGACY: Final = (
+    "most_completed_chore_week"
+)
+DATA_KID_CHORE_STATS_MOST_COMPLETED_CHORE_MONTH_LEGACY: Final = (
+    "most_completed_chore_month"
+)
+DATA_KID_CHORE_STATS_MOST_COMPLETED_CHORE_YEAR_LEGACY: Final = (
+    "most_completed_chore_year"
+)
+DATA_KID_CHORE_STATS_TOTAL_POINTS_FROM_CHORES_TODAY_LEGACY: Final = (
+    "total_points_from_chores_today"
+)
+DATA_KID_CHORE_STATS_TOTAL_POINTS_FROM_CHORES_WEEK_LEGACY: Final = (
+    "total_points_from_chores_week"
+)
+DATA_KID_CHORE_STATS_TOTAL_POINTS_FROM_CHORES_MONTH_LEGACY: Final = (
+    "total_points_from_chores_month"
+)
+DATA_KID_CHORE_STATS_TOTAL_POINTS_FROM_CHORES_YEAR_LEGACY: Final = (
+    "total_points_from_chores_year"
+)
+DATA_KID_CHORE_STATS_TOTAL_POINTS_FROM_CHORES_ALL_TIME_LEGACY: Final = (
+    "total_points_from_chores_all_time"
+)
+DATA_KID_CHORE_STATS_OVERDUE_TODAY_LEGACY: Final = "overdue_today"
+DATA_KID_CHORE_STATS_OVERDUE_WEEK_LEGACY: Final = "overdue_week"
+DATA_KID_CHORE_STATS_OVERDUE_MONTH_LEGACY: Final = "overdue_month"
+DATA_KID_CHORE_STATS_OVERDUE_YEAR_LEGACY: Final = "overdue_year"
+DATA_KID_CHORE_STATS_OVERDUE_ALL_TIME_LEGACY: Final = "overdue_count_all_time"
+DATA_KID_CHORE_STATS_CLAIMED_TODAY_LEGACY: Final = "claimed_today"
+DATA_KID_CHORE_STATS_CLAIMED_WEEK_LEGACY: Final = "claimed_week"
+DATA_KID_CHORE_STATS_CLAIMED_MONTH_LEGACY: Final = "claimed_month"
+DATA_KID_CHORE_STATS_CLAIMED_YEAR_LEGACY: Final = "claimed_year"
+DATA_KID_CHORE_STATS_CLAIMED_ALL_TIME_LEGACY: Final = "claimed_all_time"
+DATA_KID_CHORE_STATS_DISAPPROVED_TODAY_LEGACY: Final = "disapproved_today"
+DATA_KID_CHORE_STATS_DISAPPROVED_WEEK_LEGACY: Final = "disapproved_week"
+DATA_KID_CHORE_STATS_DISAPPROVED_MONTH_LEGACY: Final = "disapproved_month"
+DATA_KID_CHORE_STATS_DISAPPROVED_YEAR_LEGACY: Final = "disapproved_year"
+DATA_KID_CHORE_STATS_DISAPPROVED_ALL_TIME_LEGACY: Final = "disapproved_all_time"
+DATA_KID_CHORE_STATS_LONGEST_STREAK_WEEK_LEGACY: Final = "longest_streak_week"
+DATA_KID_CHORE_STATS_LONGEST_STREAK_MONTH_LEGACY: Final = "longest_streak_month"
+DATA_KID_CHORE_STATS_LONGEST_STREAK_YEAR_LEGACY: Final = "longest_streak_year"
+DATA_KID_CHORE_STATS_LONGEST_STREAK_ALL_TIME_LEGACY: Final = "longest_streak_all_time"
+DATA_KID_CHORE_STATS_AVG_PER_DAY_WEEK_LEGACY: Final = "avg_per_day_week"
+DATA_KID_CHORE_STATS_AVG_PER_DAY_MONTH_LEGACY: Final = "avg_per_day_month"
+DATA_KID_CHORE_STATS_CURRENT_DUE_TODAY_LEGACY: Final = "current_due_today"
+DATA_KID_CHORE_STATS_CURRENT_OVERDUE_LEGACY: Final = "current_overdue"
+DATA_KID_CHORE_STATS_CURRENT_CLAIMED_LEGACY: Final = "current_claimed"
+DATA_KID_CHORE_STATS_CURRENT_APPROVED_LEGACY: Final = "current_approved"
 
 # Entity UID Suffix Migration (v0.5.1 - used in async_migrate_uid_suffixes_v0_5_1())
 # These suffixes were used in KC 3.x/4.x; entities are cleaned up via migration

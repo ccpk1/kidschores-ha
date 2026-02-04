@@ -390,6 +390,7 @@ class RewardManager(BaseManager):
         self.coordinator._persist()
 
         # Emit event for NotificationManager to send notifications
+        # StatisticsManager._on_reward_claimed handles cache refresh and entity notification
         self.emit(
             const.SIGNAL_SUFFIX_REWARD_CLAIMED,
             kid_id=kid_id,
@@ -399,8 +400,6 @@ class RewardManager(BaseManager):
             actions=actions,
             extra_data=extra_data,
         )
-
-        self.coordinator.async_set_updated_data(self.coordinator._data)
 
     # =========================================================================
     # Public API: Approve
@@ -508,6 +507,7 @@ class RewardManager(BaseManager):
 
         # Emit event - EconomyManager handles point withdrawal, NotificationManager sends notification
         # (Platinum Architecture: signal-first, no cross-manager writes)
+        # StatisticsManager._on_reward_approved handles cache refresh and entity notification
         self.emit(
             const.SIGNAL_SUFFIX_REWARD_APPROVED,
             kid_id=kid_id,
@@ -515,8 +515,6 @@ class RewardManager(BaseManager):
             reward_name=reward_info[const.DATA_REWARD_NAME],
             cost=cost,  # EconomyManager deducts points
         )
-
-        self.coordinator.async_set_updated_data(self.coordinator._data)
 
     def _grant_to_kid(
         self,
@@ -660,14 +658,13 @@ class RewardManager(BaseManager):
         self.coordinator._persist()
 
         # Emit event for NotificationManager to send notification and clear parent claim
+        # StatisticsManager._on_reward_disapproved handles cache refresh and entity notification
         self.emit(
             const.SIGNAL_SUFFIX_REWARD_DISAPPROVED,
             kid_id=kid_id,
             reward_id=reward_id,
             reward_name=reward_info[const.DATA_REWARD_NAME],
         )
-
-        self.coordinator.async_set_updated_data(self.coordinator._data)
 
     # =========================================================================
     # Public API: Undo Claim
@@ -826,11 +823,14 @@ class RewardManager(BaseManager):
     # These methods own the write operations for reward entities.
     # Called by options_flow.py and services.py - they must NOT write directly.
 
-    def create_reward(self, user_input: dict[str, Any]) -> dict[str, Any]:
+    def create_reward(
+        self, user_input: dict[str, Any], *, immediate_persist: bool = False
+    ) -> dict[str, Any]:
         """Create a new reward in storage.
 
         Args:
             user_input: Reward data with DATA_* keys.
+            immediate_persist: If True, persist immediately (use for config flow operations).
 
         Returns:
             Complete RewardData dict ready for use.
@@ -845,7 +845,7 @@ class RewardManager(BaseManager):
 
         # Store in coordinator data
         self.coordinator._data[const.DATA_REWARDS][internal_id] = reward_data
-        self.coordinator._persist()
+        self.coordinator._persist(immediate=immediate_persist)
         self.coordinator.async_update_listeners()
 
         # Emit lifecycle event
@@ -863,12 +863,19 @@ class RewardManager(BaseManager):
 
         return reward_data
 
-    def update_reward(self, reward_id: str, updates: dict[str, Any]) -> dict[str, Any]:
+    def update_reward(
+        self,
+        reward_id: str,
+        updates: dict[str, Any],
+        *,
+        immediate_persist: bool = False,
+    ) -> dict[str, Any]:
         """Update an existing reward in storage.
 
         Args:
             reward_id: Internal UUID of the reward to update.
             updates: Partial reward data with DATA_* keys to merge.
+            immediate_persist: If True, persist immediately (use for config flow operations).
 
         Returns:
             Updated RewardData dict.
@@ -896,7 +903,7 @@ class RewardManager(BaseManager):
 
         # Store updated reward
         self.coordinator._data[const.DATA_REWARDS][reward_id] = updated_reward
-        self.coordinator._persist()
+        self.coordinator._persist(immediate=immediate_persist)
         self.coordinator.async_update_listeners()
 
         reward_name = str(updated_reward.get(const.DATA_REWARD_NAME, ""))
@@ -916,11 +923,12 @@ class RewardManager(BaseManager):
 
         return updated_reward
 
-    def delete_reward(self, reward_id: str) -> None:
+    def delete_reward(self, reward_id: str, *, immediate_persist: bool = False) -> None:
         """Delete a reward from storage and cleanup references.
 
         Args:
             reward_id: Internal UUID of the reward to delete.
+            immediate_persist: If True, persist immediately (use for config flow operations).
 
         Raises:
             HomeAssistantError: If reward not found.
@@ -962,7 +970,7 @@ class RewardManager(BaseManager):
                     "Removed orphaned reward '%s' from kid reward_data", rid
                 )
 
-        self.coordinator._persist()
+        self.coordinator._persist(immediate=immediate_persist)
         self.coordinator.async_update_listeners()
 
         # Emit lifecycle event
@@ -1032,6 +1040,7 @@ class RewardManager(BaseManager):
 
         # Persist → Emit (per DEVELOPMENT_STANDARDS.md § 5.3)
         self.coordinator._persist()
+        self.coordinator.async_set_updated_data(self.coordinator._data)
 
         # Emit completion signal
         self.emit(

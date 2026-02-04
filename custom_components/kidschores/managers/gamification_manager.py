@@ -347,10 +347,22 @@ class GamificationManager(BaseManager):
             kid_info: KidData | dict[str, Any] = self.coordinator.kids_data.get(
                 kid_id, {}
             )
-            chore_stats = kid_info.get(const.DATA_KID_CHORE_STATS, {})
+            # Read approved_all_time from chore_periods.all_time bucket (v43+)
+            # Cast to dict[str, Any] since chore_periods is a runtime-added bucket
+            chore_periods: dict[str, Any] = cast(
+                "dict[str, Any]", kid_info.get(const.DATA_KID_CHORE_PERIODS, {})
+            )
+            all_time_container: dict[str, Any] = cast(
+                "dict[str, Any]",
+                chore_periods.get(const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME, {}),
+            )
+            # All-time uses nested structure: periods["all_time"]["all_time"] = {data}
+            all_time_data: dict[str, Any] = cast(
+                "dict[str, Any]", all_time_container.get(const.PERIOD_ALL_TIME, {})
+            )
             progress_dict = {
-                const.DATA_ACHIEVEMENT_BASELINE: chore_stats.get(
-                    const.DATA_KID_CHORE_STATS_APPROVED_ALL_TIME, const.DEFAULT_ZERO
+                const.DATA_ACHIEVEMENT_BASELINE: all_time_data.get(
+                    const.DATA_KID_CHORE_DATA_PERIOD_APPROVED, const.DEFAULT_ZERO
                 ),
                 const.DATA_ACHIEVEMENT_CURRENT_VALUE: const.DEFAULT_ZERO,
                 const.DATA_ACHIEVEMENT_AWARDED: False,
@@ -1046,15 +1058,17 @@ class GamificationManager(BaseManager):
         # Get today's ISO date using helper
         today_iso = dt_today_iso()
 
-        # Get total earned from all_time period bucket (v43+)
-        point_data = kid_data.get(const.DATA_KID_POINT_DATA, {})
-        periods = point_data.get(const.DATA_KID_POINT_DATA_PERIODS, {})
-        all_time_periods = periods.get(const.DATA_KID_POINT_DATA_PERIODS_ALL_TIME, {})
+        # Get total earned from all_time period bucket (DEPRECATED: v42 structure)
+        point_data: dict[str, Any] = kid_data.get(const.DATA_KID_POINT_DATA_LEGACY, {})  # type: ignore[assignment]
+        periods: dict[str, Any] = point_data.get(
+            const.DATA_KID_POINT_DATA_PERIODS_LEGACY, {}
+        )
+        all_time_periods = periods.get(const.DATA_KID_POINT_PERIODS_ALL_TIME, {})
         all_time_bucket = all_time_periods.get(
-            const.DATA_KID_POINT_DATA_PERIODS_ALL_TIME, {}
+            const.DATA_KID_POINT_PERIODS_ALL_TIME, {}
         )
         total_earned = float(
-            all_time_bucket.get(const.DATA_KID_POINT_DATA_PERIOD_POINTS_EARNED, 0.0)
+            all_time_bucket.get(const.DATA_KID_POINT_PERIOD_POINTS_EARNED, 0.0)
         )
 
         # Get badge progress from kid data
@@ -1087,7 +1101,15 @@ class GamificationManager(BaseManager):
                 const.DATA_KID_CUMULATIVE_BADGE_PROGRESS, {}
             ),
             "badges_earned": kid_data.get(const.DATA_KID_BADGES_EARNED, {}),
-            "chore_stats": kid_data.get(const.DATA_KID_CHORE_STATS, {}),
+            # v43+: chore_stats deleted, use chore_periods.all_time for totals
+            # Cast to dict[str, Any] since chore_periods is a runtime-added bucket
+            # All-time uses nested structure: periods["all_time"]["all_time"] = {data}
+            "chore_periods_all_time": cast(
+                "dict[str, Any]",
+                cast("dict[str, Any]", kid_data.get(const.DATA_KID_CHORE_PERIODS, {}))
+                .get(const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME, {})
+                .get(const.PERIOD_ALL_TIME, {}),
+            ),
             "achievement_progress": achievement_progress,
             "challenge_progress": challenge_progress,
             "today_iso": today_iso,
@@ -2516,6 +2538,7 @@ class GamificationManager(BaseManager):
         user_input: dict[str, Any],
         internal_id: str | None = None,
         badge_type: str | None = None,
+        immediate_persist: bool = False,
     ) -> dict[str, Any]:
         """Create a new badge in storage.
 
@@ -2523,6 +2546,7 @@ class GamificationManager(BaseManager):
             user_input: Badge data with DATA_* keys.
             internal_id: Optional pre-generated UUID (for form resubmissions).
             badge_type: Optional badge type override.
+            immediate_persist: If True, persist immediately (use for config flow operations).
 
         Returns:
             Complete BadgeData dict ready for use.
@@ -2552,7 +2576,7 @@ class GamificationManager(BaseManager):
         # Recalculate badges to trigger initial evaluation
         self.recalculate_all_badges()
 
-        self.coordinator._persist()
+        self.coordinator._persist(immediate=immediate_persist)
         self.coordinator.async_update_listeners()
 
         # Emit lifecycle event
@@ -2575,6 +2599,7 @@ class GamificationManager(BaseManager):
         badge_id: str,
         updates: dict[str, Any],
         badge_type: str | None = None,
+        immediate_persist: bool = False,
     ) -> dict[str, Any]:
         """Update an existing badge in storage.
 
@@ -2582,6 +2607,7 @@ class GamificationManager(BaseManager):
             badge_id: Internal UUID of the badge to update.
             updates: Partial badge data with DATA_* keys to merge.
             badge_type: Optional badge type override.
+            immediate_persist: If True, persist immediately (use for config flow operations).
 
         Returns:
             Updated BadgeData dict.
@@ -2620,7 +2646,7 @@ class GamificationManager(BaseManager):
             self.sync_badge_progress_for_kid(kid_id)
         self.recalculate_all_badges()
 
-        self.coordinator._persist()
+        self.coordinator._persist(immediate=immediate_persist)
         self.coordinator.async_update_listeners()
 
         badge_name = str(updated_badge.get(const.DATA_BADGE_NAME, ""))
@@ -2640,11 +2666,12 @@ class GamificationManager(BaseManager):
 
         return updated_badge
 
-    def delete_badge(self, badge_id: str) -> None:
+    def delete_badge(self, badge_id: str, *, immediate_persist: bool = False) -> None:
         """Delete a badge from storage and cleanup references.
 
         Args:
             badge_id: Internal UUID of the badge to delete.
+            immediate_persist: If True, persist immediately (use for config flow operations).
 
         Raises:
             HomeAssistantError: If badge not found.
@@ -2689,7 +2716,7 @@ class GamificationManager(BaseManager):
             badge_id,
         )
 
-        self.coordinator._persist()
+        self.coordinator._persist(immediate=immediate_persist)
         self.coordinator.async_update_listeners()
 
         # Emit lifecycle event
@@ -2713,12 +2740,15 @@ class GamificationManager(BaseManager):
         self,
         user_input: dict[str, Any],
         internal_id: str | None = None,
+        *,
+        immediate_persist: bool = False,
     ) -> str:
         """Create a new achievement in storage.
 
         Args:
             user_input: Achievement data with DATA_* keys.
             internal_id: Optional pre-generated UUID.
+            immediate_persist: If True, persist immediately (use for config flow operations).
 
         Returns:
             The internal_id of the created achievement.
@@ -2741,7 +2771,7 @@ class GamificationManager(BaseManager):
             achievement_data
         )
 
-        self.coordinator._persist()
+        self.coordinator._persist(immediate=immediate_persist)
         self.coordinator.async_update_listeners()
 
         # Emit lifecycle event
@@ -2763,12 +2793,14 @@ class GamificationManager(BaseManager):
         self,
         achievement_id: str,
         updates: dict[str, Any],
+        immediate_persist: bool = False,
     ) -> dict[str, Any]:
         """Update an existing achievement in storage.
 
         Args:
             achievement_id: Internal UUID of the achievement to update.
             updates: Partial achievement data with DATA_* keys to merge.
+            immediate_persist: If True, persist immediately (use for config flow operations).
 
         Returns:
             Updated AchievementData dict.
@@ -2801,7 +2833,7 @@ class GamificationManager(BaseManager):
             updated_achievement
         )
 
-        self.coordinator._persist()
+        self.coordinator._persist(immediate=immediate_persist)
         self.coordinator.async_update_listeners()
 
         achievement_name = str(updated_achievement.get(const.DATA_ACHIEVEMENT_NAME, ""))
@@ -2821,11 +2853,14 @@ class GamificationManager(BaseManager):
 
         return updated_achievement
 
-    def delete_achievement(self, achievement_id: str) -> None:
+    def delete_achievement(
+        self, achievement_id: str, *, immediate_persist: bool = False
+    ) -> None:
         """Delete an achievement from storage and cleanup references.
 
         Args:
             achievement_id: Internal UUID of the achievement to delete.
+            immediate_persist: If True, persist immediately (use for config flow operations).
 
         Raises:
             HomeAssistantError: If achievement not found.
@@ -2858,7 +2893,7 @@ class GamificationManager(BaseManager):
             achievement_id,
         )
 
-        self.coordinator._persist()
+        self.coordinator._persist(immediate=immediate_persist)
         self.coordinator.async_update_listeners()
 
         # Emit lifecycle event
@@ -2882,11 +2917,15 @@ class GamificationManager(BaseManager):
         self,
         user_input: dict[str, Any],
         internal_id: str | None = None,
+        *,
+        immediate_persist: bool = False,
     ) -> str:
         """Create a new challenge in storage.
 
         Args:
             user_input: Challenge data with DATA_* keys.
+            internal_id: Optional pre-generated UUID.
+            immediate_persist: If True, persist immediately (use for config flow operations).
             internal_id: Optional pre-generated UUID.
 
         Returns:
@@ -2910,7 +2949,7 @@ class GamificationManager(BaseManager):
             challenge_data
         )
 
-        self.coordinator._persist()
+        self.coordinator._persist(immediate=immediate_persist)
         self.coordinator.async_update_listeners()
 
         # Emit lifecycle event
@@ -2932,12 +2971,14 @@ class GamificationManager(BaseManager):
         self,
         challenge_id: str,
         updates: dict[str, Any],
+        immediate_persist: bool = False,
     ) -> dict[str, Any]:
         """Update an existing challenge in storage.
 
         Args:
             challenge_id: Internal UUID of the challenge to update.
             updates: Partial challenge data with DATA_* keys to merge.
+            immediate_persist: If True, persist immediately (use for config flow operations).
 
         Returns:
             Updated ChallengeData dict.
@@ -2968,7 +3009,7 @@ class GamificationManager(BaseManager):
         # Store updated challenge
         self.coordinator._data[const.DATA_CHALLENGES][challenge_id] = updated_challenge
 
-        self.coordinator._persist()
+        self.coordinator._persist(immediate=immediate_persist)
         self.coordinator.async_update_listeners()
 
         challenge_name = str(updated_challenge.get(const.DATA_CHALLENGE_NAME, ""))
@@ -2988,11 +3029,14 @@ class GamificationManager(BaseManager):
 
         return updated_challenge
 
-    def delete_challenge(self, challenge_id: str) -> None:
+    def delete_challenge(
+        self, challenge_id: str, *, immediate_persist: bool = False
+    ) -> None:
         """Delete a challenge from storage and cleanup references.
 
         Args:
             challenge_id: Internal UUID of the challenge to delete.
+            immediate_persist: If True, persist immediately (use for config flow operations).
 
         Raises:
             HomeAssistantError: If challenge not found.
@@ -3025,7 +3069,7 @@ class GamificationManager(BaseManager):
             challenge_id,
         )
 
-        self.coordinator._persist()
+        self.coordinator._persist(immediate=immediate_persist)
         self.coordinator.async_update_listeners()
 
         # Emit lifecycle event
@@ -3097,6 +3141,7 @@ class GamificationManager(BaseManager):
 
         # Persist → Emit (per DEVELOPMENT_STANDARDS.md § 5.3)
         self.coordinator._persist()
+        self.coordinator.async_set_updated_data(self.coordinator._data)
 
         # Recalculate multiplier for affected kids after clearing badge data
         # With cumulative badge progress cleared, this will emit signal with 1.0
@@ -3179,6 +3224,7 @@ class GamificationManager(BaseManager):
 
         # Persist → Emit (per DEVELOPMENT_STANDARDS.md § 5.3)
         self.coordinator._persist()
+        self.coordinator.async_set_updated_data(self.coordinator._data)
 
         # Emit completion signal
         self.emit(
@@ -3247,6 +3293,7 @@ class GamificationManager(BaseManager):
 
         # Persist → Emit (per DEVELOPMENT_STANDARDS.md § 5.3)
         self.coordinator._persist()
+        self.coordinator.async_set_updated_data(self.coordinator._data)
 
         # Emit completion signal
         self.emit(

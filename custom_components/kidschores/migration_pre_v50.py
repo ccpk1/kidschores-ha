@@ -10,7 +10,7 @@ modified further. Modern installations (KC-v0.5.0+) skip this module entirely vi
 lazy import to avoid any runtime cost.
 """
 
-from collections import Counter
+from collections import Counter, defaultdict
 from datetime import datetime
 import random
 from typing import TYPE_CHECKING, Any, cast
@@ -399,11 +399,553 @@ class PreV50Migrator:
         # Historical approvals have no 'completed' tracking - backfill with approved counts.
         self._migrate_completed_metric()
 
-        # Phase 11: Finalize migration metadata (MUST be last)
+        # Phase 11: Flatten point_data → point_periods (v42 → v43, v0.5.0-beta3)
+        # Remove nested structure and transform points_total → points_earned/spent
+        self._migrate_point_periods_v43()
+
+        # Phase 12: Chore periods migration (v43) - "Lean Chore Architecture"
+        # - Create kid-level chore_periods bucket for aggregated history
+        # - Remove total_points from individual chore items (use periods.all_time.points)
+        # - Delete chore_stats dict entirely (now fully ephemeral)
+        self._migrate_chore_periods_v43()
+
+        # Phase 13: Finalize migration metadata (MUST be last)
         # Sets v50+ meta section and cleans up legacy keys
         self._finalize_migration_meta()
 
         const.LOGGER.info("All pre-v50 migrations completed successfully")
+
+    def _migrate_point_periods_v43(self) -> None:
+        """Flatten point_data → point_periods and transform field names (v42 → v43).
+
+        v42 structure (nested):
+            kid["point_data"]["periods"][period_type][period_key] = {
+                "points_total": 100.0,  # NET value (earned - spent)
+                "by_source": {"chores": 150.0, "manual": -50.0}
+            }
+            kid["point_stats"]["highest_balance"] = 2980.0  # Separate bucket
+
+        v43 structure (flat):
+            kid["point_periods"][period_type][period_key] = {
+                "points_earned": 150.0,  # Sum of positive by_source values
+                "points_spent": -50.0,    # Sum of negative by_source values
+                "by_source": {"chores": 150.0, "manual": -50.0}
+            }
+            kid["point_periods"]["all_time"]["all_time"]["highest_balance"] = 2980.0
+
+        Transformations:
+        1. Flatten: point_data.periods → point_periods
+        2. Calculate: points_earned (sum positive by_source), points_spent (sum negative)
+        3. Remove: points_total (replaced by earned/spent)
+        4. Extract: highest_balance from point_stats → point_periods.all_time.all_time
+        5. Remove: point_stats bucket (deprecated)
+
+        This migration is idempotent - safe to run multiple times.
+        """
+        const.LOGGER.info("Starting v42 → v43 migration: point_data → point_periods")
+
+        kids_data = self.coordinator._data.get(const.DATA_KIDS, {})
+        migrated_count = 0
+
+        for kid_id, kid_info in kids_data.items():
+            kid_name = kid_info.get(const.DATA_KID_NAME, kid_id)
+
+            # Skip if already migrated to v43 structure
+            if const.DATA_KID_POINT_PERIODS in kid_info:
+                const.LOGGER.debug(
+                    "Kid '%s' (%s) already has point_periods - skipping",
+                    kid_name,
+                    kid_id,
+                )
+                continue
+
+            # Extract v42 structures
+            point_data = kid_info.pop(const.DATA_KID_POINT_DATA_LEGACY, {})
+            point_stats = kid_info.pop(const.DATA_KID_POINT_STATS_LEGACY, {})
+            periods = point_data.get(const.DATA_KID_POINT_DATA_PERIODS_LEGACY, {})
+
+            # Initialize flat v43 structure
+            point_periods: dict[str, Any] = {}
+
+            # Transform each period bucket
+            for period_type, entries in periods.items():
+                point_periods[period_type] = {}
+
+                if period_type == const.DATA_KID_POINT_PERIODS_ALL_TIME:
+                    # all_time is single dict: {"all_time": {data}}
+                    # Special handling: points_earned = highest_balance
+                    for period_key, data in entries.items():
+                        transformed = self._transform_period_entry(
+                            data, is_all_time=True
+                        )
+                        point_periods[period_type][period_key] = transformed
+                else:
+                    # daily/weekly/monthly/yearly are nested: {"2025-11": {data}}
+                    for period_key, data in entries.items():
+                        transformed = self._transform_period_entry(
+                            data, is_all_time=False
+                        )
+                        point_periods[period_type][period_key] = transformed
+
+            # Extract highest_balance from point_stats → all_time bucket
+            if highest_balance := point_stats.get(
+                const.DATA_KID_POINT_PERIOD_HIGHEST_BALANCE
+            ):
+                point_periods.setdefault(
+                    const.DATA_KID_POINT_PERIODS_ALL_TIME, {}
+                ).setdefault(const.PERIOD_ALL_TIME, {})[
+                    const.DATA_KID_POINT_PERIOD_HIGHEST_BALANCE
+                ] = highest_balance
+
+                # For all_time: points_earned should equal highest_balance
+                # points_spent = (sum of by_source) - highest_balance
+                all_time_entry = point_periods[const.DATA_KID_POINT_PERIODS_ALL_TIME][
+                    const.PERIOD_ALL_TIME
+                ]
+                by_source = all_time_entry.get(
+                    const.DATA_KID_POINT_PERIOD_BY_SOURCE, {}
+                )
+                current_balance = sum(by_source.values())
+                all_time_entry[const.DATA_KID_POINT_PERIOD_POINTS_EARNED] = (
+                    highest_balance
+                )
+                all_time_entry[const.DATA_KID_POINT_PERIOD_POINTS_SPENT] = (
+                    current_balance - highest_balance
+                )
+
+            # Set new structure
+            kid_info[const.DATA_KID_POINT_PERIODS] = point_periods
+            migrated_count += 1
+
+            const.LOGGER.debug(
+                "Migrated kid '%s' (%s): point_data → point_periods",
+                kid_name,
+                kid_id,
+            )
+
+        const.LOGGER.info(
+            "Completed v42 → v43 migration: %d kids migrated to point_periods",
+            migrated_count,
+        )
+
+    def _migrate_chore_periods_v43(self) -> None:
+        """Create kid-level chore_periods bucket and remove deprecated fields (v43).
+
+        v42 structure:
+            kid["chore_stats"] = {...}  # Aggregated dict (to be deleted)
+            kid["chore_data"][uuid]["total_points"] = 150.0  # Redundant field
+            kid["chore_data"][uuid]["periods"]["all_time"]["all_time"]["points"] = 150.0  # Canonical
+
+        v43 structure:
+            kid["chore_periods"] = {}  # New: Aggregated across ALL chores, survives deletion
+            kid["chore_data"][uuid]["periods"]...  # Keep per-chore periods
+            # REMOVED: kid["chore_stats"] (now fully ephemeral - generated on-demand)
+            # REMOVED: kid["chore_data"][uuid]["total_points"] (use periods.all_time.points)
+
+        This migration (Phase 12 - Lean Chore Architecture):
+        1. Creates empty chore_periods bucket at kid level (StatisticsEngine populates on-demand)
+        2. Removes total_points from each chore item (periods.all_time.points is canonical)
+        3. Deletes chore_stats dict entirely (now fully ephemeral - generate_chore_stats())
+
+        This migration is idempotent - safe to run multiple times.
+        """
+        const.LOGGER.info(
+            "Starting v43 migration: Create chore_periods, remove total_points, delete chore_stats"
+        )
+
+        kids_data = self.coordinator._data.get(const.DATA_KIDS, {})
+        kids_migrated = 0
+        items_cleaned = 0
+        stats_deleted = 0
+        backfilled_count = 0
+
+        for kid_id, kid_info in kids_data.items():
+            kid_name = kid_info.get(const.DATA_KID_NAME, kid_id)
+
+            # Step 1: Create chore_periods bucket if missing (Landlord genesis)
+            # AND backfill all_time from per-chore periods to preserve historical totals
+            if const.DATA_KID_CHORE_PERIODS not in kid_info:
+                kid_info[const.DATA_KID_CHORE_PERIODS] = {}
+                kids_migrated += 1
+                const.LOGGER.debug(
+                    "Created chore_periods bucket for kid '%s' (%s)",
+                    kid_name,
+                    kid_id,
+                )
+
+            # Step 1b: Backfill chore_periods from per-chore periods
+            # This aggregates all chore_data[uuid].periods into global buckets
+            chore_periods = kid_info[const.DATA_KID_CHORE_PERIODS]
+
+            # Check if backfill is needed: either all_time doesn't exist,
+            # OR all_time exists but has zeros while per-chore data has real values
+            needs_backfill = (
+                const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME not in chore_periods
+            )
+            if not needs_backfill:
+                # Check if existing all_time is empty/zero
+                existing_all_time = chore_periods.get(
+                    const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME, {}
+                ).get(const.PERIOD_ALL_TIME, {})
+                existing_approved = existing_all_time.get(
+                    const.DATA_KID_CHORE_DATA_PERIOD_APPROVED, 0
+                )
+                existing_completed = existing_all_time.get(
+                    const.DATA_KID_CHORE_DATA_PERIOD_COMPLETED, 0
+                )
+                # If both are zero, check if per-chore data has non-zero values
+                if existing_approved == 0 and existing_completed == 0:
+                    chore_data = kid_info.get(const.DATA_KID_CHORE_DATA, {})
+                    for _cid, chore_item in chore_data.items():
+                        per_chore_all_time = (
+                            chore_item.get(const.DATA_KID_CHORE_DATA_PERIODS, {})
+                            .get(const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME, {})
+                            .get(const.PERIOD_ALL_TIME, {})
+                        )
+                        if (
+                            per_chore_all_time.get(
+                                const.DATA_KID_CHORE_DATA_PERIOD_APPROVED, 0
+                            )
+                            > 0
+                        ):
+                            needs_backfill = True
+                            const.LOGGER.info(
+                                "Re-aggregating chore_periods for kid '%s' - "
+                                "found per-chore data but kid-level was zero",
+                                kid_name,
+                            )
+                            break
+
+            if needs_backfill:
+                # Aggregate all-time stats from all chores
+                total_approved = 0
+                total_completed = 0
+                total_claimed = 0
+                total_points = 0.0
+                max_longest_streak = 0
+
+                # Period aggregation buckets (by date/week/month/year key)
+                daily_totals: dict[str, dict[str, int | float]] = defaultdict(
+                    lambda: defaultdict(int)
+                )
+                weekly_totals: dict[str, dict[str, int | float]] = defaultdict(
+                    lambda: defaultdict(int)
+                )
+                monthly_totals: dict[str, dict[str, int | float]] = defaultdict(
+                    lambda: defaultdict(int)
+                )
+                yearly_totals: dict[str, dict[str, int | float]] = defaultdict(
+                    lambda: defaultdict(int)
+                )
+
+                chore_data = kid_info.get(const.DATA_KID_CHORE_DATA, {})
+                for _chore_id, chore_item in chore_data.items():
+                    periods = chore_item.get(const.DATA_KID_CHORE_DATA_PERIODS, {})
+
+                    # All-time aggregation (nested: periods["all_time"]["all_time"])
+                    all_time = periods.get(
+                        const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME, {}
+                    ).get(const.PERIOD_ALL_TIME, {})
+                    total_approved += all_time.get(
+                        const.DATA_KID_CHORE_DATA_PERIOD_APPROVED, 0
+                    )
+                    total_completed += all_time.get(
+                        const.DATA_KID_CHORE_DATA_PERIOD_COMPLETED, 0
+                    )
+                    total_claimed += all_time.get(
+                        const.DATA_KID_CHORE_DATA_PERIOD_CLAIMED, 0
+                    )
+                    total_points += all_time.get(
+                        const.DATA_KID_CHORE_DATA_PERIOD_POINTS, 0.0
+                    )
+                    # Track MAX longest_streak (not SUM)
+                    chore_streak = all_time.get(
+                        const.DATA_KID_CHORE_DATA_PERIOD_LONGEST_STREAK, 0
+                    )
+                    max_longest_streak = max(max_longest_streak, chore_streak)
+
+                    # Aggregate daily periods
+                    for date_key, daily_data in periods.get(
+                        const.PERIOD_DAILY, {}
+                    ).items():
+                        daily_totals[date_key][
+                            const.DATA_KID_CHORE_DATA_PERIOD_APPROVED
+                        ] += daily_data.get(
+                            const.DATA_KID_CHORE_DATA_PERIOD_APPROVED, 0
+                        )
+                        daily_totals[date_key][
+                            const.DATA_KID_CHORE_DATA_PERIOD_CLAIMED
+                        ] += daily_data.get(const.DATA_KID_CHORE_DATA_PERIOD_CLAIMED, 0)
+                        daily_totals[date_key][
+                            const.DATA_KID_CHORE_DATA_PERIOD_POINTS
+                        ] += daily_data.get(
+                            const.DATA_KID_CHORE_DATA_PERIOD_POINTS, 0.0
+                        )
+                        daily_totals[date_key][
+                            const.DATA_KID_CHORE_DATA_PERIOD_OVERDUE
+                        ] += daily_data.get(const.DATA_KID_CHORE_DATA_PERIOD_OVERDUE, 0)
+                        daily_totals[date_key][
+                            const.DATA_KID_CHORE_DATA_PERIOD_DISAPPROVED
+                        ] += daily_data.get(
+                            const.DATA_KID_CHORE_DATA_PERIOD_DISAPPROVED, 0
+                        )
+                        # streak_tally: Take MAX per date (highest streak on that day)
+                        current_tally = daily_totals[date_key].get(
+                            const.DATA_KID_CHORE_DATA_PERIOD_STREAK_TALLY, 0
+                        )
+                        chore_tally = daily_data.get(
+                            const.DATA_KID_CHORE_DATA_PERIOD_STREAK_TALLY, 0
+                        )
+                        daily_totals[date_key][
+                            const.DATA_KID_CHORE_DATA_PERIOD_STREAK_TALLY
+                        ] = max(current_tally, chore_tally)
+
+                    # Aggregate weekly periods
+                    for week_key, weekly_data in periods.get(
+                        const.PERIOD_WEEKLY, {}
+                    ).items():
+                        weekly_totals[week_key][
+                            const.DATA_KID_CHORE_DATA_PERIOD_APPROVED
+                        ] += weekly_data.get(
+                            const.DATA_KID_CHORE_DATA_PERIOD_APPROVED, 0
+                        )
+                        weekly_totals[week_key][
+                            const.DATA_KID_CHORE_DATA_PERIOD_CLAIMED
+                        ] += weekly_data.get(
+                            const.DATA_KID_CHORE_DATA_PERIOD_CLAIMED, 0
+                        )
+                        weekly_totals[week_key][
+                            const.DATA_KID_CHORE_DATA_PERIOD_POINTS
+                        ] += weekly_data.get(
+                            const.DATA_KID_CHORE_DATA_PERIOD_POINTS, 0.0
+                        )
+                        weekly_totals[week_key][
+                            const.DATA_KID_CHORE_DATA_PERIOD_OVERDUE
+                        ] += weekly_data.get(
+                            const.DATA_KID_CHORE_DATA_PERIOD_OVERDUE, 0
+                        )
+                        weekly_totals[week_key][
+                            const.DATA_KID_CHORE_DATA_PERIOD_DISAPPROVED
+                        ] += weekly_data.get(
+                            const.DATA_KID_CHORE_DATA_PERIOD_DISAPPROVED, 0
+                        )
+
+                    # Aggregate monthly periods
+                    for month_key, monthly_data in periods.get(
+                        const.PERIOD_MONTHLY, {}
+                    ).items():
+                        monthly_totals[month_key][
+                            const.DATA_KID_CHORE_DATA_PERIOD_APPROVED
+                        ] += monthly_data.get(
+                            const.DATA_KID_CHORE_DATA_PERIOD_APPROVED, 0
+                        )
+                        monthly_totals[month_key][
+                            const.DATA_KID_CHORE_DATA_PERIOD_CLAIMED
+                        ] += monthly_data.get(
+                            const.DATA_KID_CHORE_DATA_PERIOD_CLAIMED, 0
+                        )
+                        monthly_totals[month_key][
+                            const.DATA_KID_CHORE_DATA_PERIOD_POINTS
+                        ] += monthly_data.get(
+                            const.DATA_KID_CHORE_DATA_PERIOD_POINTS, 0.0
+                        )
+                        monthly_totals[month_key][
+                            const.DATA_KID_CHORE_DATA_PERIOD_OVERDUE
+                        ] += monthly_data.get(
+                            const.DATA_KID_CHORE_DATA_PERIOD_OVERDUE, 0
+                        )
+                        monthly_totals[month_key][
+                            const.DATA_KID_CHORE_DATA_PERIOD_DISAPPROVED
+                        ] += monthly_data.get(
+                            const.DATA_KID_CHORE_DATA_PERIOD_DISAPPROVED, 0
+                        )
+
+                    # Aggregate yearly periods
+                    for year_key, yearly_data in periods.get(
+                        const.PERIOD_YEARLY, {}
+                    ).items():
+                        yearly_totals[year_key][
+                            const.DATA_KID_CHORE_DATA_PERIOD_APPROVED
+                        ] += yearly_data.get(
+                            const.DATA_KID_CHORE_DATA_PERIOD_APPROVED, 0
+                        )
+                        yearly_totals[year_key][
+                            const.DATA_KID_CHORE_DATA_PERIOD_CLAIMED
+                        ] += yearly_data.get(
+                            const.DATA_KID_CHORE_DATA_PERIOD_CLAIMED, 0
+                        )
+                        yearly_totals[year_key][
+                            const.DATA_KID_CHORE_DATA_PERIOD_POINTS
+                        ] += yearly_data.get(
+                            const.DATA_KID_CHORE_DATA_PERIOD_POINTS, 0.0
+                        )
+                        yearly_totals[year_key][
+                            const.DATA_KID_CHORE_DATA_PERIOD_OVERDUE
+                        ] += yearly_data.get(
+                            const.DATA_KID_CHORE_DATA_PERIOD_OVERDUE, 0
+                        )
+                        yearly_totals[year_key][
+                            const.DATA_KID_CHORE_DATA_PERIOD_DISAPPROVED
+                        ] += yearly_data.get(
+                            const.DATA_KID_CHORE_DATA_PERIOD_DISAPPROVED, 0
+                        )
+
+                # Store aggregated all_time bucket (nested: all_time.all_time for consistency)
+                chore_periods[const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME] = {
+                    const.PERIOD_ALL_TIME: {
+                        const.DATA_KID_CHORE_DATA_PERIOD_APPROVED: total_approved,
+                        const.DATA_KID_CHORE_DATA_PERIOD_COMPLETED: total_completed,
+                        const.DATA_KID_CHORE_DATA_PERIOD_CLAIMED: total_claimed,
+                        const.DATA_KID_CHORE_DATA_PERIOD_POINTS: round(
+                            total_points, const.DATA_FLOAT_PRECISION
+                        ),
+                        const.DATA_KID_CHORE_DATA_PERIOD_LONGEST_STREAK: max_longest_streak,
+                    }
+                }
+
+                # Store aggregated period buckets (convert defaultdict to dict)
+                if daily_totals:
+                    chore_periods[const.PERIOD_DAILY] = {
+                        k: dict(v) for k, v in daily_totals.items()
+                    }
+                if weekly_totals:
+                    chore_periods[const.PERIOD_WEEKLY] = {
+                        k: dict(v) for k, v in weekly_totals.items()
+                    }
+                if monthly_totals:
+                    chore_periods[const.PERIOD_MONTHLY] = {
+                        k: dict(v) for k, v in monthly_totals.items()
+                    }
+                if yearly_totals:
+                    chore_periods[const.PERIOD_YEARLY] = {
+                        k: dict(v) for k, v in yearly_totals.items()
+                    }
+
+                backfilled_count += 1
+                const.LOGGER.debug(
+                    "Backfilled chore_periods for kid '%s': "
+                    "all_time(approved=%d, completed=%d, points=%.2f, longest_streak=%d), "
+                    "daily=%d, weekly=%d, monthly=%d, yearly=%d",
+                    kid_name,
+                    total_approved,
+                    total_completed,
+                    total_points,
+                    max_longest_streak,
+                    len(daily_totals),
+                    len(weekly_totals),
+                    len(monthly_totals),
+                    len(yearly_totals),
+                )
+
+            # Step 2: Remove total_points from each chore item
+            chore_data = kid_info.get(const.DATA_KID_CHORE_DATA, {})
+            for _chore_id, chore_item in chore_data.items():
+                if const.DATA_CHORE_TOTAL_POINTS_LEGACY in chore_item:
+                    chore_item.pop(const.DATA_CHORE_TOTAL_POINTS_LEGACY)
+                    items_cleaned += 1
+
+            # Step 3: Delete chore_stats dict (now fully ephemeral)
+            if const.DATA_KID_CHORE_STATS_LEGACY in kid_info:
+                kid_info.pop(const.DATA_KID_CHORE_STATS_LEGACY)
+                stats_deleted += 1
+                const.LOGGER.debug(
+                    "Deleted chore_stats for kid '%s' (now ephemeral)", kid_name
+                )
+
+            # Step 4: Remove unused dead fields (never referenced in codebase)
+            if "overall_chore_streak" in kid_info:
+                kid_info.pop("overall_chore_streak")
+            if "last_chore_date" in kid_info:
+                kid_info.pop("last_chore_date")
+
+            # Step 5: Clean up per-chore period bucket structure
+            # Remove longest_streak from daily/weekly/monthly/yearly (should only be in all_time)
+            # Remove streak_tally from weekly/monthly/yearly/all_time (should only be in daily)
+            chore_data = kid_info.get(const.DATA_KID_CHORE_DATA, {})
+            for chore_item in chore_data.values():
+                periods = chore_item.get(const.DATA_KID_CHORE_DATA_PERIODS, {})
+
+                # Clean daily: remove longest_streak (keep streak_tally)
+                for daily_bucket in periods.get(const.PERIOD_DAILY, {}).values():
+                    daily_bucket.pop(
+                        const.DATA_KID_CHORE_DATA_PERIOD_LONGEST_STREAK, None
+                    )
+
+                # Clean weekly/monthly/yearly: remove both longest_streak and streak_tally
+                for period_type in (
+                    const.PERIOD_WEEKLY,
+                    const.PERIOD_MONTHLY,
+                    const.PERIOD_YEARLY,
+                ):
+                    for period_bucket in periods.get(period_type, {}).values():
+                        period_bucket.pop(
+                            const.DATA_KID_CHORE_DATA_PERIOD_LONGEST_STREAK, None
+                        )
+                        period_bucket.pop(
+                            const.DATA_KID_CHORE_DATA_PERIOD_STREAK_TALLY, None
+                        )
+
+                # Clean all_time: remove streak_tally (keep longest_streak)
+                all_time = periods.get(const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME, {})
+                if isinstance(all_time, dict):
+                    all_time.pop(const.DATA_KID_CHORE_DATA_PERIOD_STREAK_TALLY, None)
+
+            # Step 6: Clear broken per-chore temporal periods
+            # Earlier migrations incorrectly populated yearly/monthly/weekly/daily
+            # with cumulative all_time values instead of period-specific values.
+            # We cannot retroactively compute correct values, so reset to empty.
+            # StatisticsEngine will repopulate on-demand from new transactions.
+            chore_data = kid_info.get(const.DATA_KID_CHORE_DATA, {})
+            for chore_item in chore_data.values():
+                periods = chore_item.get(const.DATA_KID_CHORE_DATA_PERIODS, {})
+
+                # Clear all temporal period buckets (keep all_time intact)
+                for period_type in (
+                    const.PERIOD_DAILY,
+                    const.PERIOD_WEEKLY,
+                    const.PERIOD_MONTHLY,
+                    const.PERIOD_YEARLY,
+                ):
+                    if period_type in periods:
+                        periods[period_type] = {}
+
+        const.LOGGER.info(
+            "Completed v43 chore_periods migration: "
+            "%d kids got chore_periods bucket, %d backfilled all_time, "
+            "%d items had total_points removed, %d chore_stats deleted",
+            kids_migrated,
+            backfilled_count,
+            items_cleaned,
+            stats_deleted,
+        )
+
+    def _transform_period_entry(
+        self, data: dict[str, Any], is_all_time: bool = False
+    ) -> dict[str, Any]:
+        """Transform a single period entry from v42 → v43 format.
+
+        Args:
+            data: v42 period entry with points_total and by_source
+            is_all_time: If True, skip earned/spent calculation (handled specially)
+
+        Returns:
+            v43 period entry with points_earned, points_spent, and by_source
+        """
+        # Remove deprecated points_total (v42 field)
+        data.pop(const.DATA_KID_POINT_DATA_PERIOD_POINTS_TOTAL_LEGACY, None)
+
+        if not is_all_time:
+            # For temporal periods: Calculate earned/spent from by_source
+            by_source = data.get(const.DATA_KID_POINT_PERIOD_BY_SOURCE, {})
+            points_earned = sum(v for v in by_source.values() if v > 0)
+            points_spent = sum(v for v in by_source.values() if v < 0)
+
+            # Add new fields
+            data[const.DATA_KID_POINT_PERIOD_POINTS_EARNED] = points_earned
+            data[const.DATA_KID_POINT_PERIOD_POINTS_SPENT] = points_spent
+        # else: all_time earned/spent set specially based on highest_balance
+
+        return data
 
     def _finalize_migration_meta(self) -> None:
         """Set up v50+ meta section and clean legacy keys.
@@ -806,6 +1348,9 @@ class PreV50Migrator:
             )
             # Remove legacy partial_allowed field (unused stub)
             chore_info.pop(const.DATA_CHORE_PARTIAL_ALLOWED_LEGACY, None)
+            # Remove obsolete fields from pre-v0.5.0 (never used in v0.5.0+)
+            chore_info.pop(const.DATA_CHORE_ASSIGNED_TO_LEGACY, None)
+            chore_info.pop(const.DATA_CHORE_LAST_OVERDUE_NOTIFICATION_LEGACY, None)
         const.LOGGER.info("Chore data migration complete.")
 
     def _migrate_kid_data(self) -> None:
@@ -840,7 +1385,7 @@ class PreV50Migrator:
         for kid_id, kid_info in self.coordinator.kids_data.items():
             # --- Per-kid migration (run once per kid) ---
             # Only migrate these once per kid, not per chore
-            chore_stats = kid_info.setdefault(const.DATA_KID_CHORE_STATS, {})
+            chore_stats = kid_info.setdefault(const.DATA_KID_CHORE_STATS_LEGACY, {})
             legacy_streaks = kid_info.get(const.DATA_KID_CHORE_STREAKS_LEGACY, {})
             legacy_max = 0
             last_longest_streak_date = None
@@ -855,11 +1400,11 @@ class PreV50Migrator:
                     )
 
             if legacy_max > chore_stats.get(
-                const.DATA_KID_CHORE_STATS_LONGEST_STREAK_ALL_TIME, 0
+                const.DATA_KID_CHORE_STATS_LONGEST_STREAK_ALL_TIME_LEGACY, 0
             ):
-                chore_stats[const.DATA_KID_CHORE_STATS_LONGEST_STREAK_ALL_TIME] = (
-                    legacy_max
-                )
+                chore_stats[
+                    const.DATA_KID_CHORE_STATS_LONGEST_STREAK_ALL_TIME_LEGACY
+                ] = legacy_max
                 # Store the date on any one chore (will be set per-chore below as well)
                 if last_longest_streak_date:
                     for chore_data in kid_info.get(
@@ -872,8 +1417,8 @@ class PreV50Migrator:
             # Migrate all-time completed count from legacy (once per kid)
             # Note: approved_year is NOT set here - it's derived from period buckets
             # (see line ~1008 where legacy approvals populate periods.yearly.approved)
-            chore_stats[const.DATA_KID_CHORE_STATS_APPROVED_ALL_TIME] = kid_info.get(
-                const.DATA_KID_COMPLETED_CHORES_TOTAL_LEGACY, 0
+            chore_stats[const.DATA_KID_CHORE_STATS_APPROVED_ALL_TIME_LEGACY] = (
+                kid_info.get(const.DATA_KID_COMPLETED_CHORES_TOTAL_LEGACY, 0)
             )
 
             # Migrate all-time claimed count from legacy (use max of any chore's claims or completed_chores_total)
@@ -884,7 +1429,7 @@ class PreV50Migrator:
             all_claims.append(
                 kid_info.get(const.DATA_KID_COMPLETED_CHORES_TOTAL_LEGACY, 0)
             )
-            chore_stats[const.DATA_KID_CHORE_STATS_CLAIMED_ALL_TIME] = (
+            chore_stats[const.DATA_KID_CHORE_STATS_CLAIMED_ALL_TIME_LEGACY] = (
                 max(all_claims) if all_claims else 0
             )
 
@@ -950,11 +1495,24 @@ class PreV50Migrator:
                         legacy_streak.get(const.DATA_KID_CURRENT_STREAK, 0)
                     )
 
+                # Handle all_time separately for longest_streak (not streak_tally)
+                # all_time uses nested structure: periods["all_time"]["all_time"] = {data}
+                all_time_container = periods[
+                    const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME
+                ].setdefault(const.PERIOD_ALL_TIME, {})
+                if (
+                    const.DATA_KID_CHORE_DATA_PERIOD_LONGEST_STREAK
+                    not in all_time_container
+                ):
+                    all_time_container[
+                        const.DATA_KID_CHORE_DATA_PERIOD_LONGEST_STREAK
+                    ] = legacy_streak.get(const.DATA_KID_MAX_STREAK_LEGACY, 0)
+
+                # Weekly/monthly/yearly DON'T get streak fields
                 for period_key, period_fmt in [
                     (const.DATA_KID_CHORE_DATA_PERIODS_WEEKLY, "%Y-W%V"),
                     (const.DATA_KID_CHORE_DATA_PERIODS_MONTHLY, "%Y-%m"),
                     (const.DATA_KID_CHORE_DATA_PERIODS_YEARLY, "%Y"),
-                    (const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME, const.PERIOD_ALL_TIME),
                 ]:
                     if last_date:
                         try:
@@ -966,7 +1524,7 @@ class PreV50Migrator:
                         period_id = None
 
                     if period_id:
-                        period_data_dict = periods[period_key].setdefault(
+                        periods[period_key].setdefault(
                             period_id,
                             {
                                 const.DATA_KID_CHORE_DATA_PERIOD_APPROVED: 0,
@@ -974,12 +1532,8 @@ class PreV50Migrator:
                                 const.DATA_KID_CHORE_DATA_PERIOD_CLAIMED: 0,
                                 const.DATA_KID_CHORE_DATA_PERIOD_OVERDUE: 0,
                                 const.DATA_KID_CHORE_DATA_PERIOD_DISAPPROVED: 0,
-                                const.DATA_KID_CHORE_DATA_PERIOD_LONGEST_STREAK: 0,
                             },
                         )
-                        period_data_dict[
-                            const.DATA_KID_CHORE_DATA_PERIOD_LONGEST_STREAK
-                        ] = legacy_streak.get(const.DATA_KID_MAX_STREAK_LEGACY, 0)
 
                 # --- Migrate claim/approval counts for this chore ---
                 claims = kid_info.get(const.DATA_KID_CHORE_CLAIMS_LEGACY, {}).get(  # type: ignore[attr-defined]
@@ -1023,7 +1577,6 @@ class PreV50Migrator:
                         const.DATA_KID_CHORE_DATA_PERIOD_CLAIMED: 0,
                         const.DATA_KID_CHORE_DATA_PERIOD_OVERDUE: 0,
                         const.DATA_KID_CHORE_DATA_PERIOD_DISAPPROVED: 0,
-                        const.DATA_KID_CHORE_DATA_PERIOD_LONGEST_STREAK: 0,
                     },
                 )
                 # No per chore data available for weekly period
@@ -1039,15 +1592,13 @@ class PreV50Migrator:
                         const.DATA_KID_CHORE_DATA_PERIOD_CLAIMED: 0,
                         const.DATA_KID_CHORE_DATA_PERIOD_OVERDUE: 0,
                         const.DATA_KID_CHORE_DATA_PERIOD_DISAPPROVED: 0,
-                        const.DATA_KID_CHORE_DATA_PERIOD_LONGEST_STREAK: 0,
                     },
                 )
                 # No per chore data available for monthly period
 
-                # Yearly
-                yearly_stats = periods[
-                    const.DATA_KID_CHORE_DATA_PERIODS_YEARLY
-                ].setdefault(
+                # Yearly - create empty bucket for current year (legacy totals go to all_time only)
+                # Don't populate yearly with legacy totals - they span multiple years
+                periods[const.DATA_KID_CHORE_DATA_PERIODS_YEARLY].setdefault(
                     year_iso,
                     {
                         const.DATA_KID_CHORE_DATA_PERIOD_APPROVED: 0,
@@ -1055,12 +1606,9 @@ class PreV50Migrator:
                         const.DATA_KID_CHORE_DATA_PERIOD_CLAIMED: 0,
                         const.DATA_KID_CHORE_DATA_PERIOD_OVERDUE: 0,
                         const.DATA_KID_CHORE_DATA_PERIOD_DISAPPROVED: 0,
-                        const.DATA_KID_CHORE_DATA_PERIOD_LONGEST_STREAK: 0,
+                        const.DATA_KID_CHORE_DATA_PERIOD_COMPLETED: 0,
                     },
                 )
-                # Mapping legacy totals to yearly stats
-                yearly_stats[const.DATA_KID_CHORE_DATA_PERIOD_APPROVED] = approvals
-                yearly_stats[const.DATA_KID_CHORE_DATA_PERIOD_CLAIMED] = claims
 
                 # --- Migrate legacy all-time stats into the new all_time period for this chore ---
                 all_time_data = periods[
@@ -1074,12 +1622,30 @@ class PreV50Migrator:
                         const.DATA_KID_CHORE_DATA_PERIOD_OVERDUE: 0,
                         const.DATA_KID_CHORE_DATA_PERIOD_DISAPPROVED: 0,
                         const.DATA_KID_CHORE_DATA_PERIOD_LONGEST_STREAK: 0,
+                        const.DATA_KID_CHORE_DATA_PERIOD_COMPLETED: 0,
                     },
                 )
 
                 # Map legacy totals to all time data
                 all_time_data[const.DATA_KID_CHORE_DATA_PERIOD_APPROVED] = approvals
                 all_time_data[const.DATA_KID_CHORE_DATA_PERIOD_CLAIMED] = claims
+                # Backfill completed = approved (wasn't tracked historically)
+                all_time_data[const.DATA_KID_CHORE_DATA_PERIOD_COMPLETED] = approvals
+
+                # Calculate points from approvals × default_points
+                chore_info = self.coordinator._data.get(const.DATA_CHORES, {}).get(
+                    chore_id, {}
+                )
+                default_points = chore_info.get(
+                    const.DATA_CHORE_DEFAULT_POINTS, const.DEFAULT_POINTS
+                )
+                try:
+                    estimated_points = float(approvals) * float(default_points)
+                except (ValueError, TypeError):
+                    estimated_points = 0.0
+                all_time_data[const.DATA_KID_CHORE_DATA_PERIOD_POINTS] = round(
+                    estimated_points, const.DATA_FLOAT_PRECISION
+                )
 
     def _migrate_badges(self) -> None:
         """Migrate legacy badges into cumulative badges and ensure all required fields exist.
@@ -1395,21 +1961,23 @@ class PreV50Migrator:
         at Phase 4b (BEFORE legacy fields are deleted). This function just ensures the period structure exists.
         """
         for kid_info in self.coordinator.kids_data.values():
-            # Get or create point_data periods structure
-            point_data = kid_info.setdefault(const.DATA_KID_POINT_DATA, {})
-            periods = point_data.setdefault(const.DATA_KID_POINT_DATA_PERIODS, {})
+            # Get or create point_data periods structure (v42 LEGACY structure)
+            point_data = kid_info.setdefault(const.DATA_KID_POINT_DATA_LEGACY, {})  # type: ignore[typeddict-item]
+            periods = point_data.setdefault(
+                const.DATA_KID_POINT_DATA_PERIODS_LEGACY, {}
+            )
 
             # Ensure all_time bucket exists (structure only - values set by _consolidate_point_stats)
             all_time_bucket = periods.setdefault(
-                const.DATA_KID_POINT_DATA_PERIODS_ALL_TIME, {}
+                const.DATA_KID_POINT_PERIODS_ALL_TIME, {}
             )
             all_time_bucket.setdefault(
                 const.PERIOD_ALL_TIME,
                 {
-                    const.DATA_KID_POINT_DATA_PERIOD_POINTS_EARNED: 0.0,
-                    const.DATA_KID_POINT_DATA_PERIOD_POINTS_SPENT: 0.0,
-                    const.DATA_KID_POINT_DATA_PERIOD_BY_SOURCE: {},
-                    const.DATA_KID_POINT_DATA_PERIOD_HIGHEST_BALANCE: 0.0,
+                    const.DATA_KID_POINT_PERIOD_POINTS_EARNED: 0.0,
+                    const.DATA_KID_POINT_PERIOD_POINTS_SPENT: 0.0,
+                    const.DATA_KID_POINT_PERIOD_BY_SOURCE: {},
+                    const.DATA_KID_POINT_PERIOD_HIGHEST_BALANCE: 0.0,
                 },
             )
 
@@ -2093,8 +2661,8 @@ class PreV50Migrator:
                                 values_rounded += 1
 
             # --- point_data.periods.*.* ---
-            point_data = kid_info.get(const.DATA_KID_POINT_DATA, {})
-            periods = point_data.get(const.DATA_KID_POINT_DATA_PERIODS, {})
+            point_data = kid_info.get(const.DATA_KID_POINT_DATA_LEGACY, {})
+            periods = point_data.get(const.DATA_KID_POINT_DATA_PERIODS_LEGACY, {})
             for period_type in list(periods.keys()):
                 period_dict = periods.get(period_type, {})
                 for _, period_data in list(period_dict.items()):
@@ -2119,7 +2687,7 @@ class PreV50Migrator:
                                             values_rounded += 1
 
             # --- chore_stats fields ---
-            chore_stats = kid_info.get(const.DATA_KID_CHORE_STATS, {})
+            chore_stats = kid_info.get(const.DATA_KID_CHORE_STATS_LEGACY, {})
             for key, val in list(chore_stats.items()):
                 if isinstance(val, (int, float)) and "points" in key.lower():
                     old_val = val
@@ -2346,19 +2914,21 @@ class PreV50Migrator:
             current_balance = float(kid_info.get(const.DATA_KID_POINTS, 0.0))
 
             # Get point_data container
-            point_data = kid_info.get(const.DATA_KID_POINT_DATA, {})
+            point_data = kid_info.get(const.DATA_KID_POINT_DATA_LEGACY, {})
             if not point_data:
                 # Create point_data if it doesn't exist
                 point_data = {}
-                kid_info[const.DATA_KID_POINT_DATA] = point_data
+                kid_info[const.DATA_KID_POINT_DATA_LEGACY] = point_data
 
             # Get or create periods container
-            periods = point_data.setdefault(const.DATA_KID_POINT_DATA_PERIODS, {})
+            periods = point_data.setdefault(
+                const.DATA_KID_POINT_DATA_PERIODS_LEGACY, {}
+            )
 
             # --- Step 1: Set up all_time bucket ---
             # Get or create all_time period type
             all_time_periods = periods.setdefault(
-                const.DATA_KID_POINT_DATA_PERIODS_ALL_TIME, {}
+                const.DATA_KID_POINT_PERIODS_ALL_TIME, {}
             )
 
             # Get or create the all_time bucket (nested: all_time.all_time)
@@ -2395,16 +2965,14 @@ class PreV50Migrator:
             calculated_spent = current_balance - historical_earned
 
             # ALWAYS overwrite to ensure clean state
-            all_time_bucket[const.DATA_KID_POINT_DATA_PERIOD_POINTS_EARNED] = (
+            all_time_bucket[const.DATA_KID_POINT_PERIOD_POINTS_EARNED] = (
                 historical_earned
             )
-            all_time_bucket[const.DATA_KID_POINT_DATA_PERIOD_POINTS_SPENT] = (
-                calculated_spent
-            )
-            all_time_bucket[const.DATA_KID_POINT_DATA_PERIOD_BY_SOURCE] = {
+            all_time_bucket[const.DATA_KID_POINT_PERIOD_POINTS_SPENT] = calculated_spent
+            all_time_bucket[const.DATA_KID_POINT_PERIOD_BY_SOURCE] = {
                 const.POINTS_SOURCE_OTHER: current_balance
             }
-            all_time_bucket[const.DATA_KID_POINT_DATA_PERIOD_HIGHEST_BALANCE] = (
+            all_time_bucket[const.DATA_KID_POINT_PERIOD_HIGHEST_BALANCE] = (
                 historical_earned
             )
 
@@ -2420,7 +2988,7 @@ class PreV50Migrator:
                 historical_earned,
                 calculated_spent,
                 current_balance,
-                all_time_bucket[const.DATA_KID_POINT_DATA_PERIOD_HIGHEST_BALANCE],
+                all_time_bucket[const.DATA_KID_POINT_PERIOD_HIGHEST_BALANCE],
             )
 
             # --- Step 2: Convert points_total → points_earned in all period buckets ---
@@ -2443,23 +3011,20 @@ class PreV50Migrator:
 
                         # points_total was net (earned + spent where spent is negative)
                         # For non-all_time buckets, treat positive as earned, negative as spent
-                        if (
-                            const.DATA_KID_POINT_DATA_PERIOD_POINTS_EARNED
-                            not in bucket_data
-                        ):
+                        if const.DATA_KID_POINT_PERIOD_POINTS_EARNED not in bucket_data:
                             if total >= 0:
                                 bucket_data[
-                                    const.DATA_KID_POINT_DATA_PERIOD_POINTS_EARNED
+                                    const.DATA_KID_POINT_PERIOD_POINTS_EARNED
                                 ] = total
                                 bucket_data[
-                                    const.DATA_KID_POINT_DATA_PERIOD_POINTS_SPENT
+                                    const.DATA_KID_POINT_PERIOD_POINTS_SPENT
                                 ] = 0
                             else:
                                 bucket_data[
-                                    const.DATA_KID_POINT_DATA_PERIOD_POINTS_EARNED
+                                    const.DATA_KID_POINT_PERIOD_POINTS_EARNED
                                 ] = 0
                                 bucket_data[
-                                    const.DATA_KID_POINT_DATA_PERIOD_POINTS_SPENT
+                                    const.DATA_KID_POINT_PERIOD_POINTS_SPENT
                                 ] = total
 
                         buckets_converted += 1
@@ -2522,49 +3087,49 @@ class PreV50Migrator:
             const.DATA_KID_POINT_STATS_AVG_PER_CHORE_LEGACY,
         ]
 
-        # Define temporal fields to strip from chore_stats
+        # Define temporal fields to strip from chore_stats (using LEGACY constants)
         chore_stats_temporal_fields = [
             # Approved counts (temporal periods - all-time stays)
-            const.DATA_KID_CHORE_STATS_APPROVED_TODAY,
-            const.DATA_KID_CHORE_STATS_APPROVED_WEEK,
-            const.DATA_KID_CHORE_STATS_APPROVED_MONTH,
-            const.DATA_KID_CHORE_STATS_APPROVED_YEAR,
+            const.DATA_KID_CHORE_STATS_APPROVED_TODAY_LEGACY,
+            const.DATA_KID_CHORE_STATS_APPROVED_WEEK_LEGACY,
+            const.DATA_KID_CHORE_STATS_APPROVED_MONTH_LEGACY,
+            const.DATA_KID_CHORE_STATS_APPROVED_YEAR_LEGACY,
             # Claimed counts (temporal periods - all-time stays)
-            const.DATA_KID_CHORE_STATS_CLAIMED_TODAY,
-            const.DATA_KID_CHORE_STATS_CLAIMED_WEEK,
-            const.DATA_KID_CHORE_STATS_CLAIMED_MONTH,
-            const.DATA_KID_CHORE_STATS_CLAIMED_YEAR,
+            const.DATA_KID_CHORE_STATS_CLAIMED_TODAY_LEGACY,
+            const.DATA_KID_CHORE_STATS_CLAIMED_WEEK_LEGACY,
+            const.DATA_KID_CHORE_STATS_CLAIMED_MONTH_LEGACY,
+            const.DATA_KID_CHORE_STATS_CLAIMED_YEAR_LEGACY,
             # Overdue counts (temporal periods - all-time stays)
-            const.DATA_KID_CHORE_STATS_OVERDUE_TODAY,
-            const.DATA_KID_CHORE_STATS_OVERDUE_WEEK,
-            const.DATA_KID_CHORE_STATS_OVERDUE_MONTH,
-            const.DATA_KID_CHORE_STATS_OVERDUE_YEAR,
+            const.DATA_KID_CHORE_STATS_OVERDUE_TODAY_LEGACY,
+            const.DATA_KID_CHORE_STATS_OVERDUE_WEEK_LEGACY,
+            const.DATA_KID_CHORE_STATS_OVERDUE_MONTH_LEGACY,
+            const.DATA_KID_CHORE_STATS_OVERDUE_YEAR_LEGACY,
             # Disapproved counts (temporal periods - all-time stays)
-            const.DATA_KID_CHORE_STATS_DISAPPROVED_TODAY,
-            const.DATA_KID_CHORE_STATS_DISAPPROVED_WEEK,
-            const.DATA_KID_CHORE_STATS_DISAPPROVED_MONTH,
-            const.DATA_KID_CHORE_STATS_DISAPPROVED_YEAR,
+            const.DATA_KID_CHORE_STATS_DISAPPROVED_TODAY_LEGACY,
+            const.DATA_KID_CHORE_STATS_DISAPPROVED_WEEK_LEGACY,
+            const.DATA_KID_CHORE_STATS_DISAPPROVED_MONTH_LEGACY,
+            const.DATA_KID_CHORE_STATS_DISAPPROVED_YEAR_LEGACY,
             # Total points from chores (temporal periods - all-time stays)
-            const.DATA_KID_CHORE_STATS_TOTAL_POINTS_FROM_CHORES_TODAY,
-            const.DATA_KID_CHORE_STATS_TOTAL_POINTS_FROM_CHORES_WEEK,
-            const.DATA_KID_CHORE_STATS_TOTAL_POINTS_FROM_CHORES_MONTH,
-            const.DATA_KID_CHORE_STATS_TOTAL_POINTS_FROM_CHORES_YEAR,
+            const.DATA_KID_CHORE_STATS_TOTAL_POINTS_FROM_CHORES_TODAY_LEGACY,
+            const.DATA_KID_CHORE_STATS_TOTAL_POINTS_FROM_CHORES_WEEK_LEGACY,
+            const.DATA_KID_CHORE_STATS_TOTAL_POINTS_FROM_CHORES_MONTH_LEGACY,
+            const.DATA_KID_CHORE_STATS_TOTAL_POINTS_FROM_CHORES_YEAR_LEGACY,
             # Most completed chore (temporal periods - all-time stays)
-            const.DATA_KID_CHORE_STATS_MOST_COMPLETED_CHORE_WEEK,
-            const.DATA_KID_CHORE_STATS_MOST_COMPLETED_CHORE_MONTH,
-            const.DATA_KID_CHORE_STATS_MOST_COMPLETED_CHORE_YEAR,
+            const.DATA_KID_CHORE_STATS_MOST_COMPLETED_CHORE_WEEK_LEGACY,
+            const.DATA_KID_CHORE_STATS_MOST_COMPLETED_CHORE_MONTH_LEGACY,
+            const.DATA_KID_CHORE_STATS_MOST_COMPLETED_CHORE_YEAR_LEGACY,
             # Longest streaks (temporal periods - all-time stays)
-            const.DATA_KID_CHORE_STATS_LONGEST_STREAK_WEEK,
-            const.DATA_KID_CHORE_STATS_LONGEST_STREAK_MONTH,
-            const.DATA_KID_CHORE_STATS_LONGEST_STREAK_YEAR,
+            const.DATA_KID_CHORE_STATS_LONGEST_STREAK_WEEK_LEGACY,
+            const.DATA_KID_CHORE_STATS_LONGEST_STREAK_MONTH_LEGACY,
+            const.DATA_KID_CHORE_STATS_LONGEST_STREAK_YEAR_LEGACY,
             # Averages (derived values)
-            const.DATA_KID_CHORE_STATS_AVG_PER_DAY_WEEK,
-            const.DATA_KID_CHORE_STATS_AVG_PER_DAY_MONTH,
+            const.DATA_KID_CHORE_STATS_AVG_PER_DAY_WEEK_LEGACY,
+            const.DATA_KID_CHORE_STATS_AVG_PER_DAY_MONTH_LEGACY,
             # Current counts (live state, not historical)
-            const.DATA_KID_CHORE_STATS_CURRENT_DUE_TODAY,
-            const.DATA_KID_CHORE_STATS_CURRENT_OVERDUE,
-            const.DATA_KID_CHORE_STATS_CURRENT_CLAIMED,
-            const.DATA_KID_CHORE_STATS_CURRENT_APPROVED,
+            const.DATA_KID_CHORE_STATS_CURRENT_DUE_TODAY_LEGACY,
+            const.DATA_KID_CHORE_STATS_CURRENT_OVERDUE_LEGACY,
+            const.DATA_KID_CHORE_STATS_CURRENT_CLAIMED_LEGACY,
+            const.DATA_KID_CHORE_STATS_CURRENT_APPROVED_LEGACY,
         ]
 
         kids_data = self.coordinator._data.get(const.DATA_KIDS, {})
@@ -2585,7 +3150,7 @@ class PreV50Migrator:
                     kid_had_changes = True
 
             # Strip temporal fields from chore_stats
-            chore_stats = kid_info.get(const.DATA_KID_CHORE_STATS, {})
+            chore_stats = kid_info.get(const.DATA_KID_CHORE_STATS_LEGACY, {})
             for field in chore_stats_temporal_fields:
                 if field in chore_stats:
                     del chore_stats[field]

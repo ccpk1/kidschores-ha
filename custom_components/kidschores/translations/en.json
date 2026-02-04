@@ -2317,8 +2317,8 @@
             "name": "Completion Criteria",
             "state": {
               "independent": "Independent",
-              "shared_first_only": "Shared (First)",
-              "shared_all_required": "Shared (All)"
+              "shared_first": "Shared (First)",
+              "shared_all": "Shared (All)"
             }
           },
           "approval_reset_type": {
@@ -2400,7 +2400,7 @@
           "chore_current_streak": {
             "name": "Current Streak"
           },
-          "chore_highest_streak": {
+          "chore_longest_streak": {
             "name": "Longest Streak"
           },
           "chore_last_longest_streak_date": {
@@ -2697,14 +2697,29 @@
           "chore_stat_points_week": {
             "name": "Points This Week"
           },
+          "chore_stat_avg_per_day_week": {
+            "name": "Avg Chores Per Day (Week)"
+          },
           "chore_stat_points_month": {
             "name": "Points This Month"
+          },
+          "chore_stat_avg_per_day_month": {
+            "name": "Avg Chores Per Day (Month)"
           },
           "chore_stat_points_year": {
             "name": "Points This Year"
           },
           "chore_stat_points_all_time": {
             "name": "Points All Time"
+          },
+          "chore_stat_top_chores_week": {
+            "name": "Top Chore (Week)"
+          },
+          "chore_stat_top_chores_month": {
+            "name": "Top Chore (Month)"
+          },
+          "chore_stat_top_chores_year": {
+            "name": "Top Chore (Year)"
           },
           "chore_stat_chores_completed_today": {
             "name": "Completed Today"
@@ -2742,11 +2757,17 @@
           "chore_stat_longest_streak_all_time": {
             "name": "Longest Streak (All Time)"
           },
+          "chore_stat_longest_streak": {
+            "name": "Longest Streak"
+          },
           "chore_stat_avg_per_day_week": {
             "name": "Average Per Day (Week)"
           },
           "chore_stat_avg_per_day_month": {
             "name": "Average Per Day (Month)"
+          },
+          "chore_stat_avg_per_day_year": {
+            "name": "Average Per Day (Year)"
           }
         }
       },
@@ -3036,8 +3057,8 @@
             "name": "Completion Criteria",
             "state": {
               "independent": "Independent",
-              "shared_first_only": "Shared (First Only)",
-              "shared_all_required": "Shared (All Required)"
+              "shared_first": "Shared (First Only)",
+              "shared_all": "Shared (All Required)"
             }
           },
           "approval_reset_type": {

@@ -458,23 +458,7 @@ class KidRewardDataEntry(TypedDict, total=False):
     periods: NotRequired[KidRewardDataPeriods]
 
 
-# Dynamic structure - aggregated point stats
-KidPointStats = dict[str, Any]
-"""Point earning/spending statistics.
-
-Common keys (added dynamically at runtime):
-
-- points_earned_all_time: float
-- points_spent_all_time: float
-- points_net_all_time: float
-- highest_balance: float
-- earned/spent/net_today/week/month/year: float
-- avg_per_day_week/month: float
-- avg_per_chore: float
-- earning_streak_current/longest: int
-- by_source_today/week/month/year: dict[str, float]
-- points_by_source_all_time: dict[str, float]
-"""
+# === Kid Data Structure ===
 
 
 # Dynamic structure - aggregated stats accessed with variable keys
@@ -551,9 +535,8 @@ class KidData(TypedDict):
     penalty_applies: dict[str, bool]  # penalty_id -> applied?
     bonus_applies: dict[str, bool]  # bonus_id -> applied?
 
-    # Point statistics and period data (Genesis-initialized, Phase 3B)
-    point_stats: NotRequired[KidPointStats]
-    point_data: NotRequired[dict[str, Any]]  # Period point tracking
+    # Point statistics and period data (v43+)
+    point_periods: NotRequired[dict[str, Any]]  # Flat period tracking structure
 
     # Current streak (daily approval streak)
     current_streak: NotRequired[int]
@@ -742,7 +725,8 @@ class _EvaluationContextRequired(TypedDict):
     total_points_earned: float  # All-time points earned (from point_stats)
 
     # Required: Progress tracking
-    chore_stats: KidChoreStats  # Aggregate chore statistics
+    # v43+: chore_stats deleted from storage, now use chore_periods.all_time bucket
+    chore_periods_all_time: dict[str, Any]  # Aggregated chore period stats (all_time)
     badge_progress: dict[str, KidBadgeProgress]  # Per-badge progress tracking
     cumulative_badge_progress: KidCumulativeBadgeProgress  # Cumulative badge state
     badges_earned: dict[str, BadgesEarnedEntry]  # Already earned badges
@@ -1187,7 +1171,6 @@ __all__ = [
     "KidData",
     # ID type aliases
     "KidId",
-    "KidPointStats",
     "KidRewardDataEntry",
     "KidRewardDataPeriods",
     # Collection aliases

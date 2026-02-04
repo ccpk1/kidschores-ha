@@ -140,9 +140,12 @@ def extract_gamification_data(coordinator: Any) -> dict[str, Any]:
             # Extract all chore info - sanitize to make JSON-safe
             kid_gamification["chore_stats"][chore_id] = _sanitize_for_json(chore_info)
 
-        # Extract aggregate chore stats
-        chore_stats_data = kid_info.get(const.DATA_KID_CHORE_STATS, {})
-        kid_gamification["aggregate_chore_stats"] = _sanitize_for_json(chore_stats_data)
+        # Extract aggregate chore stats from chore_periods.all_time (v43+)
+        chore_periods = kid_info.get(const.DATA_KID_CHORE_PERIODS, {})
+        all_time_stats = chore_periods.get(
+            const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME, {}
+        )
+        kid_gamification["aggregate_chore_stats"] = _sanitize_for_json(all_time_stats)
 
         result["per_kid_data"][kid_id] = kid_gamification
 

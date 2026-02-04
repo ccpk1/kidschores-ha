@@ -78,8 +78,9 @@ def make_context(
                 "total_count": total_count,
                 "has_overdue": has_overdue,
             },
-            "chore_stats": {
-                const.DATA_KID_CHORE_STATS_APPROVED_ALL_TIME: approved_all_time,
+            # v43+: chore_stats deleted, use chore_periods_all_time
+            "chore_periods_all_time": {
+                const.DATA_KID_CHORE_DATA_PERIOD_APPROVED: approved_all_time,
             },
             "achievement_progress": {},
             "today_iso": today_iso or datetime.now(UTC).date().isoformat(),

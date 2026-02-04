@@ -896,7 +896,10 @@ class TestWorkflowIntegrationEdgeCases:
         kid_info: KidData | dict[str, Any] = coordinator.kids_data.get(kid_id, {})
         kid_chore_data = kid_info.get(const.DATA_KID_CHORE_DATA, {}).get(chore_id, {})
         periods = kid_chore_data.get(const.DATA_KID_CHORE_DATA_PERIODS, {})
-        all_time = periods.get(const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME, {})
+        all_time_container = periods.get(const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME, {})
+        all_time = all_time_container.get(
+            const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME, {}
+        )
         initial_count = all_time.get(const.DATA_KID_CHORE_DATA_PERIOD_APPROVED, 0)
 
         # Claim and approve via button presses
@@ -910,7 +913,10 @@ class TestWorkflowIntegrationEdgeCases:
         kid_info = coordinator.kids_data.get(kid_id, {})
         kid_chore_data = kid_info.get(const.DATA_KID_CHORE_DATA, {}).get(chore_id, {})
         periods = kid_chore_data.get(const.DATA_KID_CHORE_DATA_PERIODS, {})
-        all_time = periods.get(const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME, {})
+        all_time_container = periods.get(const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME, {})
+        all_time = all_time_container.get(
+            const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME, {}
+        )
         final_count = all_time.get(const.DATA_KID_CHORE_DATA_PERIOD_APPROVED, 0)
 
         assert final_count == initial_count + 1, (
@@ -939,7 +945,10 @@ class TestWorkflowIntegrationEdgeCases:
         kid_info: KidData | dict[str, Any] = coordinator.kids_data.get(kid_id, {})
         kid_chore_data = kid_info.get(const.DATA_KID_CHORE_DATA, {}).get(chore_id, {})
         periods = kid_chore_data.get(const.DATA_KID_CHORE_DATA_PERIODS, {})
-        all_time = periods.get(const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME, {})
+        all_time_container = periods.get(const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME, {})
+        all_time = all_time_container.get(
+            const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME, {}
+        )
         initial_count = all_time.get(const.DATA_KID_CHORE_DATA_PERIOD_DISAPPROVED, 0)
 
         # Claim and disapprove via button presses
@@ -953,7 +962,10 @@ class TestWorkflowIntegrationEdgeCases:
         kid_info = coordinator.kids_data.get(kid_id, {})
         kid_chore_data = kid_info.get(const.DATA_KID_CHORE_DATA, {}).get(chore_id, {})
         periods = kid_chore_data.get(const.DATA_KID_CHORE_DATA_PERIODS, {})
-        all_time = periods.get(const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME, {})
+        all_time_container = periods.get(const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME, {})
+        all_time = all_time_container.get(
+            const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME, {}
+        )
         final_count = all_time.get(const.DATA_KID_CHORE_DATA_PERIOD_DISAPPROVED, 0)
 
         assert final_count == initial_count + 1, (

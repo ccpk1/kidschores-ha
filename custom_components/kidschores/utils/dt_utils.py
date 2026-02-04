@@ -831,8 +831,11 @@ def dt_add_interval(
     if require_future and ref_dt:
         iteration_count = 0
         result_utc = as_utc(result_dt)
+        ref_dt_utc = as_utc(ref_dt)
+
         while (
-            result_utc <= ref_dt and iteration_count < MAX_DATE_CALCULATION_ITERATIONS
+            result_utc <= ref_dt_utc
+            and iteration_count < MAX_DATE_CALCULATION_ITERATIONS
         ):
             iteration_count += 1
             next_result = _add_interval_internal(
@@ -842,6 +845,10 @@ def dt_add_interval(
                 end_of_period=end_of_period,
             )
             if next_result is None:
+                _LOGGER.warning(
+                    "dt_add_interval: Early loop exit at iteration %d. next_result is None",
+                    iteration_count,
+                )
                 break
             result_dt = next_result
             result_utc = as_utc(result_dt)
@@ -1054,14 +1061,42 @@ def dt_next_schedule(
     if result_dt is None:
         return None
 
+    _LOGGER.debug(
+        "dt_next_schedule: After first interval. base=%s, result=%s, interval=%s, delta=%d, require_future=%s",
+        base_dt.isoformat() if base_dt else None,
+        result_dt.isoformat() if result_dt else None,
+        interval_type,
+        delta,
+        require_future,
+    )
+
     # If require_future, keep advancing until result > reference
     if require_future:
         iteration_count = 0
         result_utc = as_utc(result_dt)
+
+        _LOGGER.debug(
+            "dt_next_schedule: Starting require_future loop. "
+            "result_utc=%s, ref_utc=%s, result<=ref=%s",
+            result_utc.isoformat(),
+            ref_utc.isoformat(),
+            result_utc <= ref_utc,
+        )
+
         while (
             result_utc <= ref_utc and iteration_count < MAX_DATE_CALCULATION_ITERATIONS
         ):
             iteration_count += 1
+
+            if iteration_count <= 3 or iteration_count % 10 == 0:
+                _LOGGER.debug(
+                    "dt_next_schedule: Loop iteration %d. result_utc=%s, ref_utc=%s, still_past=%s",
+                    iteration_count,
+                    result_utc.isoformat(),
+                    ref_utc.isoformat(),
+                    result_utc <= ref_utc,
+                )
+
             next_result = _add_interval_internal(
                 base_dt=result_dt,
                 interval_unit=interval_unit,
@@ -1069,9 +1104,25 @@ def dt_next_schedule(
                 end_of_period=end_of_period,
             )
             if next_result is None or next_result == result_dt:
+                _LOGGER.warning(
+                    "dt_next_schedule: Early loop exit at iteration %d. "
+                    "next_result=%s, result_dt=%s, equal=%s, none=%s",
+                    iteration_count,
+                    next_result.isoformat() if next_result else None,
+                    result_dt.isoformat(),
+                    next_result == result_dt if next_result else False,
+                    next_result is None,
+                )
                 break
             result_dt = next_result
             result_utc = as_utc(result_dt)
+
+        _LOGGER.debug(
+            "dt_next_schedule: Loop completed. iterations=%d, final_result=%s, is_future=%s",
+            iteration_count,
+            result_dt.isoformat(),
+            as_utc(result_dt) > ref_utc,
+        )
 
         if iteration_count >= MAX_DATE_CALCULATION_ITERATIONS:
             _LOGGER.warning(

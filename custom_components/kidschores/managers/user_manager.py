@@ -109,6 +109,7 @@ class UserManager(BaseManager):
         prebuilt: bool = False,
         is_shadow: bool = False,
         linked_parent_id: str | None = None,
+        immediate_persist: bool = False,
     ) -> str:
         """Create a new kid from user input or pre-built data.
 
@@ -118,6 +119,7 @@ class UserManager(BaseManager):
             prebuilt: If True, user_input is already a complete KidData dict
             is_shadow: If True, creates a shadow kid for parent chore assignment
             linked_parent_id: Parent ID to link if creating shadow kid
+            immediate_persist: If True, persist immediately (use for config flow operations)
 
         Returns:
             The internal_id of the created kid
@@ -145,7 +147,7 @@ class UserManager(BaseManager):
 
         # Ensure kids dict exists and store kid data
         self._data.setdefault(const.DATA_KIDS, {})[kid_id] = kid_data
-        self.coordinator._persist()
+        self.coordinator._persist(immediate=immediate_persist)
         self.coordinator.async_update_listeners()
 
         kid_name = kid_data.get(const.DATA_KID_NAME, kid_id)
@@ -163,12 +165,15 @@ class UserManager(BaseManager):
 
         return kid_id
 
-    def update_kid(self, kid_id: str, updates: dict[str, Any]) -> None:
+    def update_kid(
+        self, kid_id: str, updates: dict[str, Any], *, immediate_persist: bool = False
+    ) -> None:
         """Update an existing kid with new values.
 
         Args:
             kid_id: Internal ID of the kid to update
             updates: Dict of field updates to merge into kid data
+            immediate_persist: If True, persist immediately (use for config flow operations)
 
         Raises:
             HomeAssistantError: If kid not found
@@ -185,7 +190,7 @@ class UserManager(BaseManager):
 
         # Merge updates into existing kid data
         self._data[const.DATA_KIDS][kid_id].update(updates)
-        self.coordinator._persist()
+        self.coordinator._persist(immediate=immediate_persist)
         self.coordinator.async_update_listeners()
 
         kid_name = self._data[const.DATA_KIDS][kid_id].get(const.DATA_KID_NAME, kid_id)
@@ -198,7 +203,7 @@ class UserManager(BaseManager):
             kid_name=kid_name,
         )
 
-    def delete_kid(self, kid_id: str) -> None:
+    def delete_kid(self, kid_id: str, *, immediate_persist: bool = False) -> None:
         """Delete kid from storage and cleanup references.
 
         For shadow kids (parent-linked profiles), this disables the parent's
@@ -206,6 +211,7 @@ class UserManager(BaseManager):
 
         Args:
             kid_id: Internal ID of the kid to delete
+            immediate_persist: If True, persist immediately (use for config flow operations)
 
         Raises:
             HomeAssistantError: If kid not found
@@ -238,7 +244,7 @@ class UserManager(BaseManager):
             self._unlink_shadow_kid(kid_id)
 
             # Persist → Emit (per DEVELOPMENT_STANDARDS.md § 5.3)
-            self.coordinator._persist()
+            self.coordinator._persist(immediate=immediate_persist)
 
             # Emit kid deleted event - UIManager listens to clean up translation sensors
             # (Platinum Architecture: signal-first, no cross-manager writes)
@@ -283,7 +289,7 @@ class UserManager(BaseManager):
         # - UIManager._on_user_deleted() removes unused translation sensors
 
         # Persist → Emit (per DEVELOPMENT_STANDARDS.md § 5.3)
-        self.coordinator._persist()
+        self.coordinator._persist(immediate=immediate_persist)
 
         # Emit kid deleted event AFTER persist so managers see consistent state
         self.emit(
@@ -306,6 +312,7 @@ class UserManager(BaseManager):
         *,
         internal_id: str | None = None,
         prebuilt: bool = False,
+        immediate_persist: bool = False,
     ) -> str:
         """Create a new parent from user input or pre-built data.
 
@@ -316,6 +323,7 @@ class UserManager(BaseManager):
             user_input: Form input dict or pre-built ParentData if prebuilt=True
             internal_id: Optional UUID to use (for pre-built data scenarios)
             prebuilt: If True, user_input is already a complete ParentData dict
+            immediate_persist: If True, persist immediately (use for config flow operations)
 
         Returns:
             The internal_id of the created parent
@@ -349,7 +357,7 @@ class UserManager(BaseManager):
                 const.DATA_PARENT_LINKED_SHADOW_KID_ID
             ] = shadow_kid_id
 
-        self.coordinator._persist()
+        self.coordinator._persist(immediate=immediate_persist)
         self.coordinator.async_update_listeners()
 
         const.LOGGER.info("Created parent '%s' (ID: %s)", parent_name, parent_id)
@@ -364,7 +372,13 @@ class UserManager(BaseManager):
 
         return parent_id
 
-    def update_parent(self, parent_id: str, updates: dict[str, Any]) -> None:
+    def update_parent(
+        self,
+        parent_id: str,
+        updates: dict[str, Any],
+        *,
+        immediate_persist: bool = False,
+    ) -> None:
         """Update an existing parent with new values.
 
         Handles shadow kid creation/deletion based on allow_chore_assignment changes.
@@ -372,6 +386,7 @@ class UserManager(BaseManager):
         Args:
             parent_id: Internal ID of the parent to update
             updates: Dict of field updates to merge into parent data
+            immediate_persist: If True, persist immediately (use for config flow operations)
 
         Raises:
             HomeAssistantError: If parent not found
@@ -419,7 +434,7 @@ class UserManager(BaseManager):
                 const.DATA_PARENT_LINKED_SHADOW_KID_ID
             ] = None
 
-        self.coordinator._persist()
+        self.coordinator._persist(immediate=immediate_persist)
         self.coordinator.async_update_listeners()
 
         parent_name = self._data[const.DATA_PARENTS][parent_id].get(
@@ -434,13 +449,14 @@ class UserManager(BaseManager):
             parent_name=parent_name,
         )
 
-    def delete_parent(self, parent_id: str) -> None:
+    def delete_parent(self, parent_id: str, *, immediate_persist: bool = False) -> None:
         """Delete parent from storage.
 
         Cascades deletion to any linked shadow kid before removing the parent.
 
         Args:
             parent_id: Internal ID of the parent to delete
+            immediate_persist: If True, persist immediately (use for config flow operations)
 
         Raises:
             HomeAssistantError: If parent not found
@@ -469,7 +485,7 @@ class UserManager(BaseManager):
         del self._data[const.DATA_PARENTS][parent_id]
 
         # Persist → Emit (per DEVELOPMENT_STANDARDS.md § 5.3)
-        self.coordinator._persist()
+        self.coordinator._persist(immediate=immediate_persist)
 
         # Emit parent deleted event - UIManager listens to clean up translation sensors
         # (Platinum Architecture: signal-first, no cross-manager writes)

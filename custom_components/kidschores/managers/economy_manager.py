@@ -402,19 +402,19 @@ class EconomyManager(BaseManager):
         return kid_data[const.DATA_KID_LEDGER]  # type: ignore[typeddict-item]
 
     def _ensure_point_structures(self, kid_data: KidData) -> None:
-        """Ensure point_stats and point_data structures exist (Landlord duty).
+        """Ensure point_periods structure exists (Landlord duty).
 
-        Phase 3B Landlord/Tenant: EconomyManager owns these structures.
-        Creates them on-demand before first transaction, not at kid genesis.
+        Phase 3B Landlord/Tenant: EconomyManager owns this structure.
+        Creates it on-demand before first transaction, not at kid genesis.
         StatisticsManager (tenant) writes to sub-keys but never creates top-level.
 
         Args:
             kid_data: The kid's data dict (modified in-place)
         """
-        # point_data: Period buckets container
+        # point_periods: Flat period buckets container (v43+)
         # StatisticsManager (tenant) creates and writes the period sub-keys
-        if const.DATA_KID_POINT_DATA not in kid_data:
-            kid_data[const.DATA_KID_POINT_DATA] = {}
+        if const.DATA_KID_POINT_PERIODS not in kid_data:
+            kid_data[const.DATA_KID_POINT_PERIODS] = {}
 
     def get_balance(self, kid_id: str) -> float:
         """Get current point balance for a kid.
@@ -1042,11 +1042,14 @@ class EconomyManager(BaseManager):
     # These methods own the write operations for bonus entities.
     # Called by options_flow.py and services.py - they must NOT write directly.
 
-    def create_bonus(self, user_input: dict[str, Any]) -> dict[str, Any]:
+    def create_bonus(
+        self, user_input: dict[str, Any], *, immediate_persist: bool = False
+    ) -> dict[str, Any]:
         """Create a new bonus in storage.
 
         Args:
             user_input: Bonus data with DATA_* keys.
+            immediate_persist: If True, persist immediately (use for config flow operations).
 
         Returns:
             Complete BonusData dict ready for use.
@@ -1063,7 +1066,7 @@ class EconomyManager(BaseManager):
 
         # Store in coordinator data
         self._coordinator._data[const.DATA_BONUSES][internal_id] = bonus_data
-        self._coordinator._persist()
+        self._coordinator._persist(immediate=immediate_persist)
         self._coordinator.async_update_listeners()
 
         # Emit lifecycle event
@@ -1081,12 +1084,15 @@ class EconomyManager(BaseManager):
 
         return bonus_data
 
-    def update_bonus(self, bonus_id: str, updates: dict[str, Any]) -> dict[str, Any]:
+    def update_bonus(
+        self, bonus_id: str, updates: dict[str, Any], *, immediate_persist: bool = False
+    ) -> dict[str, Any]:
         """Update an existing bonus in storage.
 
         Args:
             bonus_id: Internal UUID of the bonus to update.
             updates: Partial bonus data with DATA_* keys to merge.
+            immediate_persist: If True, persist immediately (use for config flow operations).
 
         Returns:
             Updated BonusData dict.
@@ -1118,7 +1124,7 @@ class EconomyManager(BaseManager):
 
         # Store updated bonus
         self._coordinator._data[const.DATA_BONUSES][bonus_id] = updated_bonus
-        self._coordinator._persist()
+        self._coordinator._persist(immediate=immediate_persist)
         self._coordinator.async_update_listeners()
 
         bonus_name = str(updated_bonus.get(const.DATA_BONUS_NAME, ""))
@@ -1138,11 +1144,12 @@ class EconomyManager(BaseManager):
 
         return updated_bonus
 
-    def delete_bonus(self, bonus_id: str) -> None:
+    def delete_bonus(self, bonus_id: str, *, immediate_persist: bool = False) -> None:
         """Delete a bonus from storage.
 
         Args:
             bonus_id: Internal UUID of the bonus to delete.
+            immediate_persist: If True, persist immediately (use for config flow operations).
 
         Raises:
             HomeAssistantError: If bonus not found.
@@ -1173,7 +1180,7 @@ class EconomyManager(BaseManager):
             bonus_id,
         )
 
-        self._coordinator._persist()
+        self._coordinator._persist(immediate=immediate_persist)
         self._coordinator.async_update_listeners()
 
         # Emit lifecycle event
@@ -1195,11 +1202,14 @@ class EconomyManager(BaseManager):
     # These methods own the write operations for penalty entities.
     # Called by options_flow.py and services.py - they must NOT write directly.
 
-    def create_penalty(self, user_input: dict[str, Any]) -> dict[str, Any]:
+    def create_penalty(
+        self, user_input: dict[str, Any], *, immediate_persist: bool = False
+    ) -> dict[str, Any]:
         """Create a new penalty in storage.
 
         Args:
             user_input: Penalty data with DATA_* keys.
+            immediate_persist: If True, persist immediately (use for config flow operations).
 
         Returns:
             Complete PenaltyData dict ready for use.
@@ -1216,7 +1226,7 @@ class EconomyManager(BaseManager):
 
         # Store in coordinator data
         self._coordinator._data[const.DATA_PENALTIES][internal_id] = penalty_data
-        self._coordinator._persist()
+        self._coordinator._persist(immediate=immediate_persist)
         self._coordinator.async_update_listeners()
 
         # Emit lifecycle event
@@ -1235,13 +1245,18 @@ class EconomyManager(BaseManager):
         return penalty_data
 
     def update_penalty(
-        self, penalty_id: str, updates: dict[str, Any]
+        self,
+        penalty_id: str,
+        updates: dict[str, Any],
+        *,
+        immediate_persist: bool = False,
     ) -> dict[str, Any]:
         """Update an existing penalty in storage.
 
         Args:
             penalty_id: Internal UUID of the penalty to update.
             updates: Partial penalty data with DATA_* keys to merge.
+            immediate_persist: If True, persist immediately (use for config flow operations).
 
         Returns:
             Updated PenaltyData dict.
@@ -1273,7 +1288,7 @@ class EconomyManager(BaseManager):
 
         # Store updated penalty
         self._coordinator._data[const.DATA_PENALTIES][penalty_id] = updated_penalty
-        self._coordinator._persist()
+        self._coordinator._persist(immediate=immediate_persist)
         self._coordinator.async_update_listeners()
 
         penalty_name = str(updated_penalty.get(const.DATA_PENALTY_NAME, ""))
@@ -1293,11 +1308,14 @@ class EconomyManager(BaseManager):
 
         return updated_penalty
 
-    def delete_penalty(self, penalty_id: str) -> None:
+    def delete_penalty(
+        self, penalty_id: str, *, immediate_persist: bool = False
+    ) -> None:
         """Delete a penalty from storage.
 
         Args:
             penalty_id: Internal UUID of the penalty to delete.
+            immediate_persist: If True, persist immediately (use for config flow operations).
 
         Raises:
             HomeAssistantError: If penalty not found.
@@ -1330,7 +1348,7 @@ class EconomyManager(BaseManager):
             penalty_id,
         )
 
-        self._coordinator._persist()
+        self._coordinator._persist(immediate=immediate_persist)
         self._coordinator.async_update_listeners()
 
         # Emit lifecycle event
@@ -1411,6 +1429,7 @@ class EconomyManager(BaseManager):
 
         # Persist → Emit (per DEVELOPMENT_STANDARDS.md § 5.3)
         self._coordinator._persist()
+        self._coordinator.async_set_updated_data(self._coordinator._data)
 
         # Emit completion signal
         self.emit(
@@ -1475,6 +1494,7 @@ class EconomyManager(BaseManager):
 
         # Persist → Emit (per DEVELOPMENT_STANDARDS.md § 5.3)
         self._coordinator._persist()
+        self._coordinator.async_set_updated_data(self._coordinator._data)
 
         # Emit completion signal
         self.emit(
@@ -1539,6 +1559,7 @@ class EconomyManager(BaseManager):
 
         # Persist → Emit (per DEVELOPMENT_STANDARDS.md § 5.3)
         self._coordinator._persist()
+        self._coordinator.async_set_updated_data(self._coordinator._data)
 
         # Emit completion signal
         self.emit(

@@ -875,7 +875,7 @@ _ECONOMY_KID_RUNTIME_FIELDS: frozenset[str] = frozenset(
         const.DATA_KID_POINTS,  # Current point balance
         const.DATA_KID_POINTS_MULTIPLIER,  # Reset to DEFAULT_KID_POINTS_MULTIPLIER
         const.DATA_KID_LEDGER,  # Transaction history
-        const.DATA_KID_POINT_DATA,  # Period point breakdowns (EconomyManager owns)
+        const.DATA_KID_POINT_PERIODS,  # Period point breakdowns (EconomyManager owns, v43+)
     }
 )
 
@@ -1597,11 +1597,12 @@ _CHORE_PER_KID_RUNTIME_LISTS: frozenset[str] = frozenset(
 # These are kid-side structures owned by ChoreManager.
 # ChoreManager creates these on-demand before recording data (not at kid genesis).
 # On data reset: CLEAR these structures for affected kid(s).
+# Note: chore_stats deleted in v43; chore_periods holds aggregated all-time stats.
 
 _CHORE_KID_RUNTIME_FIELDS: frozenset[str] = frozenset(
     {
         const.DATA_KID_CHORE_DATA,  # Per-chore tracking (ChoreManager creates on-demand)
-        const.DATA_KID_CHORE_STATS,  # Aggregate chore stats (ChoreManager creates on-demand)
+        const.DATA_KID_CHORE_PERIODS,  # Aggregated chore periods (v43+, all_time bucket)
     }
 )
 

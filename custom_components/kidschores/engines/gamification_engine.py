@@ -1055,21 +1055,24 @@ class GamificationEngine:
     ) -> int:
         """Get total count for achievement progress.
 
-        Reads from chore_stats in context based on achievement type.
+        Reads from chore_periods_all_time in context based on achievement type.
 
         Args:
-            context: EvaluationContext with chore_stats
+            context: EvaluationContext with chore_periods_all_time
             achievement_data: Achievement definition with type
 
         Returns:
             Current total count
         """
-        chore_stats = context.get("chore_stats") or {}
+        # v43+: chore_stats deleted, use chore_periods_all_time bucket
+        chore_periods_all_time = context.get("chore_periods_all_time") or {}
         achievement_type = achievement_data.get(const.DATA_ACHIEVEMENT_TYPE)
 
-        # For total chore achievements, use approved_all_time from chore stats
+        # For total chore achievements, use approved from chore_periods.all_time
         if achievement_type == const.ACHIEVEMENT_TYPE_TOTAL:
-            return chore_stats.get(const.DATA_KID_CHORE_STATS_APPROVED_ALL_TIME, 0)
+            return chore_periods_all_time.get(
+                const.DATA_KID_CHORE_DATA_PERIOD_APPROVED, 0
+            )
 
         # For point achievements, use total_points_earned from context
         # (the context is built with this from point_stats)
@@ -1085,7 +1088,7 @@ class GamificationEngine:
         Similar to achievement total but may have different sources.
 
         Args:
-            context: EvaluationContext with chore_stats
+            context: EvaluationContext with chore_periods_all_time
             challenge_data: Challenge definition with target_type
 
         Returns:

@@ -118,14 +118,22 @@ class KidChoreCompletionSensor(KidsChoresCoordinatorEntity, SensorEntity):
         """Return the total number of chores completed by the kid.
 
         Phase 4.5: Uses 'completed' metric (work date) for accurate tracking.
-        Reads from persisted stats for all-time total.
+        v43+: Reads from chore_periods.all_time bucket (chore_stats deleted).
         """
         kid_info: KidData = cast(
             "KidData", self.coordinator.kids_data.get(self._kid_id, {})
         )
-        stats = kid_info.get(const.DATA_KID_CHORE_STATS, {})
-        return stats.get(
-            const.DATA_KID_CHORE_STATS_COMPLETED_ALL_TIME, const.DEFAULT_ZERO
+        # v43+: chore_stats deleted, use chore_periods.all_time
+        # Cast to dict[str, Any] since chore_periods is a runtime-added bucket
+        chore_periods: dict[str, Any] = cast(
+            "dict[str, Any]", kid_info.get(const.DATA_KID_CHORE_PERIODS, {})
+        )
+        all_time: dict[str, Any] = cast(
+            "dict[str, Any]",
+            chore_periods.get(const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME, {}),
+        )
+        return all_time.get(
+            const.DATA_KID_CHORE_DATA_PERIOD_COMPLETED, const.DEFAULT_ZERO
         )
 
     @property
@@ -835,15 +843,16 @@ class KidPointsMaxEverSensor(KidsChoresCoordinatorEntity, SensorEntity):
         kid_info: KidData = cast(
             "KidData", self.coordinator.kids_data.get(self._kid_id, {})
         )
-        # Read highest_balance from periods.all_time.all_time (v43+)
-        point_data = kid_info.get(const.DATA_KID_POINT_DATA, {})
-        periods = point_data.get(const.DATA_KID_POINT_DATA_PERIODS, {})
-        all_time_periods = periods.get(const.DATA_KID_POINT_DATA_PERIODS_ALL_TIME, {})
-        all_time_bucket = all_time_periods.get(
-            const.DATA_KID_POINT_DATA_PERIODS_ALL_TIME, {}
+        # Read highest_balance from point_periods.all_time.all_time (v43+)
+        periods: dict[str, Any] = kid_info.get(const.DATA_KID_POINT_PERIODS, {})
+        all_time_periods: dict[str, Any] = periods.get(
+            const.DATA_KID_POINT_PERIODS_ALL_TIME, {}
+        )
+        all_time_bucket: dict[str, Any] = all_time_periods.get(
+            const.DATA_KID_POINT_PERIODS_ALL_TIME, {}
         )
         value = all_time_bucket.get(
-            const.DATA_KID_POINT_DATA_PERIOD_HIGHEST_BALANCE, const.DEFAULT_ZERO
+            const.DATA_KID_POINT_PERIOD_HIGHEST_BALANCE, const.DEFAULT_ZERO
         )
         return int(value)
 
@@ -918,14 +927,28 @@ class KidChoreStreakSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
     @property
     def native_value(self) -> int:
-        """Return the highest current streak among all streak achievements for the kid."""
-        kid_info: KidData = cast(
-            "KidData", self.coordinator.kids_data.get(self._kid_id, {})
-        )
-        chore_stats = kid_info.get(const.DATA_KID_CHORE_STATS, {})
-        return chore_stats.get(
-            const.DATA_KID_CHORE_STATS_LONGEST_STREAK_ALL_TIME, const.DEFAULT_ZERO
-        )
+        """Return the highest current streak among all streak achievements for the kid.
+
+        v43+: chore_stats deleted. Streak data now comes from achievement progress.
+        For backward compatibility, we return 0 if no streak achievements exist.
+        """
+        # v43+: chore_stats deleted - longest_streak_all_time was never truly persistent
+        # This sensor now returns the maximum streak from achievement progress
+        max_streak = 0
+        for achievement in self.coordinator.achievements_data.values():
+            if (
+                achievement.get(const.DATA_ACHIEVEMENT_TYPE)
+                == const.ACHIEVEMENT_TYPE_STREAK
+            ):
+                progress_for_kid = achievement.get(
+                    const.DATA_ACHIEVEMENT_PROGRESS, {}
+                ).get(self._kid_id)
+                if isinstance(progress_for_kid, dict):
+                    current_streak = progress_for_kid.get(
+                        const.DATA_ACHIEVEMENT_CURRENT_STREAK, 0
+                    )
+                    max_streak = max(max_streak, current_streak)
+        return max_streak
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:

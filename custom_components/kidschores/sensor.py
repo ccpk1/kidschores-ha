@@ -859,7 +859,11 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
             self._chore_id, {}
         )
         periods = kid_chore_data.get(const.DATA_KID_CHORE_DATA_PERIODS, {})
-        all_time_stats = periods.get(const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME, {})
+
+        # all_time uses nested structure: periods["all_time"]["all_time"] = {data}
+        # This matches point_periods structure
+        all_time_container = periods.get(const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME, {})
+        all_time_stats = all_time_container.get(const.PERIOD_ALL_TIME, {})
 
         # Use new per-chore data for counts and streaks
         claims_count = all_time_stats.get(
@@ -986,7 +990,7 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.ATTR_CHORE_OVERDUE_COUNT: overdue_count,
             # --- 4. Statistics (streaks) ---
             const.ATTR_CHORE_CURRENT_STREAK: current_streak,
-            const.ATTR_CHORE_HIGHEST_STREAK: highest_streak,
+            const.ATTR_CHORE_LONGEST_STREAK: highest_streak,
             const.ATTR_CHORE_LAST_LONGEST_STREAK_DATE: last_longest_streak_date,
             # --- 5. Timestamps (last_* events) ---
             const.ATTR_LAST_CLAIMED: last_claimed,
@@ -1199,25 +1203,25 @@ class KidPointsSensor(KidsChoresCoordinatorEntity, SensorEntity):
         }
 
         # === Phase 7G.1: Get persistent all_time stats from periods bucket ===
-        all_time_entry = (
-            kid_info.get(const.DATA_KID_POINT_DATA, {})
-            .get(const.DATA_KID_POINT_DATA_PERIODS, {})
-            .get(const.DATA_KID_POINT_DATA_PERIODS_ALL_TIME, {})
-            .get(const.PERIOD_ALL_TIME, {})
+        point_periods: dict[str, Any] = kid_info.get(const.DATA_KID_POINT_PERIODS, {})
+        all_time_periods: dict[str, Any] = point_periods.get(
+            const.DATA_KID_POINT_PERIODS_ALL_TIME, {}
         )
+        all_time_entry: dict[str, Any] = all_time_periods.get(const.PERIOD_ALL_TIME, {})
 
         # Extract all_time values
         earned_all_time = all_time_entry.get(
-            const.DATA_KID_POINT_DATA_PERIOD_POINTS_EARNED, 0.0
+            const.DATA_KID_POINT_PERIOD_POINTS_EARNED, 0.0
         )
         spent_all_time = all_time_entry.get(
-            const.DATA_KID_POINT_DATA_PERIOD_POINTS_SPENT, 0.0
+            const.DATA_KID_POINT_PERIOD_POINTS_SPENT, 0.0
         )
-        by_source_all_time = all_time_entry.get(
-            const.DATA_KID_POINT_DATA_PERIOD_BY_SOURCE, {}
+        # Create a copy to avoid dict reference issues (temporal periods use dict() copy in cache)
+        by_source_all_time = dict(
+            all_time_entry.get(const.DATA_KID_POINT_PERIOD_BY_SOURCE, {})
         )
         highest_balance = all_time_entry.get(
-            const.DATA_KID_POINT_DATA_PERIOD_HIGHEST_BALANCE, 0.0
+            const.DATA_KID_POINT_PERIOD_HIGHEST_BALANCE, 0.0
         )
 
         # Add persistent all_time stats with backward-compatible attribute names
@@ -1299,9 +1303,21 @@ class KidChoresSensor(KidsChoresCoordinatorEntity, SensorEntity):
         kid_info: KidData = cast(
             "KidData", self.coordinator.kids_data.get(self._kid_id, {})
         )
-        stats = kid_info.get(const.DATA_KID_CHORE_STATS, {})
-        return stats.get(
-            const.DATA_KID_CHORE_STATS_APPROVED_ALL_TIME, const.DEFAULT_ZERO
+        # Read from chore_periods.all_time.all_time (v43+ storage structure, nested)
+        # Cast to dict[str, Any] since chore_periods is a runtime-added bucket
+        chore_periods: dict[str, Any] = cast(
+            "dict[str, Any]", kid_info.get(const.DATA_KID_CHORE_PERIODS, {})
+        )
+        all_time_container: dict[str, Any] = cast(
+            "dict[str, Any]",
+            chore_periods.get(const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME, {}),
+        )
+        all_time: dict[str, Any] = cast(
+            "dict[str, Any]",
+            all_time_container.get(const.PERIOD_ALL_TIME, {}),
+        )
+        return all_time.get(
+            const.DATA_KID_CHORE_DATA_PERIOD_APPROVED, const.DEFAULT_ZERO
         )
 
     @property
@@ -1322,13 +1338,24 @@ class KidChoresSensor(KidsChoresCoordinatorEntity, SensorEntity):
         4. This Week (approved_this_week, claimed_this_week, completed_this_week, points_this_week)
         5. This Month (approved_this_month, claimed_this_month, completed_this_month, points_this_month)
         6. This Year (approved_this_year, claimed_this_year, completed_this_year, points_this_year)
-        7. All-Time (approved_all_time, claimed_all_time, completed_all_time, disapproved_all_time, overdue_all_time, points_all_time, longest_streak, most_completed_chore)
+        7. All-Time (approved_all_time, claimed_all_time, completed_all_time, disapproved_all_time, overdue_all_time, points_all_time, longest_streak)
         """
         kid_info: KidData = cast(
             "KidData", self.coordinator.kids_data.get(self._kid_id, {})
         )
-        # Get persistent stats from storage (all_time values, streaks, etc.)
-        stats = kid_info.get(const.DATA_KID_CHORE_STATS, {})
+        # Get persistent stats from chore_periods.all_time.all_time (v43+ storage, nested)
+        # Cast to dict[str, Any] since chore_periods is a runtime-added bucket
+        chore_periods: dict[str, Any] = cast(
+            "dict[str, Any]", kid_info.get(const.DATA_KID_CHORE_PERIODS, {})
+        )
+        all_time_container: dict[str, Any] = cast(
+            "dict[str, Any]",
+            chore_periods.get(const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME, {}),
+        )
+        all_time_stats: dict[str, Any] = cast(
+            "dict[str, Any]",
+            all_time_container.get(const.PERIOD_ALL_TIME, {}),
+        )
 
         # Get temporal stats from presentation cache
         pres_stats = self.coordinator.statistics_manager.get_stats(self._kid_id)
@@ -1336,8 +1363,24 @@ class KidChoresSensor(KidsChoresCoordinatorEntity, SensorEntity):
         # Build unified lookup dict for easier access
         all_stats: dict[str, Any] = {}
 
-        # Add persistent stats (strip nothing, keep original keys)
-        all_stats.update(stats)
+        # Add persistent all-time stats, mapping new key names to old attribute names
+        # e.g., "approved" -> "approved_all_time" for backward compatibility
+        if all_time_stats:
+            all_stats["approved_all_time"] = all_time_stats.get(
+                const.DATA_KID_CHORE_DATA_PERIOD_APPROVED, 0
+            )
+            all_stats["claimed_all_time"] = all_time_stats.get(
+                const.DATA_KID_CHORE_DATA_PERIOD_CLAIMED, 0
+            )
+            all_stats["completed_all_time"] = all_time_stats.get(
+                const.DATA_KID_CHORE_DATA_PERIOD_COMPLETED, 0
+            )
+            all_stats["points_all_time"] = all_time_stats.get(
+                const.DATA_KID_CHORE_DATA_PERIOD_POINTS, 0.0
+            )
+            all_stats["longest_streak"] = all_time_stats.get(
+                const.DATA_KID_CHORE_DATA_PERIOD_LONGEST_STREAK, 0
+            )
 
         # Add temporal stats (strip PRES prefixes)
         for pres_key, value in pres_stats.items():
@@ -1383,6 +1426,7 @@ class KidChoresSensor(KidsChoresCoordinatorEntity, SensorEntity):
             "claimed_week",
             "completed_week",
             "points_week",
+            "avg_per_day_week",
         ]:
             if key in all_stats:
                 attributes[f"{const.ATTR_PREFIX_CHORE_STAT}{key}"] = all_stats[key]
@@ -1393,6 +1437,7 @@ class KidChoresSensor(KidsChoresCoordinatorEntity, SensorEntity):
             "claimed_month",
             "completed_month",
             "points_month",
+            "avg_per_day_month",
         ]:
             if key in all_stats:
                 attributes[f"{const.ATTR_PREFIX_CHORE_STAT}{key}"] = all_stats[key]
@@ -1403,6 +1448,7 @@ class KidChoresSensor(KidsChoresCoordinatorEntity, SensorEntity):
             "claimed_year",
             "completed_year",
             "points_year",
+            "avg_per_day_year",
         ]:
             if key in all_stats:
                 attributes[f"{const.ATTR_PREFIX_CHORE_STAT}{key}"] = all_stats[key]
@@ -1416,7 +1462,6 @@ class KidChoresSensor(KidsChoresCoordinatorEntity, SensorEntity):
             "overdue_all_time",
             "points_all_time",
             "longest_streak",
-            "most_completed_chore",
         ]:
             if key in all_stats:
                 attributes[f"{const.ATTR_PREFIX_CHORE_STAT}{key}"] = all_stats[key]
@@ -2684,12 +2729,21 @@ class SystemAchievementSensor(KidsChoresCoordinatorEntity, SensorEntity):
                     if isinstance(progress_data, dict)
                     else const.DEFAULT_ZERO
                 )
-                # Use modern chore_stats structure
-                chore_stats = cast(
-                    "KidData", self.coordinator.kids_data.get(kid_id, {})
-                ).get(const.DATA_KID_CHORE_STATS, {})
-                current_total = chore_stats.get(
-                    const.DATA_KID_CHORE_STATS_APPROVED_ALL_TIME, const.DEFAULT_ZERO
+                # v43+: chore_stats deleted, use chore_periods.all_time.all_time (nested)
+                kid_data = cast("KidData", self.coordinator.kids_data.get(kid_id, {}))
+                chore_periods: dict[str, Any] = cast(
+                    "dict[str, Any]", kid_data.get(const.DATA_KID_CHORE_PERIODS, {})
+                )
+                all_time_container: dict[str, Any] = cast(
+                    "dict[str, Any]",
+                    chore_periods.get(const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME, {}),
+                )
+                all_time_bucket: dict[str, Any] = cast(
+                    "dict[str, Any]",
+                    all_time_container.get(const.PERIOD_ALL_TIME, {}),
+                )
+                current_total = all_time_bucket.get(
+                    const.DATA_KID_CHORE_DATA_PERIOD_APPROVED, const.DEFAULT_ZERO
                 )
                 total_current += int(current_total)
                 total_effective_target += baseline + target  # type: ignore[operator]
@@ -3126,11 +3180,21 @@ class KidAchievementProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
                 else const.DEFAULT_ZERO
             )
 
-            chore_stats = cast(
-                "KidData", self.coordinator.kids_data.get(self._kid_id, {})
-            ).get(const.DATA_KID_CHORE_STATS, {})
-            current_total = chore_stats.get(
-                const.DATA_KID_CHORE_STATS_APPROVED_ALL_TIME, const.DEFAULT_ZERO
+            # v43+: chore_stats deleted, use chore_periods.all_time.all_time (nested)
+            kid_data = cast("KidData", self.coordinator.kids_data.get(self._kid_id, {}))
+            chore_periods: dict[str, Any] = cast(
+                "dict[str, Any]", kid_data.get(const.DATA_KID_CHORE_PERIODS, {})
+            )
+            all_time_container: dict[str, Any] = cast(
+                "dict[str, Any]",
+                chore_periods.get(const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME, {}),
+            )
+            all_time_bucket: dict[str, Any] = cast(
+                "dict[str, Any]",
+                all_time_container.get(const.PERIOD_ALL_TIME, {}),
+            )
+            current_total = all_time_bucket.get(
+                const.DATA_KID_CHORE_DATA_PERIOD_APPROVED, const.DEFAULT_ZERO
             )
 
             effective_target = baseline + target  # type: ignore[operator]

@@ -312,6 +312,9 @@ class ChoreManager(BaseManager):
         # Validate entities exist
         self._validate_kid_and_chore(kid_id, chore_id)
 
+        # Landlord duty: Ensure periods structures exist before statistics writes
+        self._ensure_kid_structures(kid_id, chore_id)
+
         chore_data = self._coordinator.chores_data[chore_id]
         kid_info = self._coordinator.kids_data[kid_id]
         kid_chore_data = self._get_kid_chore_data(kid_id, chore_id)
@@ -400,6 +403,7 @@ class ChoreManager(BaseManager):
         self._coordinator._persist()
 
         # Emit event for notification system
+        # StatisticsManager._on_chore_claimed handles cache refresh and entity notification
         self.emit(
             const.SIGNAL_SUFFIX_CHORE_CLAIMED,
             kid_id=kid_id,
@@ -409,8 +413,6 @@ class ChoreManager(BaseManager):
             chore_labels=chore_data.get(const.DATA_CHORE_LABELS, []),
             update_stats=True,
         )
-
-        self._coordinator.async_set_updated_data(self._coordinator._data)
 
         const.LOGGER.debug(
             "Claim processed: kid=%s chore=%s user=%s",
@@ -461,6 +463,9 @@ class ChoreManager(BaseManager):
         """
         # Validate entities exist
         self._validate_kid_and_chore(kid_id, chore_id)
+
+        # Landlord duty: Ensure periods structures exist before statistics writes
+        self._ensure_kid_structures(kid_id, chore_id)
 
         chore_data = self._coordinator.chores_data[chore_id]
         kid_info = self._coordinator.kids_data[kid_id]
@@ -783,7 +788,7 @@ class ChoreManager(BaseManager):
                     streak_tallies=streak_tallies,
                 )
 
-        self._coordinator.async_set_updated_data(self._coordinator._data)
+        # StatisticsManager handles cache refresh and entity notification via signal handlers
 
         const.LOGGER.debug(
             "Approval processed: kid=%s chore=%s points=%.2f by=%s",
@@ -829,6 +834,9 @@ class ChoreManager(BaseManager):
         """
         self._validate_kid_and_chore(kid_id, chore_id)
 
+        # Landlord duty: Ensure periods structures exist before statistics writes
+        self._ensure_kid_structures(kid_id, chore_id)
+
         chore_data = self._coordinator.chores_data[chore_id]
         kid_info = self._coordinator.kids_data[kid_id]
         kid_chore_data = self._get_kid_chore_data(kid_id, chore_id)
@@ -841,6 +849,14 @@ class ChoreManager(BaseManager):
         kid_name = kid_info.get(const.DATA_KID_NAME, "Unknown")
         kids_assigned = chore_data.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
 
+        # Check if chore is past its due date (not just if state is overdue)
+        # Use same logic as overdue scan: due_date exists and now > due_date
+        due_date = self.get_due_date(chore_id, kid_id)
+        is_past_due = False
+        if due_date:
+            now_utc = dt_util.utcnow()
+            is_past_due = (due_date - now_utc).total_seconds() < 0
+
         # Calculate effects
         effects = ChoreEngine.calculate_transition(
             chore_data=chore_data,
@@ -848,29 +864,26 @@ class ChoreManager(BaseManager):
             action=CHORE_ACTION_DISAPPROVE,
             kids_assigned=kids_assigned,
             kid_name=kid_name,
+            is_overdue=is_past_due,
         )
 
         # Apply effects
         for effect in effects:
             self._apply_effect(effect, chore_id)
 
-        # Set last_disapproved timestamp for the disapproved kid
-
-        kid_chore_data[const.DATA_KID_CHORE_DATA_LAST_DISAPPROVED] = dt_now_iso()
-
-        # Update global chore state
+        # Update global chore state to reflect per-kid state changes
         self._update_global_state(chore_id)
 
-        # Clear claimed_by
-        self._clear_claimed_completed_by(chore_id, kid_id, const.DATA_CHORE_CLAIMED_BY)
-
-        # Decrement pending count
         self._decrement_pending_count(kid_id, chore_id)
+
+        # Set last_disapproved timestamp for the disapproved kid
+        kid_chore_data[const.DATA_KID_CHORE_DATA_LAST_DISAPPROVED] = dt_now_iso()
 
         # Persist → Emit (per DEVELOPMENT_STANDARDS.md § 5.3)
         self._coordinator._persist()
 
         # Emit disapproval event
+        # StatisticsManager._on_chore_disapproved handles cache refresh and entity notification
         self.emit(
             const.SIGNAL_SUFFIX_CHORE_DISAPPROVED,
             kid_id=kid_id,
@@ -882,8 +895,6 @@ class ChoreManager(BaseManager):
             previous_state=previous_state,
             update_stats=True,
         )
-
-        self._coordinator.async_set_updated_data(self._coordinator._data)
 
         const.LOGGER.debug(
             "Disapproval processed: kid=%s chore=%s by=%s reason=%s",
@@ -916,9 +927,12 @@ class ChoreManager(BaseManager):
         kid_name = kid_info.get(const.DATA_KID_NAME, "Unknown")
         kids_assigned = chore_data.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
 
-        # Get previous points to reclaim
-        previous_points = kid_chore_data.get(
-            const.DATA_KID_CHORE_DATA_TOTAL_POINTS, 0.0
+        # Get previous points to reclaim from periods.all_time.points (v43+ canonical source)
+        periods = kid_chore_data.get(const.DATA_KID_CHORE_DATA_PERIODS, {})
+        all_time_bucket = periods.get(const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME, {})
+        all_time_entry = all_time_bucket.get(const.PERIOD_ALL_TIME, {})
+        previous_points = all_time_entry.get(
+            const.DATA_KID_CHORE_DATA_PERIOD_POINTS, 0.0
         )
 
         # Calculate effects with skip_stats=True (undo doesn't count for stats)
@@ -943,6 +957,7 @@ class ChoreManager(BaseManager):
 
         # Emit undo signal - EconomyManager listens and handles point withdrawal
         # (Platinum Architecture: signal-first, no cross-manager writes)
+        # StatisticsManager._on_chore_undone handles cache refresh and entity notification
         if previous_points > 0:
             self.emit(
                 const.SIGNAL_SUFFIX_CHORE_UNDONE,
@@ -950,8 +965,6 @@ class ChoreManager(BaseManager):
                 chore_id=chore_id,
                 points_to_reclaim=previous_points,
             )
-
-        self._coordinator.async_set_updated_data(self._coordinator._data)
 
         const.LOGGER.info(
             "Chore undone: chore=%s kid=%s by=%s points_reclaimed=%.2f",
@@ -1338,6 +1351,7 @@ class ChoreManager(BaseManager):
             self._coordinator._persist()
 
             # Calculate days overdue and emit signal
+            # StatisticsManager._on_chore_overdue handles cache refresh and entity notification
             days_overdue = (now_utc - due_dt).days
             self.emit(
                 const.SIGNAL_SUFFIX_CHORE_OVERDUE,
@@ -1352,7 +1366,6 @@ class ChoreManager(BaseManager):
             marked_count += 1
 
         if marked_count > 0:
-            self._coordinator.async_set_updated_data(self._coordinator._data)
             const.LOGGER.debug(
                 "Processed %d overdue chore(s)",
                 marked_count,
@@ -1914,6 +1927,7 @@ class ChoreManager(BaseManager):
         user_input: dict[str, Any],
         internal_id: str | None = None,
         prebuilt: bool = False,
+        immediate_persist: bool = False,
     ) -> dict[str, Any]:
         """Create a new chore in storage.
 
@@ -1921,6 +1935,7 @@ class ChoreManager(BaseManager):
             user_input: Chore data with DATA_* keys.
             internal_id: Optional pre-generated UUID (for form resubmissions).
             prebuilt: If True, user_input is already a complete ChoreData dict.
+            immediate_persist: If True, persist immediately (use for config flow operations).
 
         Returns:
             Complete ChoreData dict ready for use.
@@ -1943,7 +1958,7 @@ class ChoreManager(BaseManager):
 
         # Store in coordinator data
         self._coordinator._data[const.DATA_CHORES][final_id] = chore_data
-        self._coordinator._persist()
+        self._coordinator._persist(immediate=immediate_persist)
         self._coordinator.async_update_listeners()
 
         # Emit lifecycle event
@@ -1961,12 +1976,15 @@ class ChoreManager(BaseManager):
 
         return chore_data
 
-    def update_chore(self, chore_id: str, updates: dict[str, Any]) -> dict[str, Any]:
+    def update_chore(
+        self, chore_id: str, updates: dict[str, Any], *, immediate_persist: bool = False
+    ) -> dict[str, Any]:
         """Update an existing chore in storage.
 
         Args:
             chore_id: Internal UUID of the chore to update.
             updates: Partial chore data with DATA_* keys to merge.
+            immediate_persist: If True, persist immediately (use for config flow operations).
 
         Returns:
             Updated ChoreData dict.
@@ -2001,7 +2019,7 @@ class ChoreManager(BaseManager):
         chore_name = str(updated_chore.get(const.DATA_CHORE_NAME, ""))
 
         # Persist then emit (transactional integrity: signal only after persist)
-        self._coordinator._persist()
+        self._coordinator._persist(immediate=immediate_persist)
         self._coordinator.async_update_listeners()
 
         self.emit(
@@ -2028,7 +2046,7 @@ class ChoreManager(BaseManager):
 
         return updated_chore
 
-    def delete_chore(self, chore_id: str) -> None:
+    def delete_chore(self, chore_id: str, *, immediate_persist: bool = False) -> None:
         """Delete a chore from storage and cleanup references.
 
         Follows Platinum Architecture (Choreography over Orchestration):
@@ -2039,6 +2057,7 @@ class ChoreManager(BaseManager):
 
         Args:
             chore_id: Internal UUID of the chore to delete.
+            immediate_persist: If True, persist immediately (use for config flow operations).
 
         Raises:
             HomeAssistantError: If chore not found.
@@ -2089,7 +2108,7 @@ class ChoreManager(BaseManager):
             )
         )
 
-        self._coordinator._persist()
+        self._coordinator._persist(immediate=immediate_persist)
         self._coordinator.async_update_listeners()
 
         # Emit lifecycle event (triggers GamificationManager, SystemManager, NotificationManager)
@@ -2610,6 +2629,43 @@ class ChoreManager(BaseManager):
     # §6 HELPER METHODS (private)
     # =========================================================================
 
+    def _ensure_kid_structures(self, kid_id: str, chore_id: str | None = None) -> None:
+        """Landlord genesis - ensure kid has chore_periods bucket and per-chore periods.
+
+        Creates empty chore_periods dict if missing. StatisticsEngine (Tenant)
+        creates and writes the period sub-keys (daily/weekly/etc.) on-demand.
+
+        Optionally ensures per-chore periods structure exists if chore_id provided.
+        This maintains consistency - ChoreManager (Landlord) creates containers,
+        StatisticsEngine (Tenant) populates data.
+
+        This is the "Landlord" pattern - ChoreManager owns kid.chore_periods
+        top-level dict, StatisticsEngine manages everything inside it.
+
+        Args:
+            kid_id: Kid UUID to ensure structure for
+            chore_id: Optional chore UUID to ensure per-chore periods for
+        """
+        kids = self._coordinator._data.get(const.DATA_KIDS, {})
+        kid = kids.get(kid_id)
+        if kid is None:
+            return  # Kid not found - caller should validate first
+
+        # Kid-level chore_periods bucket (v44+)
+        if const.DATA_KID_CHORE_PERIODS not in kid:
+            kid[const.DATA_KID_CHORE_PERIODS] = {}  # Tenant populates sub-keys
+
+        # Per-chore periods structure (if chore_id provided)
+        if chore_id:
+            kid_chore_data = self._get_kid_chore_data(kid_id, chore_id)
+            if (
+                kid_chore_data
+                and const.DATA_KID_CHORE_DATA_PERIODS not in kid_chore_data
+            ):
+                kid_chore_data[
+                    const.DATA_KID_CHORE_DATA_PERIODS
+                ] = {}  # Tenant populates sub-keys
+
     def _iter_kid_chore_pairs(
         self,
         chore_id: str | None = None,
@@ -2815,22 +2871,23 @@ class ChoreManager(BaseManager):
             kid_chores = {}
             kid_info[const.DATA_KID_CHORE_DATA] = kid_chores
 
-        # Phase 3B Landlord duty: Ensure chore_stats exists
-        # StatisticsManager (tenant) creates and writes the sub-keys
-        if const.DATA_KID_CHORE_STATS not in kid_info:
-            kid_info[const.DATA_KID_CHORE_STATS] = {}
+        # v44+: chore_stats deleted - fully ephemeral now (generate_chore_stats())
+        # All stats derived on-demand from chore_periods.all_time.* buckets
 
         if chore_id not in kid_chores:
+            # v43+: No total_points field - use periods.all_time.points as canonical source
+            chore_info: ChoreData | dict[str, Any] = self._coordinator.chores_data.get(
+                chore_id, {}
+            )
             default_data: dict[str, Any] = {
+                const.DATA_KID_CHORE_DATA_NAME: chore_info.get(
+                    const.DATA_CHORE_NAME, chore_id
+                ),
                 const.DATA_KID_CHORE_DATA_STATE: const.CHORE_STATE_PENDING,
-                const.DATA_KID_CHORE_DATA_TOTAL_POINTS: 0.0,
                 const.DATA_KID_CHORE_DATA_PENDING_CLAIM_COUNT: 0,
             }
             # Only set kid-level approval_period_start for INDEPENDENT chores
             # SHARED chores use chore-level approval_period_start instead
-            chore_info: ChoreData | dict[str, Any] = self._coordinator.chores_data.get(
-                chore_id, {}
-            )
             criteria = chore_info.get(
                 const.DATA_CHORE_COMPLETION_CRITERIA,
                 const.COMPLETION_CRITERIA_INDEPENDENT,
@@ -2978,9 +3035,8 @@ class ChoreManager(BaseManager):
             elif chore_id in completed_by_other_list:
                 completed_by_other_list.remove(chore_id)
 
-        # Apply points (store in total_points field)
-        if effect.points is not None:
-            kid_chore_data[const.DATA_KID_CHORE_DATA_TOTAL_POINTS] = effect.points
+        # v43+: Points are tracked in periods.all_time.points via StatisticsEngine
+        # Don't store in deprecated total_points field - StatisticsManager handles via signals
 
         # Clear claimed_by
         if effect.clear_claimed_by:
@@ -3515,11 +3571,31 @@ class ChoreManager(BaseManager):
         if item_id:
             # Item scope - single chore
             chore_ids = [item_id] if item_id in chores_data else []
+        elif kid_id:
+            # Kid scope - only chores assigned to this kid
+            chore_ids = [
+                chore_id
+                for chore_id, chore_info in chores_data.items()
+                if kid_id in chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
+            ]
         else:
-            # Global, kid, or item_type scope - all chores
+            # Global or item_type scope - all chores
             chore_ids = list(chores_data.keys())
 
-        # Reset chore-side runtime fields
+        # STEP 1: Clear due dates and transition chores to PENDING
+        # This uses the proper state machine to handle all side effects
+        for chore_id in chore_ids:
+            chore_info = chores_data.get(chore_id)
+            if not chore_info:
+                continue
+
+            # set_due_date(None, kid_id) clears due dates and transitions to PENDING
+            # - If kid_id=None (global scope): resets all assigned kids
+            # - If kid_id=<uuid> (kid scope): resets only that kid (INDEPENDENT chores)
+            # Proper state machine handling: ownership clearing, global state update, signals
+            await self.set_due_date(chore_id, None, kid_id=kid_id)
+
+        # STEP 2: Clear chore-side runtime fields
         for chore_id in chore_ids:
             chore_info = chores_data.get(chore_id)
             if not chore_info:
@@ -3527,9 +3603,6 @@ class ChoreManager(BaseManager):
 
             # Cast for dynamic field access (TypedDict requires literal keys)
             chore_dict = cast("dict[str, Any]", chore_info)
-
-            # Reset state to pending
-            chore_dict[const.DATA_CHORE_STATE] = const.CHORE_STATE_PENDING
 
             # Clear per-kid tracking lists
             for field in db._CHORE_PER_KID_RUNTIME_LISTS:
@@ -3546,20 +3619,13 @@ class ChoreManager(BaseManager):
             chore_dict[const.DATA_CHORE_LAST_CLAIMED] = None
             chore_dict[const.DATA_CHORE_LAST_COMPLETED] = None
 
-            # Clear per-kid due dates if global/item_type scope (full reset)
-            if not kid_id:
-                chore_dict[const.DATA_CHORE_PER_KID_DUE_DATES] = {}
-            elif const.DATA_CHORE_PER_KID_DUE_DATES in chore_dict:
-                # Kid scope - only remove that kid's due date
-                chore_dict[const.DATA_CHORE_PER_KID_DUE_DATES].pop(kid_id, None)
-
+        # STEP 3: Clear kid-side runtime structures
         # Determine which kids to process
         if kid_id:
             kid_ids = [kid_id] if kid_id in kids_data else []
         else:
             kid_ids = list(kids_data.keys())
 
-        # Reset kid-side chore runtime structures
         for loop_kid_id in kid_ids:
             kid_info = kids_data.get(loop_kid_id)
             if not kid_info:

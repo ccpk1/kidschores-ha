@@ -112,7 +112,10 @@ class TestBadgeShadowComparison:
                 const.DATA_KID_CUMULATIVE_BADGE_PROGRESS, {}
             ),
             "badges_earned": kid_data.get(const.DATA_KID_BADGES_EARNED, {}),
-            "chore_stats": kid_data.get(const.DATA_KID_CHORE_STATS, {}),
+            # v43+: chore_stats deleted, use chore_periods.all_time
+            "chore_periods_all_time": kid_data.get(
+                const.DATA_KID_CHORE_PERIODS, {}
+            ).get(const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME, {}),
             "achievement_progress": {},
             "challenge_progress": {},
             "today_iso": dt_today_iso(),
@@ -186,7 +189,10 @@ class TestBadgeShadowComparison:
                 const.DATA_KID_CUMULATIVE_BADGE_PROGRESS, {}
             ),
             "badges_earned": kid_data.get(const.DATA_KID_BADGES_EARNED, {}),
-            "chore_stats": kid_data.get(const.DATA_KID_CHORE_STATS, {}),
+            # v43+: chore_stats deleted, use chore_periods.all_time
+            "chore_periods_all_time": kid_data.get(
+                const.DATA_KID_CHORE_PERIODS, {}
+            ).get(const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME, {}),
             "achievement_progress": {},
             "challenge_progress": {},
             "today_iso": dt_today_iso(),
@@ -235,15 +241,12 @@ class TestAchievementShadowComparison:
         # Get target count
         target_count = achievement_data.get(const.DATA_ACHIEVEMENT_TARGET_VALUE, 10)
 
-        # Set up chore stats with enough completions
-        chore_stats = kid_data.setdefault(const.DATA_KID_CHORE_STATS, {})
-        # Find a chore to add stats for
-        chore_id = next(iter(coordinator.chores_data.keys()), None)
-        if chore_id:
-            chore_stats[chore_id] = {
-                const.DATA_KID_CHORE_STATS_APPROVED_ALL_TIME: target_count + 5,
-                const.DATA_KID_CHORE_STATS_TOTAL_POINTS_FROM_CHORES_ALL_TIME: 500.0,
-            }
+        # Set up chore_periods.all_time with enough completions (v43+ structure)
+        chore_periods = kid_data.setdefault(const.DATA_KID_CHORE_PERIODS, {})
+        chore_periods[const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME] = {
+            const.DATA_KID_CHORE_DATA_PERIOD_APPROVED: target_count + 5,
+            const.DATA_KID_CHORE_DATA_PERIOD_POINTS: 500.0,
+        }
 
         # Build evaluation context
         context: EvaluationContext = {
@@ -256,7 +259,10 @@ class TestAchievementShadowComparison:
                 const.DATA_KID_CUMULATIVE_BADGE_PROGRESS, {}
             ),
             "badges_earned": kid_data.get(const.DATA_KID_BADGES_EARNED, {}),
-            "chore_stats": chore_stats,
+            # v43+: chore_stats deleted, use chore_periods.all_time
+            "chore_periods_all_time": chore_periods.get(
+                const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME, {}
+            ),
             "achievement_progress": {},
             "challenge_progress": {},
             "today_iso": dt_today_iso(),
@@ -320,7 +326,10 @@ class TestChallengeShadowComparison:
                 const.DATA_KID_CUMULATIVE_BADGE_PROGRESS, {}
             ),
             "badges_earned": kid_data.get(const.DATA_KID_BADGES_EARNED, {}),
-            "chore_stats": kid_data.get(const.DATA_KID_CHORE_STATS, {}),
+            # v43+: chore_stats deleted, use chore_periods.all_time
+            "chore_periods_all_time": kid_data.get(
+                const.DATA_KID_CHORE_PERIODS, {}
+            ).get(const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME, {}),
             "achievement_progress": {},
             "challenge_progress": {},
             "today_iso": dt_today_iso(),
