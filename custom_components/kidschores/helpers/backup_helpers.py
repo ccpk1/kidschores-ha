@@ -181,6 +181,7 @@ async def cleanup_old_backups(
     hass: HomeAssistant,
     store,
     config_entry: ConfigEntry,
+    max_backups: int | None = None,
 ) -> None:
     """Delete old backups beyond max_backups limit per tag.
 
@@ -188,19 +189,23 @@ async def cleanup_old_backups(
         hass: Home Assistant instance
         store: Store instance (unused but kept for API consistency)
         config_entry: Config entry to get max_backups setting from
+        max_backups: Optional override for max backups (for testing/explicit control)
 
     Behavior:
-        - Gets max_backups from config_entry (defaults to 5 if None/missing)
+        - Gets max_backups from parameter if provided, else from config_entry (defaults to 5 if None/missing)
         - If max_backups is 0, deletes ALL backups (backups disabled)
         - Keeps newest N backups per tag (e.g., 5 manual, 5 recovery, etc.)
         - Retention applies equally to ALL backup types
         - Logs warnings for deletion failures but continues processing
     """
-    # Get max_backups from config entry with proper default handling
-    max_backups = int(
-        config_entry.options.get(const.CONF_BACKUPS_MAX_RETAINED)
-        or const.DEFAULT_BACKUPS_MAX_RETAINED
-    )
+    # Get max_backups from parameter if provided, otherwise from config entry with proper default handling
+    if max_backups is None:
+        max_backups = int(
+            config_entry.options.get(const.CONF_BACKUPS_MAX_RETAINED)
+            or const.DEFAULT_BACKUPS_MAX_RETAINED
+        )
+    else:
+        max_backups = int(max_backups)  # Ensure it's an integer
 
     try:
         # Discover all backups

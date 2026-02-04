@@ -140,6 +140,7 @@ class EconomyEngine:
         delta: float,
         source: str,
         reference_id: str | None = None,
+        item_name: str | None = None,
     ) -> LedgerEntry:
         """Create an immutable ledger entry for a transaction.
 
@@ -148,18 +149,25 @@ class EconomyEngine:
             delta: Amount to add (positive) or subtract (negative)
             source: Transaction source (e.g., "chore_approval", "reward_redemption")
             reference_id: Optional ID of related entity (chore_id, reward_id, etc.)
+            item_name: Optional human-readable name of related item (Phase 4C)
 
         Returns:
             LedgerEntry TypedDict with transaction details
         """
         new_balance = EconomyEngine.round_points(current_balance + delta)
-        return {
+        entry: LedgerEntry = {
             const.DATA_LEDGER_TIMESTAMP: _now_iso(),
             const.DATA_LEDGER_AMOUNT: EconomyEngine.round_points(delta),
             const.DATA_LEDGER_BALANCE_AFTER: new_balance,
             const.DATA_LEDGER_SOURCE: source,
             const.DATA_LEDGER_REFERENCE_ID: reference_id,
         }
+
+        # Add item_name if provided (Phase 4C enhancement)
+        if item_name:
+            entry[const.DATA_LEDGER_ITEM_NAME] = item_name  # type: ignore[typeddict-unknown-key]
+
+        return entry
 
     @staticmethod
     def calculate_new_balance(current_balance: float, delta: float) -> float:

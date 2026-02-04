@@ -162,7 +162,7 @@ DATA_READY → ChoreManager → CHORES_READY
 
 ### System Settings (config_entry.options)
 
-These 9 settings are stored in `config_entry.options` and require integration reload to take effect:
+These 10 settings are stored in `config_entry.options` and require integration reload to take effect:
 
 | Setting                | Type   | Default                 | Used By             | Why Reload Required               |
 | ---------------------- | ------ | ----------------------- | ------------------- | --------------------------------- |
@@ -170,6 +170,7 @@ These 9 settings are stored in `config_entry.options` and require integration re
 | `points_icon`          | string | "mdi:star-outline"      | Point sensors       | Entity icon changes               |
 | `update_interval`      | int    | 5 (minutes)             | Coordinator         | Polling interval changes          |
 | `calendar_show_period` | int    | 90 (days)               | Calendar platform   | Entity config changes             |
+| `backups_max_retained` | int    | 5 (count per type)      | backup helper       | Data protection setting           |
 | `retention_daily`      | int    | 7 (days)                | Stats cleanup       | Runtime read (no reload needed\*) |
 | `retention_weekly`     | int    | 5 (weeks)               | Stats cleanup       | Runtime read (no reload needed\*) |
 | `retention_monthly`    | int    | 3 (months)              | Stats cleanup       | Runtime read (no reload needed\*) |

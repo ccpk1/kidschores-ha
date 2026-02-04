@@ -1053,12 +1053,18 @@ class KidPenaltyAppliedSensor(KidsChoresCoordinatorEntity, SensorEntity):
     @property
     def native_value(self) -> Any:
         """Return the number of times the penalty has been applied."""
+        from custom_components.kidschores.engines.statistics_engine import (
+            StatisticsEngine,
+        )
+
         kid_info: KidData = cast(
             "KidData", self.coordinator.kids_data.get(self._kid_id, {})
         )
-        return kid_info.get(const.DATA_KID_PENALTY_APPLIES, {}).get(
-            self._penalty_id, const.DEFAULT_ZERO
-        )
+        penalty_applies = kid_info.get(const.DATA_KID_PENALTY_APPLIES, {})
+        penalty_entry = penalty_applies.get(self._penalty_id)
+        if not penalty_entry:
+            return const.DEFAULT_ZERO
+        return StatisticsEngine.get_penalty_applies_count(penalty_entry)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -1171,12 +1177,18 @@ class KidBonusAppliedSensor(KidsChoresCoordinatorEntity, SensorEntity):
     @property
     def native_value(self) -> Any:
         """Return the number of times the bonus has been applied."""
+        from custom_components.kidschores.engines.statistics_engine import (
+            StatisticsEngine,
+        )
+
         kid_info: KidData = cast(
             "KidData", self.coordinator.kids_data.get(self._kid_id, {})
         )
-        return kid_info.get(const.DATA_KID_BONUS_APPLIES, {}).get(
-            self._bonus_id, const.DEFAULT_ZERO
-        )
+        bonus_applies = kid_info.get(const.DATA_KID_BONUS_APPLIES, {})
+        bonus_entry = bonus_applies.get(self._bonus_id)
+        if not bonus_entry:
+            return const.DEFAULT_ZERO
+        return StatisticsEngine.get_bonus_applies_count(bonus_entry)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:

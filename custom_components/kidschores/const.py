@@ -1459,6 +1459,11 @@ DATA_BONUS_LABELS: Final = "bonus_labels"
 DATA_BONUS_NAME: Final = "name"
 DATA_BONUS_POINTS: Final = "points"
 
+# Bonus period tracking (item-level only, no aggregate bucket at kid level)
+DATA_KID_BONUS_PERIODS: Final = "periods"
+DATA_KID_BONUS_PERIOD_APPLIES: Final = "applies"
+DATA_KID_BONUS_PERIOD_POINTS: Final = "points"
+
 # PENALTIES
 DATA_PENALTY_DESCRIPTION: Final = "description"
 DATA_PENALTY_ICON: Final = "icon"
@@ -1467,6 +1472,15 @@ DATA_PENALTY_INTERNAL_ID: Final = "internal_id"
 DATA_PENALTY_LABELS: Final = "penalty_labels"
 DATA_PENALTY_NAME: Final = "name"
 DATA_PENALTY_POINTS: Final = "points"
+
+# Penalty period tracking (item-level only, no aggregate bucket at kid level)
+DATA_KID_PENALTY_PERIODS: Final = "periods"
+DATA_KID_PENALTY_PERIOD_APPLIES: Final = "applies"
+DATA_KID_PENALTY_PERIOD_POINTS: Final = "points"
+
+# Transaction ledger item name field (universal across all item types)
+# Used in metadata to store human-readable name (chores, rewards, badges, bonuses, penalties)
+DATA_LEDGER_ITEM_NAME: Final = "item_name"
 
 # ACHIEVEMENTS
 DATA_ACHIEVEMENT_ASSIGNED_KIDS: Final = "assigned_kids"

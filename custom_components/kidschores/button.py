@@ -1617,17 +1617,22 @@ class ParentPointsAdjustButton(KidsChoresCoordinatorEntity, ButtonEntity):
                 )
 
             # Use EconomyManager for point transactions
+            # Add descriptive item_name for ledger entries (e.g., "Manual +10", "Manual -5")
+            item_name = f"Manual {self._delta:+.0f}"
+
             if self._delta >= 0:
                 await self.coordinator.economy_manager.deposit(
                     kid_id=self._kid_id,
                     amount=self._delta,
                     source=const.POINTS_SOURCE_MANUAL,
+                    item_name=item_name,
                 )
             else:
                 await self.coordinator.economy_manager.withdraw(
                     kid_id=self._kid_id,
                     amount=abs(self._delta),
                     source=const.POINTS_SOURCE_MANUAL,
+                    item_name=item_name,
                 )
             const.LOGGER.info(
                 "INFO: Adjusted points for Kid '%s' by %d.",

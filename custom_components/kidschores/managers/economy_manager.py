@@ -172,6 +172,7 @@ class EconomyManager(BaseManager):
         """
         kid_id = payload.get("kid_id")
         badge_id = payload.get("badge_id")
+        badge_name = payload.get("badge_name")
         if not kid_id:
             return
 
@@ -184,6 +185,7 @@ class EconomyManager(BaseManager):
                     amount=points,
                     source=const.POINTS_SOURCE_BADGES,
                     reference_id=badge_id,
+                    item_name=badge_name,
                 )
             )
 
@@ -303,6 +305,7 @@ class EconomyManager(BaseManager):
         chore_id = payload.get("chore_id")
         base_points = payload.get("base_points", 0.0)
         apply_multiplier = payload.get("apply_multiplier", True)
+        chore_name = payload.get("chore_name")
 
         if base_points > 0 and kid_id:
             await self.deposit(
@@ -310,6 +313,7 @@ class EconomyManager(BaseManager):
                 amount=base_points,
                 source=const.POINTS_SOURCE_CHORES,
                 reference_id=chore_id,
+                item_name=chore_name,
                 apply_multiplier=apply_multiplier,
             )
 
@@ -341,6 +345,7 @@ class EconomyManager(BaseManager):
         kid_id = payload.get("kid_id")
         reward_id = payload.get("reward_id")
         cost = payload.get("cost", 0.0)
+        reward_name = payload.get("reward_name")
 
         if cost > 0 and kid_id:
             await self.withdraw(
@@ -348,6 +353,7 @@ class EconomyManager(BaseManager):
                 amount=cost,
                 source=const.POINTS_SOURCE_REWARDS,
                 reference_id=reward_id,
+                item_name=reward_name,
                 allow_negative=False,  # Kids must afford rewards
             )
 
@@ -470,6 +476,7 @@ class EconomyManager(BaseManager):
         *,
         source: str,
         reference_id: str | None = None,
+        item_name: str | None = None,
         apply_multiplier: bool = False,
     ) -> float:
         """Add points to a kid's balance.
@@ -479,6 +486,7 @@ class EconomyManager(BaseManager):
             amount: Amount to add (must be positive)
             source: Transaction source (POINTS_SOURCE_CHORES, POINTS_SOURCE_BONUSES, etc.)
             reference_id: Optional related entity ID (chore_id, etc.)
+            item_name: Optional human-readable name of related item (Phase 4C)
             apply_multiplier: If True, apply kid's points_multiplier
 
         Returns:
@@ -513,6 +521,7 @@ class EconomyManager(BaseManager):
             delta=actual_amount,
             source=source,
             reference_id=reference_id,
+            item_name=item_name,
         )
 
         # Update balance
@@ -561,6 +570,7 @@ class EconomyManager(BaseManager):
         *,
         source: str,
         reference_id: str | None = None,
+        item_name: str | None = None,
         allow_negative: bool = True,
     ) -> float:
         """Remove points from a kid's balance.
@@ -570,6 +580,7 @@ class EconomyManager(BaseManager):
             amount: Amount to remove (must be positive - will be negated internally)
             source: Transaction source (POINTS_SOURCE_REWARDS, POINTS_SOURCE_PENALTIES, etc.)
             reference_id: Optional related entity ID (reward_id, etc.)
+            item_name: Optional human-readable name of related item (Phase 4C)
             allow_negative: If True (default), allows balance to go negative (parent actions).
                            If False, raises InsufficientFundsError on NSF (reward claims).
 
@@ -616,6 +627,7 @@ class EconomyManager(BaseManager):
             delta=-amount,  # Negative for withdrawal
             source=source,
             reference_id=reference_id,
+            item_name=item_name,
         )
 
         # Update balance
@@ -703,6 +715,7 @@ class EconomyManager(BaseManager):
             )
 
         penalty_pts = penalty_info.get(const.DATA_PENALTY_POINTS, const.DEFAULT_ZERO)
+        penalty_name = penalty_info.get(const.DATA_PENALTY_NAME, "")
 
         # Use withdraw() with allow_negative=True (default) for penalties
         # Parent authority actions can take balance negative
@@ -711,15 +724,18 @@ class EconomyManager(BaseManager):
             amount=abs(penalty_pts),
             source=const.POINTS_SOURCE_PENALTIES,
             reference_id=penalty_id,
+            item_name=penalty_name,
             # allow_negative=True by default
         )
 
-        # Update penalty tracking counter
-        penalty_applies = kid_info[const.DATA_KID_PENALTY_APPLIES]
-        if penalty_id in penalty_applies:
-            penalty_applies[penalty_id] = int(penalty_applies[penalty_id]) + 1  # type: ignore[assignment]
-        else:
-            penalty_applies[penalty_id] = 1  # type: ignore[assignment]
+        # Landlord: Ensure penalty_applies entry exists with periods structure
+        # StatisticsEngine (via StatisticsManager) creates period buckets (daily/weekly/etc)
+        # on-demand via record_transaction() - matching the points pattern
+        penalty_applies = kid_info.setdefault(const.DATA_KID_PENALTY_APPLIES, {})
+        if penalty_id not in penalty_applies:
+            penalty_applies[penalty_id] = {
+                const.DATA_KID_PENALTY_PERIODS: {},
+            }
 
         const.LOGGER.debug(
             "EconomyManager.apply_penalty: kid=%s, penalty=%s, pts=%.2f, new_balance=%.2f",
@@ -894,6 +910,7 @@ class EconomyManager(BaseManager):
             )
 
         bonus_pts = bonus_info.get(const.DATA_BONUS_POINTS, const.DEFAULT_ZERO)
+        bonus_name = bonus_info.get(const.DATA_BONUS_NAME, "")
 
         # Use deposit for bonus (emits POINTS_CHANGED)
         new_balance = await self.deposit(
@@ -901,15 +918,18 @@ class EconomyManager(BaseManager):
             amount=bonus_pts,
             source=const.POINTS_SOURCE_BONUSES,
             reference_id=bonus_id,
+            item_name=bonus_name,
             apply_multiplier=False,  # Bonuses don't use multiplier
         )
 
-        # Update bonus tracking counter
-        bonus_applies = kid_info[const.DATA_KID_BONUS_APPLIES]
-        if bonus_id in bonus_applies:
-            bonus_applies[bonus_id] = int(bonus_applies[bonus_id]) + 1  # type: ignore[assignment]
-        else:
-            bonus_applies[bonus_id] = 1  # type: ignore[assignment]
+        # Landlord: Ensure bonus_applies entry exists with periods structure
+        # StatisticsEngine (via StatisticsManager) creates period buckets (daily/weekly/etc)
+        # on-demand via record_transaction() - matching the points pattern
+        bonus_applies = kid_info.setdefault(const.DATA_KID_BONUS_APPLIES, {})
+        if bonus_id not in bonus_applies:
+            bonus_applies[bonus_id] = {
+                const.DATA_KID_BONUS_PERIODS: {},
+            }
 
         const.LOGGER.debug(
             "EconomyManager.apply_bonus: kid=%s, bonus=%s, pts=%.2f, new_balance=%.2f",

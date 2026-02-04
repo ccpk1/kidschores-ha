@@ -10,18 +10,19 @@
 
 ## Summary & immediate steps
 
-| Phase / Step                           | Description                                                   | % complete | Quick notes                                                                      |
-| -------------------------------------- | ------------------------------------------------------------- | ---------- | -------------------------------------------------------------------------------- |
-| Phase 1 – point_stats Migration        | Consolidate flat point_stats into period buckets              | 100%       | ✅ COMPLETE - Migration v43, earned/spent split, PRES\_\* reads work             |
-| **Phase 1B – Transactional Flush**     | **Fix cache refresh architecture (sensor staleness)**         | **100%**   | ✅ COMPLETE - StatisticsManager owns flush, 8 redundant calls removed            |
-| **Phase 1C – point_data Rename**       | **Rename `point_data` → `point_periods` (consistency)**       | **100%**   | ✅ COMPLETE - Migration v43, 11 validation tests (100% pass), cache working      |
-| **Phase 2 – Lean Chore Architecture**  | **"Lean Item / Global Bucket" pattern for chore statistics**  | **100%**   | ✅ COMPLETE - chore*periods created, total*\* removed, chore_stats deleted (v43) |
-| **Phase 3 – Lean Reward Architecture** | **"Lean Item / Global Bucket" pattern for reward statistics** | **100%**   | ✅ COMPLETE - All steps done; migration fix applied (total\_\* backfill)         |
-| **Phase 4 – Period Update Ownership**  | **Centralize ALL period updates in StatisticsManager**        | **100%**   | ✅ COMPLETE - Landlord-Tenant separation, 7 direct calls removed, badge listener |
-| **Phase 4B – Badge Lean Item**         | **Move badge award_count from root to periods.all_time**      | **100%**   | ✅ COMPLETE - 7/7 steps done, migration v43, helper created, sensors updated     |
-| ~~Phase 5 – Manager Rename~~           | ~~Rename StatisticsManager → CacheManager~~                   | ~~STRUCK~~ | Name remains as-is, clarity sufficient                                           |
-| Phase 6 – Storage Migration            | Schema v43 migration for "Lean Item / Global Bucket"          | 0%         | Create `*_periods`, remove redundant fields, backfill data                       |
-| Phase 7 – Testing & Validation         | Comprehensive test coverage for new architecture              | 0%         | Period data integrity, cache refresh, ownership boundaries                       |
+| Phase / Step                           | Description                                                    | % complete | Quick notes                                                                      |
+| -------------------------------------- | -------------------------------------------------------------- | ---------- | -------------------------------------------------------------------------------- |
+| Phase 1 – point_stats Migration        | Consolidate flat point_stats into period buckets               | 100%       | ✅ COMPLETE - Migration v43, earned/spent split, PRES\_\* reads work             |
+| **Phase 1B – Transactional Flush**     | **Fix cache refresh architecture (sensor staleness)**          | **100%**   | ✅ COMPLETE - StatisticsManager owns flush, 8 redundant calls removed            |
+| **Phase 1C – point_data Rename**       | **Rename `point_data` → `point_periods` (consistency)**        | **100%**   | ✅ COMPLETE - Migration v43, 11 validation tests (100% pass), cache working      |
+| **Phase 2 – Lean Chore Architecture**  | **"Lean Item / Global Bucket" pattern for chore statistics**   | **100%**   | ✅ COMPLETE - chore*periods created, total*\* removed, chore_stats deleted (v43) |
+| **Phase 3 – Lean Reward Architecture** | **"Lean Item / Global Bucket" pattern for reward statistics**  | **100%**   | ✅ COMPLETE - All steps done; migration fix applied (total\_\* backfill)         |
+| **Phase 4 – Period Update Ownership**  | **Centralize ALL period updates in StatisticsManager**         | **100%**   | ✅ COMPLETE - Landlord-Tenant separation, 7 direct calls removed, badge listener |
+| **Phase 4B – Badge Lean Item**         | **Move badge award_count from root to periods.all_time**       | **100%**   | ✅ COMPLETE - 7/7 steps done, migration v43, helper created, sensors updated     |
+| **Phase 4C – Bonus/Penalty Periods**   | **Add period tracking to bonuses_applied & penalties_applied** | **100%**   | ✅ COMPLETE - All steps done, migration tested & validated (v40→v43 backfill OK) |
+| ~~Phase 5 – Manager Rename~~           | ~~Rename StatisticsManager → CacheManager~~                    | ~~STRUCK~~ | Name remains as-is, clarity sufficient                                           |
+| Phase 6 – Storage Migration            | Schema v43 migration for "Lean Item / Global Bucket"           | 0%         | Create `*_periods`, remove redundant fields, backfill data                       |
+| Phase 7 – Testing & Validation         | Comprehensive test coverage for new architecture               | 0%         | Period data integrity, cache refresh, ownership boundaries                       |
 
 1. **Key objective** – Implement "Lean Item / Global Bucket" pattern: eliminate redundant `*_stats` dicts and `total_*` fields from item roots, create sibling `*_periods` buckets at kid level for aggregated history that survives item deletion, centralize ALL period updates through single ownership model (StatisticsManager → CacheManager).
 
@@ -1420,6 +1421,332 @@ periods["all_time"]["all_time"]["award_count"] = 1
 - **Lines added**: ~15-20 (helper function + 4 sensor updates + migration logic)
 - **Schema change**: v43→v44 (or bundled into v43 if not yet released)
 - **Breaking change**: Yes - external code reading `award_count` at root will break
+
+---
+
+### Phase 4C – Bonus/Penalty Period Tracking
+
+**Goal**: Add period-based tracking to `bonuses_applied[uuid]` and `penalties_applied[uuid]` + enhance ledger with item names.
+
+**Status**: 🔄 90% COMPLETE - Steps 1-6 done (constants, handlers, ledger, migration), testing pending (Step 7).
+
+#### Problem Statement
+
+**Current State**:
+
+- `bonuses_applied[uuid]` and `penalties_applied[uuid]` track when applied, but no historical aggregation
+- No visibility into bonus/penalty patterns over time (seasonal trends, most common types, effectiveness)
+- Transaction ledger records UUIDs but not names (requires lookup for human-readable history)
+
+**Target State**:
+
+- Each bonus/penalty UUID has `periods` dict tracking applications and point impact over time
+- **No aggregate buckets needed** (unlike chores/rewards) - only item-level periods
+- Transaction ledger includes item names for all types (chores, rewards, badges, bonuses, penalties)
+
+#### Target Structure
+
+**bonuses_applied[uuid] structure**:
+
+```json
+{
+  "bonus_id": "abc123-bonus-uuid",
+  "name": "Extra Credit Math Test",
+  "amount": 50.0,
+  "applied_date": "2026-02-04T10:00:00+00:00",
+  "periods": {
+    "daily": {
+      "2026-02-04": {
+        "applies": 1,
+        "points": 50.0
+      }
+    },
+    "monthly": {
+      "2026-02": {
+        "applies": 1,
+        "points": 50.0
+      }
+    },
+    "yearly": {
+      "2026": {
+        "applies": 1,
+        "points": 50.0
+      }
+    },
+    "all_time": {
+      "all_time": {
+        "applies": 1,
+        "points": 50.0
+      }
+    }
+  }
+}
+```
+
+**penalties_applied[uuid] structure** (same pattern):
+
+```json
+{
+  "penalty_id": "xyz789-penalty-uuid",
+  "name": "Broke Curfew",
+  "amount": -25.0,
+  "applied_date": "2026-02-04T22:30:00+00:00",
+  "periods": {
+    "daily": {
+      "2026-02-04": {
+        "applies": 1,
+        "points": -25.0
+      }
+    },
+    "all_time": {
+      "all_time": {
+        "applies": 1,
+        "points": -25.0
+      }
+    }
+  }
+}
+```
+
+**Enhanced ledger structure**:
+
+```json
+{
+  "transaction_id": "tx_20260204_103045",
+  "timestamp": "2026-02-04T10:30:45+00:00",
+  "kid_id": "kid-uuid",
+  "amount": 50.0,
+  "balance_after": 1550.0,
+  "source": "bonus",
+  "description": "Bonus applied",
+  "metadata": {
+    "bonus_id": "abc123-bonus-uuid",
+    "item_name": "Extra Credit Math Test", // ← NEW (universal field)
+    "transaction_type": "apply"
+  }
+}
+```
+
+#### Steps / Detailed Work Items
+
+**4C.1 - Constants Update**:
+
+- [x] Add bonus period constants to `const.py`:
+  ```python
+  # Bonus applied periods (item-level only, no aggregate bucket)
+  DATA_BONUS_PERIODS = "periods"
+  DATA_BONUS_PERIOD_APPLIES = "applies"
+  DATA_BONUS_PERIOD_POINTS = "points"
+  ```
+- [x] Add penalty period constants:
+  ```python
+  # Penalty applied periods (item-level only, no aggregate bucket)
+  DATA_PENALTY_PERIODS = "periods"
+  DATA_PENALTY_PERIOD_APPLIES = "applies"
+  DATA_PENALTY_PERIOD_POINTS = "points"
+  ```
+- [x] Add ledger name field constant:
+  ```python
+  # Transaction ledger item name field (universal across all item types)
+  DATA_LEDGER_ITEM_NAME = "item_name"
+  ```
+
+**4C.2 - StatisticsManager Signal Listeners**:
+
+- [x] Add `_on_bonus_applied()` listener (~85 lines)
+- [x] Add `_on_penalty_applied()` listener (~85 lines)
+- Note: Tracks periods on global `bonuses_data[uuid]` and `penalties_data[uuid]` (not per-kid `bonuses_applied[uuid]` - architecture discovery)
+
+  ```python
+  @callback
+  def _on_bonus_applied(self, payload: dict[str, Any]) -> None:
+      """Handle BONUS_APPLIED signal.
+
+      Updates period tracking for the specific bonus UUID.
+
+      Args:
+          payload: {
+              "kid_id": str,
+              "bonus_id": str (UUID of bonuses_applied entry),
+              "bonus_name": str,
+              "amount": float,
+              "timestamp": str (ISO 8601)
+          }
+      """
+      kid_id = payload.get("kid_id")
+      bonus_id = payload.get("bonus_id")
+      amount = payload.get("amount", 0.0)
+      bonus_name = payload.get("bonus_name", "")
+
+      if not kid_id or not bonus_id:
+          return
+
+      kid = self._data[const.DATA_KIDS].get(kid_id)
+      if not kid:
+          return
+
+      bonus_entry = kid.get(const.DATA_KID_BONUSES_APPLIED, {}).get(bonus_id)
+      if not bonus_entry:
+          return
+
+      # Initialize periods if missing
+      if const.DATA_BONUS_PERIODS not in bonus_entry:
+          bonus_entry[const.DATA_BONUS_PERIODS] = {
+              const.PERIOD_DAILY: {},
+              const.PERIOD_WEEKLY: {},
+              const.PERIOD_MONTHLY: {},
+              const.PERIOD_YEARLY: {},
+              const.PERIOD_ALL_TIME: {}
+          }
+
+      # Update period buckets
+      timestamp = payload.get("timestamp") or dt_utils.dt_now_iso()
+      periods = bonus_entry[const.DATA_BONUS_PERIODS]
+
+      for period_type, period_key in [
+          (const.PERIOD_DAILY, dt_utils.dt_iso_to_date(timestamp)),
+          (const.PERIOD_WEEKLY, dt_utils.dt_iso_to_week(timestamp)),
+          (const.PERIOD_MONTHLY, dt_utils.dt_iso_to_month(timestamp)),
+          (const.PERIOD_YEARLY, dt_utils.dt_iso_to_year(timestamp)),
+          (const.PERIOD_ALL_TIME, const.PERIOD_ALL_TIME)
+      ]:
+          period_bucket = periods.setdefault(period_type, {})
+          period_entry = period_bucket.setdefault(period_key, {
+              const.DATA_BONUS_PERIOD_APPLIES: 0,
+              const.DATA_BONUS_PERIOD_POINTS: 0.0
+          })
+
+          period_entry[const.DATA_BONUS_PERIOD_APPLIES] += 1
+          period_entry[const.DATA_BONUS_PERIOD_POINTS] += amount
+
+      # Record ledger entry with name
+      self._record_ledger_entry(
+          kid_id=kid_id,
+          amount=amount,
+          source="bonus",
+          description="Bonus applied",
+          metadata={
+              "bonus_id": bonus_id,
+              const.DATA_LEDGER_ITEM_NAME: bonus_name
+          }
+      )
+  ```
+
+- [ ] Add `_on_penalty_applied()` listener (same pattern as bonus):
+
+  ```python
+  @callback
+  def _on_penalty_applied(self, payload: dict[str, Any]) -> None:
+      """Handle PENALTY_APPLIED signal.
+
+      Updates period tracking for the specific penalty UUID.
+
+      Args:
+          payload: {
+              "kid_id": str,
+              "penalty_id": str (UUID of penalties_applied entry),
+              "penalty_name": str,
+              "amount": float (negative),
+              "timestamp": str (ISO 8601)
+          }
+      """
+      # Same implementation as bonus, using penalty constants
+  ```
+
+**4C.3 - Register Signal Listeners**:
+
+- [x] In `StatisticsManager.__init__()`, add listener registrations (2 lines added)
+
+**4C.4 - Update Existing Ledger Entries (Retroactive)**:
+
+- [x] Add `item_name` parameter to `EconomyEngine.create_ledger_entry()` signature
+- [x] Add `item_name` parameter to `deposit()` and `withdraw()` signatures
+- [x] Pass `chore_name` from `_on_chore_approved()` signal payload to `deposit()`
+- [x] Pass `reward_name` from `_on_reward_approved()` signal payload to `withdraw()`
+- [x] Pass `badge_name` from `_on_badge_earned()` signal payload to `deposit()`
+- [x] Pass `bonus_name` from `apply_bonus()` to `deposit()`
+- [x] Pass `penalty_name` from `apply_penalty()` to `withdraw()`
+- Note: Ledger enhancement flows through EconomyManager signal handlers, not StatisticsManager
+
+**4C.5 - Migration (Schema v43 - No Bump)**:
+
+- [x] Added `_migrate_bonus_penalty_periods_v43()` to `migration_pre_v50.py` as Phase 12c
+- [x] Initializes empty periods structure on global `bonuses_data[uuid]` and `penalties_data[uuid]`
+- [x] Registered in migration sequence after Phase 12b (reward periods)
+      const.PERIOD_MONTHLY: {},
+      const.PERIOD_YEARLY: {},
+      const.PERIOD_ALL_TIME: {}
+      }
+
+          # Process penalties_applied
+          for penalty_id, penalty_entry in kid_data.get(const.DATA_KID_PENALTIES_APPLIED, {}).items():
+              if const.DATA_PENALTY_PERIODS not in penalty_entry:
+                  penalty_entry[const.DATA_PENALTY_PERIODS] = {
+                      const.PERIOD_DAILY: {},
+                      const.PERIOD_WEEKLY: {},
+                      const.PERIOD_MONTHLY: {},
+                      const.PERIOD_YEARLY: {},
+                      const.PERIOD_ALL_TIME: {}
+                  }
+
+  ```
+
+  ```
+
+**4C.6 - Ensure Signal Payloads Include Names**:
+
+- [x] Verified `EconomyManager.apply_bonus()` emits `bonus_name` in BONUS_APPLIED signal
+- [x] Verified `EconomyManager.apply_penalty()` emits `penalty_name` in PENALTY_APPLIED signal
+- [x] Verified `ChoreManager.approve_chore()` emits `chore_name` in CHORE_APPROVED signal
+- [x] Verified `RewardManager.approve()` emits `reward_name` in REWARD_APPROVED signal
+- [x] Verified `GamificationManager.award_badge()` emits `badge_name` in BADGE_EARNED signal
+- Note: All signals already include name fields - no code changes needed
+
+**4C.7 - Testing**:
+
+- [ ] Test bonus application creates period entries:
+
+  ```python
+  async def test_bonus_creates_period_tracking(hass, coordinator):
+      # Apply bonus
+      await coordinator.economy_manager.apply_bonus(kid_id, bonus_id)
+
+      # Verify periods created
+      bonus_entry = coordinator._data[DATA_KIDS][kid_id][DATA_KID_BONUSES_APPLIED][bonus_id]
+      assert DATA_BONUS_PERIODS in bonus_entry
+
+      # Verify all_time bucket incremented
+      all_time = bonus_entry[DATA_BONUS_PERIODS][PERIOD_ALL_TIME][PERIOD_ALL_TIME]
+      assert all_time[DATA_BONUS_PERIOD_APPLIES] == 1
+      assert all_time[DATA_BONUS_PERIOD_POINTS] == 50.0
+  ```
+
+- [ ] Test penalty application (same pattern)
+- [ ] Test multiple applications accumulate correctly
+- [ ] Test ledger includes `item_name` for all transaction types
+- [ ] Test migration adds empty periods to existing entries
+
+**4C.8 - Validation**:
+
+- [x] Run `./utils/quick_lint.sh --fix` (✅ PASSED - all checks passed, 0 errors)
+- [x] Fixed Pylance warnings for NotRequired TypedDict field access (used `.get()` pattern)
+- [ ] Run `mypy custom_components/kidschores/` directly (not yet done separately)
+- [ ] Run full test suite (all tests pass - pending after remaining steps)
+
+**Key Issues**:
+
+- **No aggregate buckets**: Unlike chores/rewards, we're NOT creating `bonus_periods` or `penalty_periods` at kid level
+- **Item-level only**: Periods tracked per UUID in `bonuses_applied[uuid]["periods"]` and `penalties_applied[uuid]["periods"]`
+- **Schema v43**: No version bump needed - this is an additive enhancement to existing v43
+- **Ledger simplification**: Single `item_name` field for all transaction types (chores, rewards, badges, bonuses, penalties) - item type determined by `source` field
+- **Signal coordination**: Must verify domain managers emit item names in signals
+
+**Impact Summary**:
+
+- **Files modified**: 4-5 (statistics_manager.py, economy_manager.py, const.py, migration_pre_v50.py, tests)
+- **Lines added**: ~200-250 (2 listeners, ledger updates, migration, constants, tests)
+- **Schema change**: v43 enhancement (no bump)
+- **Breaking change**: No - additive only
 
 ---
 

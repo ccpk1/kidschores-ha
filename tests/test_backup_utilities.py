@@ -57,8 +57,20 @@ def mock_hass():
     return hass
 
 
-# =============================================================================
-# TESTS: create_timestamped_backup()
+@pytest.fixture
+def mock_config_entry():
+    """Create mock config entry for cleanup tests."""
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    return MockConfigEntry(
+        domain="kidschores",
+        title="KidsChores",
+        data={},
+        options={},  # Empty options - tests will pass max_backups parameter
+        unique_id=None,
+    )
+
+
 # =============================================================================
 
 
@@ -137,7 +149,7 @@ async def test_create_timestamped_backup_no_data(mock_hass):
 @patch("custom_components.kidschores.helpers.backup_helpers.discover_backups")
 @patch("os.remove")
 async def test_cleanup_old_backups_respects_max_limit(
-    mock_remove, mock_discover, mock_hass, mock_storage_manager
+    mock_remove, mock_discover, mock_hass, mock_storage_manager, mock_config_entry
 ):
     """Test cleanup keeps newest N backups per tag."""
     # Setup: 5 recovery backups (keep newest 3)
@@ -180,7 +192,9 @@ async def test_cleanup_old_backups_respects_max_limit(
     ]
 
     # Execute: Keep newest 3
-    await cleanup_old_backups(mock_hass, mock_storage_manager, max_backups=3)
+    await cleanup_old_backups(
+        mock_hass, mock_storage_manager, mock_config_entry, max_backups=3
+    )
 
     # Verify: Deleted oldest 2
     assert mock_remove.call_count == 2
@@ -196,7 +210,7 @@ async def test_cleanup_old_backups_respects_max_limit(
 @patch("custom_components.kidschores.helpers.backup_helpers.discover_backups")
 @patch("os.remove")
 async def test_cleanup_old_backups_never_deletes_permanent_tags(
-    mock_remove, mock_discover, mock_hass, mock_storage_manager
+    mock_remove, mock_discover, mock_hass, mock_storage_manager, mock_config_entry
 ):
     """Test cleanup never deletes pre-migration or manual backups."""
     # Setup: Mix of tags
@@ -232,7 +246,9 @@ async def test_cleanup_old_backups_never_deletes_permanent_tags(
     ]
 
     # Execute: Keep only 1 per tag
-    await cleanup_old_backups(mock_hass, mock_storage_manager, max_backups=1)
+    await cleanup_old_backups(
+        mock_hass, mock_storage_manager, mock_config_entry, max_backups=1
+    )
 
     # Verify: Only deleted old recovery backup
     assert mock_remove.call_count == 1
@@ -243,9 +259,12 @@ async def test_cleanup_old_backups_never_deletes_permanent_tags(
 @patch("custom_components.kidschores.helpers.backup_helpers.discover_backups")
 @patch("os.remove")
 async def test_cleanup_old_backups_disabled_when_zero(
-    mock_remove, mock_discover, mock_hass, mock_storage_manager
+    mock_remove, mock_discover, mock_hass, mock_storage_manager, mock_config_entry
 ):
-    """Test cleanup is disabled when max_backups is 0."""
+    """Test cleanup deletes ALL backups when max_backups is 0 (backups disabled).
+
+    Note: max_backups=0 means delete everything - useful when disabling backups entirely.
+    """
     mock_discover.return_value = [
         {
             "filename": "kidschores_data_2024-12-18_15-00-00_recovery",
@@ -253,20 +272,29 @@ async def test_cleanup_old_backups_disabled_when_zero(
             "timestamp": datetime.datetime(2024, 12, 18, 15, 0, 0, tzinfo=datetime.UTC),
             "age_hours": 1,
             "size_bytes": 1000,
-        }
+        },
+        {
+            "filename": "kidschores_data_2024-12-18_14-00-00_manual",
+            "tag": "manual",
+            "timestamp": datetime.datetime(2024, 12, 18, 14, 0, 0, tzinfo=datetime.UTC),
+            "age_hours": 2,
+            "size_bytes": 1000,
+        },
     ]
 
     # Execute
-    await cleanup_old_backups(mock_hass, mock_storage_manager, max_backups=0)
+    await cleanup_old_backups(
+        mock_hass, mock_storage_manager, mock_config_entry, max_backups=0
+    )
 
-    # Verify: No deletions
-    mock_remove.assert_not_called()
+    # Verify: All backups deleted
+    assert mock_remove.call_count == 2
 
 
 @patch("custom_components.kidschores.helpers.backup_helpers.discover_backups")
 @patch("os.remove", side_effect=OSError("Permission denied"))
 async def test_cleanup_old_backups_continues_on_error(
-    mock_remove, mock_discover, mock_hass, mock_storage_manager
+    mock_remove, mock_discover, mock_hass, mock_storage_manager, mock_config_entry
 ):
     """Test cleanup continues even if individual deletion fails."""
     # Setup: 3 old backups
@@ -295,7 +323,9 @@ async def test_cleanup_old_backups_continues_on_error(
     ]
 
     # Execute: Keep only 1 (should try to delete 2, both fail)
-    await cleanup_old_backups(mock_hass, mock_storage_manager, max_backups=1)
+    await cleanup_old_backups(
+        mock_hass, mock_storage_manager, mock_config_entry, max_backups=1
+    )
 
     # Verify: Attempted to delete both old backups despite failures
     assert mock_remove.call_count == 2
@@ -304,7 +334,7 @@ async def test_cleanup_old_backups_continues_on_error(
 @patch("custom_components.kidschores.helpers.backup_helpers.discover_backups")
 @patch("os.remove")
 async def test_cleanup_old_backups_handles_non_integer_max_backups(
-    mock_remove, mock_discover, mock_hass, mock_storage_manager
+    mock_remove, mock_discover, mock_hass, mock_storage_manager, mock_config_entry
 ):
     """Test cleanup handles string/float max_backups values (defensive type coercion).
 
@@ -352,7 +382,9 @@ async def test_cleanup_old_backups_handles_non_integer_max_backups(
     ]
 
     # Test with string value (as might come from options flow)
-    await cleanup_old_backups(mock_hass, mock_storage_manager, max_backups=int("3"))
+    await cleanup_old_backups(
+        mock_hass, mock_storage_manager, mock_config_entry, max_backups=int("3")
+    )
 
     # Verify: Correctly interpreted "3" as integer and deleted oldest 2
     assert mock_remove.call_count == 2
@@ -368,7 +400,9 @@ async def test_cleanup_old_backups_handles_non_integer_max_backups(
     mock_remove.reset_mock()
 
     # Test with float value (edge case)
-    await cleanup_old_backups(mock_hass, mock_storage_manager, max_backups=int(2.0))
+    await cleanup_old_backups(
+        mock_hass, mock_storage_manager, mock_config_entry, max_backups=int(2.0)
+    )
 
     # Verify: Correctly interpreted 2.0 as integer and deleted oldest 3
     assert mock_remove.call_count == 3

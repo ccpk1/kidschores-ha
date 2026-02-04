@@ -421,6 +421,12 @@ class PreV50Migrator:
         # - Delete reward_stats dict entirely (now fully ephemeral)
         self._migrate_reward_periods_v43()
 
+        # Phase 12c: Bonus/Penalty periods migration (v43) - "Lean Item Period Tracking"
+        # - Add periods structure to global bonuses_data[uuid] and penalties_data[uuid]
+        # - No kid-level aggregate buckets needed (unlike chores/rewards)
+        # - Ledger enhancement: item_name field already added in Phase 4C.4
+        self._migrate_bonus_penalty_periods_v43()
+
         # Phase 13: Finalize migration metadata (MUST be last)
         # Sets v50+ meta section and cleans up legacy keys
         self._finalize_migration_meta()
@@ -1324,6 +1330,169 @@ class PreV50Migrator:
             backfilled_count,
             items_cleaned,
             stats_deleted,
+        )
+
+    def _migrate_bonus_penalty_periods_v43(self) -> None:
+        """Transform kid.bonus_applies and kid.penalty_applies to dicts with periods (v43).
+
+        Phase 4C: Bonus/Penalty Period Tracking
+        - Transform kid.bonus_applies from {bonus_id: count} to {bonus_id: {periods: {...}}}
+        - Transform kid.penalty_applies from {penalty_id: count} to {penalty_id: {periods: {...}}}
+        - Backfill all_time.all_time from old integer counters
+        - Periods structure: kid.bonus_applies[bonus_id].periods.daily.2026-02-04
+
+        This migration (Phase 12c):
+        1. For each kid, transform bonus_applies counters to dicts with periods
+        2. For each kid, transform penalty_applies counters to dicts with periods
+        3. Backfill all_time.all_time bucket with historical count × points
+
+        This migration is idempotent - safe to run multiple times.
+        """
+        const.LOGGER.info(
+            "Starting v43 bonus/penalty periods migration: "
+            "Transform kid.bonus_applies and kid.penalty_applies from counters to period dicts"
+        )
+
+        bonuses_data = self.coordinator._data.get(const.DATA_BONUSES, {})
+        penalties_data = self.coordinator._data.get(const.DATA_PENALTIES, {})
+        kids_data = self.coordinator._data.get(const.DATA_KIDS, {})
+        kids_migrated = 0
+        bonus_entries_transformed = 0
+        penalty_entries_transformed = 0
+
+        for kid_id, kid_info in kids_data.items():
+            kid_name = kid_info.get(const.DATA_KID_NAME, kid_id[:8])
+            kid_changed = False
+
+            # Transform bonus_applies from integer counters to period dicts
+            bonus_applies = kid_info.get(const.DATA_KID_BONUS_APPLIES, {})
+            for bonus_id, value in list(bonus_applies.items()):
+                # Check if already migrated (dict with periods) or needs migration (integer)
+                if isinstance(value, int):
+                    # OLD FORMAT: integer count - transform to dict with periods
+                    apply_count = value
+                    bonus_info = bonuses_data.get(bonus_id)
+                    if not bonus_info:
+                        const.LOGGER.warning(
+                            "Bonus %s not found in bonuses_data (kid=%s), skipping",
+                            bonus_id,
+                            kid_name,
+                        )
+                        continue
+
+                    bonus_points = bonus_info.get(const.DATA_BONUS_POINTS, 0.0)
+                    bonus_name = bonus_info.get(const.DATA_BONUS_NAME, "Unknown")
+
+                    # Create new structure with periods
+                    bonus_applies[bonus_id] = {
+                        const.DATA_KID_BONUS_PERIODS: {
+                            const.PERIOD_DAILY: {},
+                            const.PERIOD_WEEKLY: {},
+                            const.PERIOD_MONTHLY: {},
+                            const.PERIOD_YEARLY: {},
+                            const.PERIOD_ALL_TIME: {
+                                const.PERIOD_ALL_TIME: {
+                                    const.DATA_KID_BONUS_PERIOD_APPLIES: apply_count,
+                                    const.DATA_KID_BONUS_PERIOD_POINTS: round(
+                                        bonus_points * apply_count,
+                                        const.DATA_FLOAT_PRECISION,
+                                    ),
+                                }
+                            },
+                        }
+                    }
+                    bonus_entries_transformed += 1
+                    kid_changed = True
+                    const.LOGGER.debug(
+                        "Transformed bonus '%s' for kid '%s': %d applies → %.2f points",
+                        bonus_name,
+                        kid_name,
+                        apply_count,
+                        bonus_points * apply_count,
+                    )
+                elif isinstance(value, dict):
+                    # ALREADY MIGRATED: ensure all period types exist
+                    periods = value.get(const.DATA_KID_BONUS_PERIODS, {})
+                    for period_type in [
+                        const.PERIOD_DAILY,
+                        const.PERIOD_WEEKLY,
+                        const.PERIOD_MONTHLY,
+                        const.PERIOD_YEARLY,
+                        const.PERIOD_ALL_TIME,
+                    ]:
+                        if period_type not in periods:
+                            periods[period_type] = {}
+                            kid_changed = True
+
+            # Transform penalty_applies from integer counters to period dicts
+            penalty_applies = kid_info.get(const.DATA_KID_PENALTY_APPLIES, {})
+            for penalty_id, value in list(penalty_applies.items()):
+                # Check if already migrated (dict with periods) or needs migration (integer)
+                if isinstance(value, int):
+                    # OLD FORMAT: integer count - transform to dict with periods
+                    apply_count = value
+                    penalty_info = penalties_data.get(penalty_id)
+                    if not penalty_info:
+                        const.LOGGER.warning(
+                            "Penalty %s not found in penalties_data (kid=%s), skipping",
+                            penalty_id,
+                            kid_name,
+                        )
+                        continue
+
+                    penalty_points = penalty_info.get(const.DATA_PENALTY_POINTS, 0.0)
+                    penalty_name = penalty_info.get(const.DATA_PENALTY_NAME, "Unknown")
+
+                    # Create new structure with periods
+                    penalty_applies[penalty_id] = {
+                        const.DATA_KID_PENALTY_PERIODS: {
+                            const.PERIOD_DAILY: {},
+                            const.PERIOD_WEEKLY: {},
+                            const.PERIOD_MONTHLY: {},
+                            const.PERIOD_YEARLY: {},
+                            const.PERIOD_ALL_TIME: {
+                                const.PERIOD_ALL_TIME: {
+                                    const.DATA_KID_PENALTY_PERIOD_APPLIES: apply_count,
+                                    const.DATA_KID_PENALTY_PERIOD_POINTS: round(
+                                        penalty_points * apply_count,
+                                        const.DATA_FLOAT_PRECISION,
+                                    ),
+                                }
+                            },
+                        }
+                    }
+                    penalty_entries_transformed += 1
+                    kid_changed = True
+                    const.LOGGER.debug(
+                        "Transformed penalty '%s' for kid '%s': %d applies → %.2f points",
+                        penalty_name,
+                        kid_name,
+                        apply_count,
+                        penalty_points * apply_count,
+                    )
+                elif isinstance(value, dict):
+                    # ALREADY MIGRATED: ensure all period types exist
+                    periods = value.get(const.DATA_KID_PENALTY_PERIODS, {})
+                    for period_type in [
+                        const.PERIOD_DAILY,
+                        const.PERIOD_WEEKLY,
+                        const.PERIOD_MONTHLY,
+                        const.PERIOD_YEARLY,
+                        const.PERIOD_ALL_TIME,
+                    ]:
+                        if period_type not in periods:
+                            periods[period_type] = {}
+                            kid_changed = True
+
+            if kid_changed:
+                kids_migrated += 1
+
+        const.LOGGER.info(
+            "Completed v43 bonus/penalty periods migration: "
+            "%d kids processed, %d bonus entries transformed, %d penalty entries transformed",
+            kids_migrated,
+            bonus_entries_transformed,
+            penalty_entries_transformed,
         )
 
     def _transform_period_entry(

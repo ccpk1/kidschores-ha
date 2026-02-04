@@ -1906,7 +1906,7 @@
       }
     },
     "update_reward": {
-      "name": "Update reward",
+      "name": "Update Reward",
       "description": "Update an existing reward (partial updates supported).",
       "fields": {
         "id": {

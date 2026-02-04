@@ -32,6 +32,7 @@ Cache Architecture:
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.core import callback
@@ -42,7 +43,6 @@ from .base_manager import BaseManager
 
 if TYPE_CHECKING:
     from asyncio import TimerHandle
-    from datetime import datetime
 
     from homeassistant.core import HomeAssistant
 
@@ -140,6 +140,10 @@ class StatisticsManager(BaseManager):
 
         # Subscribe to badge events (Phase 4: Period Update Ownership)
         self.listen(const.SIGNAL_SUFFIX_BADGE_EARNED, self._on_badge_earned)
+
+        # Subscribe to bonus/penalty events (Phase 4C: Bonus/Penalty Period Tracking)
+        self.listen(const.SIGNAL_SUFFIX_BONUS_APPLIED, self._on_bonus_applied)
+        self.listen(const.SIGNAL_SUFFIX_PENALTY_APPLIED, self._on_penalty_applied)
 
         # Midnight rollover - listen to SystemManager's signal (Timer Owner pattern)
         # Clears 'today' cache keys at midnight so sensors show 0 immediately
@@ -954,6 +958,192 @@ class StatisticsManager(BaseManager):
         )
 
     @callback
+    def _on_bonus_applied(self, payload: dict[str, Any]) -> None:
+        """Handle BONUS_APPLIED signal.
+
+        Signal emitted by EconomyManager when a bonus is applied to a kid.
+        Updates period tracking for the specific bonus UUID and records ledger entry.
+
+        Phase 4C: Bonus/Penalty Period Tracking
+        - Updates item-level periods: bonuses_applied[uuid]["periods"]
+        - No aggregate buckets at kid level (unlike chores/rewards)
+        - Adds item_name to transaction ledger for human-readable history
+
+        Args:
+            payload: Event data containing:
+                - kid_id: The kid's internal ID
+                - bonus_id: The UUID of the bonus entry in bonuses_applied
+                - bonus_name: Human-readable bonus name
+                - points: Points added (positive value)
+                - timestamp: ISO 8601 timestamp (optional, defaults to now)
+        """
+        kid_id = payload.get("kid_id", "")
+        bonus_id = payload.get("bonus_id", "")
+        points = payload.get("points", 0.0)
+        bonus_name = payload.get("bonus_name", "")
+        timestamp_str = payload.get("timestamp")
+
+        # Parse timestamp or use current time
+        dt_obj = dt_parse(timestamp_str) if timestamp_str else dt_now_local()
+        if not dt_obj or not isinstance(dt_obj, datetime):
+            dt_obj = dt_now_local()
+
+        if not kid_id or not bonus_id:
+            const.LOGGER.warning(
+                "StatisticsManager._on_bonus_applied: Missing kid_id or bonus_id"
+            )
+            return
+
+        kid_info = self._coordinator.kids_data.get(kid_id)
+        if not kid_info:
+            const.LOGGER.warning(
+                "StatisticsManager._on_bonus_applied: Kid not found: %s", kid_id
+            )
+            return
+
+        # Tenant responsibility: Read periods created by Landlord (EconomyManager)
+        bonus_applies = kid_info.get(const.DATA_KID_BONUS_APPLIES, {})
+        bonus_entry = bonus_applies.get(bonus_id)
+        if not bonus_entry:
+            const.LOGGER.warning(
+                "StatisticsManager._on_bonus_applied: Bonus entry not found (Landlord should create): kid=%s, bonus=%s",
+                kid_id,
+                bonus_id,
+            )
+            return
+
+        # Tenant: Get periods container from Landlord-created structure
+        # (record_transaction will create daily/weekly/etc buckets on-demand)
+        periods = bonus_entry.get(const.DATA_KID_BONUS_PERIODS)
+        if periods is None:
+            const.LOGGER.warning(
+                "StatisticsManager._on_bonus_applied: Periods key missing (Landlord should create): kid=%s, bonus=%s",
+                kid_id,
+                bonus_id,
+            )
+            return
+
+        # Update all period buckets
+        # Note: Do NOT pass period_key_mapping - record_transaction uses default
+        # bucket structure (daily/weekly/etc) and creates date keys inside them
+        self._stats_engine.record_transaction(
+            periods,
+            {
+                const.DATA_KID_BONUS_PERIOD_APPLIES: 1,
+                const.DATA_KID_BONUS_PERIOD_POINTS: points,
+            },
+            reference_date=dt_obj,
+        )
+
+        # Cleanup old period data
+        self._stats_engine.prune_history(periods, self.get_retention_config())
+
+        # Persist and notify
+        self._coordinator._persist()
+        self._coordinator.async_set_updated_data(self._coordinator._data)
+
+        const.LOGGER.debug(
+            "StatisticsManager._on_bonus_applied: kid=%s, bonus=%s (%s), points=%.2f",
+            kid_id,
+            bonus_id,
+            bonus_name,
+            points,
+        )
+
+    @callback
+    def _on_penalty_applied(self, payload: dict[str, Any]) -> None:
+        """Handle PENALTY_APPLIED signal.
+
+        Signal emitted by EconomyManager when a penalty is applied to a kid.
+        Updates period tracking for the specific penalty UUID and records ledger entry.
+
+        Phase 4C: Bonus/Penalty Period Tracking
+        - Updates item-level periods: penalties_applied[uuid]["periods"]
+        - No aggregate buckets at kid level (unlike chores/rewards)
+        - Adds item_name to transaction ledger for human-readable history
+
+        Args:
+            payload: Event data containing:
+                - kid_id: The kid's internal ID
+                - penalty_id: The UUID of the penalty entry in penalties_applied
+                - penalty_name: Human-readable penalty name
+                - points: Points deducted (negative value)
+                - timestamp: ISO 8601 timestamp (optional, defaults to now)
+        """
+        kid_id = payload.get("kid_id", "")
+        penalty_id = payload.get("penalty_id", "")
+        points = payload.get("points", 0.0)
+        penalty_name = payload.get("penalty_name", "")
+        timestamp_str = payload.get("timestamp")
+
+        # Parse timestamp or use current time
+        dt_obj = dt_parse(timestamp_str) if timestamp_str else dt_now_local()
+        if not dt_obj or not isinstance(dt_obj, datetime):
+            dt_obj = dt_now_local()
+
+        if not kid_id or not penalty_id:
+            const.LOGGER.warning(
+                "StatisticsManager._on_penalty_applied: Missing kid_id or penalty_id"
+            )
+            return
+
+        kid_info = self._coordinator.kids_data.get(kid_id)
+        if not kid_info:
+            const.LOGGER.warning(
+                "StatisticsManager._on_penalty_applied: Kid not found: %s", kid_id
+            )
+            return
+
+        # Tenant responsibility: Read periods created by Landlord (EconomyManager)
+        penalty_applies = kid_info.get(const.DATA_KID_PENALTY_APPLIES, {})
+        penalty_entry = penalty_applies.get(penalty_id)
+        if not penalty_entry:
+            const.LOGGER.warning(
+                "StatisticsManager._on_penalty_applied: Penalty entry not found (Landlord should create): kid=%s, penalty=%s",
+                kid_id,
+                penalty_id,
+            )
+            return
+
+        # Tenant: Get periods container from Landlord-created structure
+        # (record_transaction will create daily/weekly/etc buckets on-demand)
+        periods = penalty_entry.get(const.DATA_KID_PENALTY_PERIODS)
+        if periods is None:
+            const.LOGGER.warning(
+                "StatisticsManager._on_penalty_applied: Periods key missing (Landlord should create): kid=%s, penalty=%s",
+                kid_id,
+                penalty_id,
+            )
+            return
+
+        # Update all period buckets
+        # Note: Do NOT pass period_key_mapping - record_transaction uses default
+        # bucket structure (daily/weekly/etc) and creates date keys inside them
+        self._stats_engine.record_transaction(
+            periods,
+            {
+                const.DATA_KID_PENALTY_PERIOD_APPLIES: 1,
+                const.DATA_KID_PENALTY_PERIOD_POINTS: points,
+            },
+            reference_date=dt_obj,
+        )
+
+        # Cleanup old period data
+        self._stats_engine.prune_history(periods, self.get_retention_config())
+
+        # Persist and notify
+        self._coordinator._persist()
+        self._coordinator.async_set_updated_data(self._coordinator._data)
+
+        const.LOGGER.debug(
+            "StatisticsManager._on_penalty_applied: kid=%s, penalty=%s (%s), points=%.2f",
+            kid_id,
+            penalty_id,
+            penalty_name,
+            points,
+        )
+
+    @callback
     def _on_data_reset_complete(self, payload: dict[str, Any]) -> None:
         """Handle data reset completion - invalidate affected caches.
 
@@ -1069,9 +1259,14 @@ class StatisticsManager(BaseManager):
             return False
 
         # Use effective_date for parent-lag-proof bucketing
-        # dt_parse defaults to HELPER_RETURN_DATETIME, returns datetime | None
+        # Parse as local timezone for period bucketing (DEVELOPMENT_STANDARDS § 6)
         bucket_dt = (
-            cast("datetime | None", dt_parse(effective_date))
+            cast(
+                "datetime | None",
+                dt_parse(
+                    effective_date, return_type=const.HELPER_RETURN_DATETIME_LOCAL
+                ),
+            )
             if effective_date
             else None
         )
@@ -1192,8 +1387,14 @@ class StatisticsManager(BaseManager):
             return False
 
         # Use effective_date for parent-lag-proof bucketing
+        # Parse as local timezone for period bucketing (DEVELOPMENT_STANDARDS § 6)
         bucket_dt = (
-            cast("datetime | None", dt_parse(effective_date))
+            cast(
+                "datetime | None",
+                dt_parse(
+                    effective_date, return_type=const.HELPER_RETURN_DATETIME_LOCAL
+                ),
+            )
             if effective_date
             else None
         )
@@ -1275,56 +1476,6 @@ class StatisticsManager(BaseManager):
             Kid data dict or None if not found
         """
         return self._coordinator.kids_data.get(kid_id)  # type: ignore[return-value]
-
-    def get_point_stats_for_kid(self, kid_id: str) -> dict[str, Any]:
-        """Get aggregated point statistics for a kid.
-
-        Args:
-            kid_id: The kid's internal ID
-
-        Returns:
-            Point stats dictionary or empty dict if not found
-        """
-        kid_info = self._get_kid(kid_id)
-        if not kid_info:
-            return {}
-        return kid_info.get(const.DATA_KID_POINT_STATS_LEGACY, {})
-
-    def get_period_stats_for_kid(self, kid_id: str, period_type: str) -> dict[str, Any]:
-        """Get period-based statistics for a kid.
-
-        Args:
-            kid_id: The kid's internal ID
-            period_type: Period type (daily, weekly, monthly, yearly, all_time)
-
-        Returns:
-            Period stats dictionary or empty dict if not found
-        """
-        kid_info = self._get_kid(kid_id)
-        if not kid_info:
-            return {}
-
-        point_data = kid_info.get(const.DATA_KID_POINT_DATA_LEGACY, {})
-        periods = point_data.get(const.DATA_KID_POINT_DATA_PERIODS_LEGACY, {})
-        return periods.get(period_type, {})
-
-    @staticmethod
-    def get_badge_award_count(badge_entry: dict[str, Any]) -> int:
-        """Get badge award count from periods.all_time.all_time.
-
-        Phase 4B: Lean Item pattern - award_count stored ONLY in periods, not at root.
-        Matches Phase 2 (chores) and Phase 3 (rewards) consolidation.
-
-        Args:
-            badge_entry: badges_earned[badge_id] dict from kid_data
-
-        Returns:
-            Award count from periods.all_time.all_time, or 0 if not found
-        """
-        periods = badge_entry.get(const.DATA_KID_BADGES_EARNED_PERIODS, {})
-        all_time_bucket = periods.get(const.DATA_KID_BADGES_EARNED_PERIODS_ALL_TIME, {})
-        all_time_data = all_time_bucket.get(const.PERIOD_ALL_TIME, {})
-        return all_time_data.get(const.DATA_KID_BADGES_EARNED_AWARD_COUNT, 0)
 
     # =========================================================================
     # Presentation Cache Methods

@@ -102,6 +102,7 @@ class PenaltyData(TypedDict):
     description: str
     icon: str
     penalty_labels: list[str]
+    periods: NotRequired[dict[str, Any]]  # Phase 4C: Period tracking
 
 
 class BonusData(TypedDict):
@@ -113,6 +114,7 @@ class BonusData(TypedDict):
     description: str
     icon: str
     bonus_labels: list[str]
+    periods: NotRequired[dict[str, Any]]  # Phase 4C: Period tracking
 
 
 # =============================================================================
@@ -531,9 +533,9 @@ class KidData(TypedDict):
     reward_data: dict[str, KidRewardDataEntry]  # reward_id -> entry
     reward_stats: NotRequired[dict[str, Any]]  # Aggregated reward statistics
 
-    # Penalty/bonus application tracking
-    penalty_applies: dict[str, bool]  # penalty_id -> applied?
-    bonus_applies: dict[str, bool]  # bonus_id -> applied?
+    # Penalty/bonus application tracking (v43+: transformed to period dicts)
+    penalty_applies: dict[str, dict[str, Any]]  # penalty_id -> {periods: {...}}
+    bonus_applies: dict[str, dict[str, Any]]  # bonus_id -> {periods: {...}}
 
     # Point statistics and period data (v43+)
     point_periods: NotRequired[dict[str, Any]]  # Flat period tracking structure

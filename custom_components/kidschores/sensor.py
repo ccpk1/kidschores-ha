@@ -69,6 +69,7 @@ from homeassistant.util import dt as dt_util
 
 from . import const
 from .coordinator import KidsChoresConfigEntry, KidsChoresDataCoordinator
+from .engines.statistics_engine import StatisticsEngine
 from .entity import KidsChoresCoordinatorEntity
 from .helpers.device_helpers import (
     create_kid_device_info_from_coordinator,
@@ -1658,7 +1659,7 @@ class KidBadgesSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.DATA_KID_BADGES_EARNED_LAST_AWARDED, const.SENTINEL_NONE
         )
         # Phase 4B: Read award_count from periods.all_time.all_time (Lean Item pattern)
-        award_count = self.coordinator.statistics_manager.get_badge_award_count(
+        award_count = StatisticsEngine.get_badge_award_count(
             cast("dict[str, Any]", badge_earned)
         )
 
@@ -1852,7 +1853,7 @@ class KidBadgeProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.DATA_KID_BADGES_EARNED_LAST_AWARDED, const.SENTINEL_NONE
         )
         # Phase 4B: Read award_count from periods.all_time.all_time (Lean Item pattern)
-        award_count = self.coordinator.statistics_manager.get_badge_award_count(
+        award_count = StatisticsEngine.get_badge_award_count(
             cast("dict[str, Any]", badge_earned)
         )
 
@@ -4385,7 +4386,12 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
             # Get applied count for this bonus for this kid
             bonus_applies = kid_info.get(const.DATA_KID_BONUS_APPLIES, {})
-            applied_count = bonus_applies.get(bonus_id, 0)
+            bonus_entry = bonus_applies.get(bonus_id)
+            applied_count = (
+                StatisticsEngine.get_bonus_applies_count(bonus_entry)
+                if bonus_entry
+                else 0
+            )
 
             bonuses_attr.append(
                 {
@@ -4420,7 +4426,12 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
             # Get applied count for this penalty for this kid
             penalty_applies = kid_info.get(const.DATA_KID_PENALTY_APPLIES, {})
-            applied_count = penalty_applies.get(penalty_id, 0)
+            penalty_entry = penalty_applies.get(penalty_id)
+            applied_count = (
+                StatisticsEngine.get_penalty_applies_count(penalty_entry)
+                if penalty_entry
+                else 0
+            )
 
             penalties_attr.append(
                 {

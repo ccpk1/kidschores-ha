@@ -727,3 +727,85 @@ class StatisticsEngine:
                 )
 
         return stats
+
+    @staticmethod
+    def get_badge_award_count(badge_entry: Mapping[str, Any]) -> int:
+        """Get badge award count from periods.all_time.all_time.
+
+        Phase 4B: Lean Item pattern - award_count stored ONLY in periods, not at root.
+        Matches Phase 2 (chores) and Phase 3 (rewards) consolidation.
+
+        Args:
+            badge_entry: badges_earned[badge_id] dict from kid_data
+
+        Returns:
+            Award count from periods.all_time.all_time, or 0 if not found
+
+        Example:
+            badge_entry = kid_info["badges_earned"]["uuid-1234"]
+            count = StatisticsEngine.get_badge_award_count(badge_entry)
+        """
+        periods = badge_entry.get(const.DATA_KID_BADGES_EARNED_PERIODS, {})
+        all_time_bucket = periods.get(const.DATA_KID_BADGES_EARNED_PERIODS_ALL_TIME, {})
+        all_time_data = all_time_bucket.get(const.PERIOD_ALL_TIME, {})
+        return all_time_data.get(const.DATA_KID_BADGES_EARNED_AWARD_COUNT, 0)
+
+    @staticmethod
+    def get_bonus_applies_count(
+        bonus_entry: Mapping[str, Any], period_type: str = const.PERIOD_ALL_TIME
+    ) -> int:
+        """Get the number of times a bonus has been applied.
+
+        Phase 4C: Bonus applies are tracked in periods structure.
+        This method encapsulates the navigation logic to retrieve the count.
+
+        Args:
+            bonus_entry: The bonus entry dict from kid.bonus_applies[bonus_id]
+            period_type: Period to query ("all_time", "daily", etc.)
+
+        Returns:
+            Number of times the bonus was applied, or 0 if not found
+
+        Example:
+            bonus_entry = kid_info["bonus_applies"]["uuid-1234"]
+            count = StatisticsEngine.get_bonus_applies_count(bonus_entry)
+        """
+        periods = bonus_entry.get(const.DATA_KID_BONUS_PERIODS, {})
+        if period_type == const.PERIOD_ALL_TIME:
+            return (
+                periods.get(const.PERIOD_ALL_TIME, {})
+                .get(const.PERIOD_ALL_TIME, {})
+                .get(const.DATA_KID_BONUS_PERIOD_APPLIES, 0)
+            )
+        # For other periods, would need period_key (not implemented yet)
+        return 0
+
+    @staticmethod
+    def get_penalty_applies_count(
+        penalty_entry: Mapping[str, Any], period_type: str = const.PERIOD_ALL_TIME
+    ) -> int:
+        """Get the number of times a penalty has been applied.
+
+        Phase 4C: Penalty applies are tracked in periods structure.
+        This method encapsulates the navigation logic to retrieve the count.
+
+        Args:
+            penalty_entry: The penalty entry dict from kid.penalty_applies[penalty_id]
+            period_type: Period to query ("all_time", "daily", etc.)
+
+        Returns:
+            Number of times the penalty was applied, or 0 if not found
+
+        Example:
+            penalty_entry = kid_info["penalty_applies"]["uuid-5678"]
+            count = StatisticsEngine.get_penalty_applies_count(penalty_entry)
+        """
+        periods = penalty_entry.get(const.DATA_KID_PENALTY_PERIODS, {})
+        if period_type == const.PERIOD_ALL_TIME:
+            return (
+                periods.get(const.PERIOD_ALL_TIME, {})
+                .get(const.PERIOD_ALL_TIME, {})
+                .get(const.DATA_KID_PENALTY_PERIOD_APPLIES, 0)
+            )
+        # For other periods, would need period_key (not implemented yet)
+        return 0
