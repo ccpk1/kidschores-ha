@@ -32,7 +32,6 @@ You are the project's technical analyst and troubleshooter with senior level pro
 - NO f-strings in logs → Use lazy logging `%s`
 - NO `Optional[]` → Use `| None`
 - NO bare exceptions → Use specific types
-- Entity lookups → Use `kc_helpers.get_*_or_raise()`
 
 ## Core Responsibilities
 
@@ -77,7 +76,6 @@ Apply changes while strictly enforcing `AGENTS.md`:
 - **Strings:** Must use constants that are imported in most files from `const.py` accessed as `const.CONSTANT` or `const.TRANS_KEY_*`.
 - **Logging:** `LOGGER.debug("msg %s", var)` (lazy formatting).
 - **Types:** No `Optional[]`, use `| None`.
-- **Helpers:** Reuse `kc_helpers.py` where possible.
 
 ### 4. Validation (Non-Negotiable)
 

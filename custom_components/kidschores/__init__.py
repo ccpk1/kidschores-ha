@@ -16,6 +16,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from homeassistant.exceptions import ConfigEntryNotReady
+
 from . import const
 from .coordinator import KidsChoresConfigEntry, KidsChoresDataCoordinator
 from .helpers import backup_helpers as bh
@@ -170,12 +172,58 @@ async def async_setup_entry(hass: HomeAssistant, entry: KidsChoresConfigEntry) -
 
     # Initialize all managers (v0.5.x+)
     # Each manager's async_setup() subscribes to relevant events
-    await coordinator.economy_manager.async_setup()
-    await coordinator.notification_manager.async_setup()
-    await coordinator.chore_manager.async_setup()
-    await coordinator.gamification_manager.async_setup()
-    await coordinator.statistics_manager.async_setup()
-    await coordinator.system_manager.async_setup()
+    # Critical managers: fail-fast if setup fails (raise ConfigEntryNotReady)
+    # Non-critical managers: log warning but continue (degraded functionality)
+
+    # CRITICAL: Economy (points tracking)
+    try:
+        await coordinator.economy_manager.async_setup()
+    except Exception as err:
+        raise ConfigEntryNotReady(f"Economy manager setup failed: {err}") from err
+
+    # CRITICAL: Chore (core workflow)
+    try:
+        await coordinator.chore_manager.async_setup()
+    except Exception as err:
+        raise ConfigEntryNotReady(f"Chore manager setup failed: {err}") from err
+
+    # CRITICAL: Reward (economy rewards)
+    try:
+        await coordinator.reward_manager.async_setup()
+    except Exception as err:
+        raise ConfigEntryNotReady(f"Reward manager setup failed: {err}") from err
+
+    # NON-CRITICAL: Notification (notifications continue without manager)
+    try:
+        await coordinator.notification_manager.async_setup()
+    except Exception as err:
+        const.LOGGER.warning(
+            "Notification manager setup failed (notifications may not work): %s", err
+        )
+
+    # NON-CRITICAL: Gamification (badges/achievements optional)
+    try:
+        await coordinator.gamification_manager.async_setup()
+    except Exception as err:
+        const.LOGGER.warning(
+            "Gamification manager setup failed (badges/achievements disabled): %s", err
+        )
+
+    # NON-CRITICAL: Statistics (historical data optional)
+    try:
+        await coordinator.statistics_manager.async_setup()
+    except Exception as err:
+        const.LOGGER.warning(
+            "Statistics manager setup failed (stats disabled): %s", err
+        )
+
+    # NON-CRITICAL: System (entity cleanup still works via HA registry)
+    try:
+        await coordinator.system_manager.async_setup()
+    except Exception as err:
+        const.LOGGER.warning(
+            "System manager setup failed (some cleanup may not work): %s", err
+        )
 
     # Set up services required by the integration.
     async_setup_services(hass)
@@ -282,6 +330,12 @@ async def async_unload_entry(hass: HomeAssistant, entry: KidsChoresConfigEntry) 
     if coordinator:
         coordinator._persist(immediate=True)  # Unload must be immediate
         const.LOGGER.debug("Forced immediate persist before unload")
+
+    # Clear translation cache to prevent stale translations on reload
+    from .helpers.translation_helpers import clear_translation_cache
+
+    clear_translation_cache()
+    const.LOGGER.debug("Cleared translation cache on unload")
 
     # Unload platforms
     unload_ok = await hass.config_entries.async_unload_platforms(entry, const.PLATFORMS)

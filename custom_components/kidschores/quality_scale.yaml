@@ -39,10 +39,9 @@ rules:
   common-modules:
     status: done
     # Verified modules:
-    # - coordinator.py: ~9000 lines, DataUpdateCoordinator implementation
+    # - coordinator.py: DataUpdateCoordinator implementation
     # - entity.py: Base entity class with typed coordinator + availability pattern
-    # - kc_helpers.py: ~2000 lines of shared helper functions
-    # - flow_helpers.py: Config/options flow validation helpers
+    # - helpers/: Modular helper functions (entity_helpers, flow_helpers, device_helpers, auth_helpers, backup_helpers, translation_helpers)
 
   config-flow-test-coverage:
     status: done
@@ -55,7 +54,7 @@ rules:
 
   config-flow:
     status: done
-    # config_flow.py: ~1500 lines, multi-step wizard
+    # config_flow.py: Multi-step wizard with comprehensive setup flows
     # Supports: data recovery, existing data import, full setup wizard
     # manifest.json: "config_flow": true
 
@@ -221,7 +220,7 @@ rules:
 
   devices:
     status: done
-    # kc_helpers.py provides:
+    # device_helpers.py provides:
     # - create_kid_device_info_from_coordinator()
     # - create_system_device_info()
     # All kid entities associated with kid device

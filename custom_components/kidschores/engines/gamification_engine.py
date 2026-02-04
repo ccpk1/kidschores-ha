@@ -8,10 +8,9 @@ This engine provides stateless, pure Python functions for:
 
 ARCHITECTURE: This is a pure logic engine with NO Home Assistant dependencies.
 All functions are static methods that operate on passed-in data.
-State management belongs in GamificationManager (Phase 4).
 
 PURITY REQUIREMENT: This engine receives ALL data via context parameter.
-It NEVER imports from kc_helpers or calls external functions.
+It NEVER imports from helpers or calls external functions.
 The GamificationManager is responsible for building context with pre-computed data.
 
 Badge Target Types (17+ variants):
@@ -36,7 +35,7 @@ if TYPE_CHECKING:
 
 
 # =============================================================================
-# INTERNAL DATE HELPERS (avoid circular import with kc_helpers)
+# INTERNAL DATE HELPERS (avoid circular import with helpers)
 # =============================================================================
 
 
@@ -66,7 +65,7 @@ class GamificationEngine:
 
     PURITY CONTRACT:
     - All data comes via `context` parameter
-    - No external imports from kc_helpers (circular import risk)
+    - No external imports from helpers (circular import risk)
     - No side effects, no database access, no state mutation
     - Context is built by Manager with pre-computed values
 

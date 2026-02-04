@@ -720,7 +720,7 @@ mypy custom_components/kidschores/
 ```
 
 - [ ] All linting passes (9.5+/10)
-- [ ] All tests pass (560+ tests)
+- [ ] All tests pass (full test suite)
 - [ ] No type errors
 - [ ] No trailing whitespace
 

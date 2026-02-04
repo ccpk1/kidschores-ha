@@ -211,7 +211,7 @@ async def create_chore(self, user_input: dict[str, Any]) -> dict[str, Any]:
 
 ### Before Writing Code
 
-1. Check if helper exists: `kc_helpers.py` (lookups), `flow_helpers.py` (validation)
+1. Check if helper exists: `helpers/entity_helpers.py` (entity lookups), `helpers/flow_helpers.py` (flow validation)
 2. Find constant: `grep TRANS_KEY custom_components/kidschores/const.py`
 3. Use test scenario: `scenario_medium` (most common), `scenario_full` (complex)
 
@@ -247,10 +247,11 @@ Run quality gates (**in this order**):
 
 **Key Files**:
 
-- `const.py` (2565 lines) - All constants
-- `coordinator.py` (~470 lines) - Infrastructure hub (routing, persistence)
-- `managers/` - Stateful workflows (ChoreManager, EconomyManager, UIManager, etc.)
-- `kc_helpers.py` - Shared utilities
+- `const.py` - All constants (TRANS_KEY_*, DATA_*, CFOF_*, SERVICE_*, etc.)
+- `coordinator.py` - Infrastructure hub (routing, persistence, manager lifecycle)
+- `managers/` - Stateful workflows (ChoreManager, EconomyManager, UIManager, StatisticsManager, etc.)
+- `helpers/` - HA-aware utilities (entity, flow, device, auth, backup, translation helpers)
+- `utils/` - Pure Python utilities (datetime, math, validation, formatting)
 - `translations/en.json` - Master translation file
 
 **Constant Naming Patterns** (See [DEVELOPMENT_STANDARDS.md § 3. Constant Naming Standards](../docs/DEVELOPMENT_STANDARDS.md#3-constant-naming-standards)):
@@ -275,7 +276,7 @@ pytest tests/test_config_flow.py -v  # UI flow changes
 pytest tests/ -x  # Stop on first failure (debugging)
 ```
 
-**Datetime**: Always UTC-aware ISO strings. Use `kc_helpers.dt_to_utc()`
+**Datetime**: Always UTC-aware ISO strings. Use `utils/dt_utils.py` helper functions (dt_now(), dt_parse(), dt_to_utc())
 
 ---
 

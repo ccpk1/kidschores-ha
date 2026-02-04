@@ -27,7 +27,7 @@
 | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------ |
 | **Strict Typing**          | 100% MyPy coverage enforced in CI/CD via `quick_lint.sh`. Zero type errors across all modules.                                         | `pyproject.toml` (mypy config), CI workflow   | [DEV_STDS § 4](DEVELOPMENT_STANDARDS.md#4-type-hints-mandatory)                |
 | **Decoupling**             | Logic (Engines) physically isolated from Framework (Managers) via `utils/` and `engines/` split. No `homeassistant.*` imports allowed. | `utils/`, `engines/` directories              | [DEV_STDS § 5](DEVELOPMENT_STANDARDS.md#5-utils-vs-helpers-boundary)           |
-| **Zero Hardcoded Strings** | All user-facing text routed through `const.py` → `translations/en.json`. Enforced via Phase 0 Audit Step C.                            | `const.py` (2500+ constants), `translations/` | [DEV_STDS § 1](DEVELOPMENT_STANDARDS.md#1-no-hardcoded-strings)                |
+| **Zero Hardcoded Strings** | All user-facing text routed through `const.py` → `translations/en.json`. Enforced via Phase 0 Audit Step C.                            | `const.py`, `translations/` | [DEV_STDS § 1](DEVELOPMENT_STANDARDS.md#1-no-hardcoded-strings)                |
 | **Scalability**            | Storage-Only architecture removes Config Entry size limits. Reload 8x faster (2.5s → 0.3s).                                            | `.storage/kidschores_data`                    | [ARCHITECTURE § Data](ARCHITECTURE.md#storage-only-mode-advantages)            |
 | **Async Dependencies**     | All I/O operations use async patterns. No blocking calls. Data coordinator pattern for efficient updates.                              | `coordinator.py`, all entity platforms        | [AGENTS.md § Async](../../core/AGENTS.md)                                      |
 | **Config Flow**            | UI-based setup required. Reauthentication and reconfiguration supported.                                                               | `config_flow.py`, `options_flow.py`           | [DEV_STDS § Config Flow](DEVELOPMENT_STANDARDS.md#config-flow)                 |
@@ -481,14 +481,14 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
 
 **Implementation Files**:
 
-- [const.py](../custom_components/kidschores/const.py) - All constants (2325+ lines)
+- [const.py](../custom_components/kidschores/const.py) - All constants and translation keys
 - [config_flow.py](../custom_components/kidschores/config_flow.py) - Configuration flow
 - [services.py](../custom_components/kidschores/services.py) - Service definitions
 - [coordinator.py](../custom_components/kidschores/coordinator.py) - Core business logic
 
 **Test References**:
 
-- [tests/](../tests/) - 1000+ tests covering all functionality
+- [tests/](../tests/) - Comprehensive test suite covering all functionality
 - [TESTING_AGENT_INSTRUCTIONS.md](../tests/TESTING_AGENT_INSTRUCTIONS.md) - Testing guidance
 
 ---

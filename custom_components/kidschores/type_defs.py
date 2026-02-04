@@ -35,7 +35,7 @@ This hybrid approach:
 
 See docs/ARCHITECTURE.md and docs/DEVELOPMENT_STANDARDS.md for details.
 
-IMPORTANT: This file must NOT import from coordinator.py, kc_helpers.py, or
+IMPORTANT: This file must NOT import from coordinator.py, *helpers.py, or
 any file that imports coordinator to avoid circular dependencies.
 Only import from const.py (constants) and typing (type machinery).
 

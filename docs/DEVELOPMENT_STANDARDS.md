@@ -73,7 +73,7 @@ With over 1,000 constants, we follow strict naming patterns to ensure the code r
 - **Usage**: Form field names in schema definitions during user input
 - **Context**: `vol.Required(const.CFOF_KIDS_INPUT_NAME, ...)`
 - **Rule**: Always plural entity names with `_INPUT_` (`CFOF_KIDS_INPUT_*`, `CFOF_PARENTS_INPUT_*`)
-- **Key Alignment (v0.5.0)**: CFOF\** constant *values\* are aligned with DATA\*\_ values where possible (e.g., both use `"name"`). This allows `user_input` to be passed directly to `build\__()`functions without mapping. See`flow_helpers.py` module docstring for details.
+- **Key Alignment Pattern**: CFOF\** constant *values\* are aligned with DATA\*\_ values where possible (e.g., both use `"name"`). This allows `user_input` to be passed directly to `build\__()`functions without mapping. See`flow_helpers.py` module docstring for details.
 
 **`CONF_*`** = **Configuration Entry Data Access**
 
@@ -94,7 +94,7 @@ vol.Required(const.CFOF_PARENTS_INPUT_NAME, default=name): str
 
 #### Entity State & Actions
 
-- **`ATTR_*`**: Entity state attributes (100+ constants). e.g., `ATTR_KID_NAME`, `ATTR_CHORE_POINTS`.
+- **`ATTR_*`**: Entity state attributes. e.g., `ATTR_KID_NAME`, `ATTR_CHORE_POINTS`.
 - **`SERVICE_*`**: Service action names. e.g., `SERVICE_CLAIM_CHORE`.
 - **`SERVICE_FIELD_*`**: Service input field names. e.g., `SERVICE_FIELD_REWARD_NAME`.
 

@@ -367,7 +367,7 @@ These are recurring tasks you can use as shorthand. Just say the request, agent 
 | ------------------------ | ----------------------------------------------------------------------------------------------- |
 | "Consolidate duplicates" | Find repeated code patterns in current changes, extract to helper function, update all callers. |
 | "Use pattern from [X]"   | Find reference implementation in [X file], apply same pattern to current changes, revalidate.   |
-| "Extract to helpers"     | Move shared logic from multiple places into `kc_helpers.py`, update imports, revalidate.        |
+| "Extract to helpers"     | Move shared logic from multiple places into helpers, update imports, revalidate.                |
 
 ### Confirmation Loops
 

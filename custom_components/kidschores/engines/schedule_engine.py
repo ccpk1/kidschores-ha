@@ -4,9 +4,6 @@ Unified scheduling engine using a hybrid approach:
 - `dateutil.rrule` for standard patterns (DAILY, WEEKLY, period-ends)
 - `dateutil.relativedelta` for month/year clamping (Jan 31 + 1 month = Feb 28)
 
-This module replaces scattered scheduling logic in coordinator.py and kc_helpers.py
-with a single, well-tested RecurrenceEngine class.
-
 IMPORTANT: This module must NOT import from coordinator.py to avoid circular imports.
 Only import from const.py, type_defs.py, and standard libraries.
 """
