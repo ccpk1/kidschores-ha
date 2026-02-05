@@ -2693,14 +2693,8 @@
           "chore_stat_points_week": {
             "name": "Points This Week"
           },
-          "chore_stat_avg_per_day_week": {
-            "name": "Avg Chores Per Day (Week)"
-          },
           "chore_stat_points_month": {
             "name": "Points This Month"
-          },
-          "chore_stat_avg_per_day_month": {
-            "name": "Avg Chores Per Day (Month)"
           },
           "chore_stat_points_year": {
             "name": "Points This Year"

@@ -1015,6 +1015,14 @@ class ChoreManager(BaseManager):
             0, current_count - 1
         )
 
+        # Check if chore is past its due date (same logic as parent disapproval)
+        # Use same logic as overdue scan: due_date exists and now > due_date
+        due_date = self.get_due_date(chore_id, kid_id)
+        is_past_due = False
+        if due_date:
+            now_utc = dt_util.utcnow()
+            is_past_due = (due_date - now_utc).total_seconds() < 0
+
         # Handle SHARED_FIRST: Reset ALL kids to pending
         completion_criteria = chore_info.get(
             const.DATA_CHORE_COMPLETION_CRITERIA, const.SENTINEL_EMPTY
@@ -1032,6 +1040,7 @@ class ChoreManager(BaseManager):
                     action=CHORE_ACTION_UNDO,
                     kids_assigned=chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, []),
                     skip_stats=True,
+                    is_overdue=is_past_due,
                 )
                 for effect in effects:
                     self._apply_effect(effect, chore_id)
@@ -1053,6 +1062,7 @@ class ChoreManager(BaseManager):
                 action=CHORE_ACTION_UNDO,
                 kids_assigned=chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, []),
                 skip_stats=True,
+                is_overdue=is_past_due,
             )
             for effect in effects:
                 self._apply_effect(effect, chore_id)

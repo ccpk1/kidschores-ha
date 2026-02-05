@@ -69,7 +69,6 @@ from homeassistant.util import dt as dt_util
 
 from . import const
 from .coordinator import KidsChoresConfigEntry, KidsChoresDataCoordinator
-from .engines.statistics_engine import StatisticsEngine
 from .entity import KidsChoresCoordinatorEntity
 from .helpers.device_helpers import (
     create_kid_device_info_from_coordinator,
@@ -861,17 +860,22 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
         )
         periods = kid_chore_data.get(const.DATA_KID_CHORE_DATA_PERIODS, {})
 
-        # all_time uses nested structure: periods["all_time"]["all_time"] = {data}
-        # This matches point_periods structure
-        all_time_container = periods.get(const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME, {})
-        all_time_stats = all_time_container.get(const.PERIOD_ALL_TIME, {})
+        # Use get_period_total for all_time metrics (replaces manual nested navigation)
+        period_key_mapping = {
+            const.PERIOD_ALL_TIME: const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME
+        }
 
-        # Use new per-chore data for counts and streaks
-        claims_count = all_time_stats.get(
-            const.DATA_KID_CHORE_DATA_PERIOD_CLAIMED, const.DEFAULT_ZERO
+        claims_count = self.coordinator.stats.get_period_total(
+            periods,
+            const.PERIOD_ALL_TIME,
+            const.DATA_KID_CHORE_DATA_PERIOD_CLAIMED,
+            period_key_mapping=period_key_mapping,
         )
-        approvals_count = all_time_stats.get(
-            const.DATA_KID_CHORE_DATA_PERIOD_APPROVED, const.DEFAULT_ZERO
+        approvals_count = self.coordinator.stats.get_period_total(
+            periods,
+            const.PERIOD_ALL_TIME,
+            const.DATA_KID_CHORE_DATA_PERIOD_APPROVED,
+            period_key_mapping=period_key_mapping,
         )
 
         # Get today's and yesterday's ISO dates
@@ -893,20 +897,35 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.DATA_KID_CHORE_DATA_PERIOD_STREAK_TALLY, const.DEFAULT_ZERO
         )
 
-        highest_streak = all_time_stats.get(
-            const.DATA_KID_CHORE_DATA_PERIOD_LONGEST_STREAK, const.DEFAULT_ZERO
+        highest_streak = self.coordinator.stats.get_period_total(
+            periods,
+            const.PERIOD_ALL_TIME,
+            const.DATA_KID_CHORE_DATA_PERIOD_LONGEST_STREAK,
+            period_key_mapping=period_key_mapping,
         )
-        points_earned = all_time_stats.get(
-            const.DATA_KID_CHORE_DATA_PERIOD_POINTS, const.DEFAULT_ZERO
+        points_earned = self.coordinator.stats.get_period_total(
+            periods,
+            const.PERIOD_ALL_TIME,
+            const.DATA_KID_CHORE_DATA_PERIOD_POINTS,
+            period_key_mapping=period_key_mapping,
         )
-        overdue_count = all_time_stats.get(
-            const.DATA_KID_CHORE_DATA_PERIOD_OVERDUE, const.DEFAULT_ZERO
+        overdue_count = self.coordinator.stats.get_period_total(
+            periods,
+            const.PERIOD_ALL_TIME,
+            const.DATA_KID_CHORE_DATA_PERIOD_OVERDUE,
+            period_key_mapping=period_key_mapping,
         )
-        disapproved_count = all_time_stats.get(
-            const.DATA_KID_CHORE_DATA_PERIOD_DISAPPROVED, const.DEFAULT_ZERO
+        disapproved_count = self.coordinator.stats.get_period_total(
+            periods,
+            const.PERIOD_ALL_TIME,
+            const.DATA_KID_CHORE_DATA_PERIOD_DISAPPROVED,
+            period_key_mapping=period_key_mapping,
         )
-        completed_count = all_time_stats.get(
-            const.DATA_KID_CHORE_DATA_PERIOD_COMPLETED, const.DEFAULT_ZERO
+        completed_count = self.coordinator.stats.get_period_total(
+            periods,
+            const.PERIOD_ALL_TIME,
+            const.DATA_KID_CHORE_DATA_PERIOD_COMPLETED,
+            period_key_mapping=period_key_mapping,
         )
         last_longest_streak_date = kid_chore_data.get(
             const.DATA_KID_CHORE_DATA_LAST_LONGEST_STREAK_ALL_TIME
@@ -1203,26 +1222,39 @@ class KidPointsSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.ATTR_KID_NAME: self._kid_name,
         }
 
-        # === Phase 7G.1: Get persistent all_time stats from periods bucket ===
+        # === Phase 7G.1: Get persistent all_time stats using get_period_total ===
         point_periods: dict[str, Any] = kid_info.get(const.DATA_KID_POINT_PERIODS, {})
+        period_key_mapping = {
+            const.PERIOD_ALL_TIME: const.DATA_KID_POINT_PERIODS_ALL_TIME
+        }
+
+        # Extract all_time values using get_period_total
+        earned_all_time = self.coordinator.stats.get_period_total(
+            point_periods,
+            const.PERIOD_ALL_TIME,
+            const.DATA_KID_POINT_PERIOD_POINTS_EARNED,
+            period_key_mapping=period_key_mapping,
+        )
+        spent_all_time = self.coordinator.stats.get_period_total(
+            point_periods,
+            const.PERIOD_ALL_TIME,
+            const.DATA_KID_POINT_PERIOD_POINTS_SPENT,
+            period_key_mapping=period_key_mapping,
+        )
+        highest_balance = self.coordinator.stats.get_period_total(
+            point_periods,
+            const.PERIOD_ALL_TIME,
+            const.DATA_KID_POINT_PERIOD_HIGHEST_BALANCE,
+            period_key_mapping=period_key_mapping,
+        )
+
+        # Get by_source dict (nested structure requires manual access)
         all_time_periods: dict[str, Any] = point_periods.get(
             const.DATA_KID_POINT_PERIODS_ALL_TIME, {}
         )
         all_time_entry: dict[str, Any] = all_time_periods.get(const.PERIOD_ALL_TIME, {})
-
-        # Extract all_time values
-        earned_all_time = all_time_entry.get(
-            const.DATA_KID_POINT_PERIOD_POINTS_EARNED, 0.0
-        )
-        spent_all_time = all_time_entry.get(
-            const.DATA_KID_POINT_PERIOD_POINTS_SPENT, 0.0
-        )
-        # Create a copy to avoid dict reference issues (temporal periods use dict() copy in cache)
         by_source_all_time = dict(
             all_time_entry.get(const.DATA_KID_POINT_PERIOD_BY_SOURCE, {})
-        )
-        highest_balance = all_time_entry.get(
-            const.DATA_KID_POINT_PERIOD_HIGHEST_BALANCE, 0.0
         )
 
         # Add persistent all_time stats with backward-compatible attribute names
@@ -1304,21 +1336,18 @@ class KidChoresSensor(KidsChoresCoordinatorEntity, SensorEntity):
         kid_info: KidData = cast(
             "KidData", self.coordinator.kids_data.get(self._kid_id, {})
         )
-        # Read from chore_periods.all_time.all_time (v43+ storage structure, nested)
-        # Cast to dict[str, Any] since chore_periods is a runtime-added bucket
+        # Use get_period_total for all_time approved count
         chore_periods: dict[str, Any] = cast(
             "dict[str, Any]", kid_info.get(const.DATA_KID_CHORE_PERIODS, {})
         )
-        all_time_container: dict[str, Any] = cast(
-            "dict[str, Any]",
-            chore_periods.get(const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME, {}),
-        )
-        all_time: dict[str, Any] = cast(
-            "dict[str, Any]",
-            all_time_container.get(const.PERIOD_ALL_TIME, {}),
-        )
-        return all_time.get(
-            const.DATA_KID_CHORE_DATA_PERIOD_APPROVED, const.DEFAULT_ZERO
+        period_key_mapping = {
+            const.PERIOD_ALL_TIME: const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME
+        }
+        return self.coordinator.stats.get_period_total(
+            chore_periods,
+            const.PERIOD_ALL_TIME,
+            const.DATA_KID_CHORE_DATA_PERIOD_APPROVED,
+            period_key_mapping=period_key_mapping,
         )
 
     @property
@@ -1344,19 +1373,13 @@ class KidChoresSensor(KidsChoresCoordinatorEntity, SensorEntity):
         kid_info: KidData = cast(
             "KidData", self.coordinator.kids_data.get(self._kid_id, {})
         )
-        # Get persistent stats from chore_periods.all_time.all_time (v43+ storage, nested)
-        # Cast to dict[str, Any] since chore_periods is a runtime-added bucket
+        # Use get_period_total for persistent all-time stats
         chore_periods: dict[str, Any] = cast(
             "dict[str, Any]", kid_info.get(const.DATA_KID_CHORE_PERIODS, {})
         )
-        all_time_container: dict[str, Any] = cast(
-            "dict[str, Any]",
-            chore_periods.get(const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME, {}),
-        )
-        all_time_stats: dict[str, Any] = cast(
-            "dict[str, Any]",
-            all_time_container.get(const.PERIOD_ALL_TIME, {}),
-        )
+        period_key_mapping = {
+            const.PERIOD_ALL_TIME: const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME
+        }
 
         # Get temporal stats from presentation cache
         pres_stats = self.coordinator.statistics_manager.get_stats(self._kid_id)
@@ -1364,24 +1387,37 @@ class KidChoresSensor(KidsChoresCoordinatorEntity, SensorEntity):
         # Build unified lookup dict for easier access
         all_stats: dict[str, Any] = {}
 
-        # Add persistent all-time stats, mapping new key names to old attribute names
-        # e.g., "approved" -> "approved_all_time" for backward compatibility
-        if all_time_stats:
-            all_stats["approved_all_time"] = all_time_stats.get(
-                const.DATA_KID_CHORE_DATA_PERIOD_APPROVED, 0
-            )
-            all_stats["claimed_all_time"] = all_time_stats.get(
-                const.DATA_KID_CHORE_DATA_PERIOD_CLAIMED, 0
-            )
-            all_stats["completed_all_time"] = all_time_stats.get(
-                const.DATA_KID_CHORE_DATA_PERIOD_COMPLETED, 0
-            )
-            all_stats["points_all_time"] = all_time_stats.get(
-                const.DATA_KID_CHORE_DATA_PERIOD_POINTS, 0.0
-            )
-            all_stats["longest_streak"] = all_time_stats.get(
-                const.DATA_KID_CHORE_DATA_PERIOD_LONGEST_STREAK, 0
-            )
+        # Add persistent all-time stats using get_period_total
+        all_stats["approved_all_time"] = self.coordinator.stats.get_period_total(
+            chore_periods,
+            const.PERIOD_ALL_TIME,
+            const.DATA_KID_CHORE_DATA_PERIOD_APPROVED,
+            period_key_mapping=period_key_mapping,
+        )
+        all_stats["claimed_all_time"] = self.coordinator.stats.get_period_total(
+            chore_periods,
+            const.PERIOD_ALL_TIME,
+            const.DATA_KID_CHORE_DATA_PERIOD_CLAIMED,
+            period_key_mapping=period_key_mapping,
+        )
+        all_stats["completed_all_time"] = self.coordinator.stats.get_period_total(
+            chore_periods,
+            const.PERIOD_ALL_TIME,
+            const.DATA_KID_CHORE_DATA_PERIOD_COMPLETED,
+            period_key_mapping=period_key_mapping,
+        )
+        all_stats["points_all_time"] = self.coordinator.stats.get_period_total(
+            chore_periods,
+            const.PERIOD_ALL_TIME,
+            const.DATA_KID_CHORE_DATA_PERIOD_POINTS,
+            period_key_mapping=period_key_mapping,
+        )
+        all_stats["longest_streak"] = self.coordinator.stats.get_period_total(
+            chore_periods,
+            const.PERIOD_ALL_TIME,
+            const.DATA_KID_CHORE_DATA_PERIOD_LONGEST_STREAK,
+            period_key_mapping=period_key_mapping,
+        )
 
         # Add temporal stats (strip PRES prefixes)
         for pres_key, value in pres_stats.items():
@@ -1659,8 +1695,15 @@ class KidBadgesSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.DATA_KID_BADGES_EARNED_LAST_AWARDED, const.SENTINEL_NONE
         )
         # Phase 4B: Read award_count from periods.all_time.all_time (Lean Item pattern)
-        award_count = StatisticsEngine.get_badge_award_count(
-            cast("dict[str, Any]", badge_earned)
+        periods = badge_earned.get(const.DATA_KID_BADGES_EARNED_PERIODS, {})
+        period_key_mapping = {
+            const.PERIOD_ALL_TIME: const.DATA_KID_BADGES_EARNED_PERIODS_ALL_TIME
+        }
+        award_count = self.coordinator.stats.get_period_total(
+            periods,
+            const.PERIOD_ALL_TIME,
+            const.DATA_KID_BADGES_EARNED_AWARD_COUNT,
+            period_key_mapping=period_key_mapping,
         )
 
         extra_attrs = {}
@@ -1853,8 +1896,15 @@ class KidBadgeProgressSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.DATA_KID_BADGES_EARNED_LAST_AWARDED, const.SENTINEL_NONE
         )
         # Phase 4B: Read award_count from periods.all_time.all_time (Lean Item pattern)
-        award_count = StatisticsEngine.get_badge_award_count(
-            cast("dict[str, Any]", badge_earned)
+        periods = badge_earned.get(const.DATA_KID_BADGES_EARNED_PERIODS, {})
+        period_key_mapping = {
+            const.PERIOD_ALL_TIME: const.DATA_KID_BADGES_EARNED_PERIODS_ALL_TIME
+        }
+        award_count = self.coordinator.stats.get_period_total(
+            periods,
+            const.PERIOD_ALL_TIME,
+            const.DATA_KID_BADGES_EARNED_AWARD_COUNT,
+            period_key_mapping=period_key_mapping,
         )
 
         # Build a dictionary with only the requested fields
@@ -4270,15 +4320,25 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
             # Get reward cost
             reward_cost = reward_info.get(const.DATA_REWARD_COST, 0)
 
-            # Get claims and approvals counts from modern reward_data structure
+            # Get claims and approvals counts using get_period_total
             reward_data_entry = kid_info.get(const.DATA_KID_REWARD_DATA, {}).get(
                 reward_id, {}
             )
-            claims_count = reward_data_entry.get(
-                const.DATA_KID_REWARD_DATA_TOTAL_CLAIMS, 0
+            periods = reward_data_entry.get(const.DATA_KID_REWARD_DATA_PERIODS, {})
+            period_key_mapping = {
+                const.PERIOD_ALL_TIME: const.DATA_KID_REWARD_DATA_PERIODS_ALL_TIME
+            }
+            claims_count = self.coordinator.stats.get_period_total(
+                periods,
+                const.PERIOD_ALL_TIME,
+                const.DATA_KID_REWARD_DATA_PERIOD_CLAIMED,
+                period_key_mapping=period_key_mapping,
             )
-            approvals_count = reward_data_entry.get(
-                const.DATA_KID_REWARD_DATA_TOTAL_APPROVED, 0
+            approvals_count = self.coordinator.stats.get_period_total(
+                periods,
+                const.PERIOD_ALL_TIME,
+                const.DATA_KID_REWARD_DATA_PERIOD_APPROVED,
+                period_key_mapping=period_key_mapping,
             )
 
             rewards_attr.append(
@@ -4387,11 +4447,15 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
             # Get applied count for this bonus for this kid
             bonus_applies = kid_info.get(const.DATA_KID_BONUS_APPLIES, {})
             bonus_entry = bonus_applies.get(bonus_id)
-            applied_count = (
-                StatisticsEngine.get_bonus_applies_count(bonus_entry)
-                if bonus_entry
-                else 0
-            )
+            if bonus_entry:
+                periods = bonus_entry.get(const.DATA_KID_BONUS_PERIODS, {})
+                applied_count = self.coordinator.stats.get_period_total(
+                    periods,
+                    const.PERIOD_ALL_TIME,
+                    const.DATA_KID_BONUS_PERIOD_APPLIES,
+                )
+            else:
+                applied_count = 0
 
             bonuses_attr.append(
                 {
@@ -4427,11 +4491,15 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
             # Get applied count for this penalty for this kid
             penalty_applies = kid_info.get(const.DATA_KID_PENALTY_APPLIES, {})
             penalty_entry = penalty_applies.get(penalty_id)
-            applied_count = (
-                StatisticsEngine.get_penalty_applies_count(penalty_entry)
-                if penalty_entry
-                else 0
-            )
+            if penalty_entry:
+                periods = penalty_entry.get(const.DATA_KID_PENALTY_PERIODS, {})
+                applied_count = self.coordinator.stats.get_period_total(
+                    periods,
+                    const.PERIOD_ALL_TIME,
+                    const.DATA_KID_PENALTY_PERIOD_APPLIES,
+                )
+            else:
+                applied_count = 0
 
             penalties_attr.append(
                 {

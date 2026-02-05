@@ -20,7 +20,7 @@ import voluptuous as vol
 from . import const, data_builders as db
 from .data_builders import EntityValidationError
 from .helpers import backup_helpers as bh, flow_helpers as fh
-from .utils.dt_utils import dt_parse, validate_daily_multi_times
+from .utils.dt_utils import dt_now_utc, dt_parse, validate_daily_multi_times
 from .utils.math_utils import parse_points_adjust_values
 
 if TYPE_CHECKING:
@@ -90,9 +90,6 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 )
                 return await self.async_step_manage_entity()
 
-            if selection == const.OPTIONS_FLOW_FINISH:
-                return self.async_abort(reason=const.TRANS_KEY_CFOF_SETUP_COMPLETE)
-
         main_menu = [
             const.OPTIONS_FLOW_POINTS,
             const.OPTIONS_FLOW_KIDS,
@@ -105,7 +102,6 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             const.OPTIONS_FLOW_ACHIEVEMENTS,
             const.OPTIONS_FLOW_CHALLENGES,
             const.OPTIONS_FLOW_GENERAL_OPTIONS,
-            const.OPTIONS_FLOW_FINISH,
         ]
 
         return self.async_show_form(
@@ -1663,23 +1659,39 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         )
         raw_template_date = getattr(self, "_chore_template_date_raw", None)
 
-        # Convert template date to display format
+        # Convert template date to display format and validate it's not in the past
         template_date_str = None
         template_date_display = None
         if raw_template_date:
-            with contextlib.suppress(ValueError, TypeError):
+            try:
                 utc_dt = dt_parse(
                     raw_template_date,
                     default_tzinfo=const.DEFAULT_TIME_ZONE,
                     return_type=const.HELPER_RETURN_DATETIME_UTC,
                 )
                 if utc_dt and isinstance(utc_dt, datetime):
-                    template_date_str = utc_dt.isoformat()
-                template_date_display = dt_parse(
-                    raw_template_date,
-                    default_tzinfo=const.DEFAULT_TIME_ZONE,
-                    return_type=const.HELPER_RETURN_SELECTOR_DATETIME,
+                    # Validate template date is not in the past
+                    if utc_dt < dt_now_utc():
+                        const.LOGGER.warning(
+                            "Template due date %s is in the past, clearing template",
+                            raw_template_date,
+                        )
+                        # Clear template if it's in the past
+                        raw_template_date = None
+                        self._chore_template_date_raw = None
+                    else:
+                        template_date_str = utc_dt.isoformat()
+                        template_date_display = dt_parse(
+                            raw_template_date,
+                            default_tzinfo=const.DEFAULT_TIME_ZONE,
+                            return_type=const.HELPER_RETURN_SELECTOR_DATETIME,
+                        )
+            except (ValueError, TypeError):
+                const.LOGGER.warning(
+                    "Invalid template due date %s, clearing template", raw_template_date
                 )
+                raw_template_date = None
+                self._chore_template_date_raw = None
 
         # Build name-to-id mapping for assigned kids
         name_to_id: dict[str, str] = {}
@@ -1756,14 +1768,24 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 else:
                     date_value = user_input.get(f"due_date_{kid_name}")
                     if date_value:
-                        with contextlib.suppress(ValueError, TypeError):
+                        try:
                             utc_dt = dt_parse(
                                 date_value,
                                 default_tzinfo=const.DEFAULT_TIME_ZONE,
                                 return_type=const.HELPER_RETURN_DATETIME_UTC,
                             )
                             if utc_dt and isinstance(utc_dt, datetime):
-                                per_kid_due_dates[kid_id] = utc_dt.isoformat()
+                                # Validate that due date is not in the past
+                                if utc_dt < dt_now_utc():
+                                    errors[const.CFOP_ERROR_BASE] = (
+                                        const.TRANS_KEY_CFOF_DUE_DATE_IN_PAST
+                                    )
+                                else:
+                                    per_kid_due_dates[kid_id] = utc_dt.isoformat()
+                        except (ValueError, TypeError):
+                            errors[const.CFOP_ERROR_BASE] = (
+                                const.TRANS_KEY_CFOF_INVALID_DUE_DATE
+                            )
                     else:
                         # Preserve existing date if field left blank
                         per_kid_due_dates[kid_id] = existing_per_kid_dates.get(kid_id)

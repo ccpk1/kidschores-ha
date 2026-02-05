@@ -1617,8 +1617,9 @@ class ParentPointsAdjustButton(KidsChoresCoordinatorEntity, ButtonEntity):
                 )
 
             # Use EconomyManager for point transactions
-            # Add descriptive item_name for ledger entries (e.g., "Manual +10", "Manual -5")
-            item_name = f"Manual {self._delta:+.0f}"
+            # Use button's translated name for ledger entries (e.g., "Increment 10.0 Points", "Decrement 5.0 Points")
+            # Type guard: self.name can be str | UndefinedType | None, but deposit/withdraw expect str | None
+            item_name = self.name if isinstance(self.name, str) else None
 
             if self._delta >= 0:
                 await self.coordinator.economy_manager.deposit(

@@ -214,6 +214,7 @@ class ChoreEngine:
                 completion_criteria,
                 actor_kid_id,
                 kids_assigned,
+                is_overdue,
             )
             # Undo never updates stats
             skip_stats = True
@@ -369,17 +370,30 @@ class ChoreEngine:
         criteria: str,
         actor_kid_id: str,
         kids_assigned: list[str],
+        is_overdue: bool,
     ) -> list[TransitionEffect]:
-        """Plan effects for an undo (kid self-undo) action."""
+        """Plan effects for an undo (kid self-undo) action.
+
+        Args:
+            criteria: Completion criteria (SHARED, INDEPENDENT, SHARED_FIRST)
+            actor_kid_id: The kid performing the undo
+            kids_assigned: All kids assigned to chore
+            is_overdue: If True, chore is past due (return to overdue state)
+        """
         effects: list[TransitionEffect] = []
 
+        # Determine target state: overdue if past due date, otherwise pending
+        target_state = (
+            const.CHORE_STATE_OVERDUE if is_overdue else const.CHORE_STATE_PENDING
+        )
+
         if criteria == const.COMPLETION_CRITERIA_SHARED_FIRST:
-            # SHARED_FIRST: Reset ALL kids to pending (same as disapproval)
+            # SHARED_FIRST: Reset ALL kids to target state (overdue or pending)
             for kid_id in kids_assigned:
                 effects.append(
                     TransitionEffect(
                         kid_id=kid_id,
-                        new_state=const.CHORE_STATE_PENDING,
+                        new_state=target_state,
                         update_stats=False,  # Undo never updates stats
                         clear_claimed_by=True,
                         clear_completed_by=True,
@@ -389,7 +403,7 @@ class ChoreEngine:
             effects.append(
                 TransitionEffect(
                     kid_id=actor_kid_id,
-                    new_state=const.CHORE_STATE_PENDING,
+                    new_state=target_state,
                     update_stats=False,
                 )
             )

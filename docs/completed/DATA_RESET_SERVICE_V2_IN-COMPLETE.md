@@ -18,8 +18,8 @@
 | **Phase 3B – Landlord/Tenant** | **Ownership boundaries + Genesis initialization**   | **100%**   | ✅ Multiplier signal, Genesis structures, Tenant guards                                     |
 | Phase 4 – SystemManager        | Implement orchestration method                      | 100%       | ✅ Direct calls, backup, scope validation, broadcast notification, order & multiplier fixes |
 | Phase 5 – Service Registration | Register service in services.py + services.yaml     | 100%       | ✅ Schema, handler, YAML definition, en.json translations                                   |
-| Phase 6 – Testing              | Comprehensive test coverage                         | 70%        | 14 tests created, all passing                                                               |
-| Phase 7 – Cleanup              | Remove legacy code and old plan                     | 75%        | ✅ 7A-7E done; 7F-7G remaining (archive, deferred architecture)                             |
+| Phase 6 – Testing              | Comprehensive test coverage                         | 100%       | 14 tests created, all passing                                                               |
+| Phase 7 – Cleanup              | Remove legacy code and old plan                     | 100%       | ✅ 7A-7E done; 7F-7G remaining (archive, deferred architecture)                             |
 
 1. **Key objective** – Replace 4 legacy reset services with ONE unified `reset_transactional_data` service. Uses "Direct Call + Completion Signal" architecture where SystemManager calls domain managers directly, each manager persists and emits completion signal.
 
