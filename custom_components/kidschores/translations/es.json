@@ -1286,7 +1286,7 @@
       },
       "dashboard_generator": {
         "title": "Administrar el panel de control",
-        "description": "Crea, actualiza o elimina paneles de KidsChores Lovelace.\n\n⚠️ **Tarjetas personalizadas requeridas** (instalar mediante HACS → Frontend):\n- [**Tarjetas Mushroom**](https://github.com/piitaya/lovelace-mushroom) (`custom:mushroom-template-card`)\n- [**Auto-Entities**](https://github.com/thomasloven/lovelace-auto-entities) (`custom:auto-entities`)\n- [**Mini Graph Card**](https://github.com/kalkih/mini-graph-card) (`custom:mini-graph-card`)\n\nSin estas tarjetas, los paneles mostrarán errores. Instálalas primero desde HACS antes de generar paneles.",
+        "description": "Cree, actualice o elimine paneles de KidsChores Lovelace. Tarjetas personalizadas necesarias (instale mediante la interfaz de HACS): Tarjetas de hongo (custom:mushroom-template-card), Entidades automáticas (custom:auto-entities), Tarjeta de minigráfico (custom:mini-graph-card). Sin estas tarjetas, los paneles mostrarán errores. Instálelas primero desde HACS antes de generar paneles.",
         "data": {
           "dashboard_action": "Acción",
           "dashboard_check_cards": "Instalación de la tarjeta de verificación"
@@ -2235,7 +2235,7 @@
     },
     "reset_transactional_data": {
       "name": "Restablecer datos transaccionales",
-      "description": "Restablezca los datos de ejecución/transaccionales conservando la configuración (niños, tareas, recompensas, etc.). Se crea una copia de seguridad automática antes del restablecimiento, llamada kidschores_data_<timestamp>_reset, en el directorio .storage. Use el ámbito para identificar niños o dominios específicos. IMPORTANTE: Requiere confirm_destructive: true como mecanismo de seguridad.",
+      "description": "Restablezca los datos de ejecución/transaccionales conservando la configuración (niños, tareas, recompensas, etc.). Se crea una copia de seguridad automática antes del restablecimiento, llamada kidschores_data_timestamp_reset, en el directorio .storage. Use el alcance para identificar niños o dominios específicos. Requiere que el parámetro confirm_destructive esté definido como verdadero como mecanismo de seguridad.",
       "fields": {
         "confirm_destructive": {
           "name": "Confirmar Destructivo",
@@ -3931,11 +3931,7 @@
         }
       },
       "parent_points_adjust_button": {
-        "name": "{sign_label} {points_label}",
-        "sign_label": {
-          "increment": "Incremento",
-          "decrement": "Decremento"
-        },
+        "name": "Ajustar {points_label}",
         "state_attributes": {
           "purpose": {
             "name": "Objetivo",
@@ -4027,7 +4023,7 @@
       "message": "No se puede especificar un niño para la tarea compartida {chore_name}. Las tareas compartidas tienen una fecha de vencimiento para todos los niños."
     },
     "reward_not_found": {
-      "message": "Recompensa con ID '{reward_id}' no encontrada"
+      "message": "Recompensa con ID {reward_id} no encontrada"
     },
     "required_field": {
       "message": "Debe proporcionar {field}"
@@ -4045,7 +4041,7 @@
       "message": "Debe proporcionar chore_id o chore_name para identificar la tarea."
     },
     "chore_not_found": {
-      "message": "Tarea con ID '{chore_id}' no encontrada."
+      "message": "Tarea con ID {chore_id} no encontrada."
     },
     "completion_criteria_immutable": {
       "message": "Los criterios de finalización no se pueden cambiar después de crear la tarea. Elimínela y vuelva a crearla si necesita criterios de finalización diferentes."
@@ -4072,16 +4068,16 @@
       "message": "Debes configurar confirm_destructive: true para continuar con el restablecimiento de datos"
     },
     "data_reset_kid_not_found": {
-      "message": "Niño '{kid_name}' no encontrado"
+      "message": "Niño {kid_name} no encontrado"
     },
     "data_reset_item_not_found": {
-      "message": "{item_type} '{item_name}' no encontrado"
+      "message": "{item_type} {item_name} no encontrado"
     },
     "data_reset_invalid_scope": {
-      "message": "Ámbito no válido '{scope}'. Debe ser: global, kid, item_type o item."
+      "message": "Ámbito no válido {scope}. Debe ser: global, kid, item_type o item."
     },
     "data_reset_invalid_item_type": {
-      "message": "Item_type '{item_type}' no válido. Debe ser: niños, tareas, recompensas, insignias, logros, desafíos, penalizaciones o bonificaciones."
+      "message": "Item_type {item_type}no válido. Debe ser: niños, tareas, recompensas, insignias, logros, desafíos, penalizaciones o bonificaciones."
     },
     "notif_title_data_reset": {
       "message": "Restablecimiento de datos transaccionales"

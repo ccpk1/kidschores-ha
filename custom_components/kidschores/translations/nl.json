@@ -1286,7 +1286,7 @@
       },
       "dashboard_generator": {
         "title": "Dashboard beheren",
-        "description": "Maak, update of verwijder KidsChores Lovelace-dashboards.\n\n⚠️ **Vereiste aangepaste kaarten** (installeren via HACS → Frontend):\n- [**Mushroom Cards**](https://github.com/piitaya/lovelace-mushroom) (`custom:mushroom-template-card`)\n- [**Auto-Entities**](https://github.com/thomasloven/lovelace-auto-entities) (`custom:auto-entities`)\n- [**Mini Graph Card**](https://github.com/kalkih/mini-graph-card) (`custom:mini-graph-card`)\n\nZonder deze kaarten zullen dashboards fouten weergeven. Installeer ze eerst via HACS voordat u dashboards genereert.",
+        "description": "Maak, update of verwijder KidsChores Lovelace-dashboards. Vereiste aangepaste kaarten (installeren via HACS Frontend): Mushroom Cards (custom:mushroom-template-card), Auto-Entities (custom:auto-entities), Mini Graph Card (custom:mini-graph-card). Zonder deze kaarten zullen dashboards fouten weergeven. Installeer ze eerst via HACS voordat u dashboards genereert.",
         "data": {
           "dashboard_action": "Actie",
           "dashboard_check_cards": "Controlekaartinstallatie"
@@ -2235,7 +2235,7 @@
     },
     "reset_transactional_data": {
       "name": "Transactiegegevens opnieuw instellen",
-      "description": "Reset de runtime-/transactiegegevens met behoud van de configuratie (kinderen, taken, beloningen, enz.). Er wordt automatisch een back-up gemaakt vóór de reset als kidschores_data_<timestamp>_reset in de .storage-directory. Gebruik scope om specifieke kinderen of domeinen te selecteren. BELANGRIJK: Vereist confirm_destructive: true als veiligheidsmechanisme.",
+      "description": "Reset de runtime-/transactiegegevens met behoud van de configuratie (kinderen, taken, beloningen, enz.). Er wordt automatisch een back-up gemaakt vóór de reset als kidschores_data_timestamp_reset in de map .storage. Gebruik scope om specifieke kinderen of domeinen te selecteren. Vereist dat de parameter confirm_destructive is ingesteld op true als veiligheidsmechanisme.",
       "fields": {
         "confirm_destructive": {
           "name": "Bevestig destructief",
@@ -3931,11 +3931,7 @@
         }
       },
       "parent_points_adjust_button": {
-        "name": "{sign_label} {points_label}",
-        "sign_label": {
-          "increment": "Toename",
-          "decrement": "Afname"
-        },
+        "name": "Aanpassen {points_label}",
         "state_attributes": {
           "purpose": {
             "name": "Doel",
@@ -4027,7 +4023,7 @@
       "message": "Kind kan niet worden geselecteerd voor gedeelde klus {chore_name}. Gedeelde klussen hebben één deadline voor alle kinderen."
     },
     "reward_not_found": {
-      "message": "Beloning met ID '{reward_id}' niet gevonden"
+      "message": "Beloning met ID {reward_id} niet gevonden"
     },
     "required_field": {
       "message": "Moet {field}opgeven"
@@ -4045,7 +4041,7 @@
       "message": "U dient ofwel een chore_id ofwel een chore_name op te geven om de taak te identificeren."
     },
     "chore_not_found": {
-      "message": "Chore met ID '{chore_id}' niet gevonden."
+      "message": "Chore met ID {chore_id} niet gevonden."
     },
     "completion_criteria_immutable": {
       "message": "De voltooiingscriteria kunnen niet meer worden gewijzigd nadat een taak is aangemaakt. Verwijder de taak en maak deze opnieuw aan als u andere voltooiingscriteria nodig hebt."
@@ -4072,16 +4068,16 @@
       "message": "U moet confirm_destructive: true instellen om door te gaan met het resetten van de gegevens."
     },
     "data_reset_kid_not_found": {
-      "message": "Kind '{kid_name}' niet gevonden"
+      "message": "Kind {kid_name} niet gevonden"
     },
     "data_reset_item_not_found": {
-      "message": "{item_type} '{item_name}' niet gevonden"
+      "message": "{item_type} {item_name} niet gevonden"
     },
     "data_reset_invalid_scope": {
-      "message": "Ongeldig bereik '{scope}'. Moet zijn: globaal, kind, itemtype of item"
+      "message": "Ongeldig bereik {scope}. Moet zijn: globaal, kind, itemtype of item"
     },
     "data_reset_invalid_item_type": {
-      "message": "Ongeldig itemtype '{item_type}'. Moet zijn: kids, chores, rewards, badges, achievements, challenges, penalties of bonussen"
+      "message": "Ongeldig itemtype {item_type}. Moet zijn: kids, chores, rewards, badges, achievements, challenges, penalties of bonussen"
     },
     "notif_title_data_reset": {
       "message": "Transactiegegevens resetten"

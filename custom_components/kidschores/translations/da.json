@@ -1286,7 +1286,7 @@
       },
       "dashboard_generator": {
         "title": "Administrer dashboard",
-        "description": "Opret, opdater eller slet KidsChores Lovelace dashboards.\n\n⚠️ **Påkrævede brugerdefinerede kort** (installer via HACS → Frontend):\n- [**Svampekort**](https://github.com/piitaya/lovelace-mushroom) (`custom:svampe-template-card`)\n- [**Auto-Entities**](https://github.com/thomasloven/lovelace-auto-entities) (`custom:auto-entities`)\n- [**Mini Graph Card**](https://github.com/kalkih/mini-graph-card) (`custom:mini-graph-card`)\n\nUden disse kort vil dashboards vise fejl. Installer dem først fra HACS, før du genererer dashboards.",
+        "description": "Opret, opdater eller slet KidsChores Lovelace-dashboards. Nødvendige brugerdefinerede kort (installer via HACS Frontend): Mushroom Cards (custom:mushroom-template-card), Auto-Entities (custom:auto-entities), Mini Graph Card (custom:mini-graph-card). Uden disse kort vil dashboards vise fejl. Installer dem først fra HACS, før du genererer dashboards.",
         "data": {
           "dashboard_action": "Handling",
           "dashboard_check_cards": "Installation af kontrolkort"
@@ -2235,7 +2235,7 @@
     },
     "reset_transactional_data": {
       "name": "Nulstil transaktionsdata",
-      "description": "Nulstil runtime-/transaktionsdata, mens konfigurationen bevares (børn, pligter, belønninger osv.). Der oprettes en automatisk sikkerhedskopi før nulstilling som kidschores_data_<timestamp>_reset i .storage-mappen. Brug scope til at målrette mod specifikke børn eller domæner. VIGTIGT: Kræver confirm_destructive: true som en sikkerhedsmekanisme.",
+      "description": "Nulstil runtime-/transaktionsdata, mens konfigurationen bevares (børn, pligter, belønninger osv.). Der oprettes en automatisk sikkerhedskopi før nulstilling som kidschores_data_timestamp_reset i .storage-mappen. Brug omfanget til at målrette mod specifikke børn eller domæner. Kræver, at parameteren confirm_destructive er indstillet til true som en sikkerhedsmekanisme.",
       "fields": {
         "confirm_destructive": {
           "name": "Bekræft destruktiv",
@@ -3931,11 +3931,7 @@
         }
       },
       "parent_points_adjust_button": {
-        "name": "{sign_label} {points_label}",
-        "sign_label": {
-          "increment": "Forøgelse",
-          "decrement": "Reduktion"
-        },
+        "name": "Juster {points_label}",
         "state_attributes": {
           "purpose": {
             "name": "Formål",
@@ -4027,7 +4023,7 @@
       "message": "Kan ikke angive et barn til delt opgave {chore_name}. Delte opgaver har én deadline for alle børn."
     },
     "reward_not_found": {
-      "message": "Belønning med ID'et '{reward_id}' blev ikke fundet"
+      "message": "Belønning med ID {reward_id} ikke fundet"
     },
     "required_field": {
       "message": "Skal angive {field}"
@@ -4045,7 +4041,7 @@
       "message": "Skal angive enten chore_id eller chore_name for at identificere opgaven."
     },
     "chore_not_found": {
-      "message": "Opgave med ID'et '{chore_id}' blev ikke fundet."
+      "message": "Opgave med ID {chore_id} ikke fundet."
     },
     "completion_criteria_immutable": {
       "message": "Fuldførelseskriterier kan ikke ændres efter oprettelse af opgaven. Slet og genskab opgaven, hvis du har brug for andre fuldførelseskriterier."
@@ -4072,16 +4068,16 @@
       "message": "Du skal indstille confirm_destructive: true for at fortsætte med datanulstilling"
     },
     "data_reset_kid_not_found": {
-      "message": "Barnet '{kid_name}' blev ikke fundet"
+      "message": "Barn {kid_name} ikke fundet"
     },
     "data_reset_item_not_found": {
-      "message": "{item_type} '{item_name}' ikke fundet"
+      "message": "{item_type} {item_name} ikke fundet"
     },
     "data_reset_invalid_scope": {
-      "message": "Ugyldigt omfang '{scope}'. Skal være: global, kid, item_type eller item"
+      "message": "Ugyldigt omfang {scope}. Skal være: global, kid, item_type eller item"
     },
     "data_reset_invalid_item_type": {
-      "message": "Ugyldig varetype '{item_type}'. Skal være: børn, pligter, belønninger, badges, præstationer, udfordringer, straffe eller bonusser"
+      "message": "Ugyldig varetype {item_type}. Skal være: børn, pligter, belønninger, badges, præstationer, udfordringer, straffe eller bonusser"
     },
     "notif_title_data_reset": {
       "message": "Nulstilling af transaktionsdata"

@@ -1286,7 +1286,7 @@
       },
       "dashboard_generator": {
         "title": "Spravovať ovládací panel",
-        "description": "Vytvorte, aktualizujte alebo odstráňte dashboardy KidsChores Lovelace.\n\n⚠️ **Požadované vlastné karty** (inštalácia cez HACS → Frontend):\n- [**Karty s hubami**](https://github.com/piitaya/lovelace-mushroom) (`custom:mushroom-template-card`)\n- [**Automatické entity**](https://github.com/thomasloven/lovelace-auto-entities) (`custom:auto-entity`)\n- [**Mini grafická karta**](https://github.com/kalkih/mini-graph-card) (`custom:mini-graph-card`)\n\nBez týchto kariet budú dashboardy zobrazovať chyby. Pred generovaním dashboardov ich najskôr nainštalujte z HACS.",
+        "description": "Vytvorte, aktualizujte alebo odstráňte dashboardy KidsChores Lovelace. Požadované vlastné karty (inštalácia cez HACS Frontend): Karty s hubami (custom:mushroom-template-card), Automatické entity (custom:auto-entities), Karta Mini Graph (custom:mini-graph-card). Bez týchto kariet budú dashboardy zobrazovať chyby. Pred generovaním dashboardov ich najskôr nainštalujte z HACS.",
         "data": {
           "dashboard_action": "Akcia",
           "dashboard_check_cards": "Skontrolujte inštaláciu karty"
@@ -2235,7 +2235,7 @@
     },
     "reset_transactional_data": {
       "name": "Obnoviť transakčné údaje",
-      "description": "Obnoviť dáta za behu/transakcie so zachovaním konfigurácie (deti, domáce úlohy, odmeny atď.). Pred resetom sa vytvorí automatická záloha ako kidschores_data_<timestamp>_reset v adresári .storage. Na zacielenie konkrétnych detí alebo domén použite rozsah. DÔLEŽITÉ: Vyžaduje sa confirm_destructive: true ako bezpečnostný mechanizmus.",
+      "description": "Obnoviť dáta za behu/transakcie so zachovaním konfigurácie (deti, domáce úlohy, odmeny atď.). Pred resetom sa vytvorí automatická záloha ako kidschores_data_timestamp_reset v adresári .storage. Na zacielenie konkrétnych detí alebo domén použite rozsah. Vyžaduje sa parameter confirm_destructive nastavený na hodnotu true ako bezpečnostný mechanizmus.",
       "fields": {
         "confirm_destructive": {
           "name": "Potvrdiť deštruktívne",
@@ -3931,11 +3931,7 @@
         }
       },
       "parent_points_adjust_button": {
-        "name": "{sign_label} {points_label}",
-        "sign_label": {
-          "increment": "Prírastok",
-          "decrement": "Zníženie"
-        },
+        "name": "Upraviť {points_label}",
         "state_attributes": {
           "purpose": {
             "name": "Účel",
@@ -4027,7 +4023,7 @@
       "message": "Pre zdieľanú domácu úlohu {chore_name}nie je možné zadať dieťa. Zdieľané domáce úlohy majú jeden termín odovzdania pre všetky deti."
     },
     "reward_not_found": {
-      "message": "Odmena s ID '{reward_id}' sa nenašla"
+      "message": "Odmena s ID {reward_id} sa nenašla"
     },
     "required_field": {
       "message": "Musí byť poskytnuté {field}"
@@ -4045,7 +4041,7 @@
       "message": "Na identifikáciu úlohy je potrebné zadať buď chore_id, alebo chore_name."
     },
     "chore_not_found": {
-      "message": "Úloha s ID '{chore_id}' sa nenašla."
+      "message": "Úloha s ID {chore_id} sa nenašla."
     },
     "completion_criteria_immutable": {
       "message": "Kritériá dokončenia nie je možné po vytvorení úlohy zmeniť. Ak potrebujete iné kritériá dokončenia, úlohu odstráňte a znova vytvorte."
@@ -4072,16 +4068,16 @@
       "message": "Pre pokračovanie v resetovaní údajov musíte nastaviť confirm_destructive: true"
     },
     "data_reset_kid_not_found": {
-      "message": "Dieťa '{kid_name}' sa nenašlo"
+      "message": "Dieťa {kid_name} sa nenašlo"
     },
     "data_reset_item_not_found": {
-      "message": "{item_type} '{item_name}' sa nenašlo"
+      "message": "{item_type} {item_name} nenašiel sa"
     },
     "data_reset_invalid_scope": {
-      "message": "Neplatný rozsah '{scope}'. Musí byť: global, kid, item_type alebo item"
+      "message": "Neplatný rozsah {scope}. Musí byť: global, kid, item_type alebo item"
     },
     "data_reset_invalid_item_type": {
-      "message": "Neplatný typ položky '{item_type}'. Musí to byť: deti, domáce práce, odmeny, odznaky, úspechy, výzvy, tresty alebo bonusy."
+      "message": "Neplatný typ položky {item_type}. Musí to byť: deti, domáce práce, odmeny, odznaky, úspechy, výzvy, tresty alebo bonusy."
     },
     "notif_title_data_reset": {
       "message": "Obnovenie transakčných údajov"

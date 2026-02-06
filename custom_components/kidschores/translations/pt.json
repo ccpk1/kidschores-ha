@@ -1286,7 +1286,7 @@
       },
       "dashboard_generator": {
         "title": "Gerir painel de controle",
-        "description": "Crie, atualize ou apague painéis do KidsChores Lovelace.\n\n⚠️ **Cartões personalizados necessários** (instalar via HACS → Frontend):\n- [**Cartões Cogumelo**](https://github.com/piitaya/lovelace-mushroom) (`custom:mushroom-template-card`)\n- [**Entidades Automáticas**](https://github.com/thomasloven/lovelace-auto-entities) (`custom:auto-entities`)\n- [**Cartão Mini Gráfico**](https://github.com/kalkih/mini-graph-card) (`custom:mini-graph-card`)\n\nSem estes cartões, os painéis irão apresentar erros. Instale-os primeiro pelo HACS antes de gerar os painéis.",
+        "description": "Crie, atualize ou apague painéis do KidsChores Lovelace. Cartões personalizados necessários (instalar através do frontend do HACS): Cartões Mushroom (custom:mushroom-template-card), Auto-Entities (custom:auto-entities), Mini Graph Card (custom:mini-graph-card). Sem estes cartões, os painéis exibirão erros. Instale-os primeiro pelo HACS antes de gerar os painéis.",
         "data": {
           "dashboard_action": "Ação",
           "dashboard_check_cards": "Instalação do cartão de verificação"
@@ -2235,7 +2235,7 @@
     },
     "reset_transactional_data": {
       "name": "Redefinir dados transacionais",
-      "description": "Redefine os dados de tempo de execução/transacionais, preservando a configuração (crianças, tarefas, recompensas, etc.). É criado um backup automático antes da reposição como kidschores_data_<timestamp>_reset no diretório . storage. Utilize o âmbito para direcionar crianças ou domínios específicos. IMPORTANTE: Requer confirm_destructive: true como mecanismo de segurança.",
+      "description": "Redefine os dados de tempo de execução/transacionais, preservando a configuração (crianças, tarefas, recompensas, etc.). Um backup automático é criado antes da reposição como kidschores_data_timestamp_reset no diretório .storage. Utilize o âmbito para direcionar crianças ou domínios específicos. Requer que o parâmetro confirm_destructive esteja definido como verdadeiro como mecanismo de segurança.",
       "fields": {
         "confirm_destructive": {
           "name": "Confirmar Destrutivo",
@@ -3931,11 +3931,7 @@
         }
       },
       "parent_points_adjust_button": {
-        "name": "{sign_label} {points_label}",
-        "sign_label": {
-          "increment": "Incremento",
-          "decrement": "Diminuição"
-        },
+        "name": "Ajustar {points_label}",
         "state_attributes": {
           "purpose": {
             "name": "Finalidade",
@@ -4027,7 +4023,7 @@
       "message": "Não é possível especificar criança para tarefa partilhada {chore_name}. As tarefas partilhadas têm uma data de entrega para todas as crianças."
     },
     "reward_not_found": {
-      "message": "Recompensa com ID '{reward_id}' não encontrada"
+      "message": "Recompensa com ID {reward_id} não encontrada"
     },
     "required_field": {
       "message": "Deve fornecer {field}"
@@ -4045,7 +4041,7 @@
       "message": "É necessário fornecer chore_id ou chore_name para identificar a tarefa."
     },
     "chore_not_found": {
-      "message": "Tarefa com ID '{chore_id}' não encontrada."
+      "message": "Tarefa com ID {chore_id} não encontrada."
     },
     "completion_criteria_immutable": {
       "message": "Os critérios de conclusão não podem ser alterados após a criação da tarefa. Apague e volte a criar a tarefa se precisar de critérios de conclusão diferentes."
@@ -4072,16 +4068,16 @@
       "message": "Deve definir `confirm_destructive: true` para prosseguir com a reposição dos dados."
     },
     "data_reset_kid_not_found": {
-      "message": "Criança '{kid_name}' não encontrada"
+      "message": "Criança {kid_name} não encontrada"
     },
     "data_reset_item_not_found": {
-      "message": "{item_type} '{item_name}' não encontrado"
+      "message": "{item_type} {item_name} não encontrado"
     },
     "data_reset_invalid_scope": {
-      "message": "Âmbito inválido '{scope}'. Deve ser: global, kid, item_type ou item"
+      "message": "Âmbito inválido {scope}. Deve ser: global, kid, item_type ou item"
     },
     "data_reset_invalid_item_type": {
-      "message": "Tipo de item inválido '{item_type}'. Deve ser: kids, chores, rewards, badges, achievements, challenges, penaltys ou bonuses"
+      "message": "Tipo de artigo inválido {item_type}. Deve ser: crianças, tarefas, recompensas, crachás, conquistas, desafios, penalizações ou bónus."
     },
     "notif_title_data_reset": {
       "message": "Redefinição de dados transacionais"
