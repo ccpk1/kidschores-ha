@@ -668,6 +668,42 @@ The architecture provides per-kid and per-parent dashboard language selection us
 
 ---
 
+## Dashboard Generation System
+
+The Options Flow provides automated dashboard generation, creating fully-functional Lovelace dashboards with pre-configured views for kid management and parent administration.
+
+### Architecture Components
+
+**Dashboard Templates** (`templates/dashboard_*.yaml`):
+
+- Pre-built Jinja2 templates with runtime (`{{ }}`) and build-time (`<< >>`) variables
+- Three kid dashboard styles: Minimal (essentials), Compact (dense), Full (all features)
+- One admin dashboard template with 7 management cards
+- Templates use Mushroom Cards, Auto-Entities, and Mini Graph Card
+
+**Generation Flow** (`options_flow.py` → `dashboard_helpers.py`):
+
+- User selects dashboard style, kids to include, and optional admin tab
+- Build-time rendering: Python Jinja2 populates kid names/slugs with `<< >>` delimiters
+- Runtime rendering: Home Assistant Jinja2 fetches live data with `{{ }}` delimiters
+- Output: HA lovelace YAML structure written via `websocket_api.async_create_dashboard()`
+
+**System Dashboard Selector** (`SystemDashboardAdminKidSelect`):
+
+- System-level select entity for admin dashboard kid switching
+- Provides `dashboard_helper_eid` attribute for efficient kid data access
+- Eliminates hardcoded kid names and expensive `integration_entities()` queries
+- Purpose-based filtering (`purpose_system_dashboard_admin_kid`) for entity ID stability
+
+**Custom Card Detection** (`dashboard_helpers.check_custom_cards_installed()`):
+
+- Validates Mushroom Cards, Auto-Entities, Mini Graph Card installation
+- Accesses `hass.data["lovelace"].resources` for lovelace resource collection
+- Warns users before generation if required frontend cards are missing
+- Blocks dashboard creation when cards unavailable to prevent error-filled dashboards
+
+---
+
 ## Config and Options Flow Architecture
 
 The KidsChores integration utilizes a **Direct-to-Storage** architecture that decouples user-defined entities from the Home Assistant configuration entry. This design allows for unlimited entity scaling and optimized system performance.

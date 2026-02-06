@@ -15,6 +15,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.components.select import SelectEntity
+from homeassistant.helpers import entity_registry as er
 
 from . import const
 from .entity import KidsChoresCoordinatorEntity
@@ -76,6 +77,13 @@ async def async_setup_entry(
         extra_enabled=extra_enabled,
     ):
         selects.append(SystemBonusesSelect(coordinator, entry))
+
+    # System-wide dashboard helper select (always created)
+    # Used by admin dashboard to select which kid's data to display
+    if should_create_entity(
+        const.SELECT_KC_UID_SUFFIX_SYSTEM_DASHBOARD_ADMIN_KID_SELECT,
+    ):
+        selects.append(SystemDashboardAdminKidSelect(coordinator, entry))
 
     # Kid-specific dashboard helper selects (always created)
     for kid_id in coordinator.kids_data:
@@ -338,6 +346,120 @@ class SystemBonusesSelect(KidsChoresSelectBase):
         """Return extra state attributes."""
         return {
             const.ATTR_PURPOSE: const.PURPOSE_SELECT_BONUSES,
+        }
+
+
+class SystemDashboardAdminKidSelect(KidsChoresSelectBase):
+    """System-level select for choosing which kid's data to display in admin dashboard.
+
+    Provides a dropdown of all kid names for admin dashboard cards to reference.
+    Unlike kid-specific selects, this is a single system-wide entity that allows
+    admin view cards to dynamically target any kid without hardcoded names.
+
+    State contains the selected kid's name (human-readable).
+    Attributes provide the kid's dashboard helper entity ID for efficient lookups,
+    eliminating the need for expensive integration_entities() queries in cards.
+    """
+
+    _attr_has_entity_name = True
+    _attr_translation_key = const.TRANS_KEY_SELECT_SYSTEM_DASHBOARD_ADMIN_KID
+
+    def __init__(
+        self,
+        coordinator: KidsChoresDataCoordinator,
+        entry: KidsChoresConfigEntry,
+    ):
+        """Initialize the SystemDashboardAdminKidSelect.
+
+        Args:
+            coordinator: KidsChoresDataCoordinator instance for data access.
+            entry: KidsChoresConfigEntry for this integration instance.
+        """
+        super().__init__(coordinator, entry)
+        self._attr_unique_id = f"{entry.entry_id}{const.SELECT_KC_UID_SUFFIX_SYSTEM_DASHBOARD_ADMIN_KID_SELECT}"
+        # System entity - no kid-specific placeholders needed
+        self._attr_device_info = create_system_device_info(entry)
+
+    @property
+    def options(self) -> list[str]:
+        """Return a list of all kid names with a 'None' option.
+
+        Includes both regular kids and shadow kids (parent accounts) since
+        admin dashboard operations apply to all kid records regardless of type.
+        Returns kid names sorted alphabetically for consistent ordering.
+        Prepends 'None' option to allow clearing selection.
+        """
+        # Collect all kid names (including shadow kids)
+        kid_names = []
+        for kid_id, kid_info in self.coordinator.kids_data.items():
+            kid_name = kid_info.get(
+                const.DATA_KID_NAME,
+                f"{const.TRANS_KEY_LABEL_KID} {kid_id}",
+            )
+            kid_names.append(kid_name)
+
+        # Sort alphabetically (case-insensitive)
+        kid_names.sort(key=str.lower)
+
+        # Start with a "None" entry and add sorted kids
+        options = [const.SENTINEL_NONE_TEXT]
+        options.extend(kid_names)
+        return options
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return extra state attributes including dashboard helper entity ID.
+
+        Provides efficient lookup attributes for admin dashboard cards:
+        - dashboard_helper_eid: Direct entity ID of selected kid's dashboard helper
+        - selected_kid_slug: URL-safe slug of selected kid's name
+        - purpose: Translation key for filtering/identification
+
+        Returns empty attributes when no kid is selected.
+        """
+        # Get current selection
+        current_value = self.current_option
+        if not current_value or current_value == const.SENTINEL_NONE_TEXT:
+            return {
+                const.ATTR_PURPOSE: const.TRANS_KEY_PURPOSE_SYSTEM_DASHBOARD_ADMIN_KID,
+            }
+
+        # Find kid_id by name
+        selected_kid_id = None
+        for kid_id, kid_info in self.coordinator.kids_data.items():
+            kid_name = kid_info.get(
+                const.DATA_KID_NAME,
+                f"{const.TRANS_KEY_LABEL_KID} {kid_id}",
+            )
+            if kid_name == current_value:
+                selected_kid_id = kid_id
+                break
+
+        # If kid not found, return minimal attributes
+        if not selected_kid_id:
+            return {
+                const.ATTR_PURPOSE: const.TRANS_KEY_PURPOSE_SYSTEM_DASHBOARD_ADMIN_KID,
+            }
+
+        # Look up the actual dashboard helper entity from registry
+        # Pattern: unique_id = {entry_id}_{kid_id}_dashboard_helper
+        registry = er.async_get(self.hass)
+        dashboard_helper_unique_id = f"{self.coordinator.config_entry.entry_id}_{selected_kid_id}{const.SENSOR_KC_UID_SUFFIX_UI_DASHBOARD_HELPER}"
+
+        dashboard_helper_entity = registry.async_get_entity_id(
+            "sensor", const.DOMAIN, dashboard_helper_unique_id
+        )
+
+        # Build attributes with actual entity_id (if found) or None
+        from homeassistant.util import slugify
+
+        kid_slug = slugify(current_value)
+
+        return {
+            const.ATTR_PURPOSE: const.TRANS_KEY_PURPOSE_SYSTEM_DASHBOARD_ADMIN_KID,
+            const.ATTR_DASHBOARD_HELPER_EID: dashboard_helper_entity,
+            const.ATTR_SELECTED_KID_SLUG: kid_slug,
+            const.ATTR_SELECTED_KID_NAME: current_value,
         }
 
 

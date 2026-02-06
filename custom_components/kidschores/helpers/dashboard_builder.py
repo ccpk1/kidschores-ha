@@ -1,0 +1,627 @@
+# File: helpers/dashboard_builder.py
+"""Dashboard generation engine for KidsChores.
+
+Provides template fetching, rendering, and Lovelace dashboard creation
+via Home Assistant's storage-based dashboard API.
+
+All functions here require a `hass` object or interact with HA APIs.
+"""
+
+from __future__ import annotations
+
+import asyncio
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
+
+from homeassistant.components.frontend import (
+    DATA_PANELS,
+    async_register_built_in_panel,
+    async_remove_panel,
+)
+from homeassistant.components.lovelace.const import (
+    CONF_REQUIRE_ADMIN,
+    CONF_SHOW_IN_SIDEBAR,
+    CONF_TITLE,
+    CONF_URL_PATH,
+    DEFAULT_ICON,
+    DOMAIN as LOVELACE_DOMAIN,
+    LOVELACE_DATA,
+    MODE_STORAGE,
+)
+from homeassistant.components.lovelace.dashboard import (
+    DashboardsCollection,
+    LovelaceStorage,
+)
+from homeassistant.const import CONF_ICON
+from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.util import slugify
+import jinja2
+import yaml
+
+from .. import const
+from .dashboard_helpers import build_dashboard_context
+
+if TYPE_CHECKING:
+    from homeassistant.core import HomeAssistant
+
+# Template fetch timeout in seconds
+TEMPLATE_FETCH_TIMEOUT = 10
+
+
+# ==============================================================================
+# Custom Exceptions
+# ==============================================================================
+
+
+class DashboardTemplateError(HomeAssistantError):
+    """Error fetching or parsing dashboard template."""
+
+
+class DashboardRenderError(HomeAssistantError):
+    """Error rendering dashboard template with context."""
+
+
+class DashboardExistsError(HomeAssistantError):
+    """Dashboard with this URL path already exists."""
+
+
+class DashboardSaveError(HomeAssistantError):
+    """Error saving dashboard to Lovelace storage."""
+
+
+# ==============================================================================
+# Template Fetching
+# ==============================================================================
+
+
+async def fetch_dashboard_template(
+    hass: HomeAssistant,
+    style: str = const.DASHBOARD_STYLE_FULL,
+) -> str:
+    """Fetch dashboard template, trying remote first then local fallback.
+
+    Args:
+        hass: Home Assistant instance.
+        style: Dashboard style (full, minimal, compact, admin).
+
+    Returns:
+        Template content as string.
+
+    Raises:
+        DashboardTemplateError: If both remote and local fetch fail.
+    """
+    # Attempt 1: Remote fetch from GitHub
+    remote_url = const.DASHBOARD_TEMPLATE_URL_PATTERN.format(style=style)
+    try:
+        template_content = await _fetch_remote_template(hass, remote_url)
+        const.LOGGER.debug(
+            "Fetched dashboard template from remote: %s",
+            remote_url,
+        )
+        return template_content
+    except (TimeoutError, HomeAssistantError) as err:
+        const.LOGGER.debug(
+            "Remote template fetch failed, trying local fallback: %s",
+            err,
+        )
+
+    # Attempt 2: Local bundled fallback
+    try:
+        template_content = await _fetch_local_template(hass, style)
+        const.LOGGER.debug(
+            "Using bundled dashboard template for style: %s",
+            style,
+        )
+        return template_content
+    except FileNotFoundError as err:
+        const.LOGGER.error(
+            "Dashboard template not found (remote and local failed): %s",
+            style,
+        )
+        raise DashboardTemplateError(f"Dashboard template '{style}' not found") from err
+
+
+async def _fetch_remote_template(hass: HomeAssistant, url: str) -> str:
+    """Fetch template from remote URL.
+
+    Args:
+        hass: Home Assistant instance.
+        url: URL to fetch template from.
+
+    Returns:
+        Template content as string.
+
+    Raises:
+        HomeAssistantError: If fetch fails or returns non-200 status.
+        TimeoutError: If request times out.
+    """
+    session = async_get_clientsession(hass)
+    try:
+        async with asyncio.timeout(TEMPLATE_FETCH_TIMEOUT):
+            async with session.get(url) as response:
+                if response.status != 200:
+                    raise HomeAssistantError(
+                        f"HTTP {response.status} fetching template from {url}"
+                    )
+                return await response.text()
+    except TimeoutError:
+        raise
+    except Exception as err:
+        raise HomeAssistantError(f"Failed to fetch template: {err}") from err
+
+
+async def _fetch_local_template(hass: HomeAssistant, style: str) -> str:
+    """Fetch template from local bundled files.
+
+    Args:
+        hass: Home Assistant instance.
+        style: Dashboard style.
+
+    Returns:
+        Template content as string.
+
+    Raises:
+        FileNotFoundError: If local template file doesn't exist.
+    """
+    # Path relative to this file: ../templates/dashboard_{style}.yaml
+    template_path = (
+        Path(__file__).parent.parent / "templates" / f"dashboard_{style}.yaml"
+    )
+
+    def read_template() -> str:
+        return template_path.read_text(encoding="utf-8")
+
+    # Run file I/O in executor to avoid blocking
+    return await hass.async_add_executor_job(read_template)
+
+
+# ==============================================================================
+# Template Rendering
+# ==============================================================================
+
+
+def render_dashboard_template(
+    template_str: str,
+    context: dict[str, Any],
+) -> dict[str, Any]:
+    """Render Jinja2 template with context and parse as YAML.
+
+    Uses custom delimiters (<< >> for variables) to avoid conflicts
+    with Home Assistant's {{ }} Jinja2 syntax in the template.
+
+    Args:
+        template_str: Raw template string with << >> placeholders.
+        context: Template context dict. For kid dashboards, use DashboardContext
+            with kid.name and kid.slug. For admin, use empty dict {}.
+
+    Returns:
+        Parsed YAML as dict (single view object).
+
+    Raises:
+        DashboardRenderError: If template rendering or YAML parsing fails.
+    """
+    # Create Jinja2 environment with custom delimiters
+    # This allows << kid.name >> for our injection while preserving
+    # {{ states('sensor.x') }} for HA runtime evaluation
+    #
+    # IMPORTANT: Use custom comment delimiters that DON'T match {# #}
+    # so that HA's Jinja2 comments are preserved in the output
+    # (not stripped during our build-time render)
+    env = jinja2.Environment(
+        variable_start_string="<<",
+        variable_end_string=">>",
+        block_start_string="<%",
+        block_end_string="%>",
+        comment_start_string="<#--",
+        comment_end_string="--#>",
+        autoescape=False,
+    )
+
+    try:
+        template = env.from_string(template_str)
+        rendered = template.render(**context)
+    except jinja2.TemplateError as err:
+        const.LOGGER.error("Template rendering failed: %s", err)
+        raise DashboardRenderError(f"Template rendering failed: {err}") from err
+
+    try:
+        config = yaml.safe_load(rendered)
+    except yaml.YAMLError as err:
+        const.LOGGER.error("YAML parsing failed: %s", err)
+        raise DashboardRenderError(f"YAML parsing failed: {err}") from err
+
+    # Template now produces a single view (list with one item) or a dict
+    # Handle both cases for flexibility
+    if isinstance(config, list) and len(config) > 0:
+        # Template is a list (starts with '- '), return first item
+        return config[0]
+    if isinstance(config, dict):
+        return config
+
+    raise DashboardRenderError("Template did not produce a valid view config")
+
+
+def build_multi_view_dashboard(
+    views: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Build a complete dashboard config from multiple views.
+
+    Args:
+        views: List of view config dicts.
+
+    Returns:
+        Complete Lovelace dashboard config with views array.
+    """
+    return {"views": views}
+
+
+def get_multi_view_url_path(dashboard_name: str) -> str:
+    """Generate URL path for a multi-view dashboard.
+
+    Args:
+        dashboard_name: User-specified dashboard name (e.g., "Chores").
+
+    Returns:
+        Slugified URL path with kc- prefix (e.g., "kc-chores").
+    """
+    slug = slugify(dashboard_name.lower())
+    return f"kc-{slug}"
+
+
+# ==============================================================================
+# Dashboard Existence Check
+# ==============================================================================
+
+
+def check_dashboard_exists(hass: HomeAssistant, url_path: str) -> bool:
+    """Check if a dashboard with the given URL path already exists.
+
+    Args:
+        hass: Home Assistant instance.
+        url_path: Dashboard URL path to check (e.g., "kc-alice").
+
+    Returns:
+        True if dashboard exists, False otherwise.
+    """
+    # Check frontend panels
+    if DATA_PANELS in hass.data and url_path in hass.data[DATA_PANELS]:
+        return True
+
+    # Check lovelace dashboards
+    if LOVELACE_DATA in hass.data:
+        lovelace_data = hass.data[LOVELACE_DATA]
+        if url_path in lovelace_data.dashboards:
+            return True
+
+    return False
+
+
+# ==============================================================================
+# Dashboard Creation
+# ==============================================================================
+
+
+async def create_kidschores_dashboard(
+    hass: HomeAssistant,
+    dashboard_name: str,
+    kid_names: list[str],
+    style: str = const.DASHBOARD_STYLE_FULL,
+    include_admin: bool = True,
+    force_rebuild: bool = False,
+    show_in_sidebar: bool = True,
+    require_admin: bool = False,
+    icon: str = "mdi:clipboard-list",
+) -> str:
+    """Create a KidsChores dashboard with views for multiple kids.
+
+    This is the main entry point for dashboard generation. It creates a single
+    dashboard with multiple views (tabs) - one for each kid plus an optional
+    admin view.
+
+    Args:
+        hass: Home Assistant instance.
+        dashboard_name: User-specified dashboard name (e.g., "Chores").
+        kid_names: List of kid names to create views for.
+        style: Dashboard style (full, minimal, compact).
+        include_admin: Whether to include an admin view tab.
+        force_rebuild: If True, delete existing dashboard first.
+        show_in_sidebar: Whether to show in sidebar.
+        require_admin: Whether dashboard requires admin access.
+        icon: Dashboard icon.
+
+    Returns:
+        The URL path of the created dashboard (e.g., "kc-chores").
+
+    Raises:
+        DashboardExistsError: If dashboard exists and force_rebuild is False.
+        DashboardTemplateError: If template fetch fails.
+        DashboardRenderError: If template rendering fails.
+        DashboardSaveError: If saving to Lovelace fails.
+    """
+    # Check for recovery mode
+    if hass.config.recovery_mode:
+        raise DashboardSaveError("Cannot create dashboards in recovery mode")
+
+    # Generate URL path and title from dashboard name
+    url_path = get_multi_view_url_path(dashboard_name)
+    title = dashboard_name
+
+    # Check if dashboard already exists
+    if check_dashboard_exists(hass, url_path):
+        if not force_rebuild:
+            raise DashboardExistsError(
+                f"Dashboard '{url_path}' already exists. Use force_rebuild=True to overwrite."
+            )
+        # Delete existing dashboard
+        await _delete_dashboard(hass, url_path)
+
+    # Fetch kid template
+    template_str = await fetch_dashboard_template(hass, style)
+
+    # Build views for each kid
+    views: list[dict[str, Any]] = []
+
+    for kid_name in kid_names:
+        kid_context = build_dashboard_context(kid_name)
+        # Convert TypedDict to regular dict for generic render function
+        kid_view = render_dashboard_template(template_str, dict(kid_context))
+        views.append(kid_view)
+        const.LOGGER.debug("Built view for kid: %s", kid_name)
+
+    # Add admin view if requested
+    if include_admin:
+        admin_template_str = await fetch_dashboard_template(
+            hass, const.DASHBOARD_STYLE_ADMIN
+        )
+        # Admin template still needs comment stripping via Jinja2 render
+        # Pass empty context since admin doesn't need kid injection
+        admin_view = render_dashboard_template(admin_template_str, {})
+        if isinstance(admin_view, dict):
+            views.append(admin_view)
+            const.LOGGER.debug("Added admin view")
+
+    # Combine all views into dashboard config
+    dashboard_config = build_multi_view_dashboard(views)
+
+    # Create the dashboard entry
+    await _create_dashboard_entry(
+        hass,
+        url_path=url_path,
+        title=title,
+        icon=icon,
+        show_in_sidebar=show_in_sidebar,
+        require_admin=require_admin,
+    )
+
+    # Save the dashboard config
+    await _save_dashboard_config(hass, url_path, dashboard_config)
+
+    const.LOGGER.info(
+        "Created KidsChores dashboard: %s with %d views (style=%s, admin=%s)",
+        url_path,
+        len(views),
+        style,
+        include_admin,
+    )
+
+    return url_path
+
+
+async def _delete_dashboard(hass: HomeAssistant, url_path: str) -> None:
+    """Delete an existing dashboard.
+
+    This function removes all traces of a dashboard:
+    1. Removes from DashboardsCollection (storage) - ALL matching entries
+    2. Removes from lovelace_data.dashboards (runtime)
+    3. Removes the frontend panel (sidebar)
+
+    Args:
+        hass: Home Assistant instance.
+        url_path: Dashboard URL path to delete.
+    """
+    const.LOGGER.debug("Deleting dashboard: %s", url_path)
+
+    # Step 1: Remove from DashboardsCollection (storage)
+    # Delete ALL items with matching url_path (handle duplicates)
+    dashboards_collection = DashboardsCollection(hass)
+    await dashboards_collection.async_load()
+
+    items_to_delete = [
+        item_id
+        for item_id, item in dashboards_collection.data.items()
+        if item.get(CONF_URL_PATH) == url_path
+    ]
+
+    for item_id in items_to_delete:
+        try:
+            await dashboards_collection.async_delete_item(item_id)
+            const.LOGGER.debug(
+                "Removed dashboard entry from collection: id=%s, url_path=%s",
+                item_id,
+                url_path,
+            )
+        except Exception as err:
+            const.LOGGER.warning(
+                "Failed to delete dashboard entry %s: %s", item_id, err
+            )
+
+    # Step 2: Remove from lovelace_data.dashboards (runtime)
+    if LOVELACE_DATA in hass.data:
+        lovelace_data = hass.data[LOVELACE_DATA]
+        if url_path in lovelace_data.dashboards:
+            dashboard = lovelace_data.dashboards.pop(url_path)
+            # Delete the storage file
+            try:
+                await dashboard.async_delete()
+            except Exception as err:
+                const.LOGGER.warning(
+                    "Failed to delete dashboard storage for %s: %s", url_path, err
+                )
+            const.LOGGER.debug("Removed dashboard from lovelace_data: %s", url_path)
+
+    # Step 3: Remove the frontend panel
+    async_remove_panel(hass, url_path, warn_if_unknown=False)
+    const.LOGGER.debug("Removed dashboard panel: %s", url_path)
+
+
+async def delete_kidschores_dashboard(
+    hass: HomeAssistant,
+    url_path: str,
+) -> None:
+    """Delete a KidsChores dashboard.
+
+    Public function to delete an existing KidsChores dashboard.
+    Handles all three aspects of dashboard removal:
+    1. Panel (sidebar item)
+    2. Storage (config file)
+    3. Collection entry (dashboard registry)
+
+    Args:
+        hass: Home Assistant instance.
+        url_path: Dashboard URL path (e.g., "kc-alice").
+
+    Raises:
+        DashboardSaveError: If deletion fails.
+    """
+    if hass.config.recovery_mode:
+        raise DashboardSaveError("Cannot delete dashboards in recovery mode")
+
+    if not url_path.startswith("kc-"):
+        raise DashboardSaveError(f"Cannot delete non-KidsChores dashboard: {url_path}")
+
+    await _delete_dashboard(hass, url_path)
+
+    const.LOGGER.info("Deleted KidsChores dashboard: %s", url_path)
+
+
+async def _create_dashboard_entry(
+    hass: HomeAssistant,
+    url_path: str,
+    title: str,
+    icon: str,
+    show_in_sidebar: bool,
+    require_admin: bool,
+) -> None:
+    """Create a dashboard entry in the Lovelace collection.
+
+    This function:
+    1. Creates the dashboard entry in DashboardsCollection (persists metadata)
+    2. Creates LovelaceStorage object and registers it in lovelace_data.dashboards
+    3. Registers the frontend panel
+
+    Args:
+        hass: Home Assistant instance.
+        url_path: Dashboard URL path.
+        title: Dashboard title.
+        icon: Dashboard icon.
+        show_in_sidebar: Whether to show in sidebar.
+        require_admin: Whether dashboard requires admin access.
+    """
+    # Build the dashboard config dict
+    dashboard_config = {
+        CONF_URL_PATH: url_path,
+        CONF_TITLE: title,
+        CONF_ICON: icon,
+        CONF_SHOW_IN_SIDEBAR: show_in_sidebar,
+        CONF_REQUIRE_ADMIN: require_admin,
+    }
+
+    const.LOGGER.debug(
+        "Creating dashboard entry: url_path=%s, title=%s",
+        url_path,
+        title,
+    )
+
+    # Step 1: Save to DashboardsCollection (persists to storage)
+    dashboards_collection = DashboardsCollection(hass)
+    await dashboards_collection.async_load()
+
+    try:
+        await dashboards_collection.async_create_item(dashboard_config)
+        const.LOGGER.debug("Dashboard entry saved to collection: %s", url_path)
+    except HomeAssistantError as err:
+        const.LOGGER.error("Failed to create dashboard entry: %s", err)
+        raise DashboardSaveError(f"Failed to create dashboard entry: {err}") from err
+
+    # Get the created item (includes auto-generated 'id')
+    created_item = None
+    for item in dashboards_collection.async_items():
+        if item.get(CONF_URL_PATH) == url_path:
+            created_item = item
+            break
+
+    if not created_item:
+        raise DashboardSaveError(f"Dashboard '{url_path}' not found in collection")
+
+    const.LOGGER.debug("Retrieved dashboard item with id: %s", created_item.get("id"))
+
+    # Step 2: Create LovelaceStorage and register in lovelace_data.dashboards
+    if LOVELACE_DATA not in hass.data:
+        raise DashboardSaveError("Lovelace not initialized")
+
+    lovelace_data = hass.data[LOVELACE_DATA]
+
+    # Create the storage-mode dashboard object (needs 'id' from created_item)
+    lovelace_storage = LovelaceStorage(hass, created_item)
+    lovelace_data.dashboards[url_path] = lovelace_storage
+
+    const.LOGGER.debug("LovelaceStorage created for: %s", url_path)
+
+    # Step 3: Register the frontend panel
+    panel_kwargs: dict[str, Any] = {
+        "frontend_url_path": url_path,
+        "require_admin": require_admin,
+        "config": {"mode": MODE_STORAGE},
+        "update": False,
+    }
+
+    if show_in_sidebar:
+        panel_kwargs["sidebar_title"] = title
+        panel_kwargs["sidebar_icon"] = icon or DEFAULT_ICON
+
+    async_register_built_in_panel(hass, LOVELACE_DOMAIN, **panel_kwargs)
+
+    const.LOGGER.debug("Dashboard panel registered: %s", url_path)
+
+
+async def _save_dashboard_config(
+    hass: HomeAssistant,
+    url_path: str,
+    config: dict[str, Any],
+) -> None:
+    """Save dashboard config to Lovelace storage.
+
+    Args:
+        hass: Home Assistant instance.
+        url_path: Dashboard URL path.
+        config: Lovelace dashboard config (views, cards, etc.).
+    """
+    if LOVELACE_DATA not in hass.data:
+        const.LOGGER.error("Lovelace not initialized - LOVELACE_DATA missing")
+        raise DashboardSaveError("Lovelace not initialized")
+
+    lovelace_data = hass.data[LOVELACE_DATA]
+
+    const.LOGGER.debug(
+        "Saving dashboard config: url_path=%s, available dashboards=%s",
+        url_path,
+        list(lovelace_data.dashboards.keys()),
+    )
+
+    if url_path not in lovelace_data.dashboards:
+        const.LOGGER.error(
+            "Dashboard '%s' not found after creation. Available: %s",
+            url_path,
+            list(lovelace_data.dashboards.keys()),
+        )
+        raise DashboardSaveError(f"Dashboard '{url_path}' not found after creation")
+
+    dashboard = lovelace_data.dashboards[url_path]
+
+    try:
+        await dashboard.async_save(config)
+        const.LOGGER.debug("Dashboard config saved successfully: %s", url_path)
+    except HomeAssistantError as err:
+        const.LOGGER.error("Failed to save dashboard config: %s", err)
+        raise DashboardSaveError(f"Failed to save dashboard config: {err}") from err

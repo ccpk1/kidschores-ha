@@ -54,6 +54,36 @@ STORAGE_KEY: Final = "kidschores_data"
 STORAGE_VERSION: Final = 1
 
 # ==============================================================================
+# Dashboard Template Configuration (v0.5.0-beta3, Schema 43)
+# ==============================================================================
+# Templates use style-based naming (not version-suffixed).
+# Schema version is bumped ONLY for breaking Python context changes.
+
+# Schema version for template context structure (bump when context dict changes)
+DASHBOARD_TEMPLATE_SCHEMA_VERSION: Final = 1
+
+# URL path prefix for generated dashboards (e.g., kc-alice, kc-admin)
+DASHBOARD_URL_PATH_PREFIX: Final = "kc-"
+
+# Available dashboard styles
+DASHBOARD_STYLE_FULL: Final = "full"
+DASHBOARD_STYLE_MINIMAL: Final = "minimal"
+DASHBOARD_STYLE_COMPACT: Final = "compact"
+DASHBOARD_STYLE_ADMIN: Final = "admin"
+DASHBOARD_STYLES: Final = [
+    DASHBOARD_STYLE_FULL,
+    DASHBOARD_STYLE_MINIMAL,
+    DASHBOARD_STYLE_COMPACT,
+    DASHBOARD_STYLE_ADMIN,
+]
+
+# Remote template URL pattern (style-based, no version suffix)
+DASHBOARD_TEMPLATE_URL_PATTERN: Final = "https://raw.githubusercontent.com/ad-ha/kidschores-ha/main/templates/dashboard_{style}.yaml"
+
+# Local fallback template path (relative to integration package)
+DASHBOARD_LOCAL_TEMPLATE_PATH: Final = "templates/dashboard_{style}.yaml"
+
+# ==============================================================================
 # Event Infrastructure (Phase 0: Layered Architecture Foundation)
 # ==============================================================================
 # Event Signal Suffixes (Manager-to-Manager Communication)
@@ -405,6 +435,7 @@ OPTIONS_FLOW_BADGES: Final = "manage_badge"
 OPTIONS_FLOW_BONUSES: Final = "manage_bonus"
 OPTIONS_FLOW_CHALLENGES: Final = "manage_challenge"
 OPTIONS_FLOW_CHORES: Final = "manage_chore"
+OPTIONS_FLOW_DASHBOARD_GENERATOR: Final = "dashboard_generator"
 OPTIONS_FLOW_FINISH: Final = "done"
 OPTIONS_FLOW_GENERAL_OPTIONS: Final = "general_options"
 OPTIONS_FLOW_KIDS: Final = "manage_kid"
@@ -432,6 +463,13 @@ OPTIONS_FLOW_STEP_CREATE_BACKUP_SUCCESS: Final = "create_backup_success"
 OPTIONS_FLOW_STEP_DELETE_BACKUP_CONFIRM: Final = "delete_backup_confirm"
 OPTIONS_FLOW_STEP_RESTORE_BACKUP_CONFIRM: Final = "restore_backup_confirm"
 OPTIONS_FLOW_STEP_PASTE_JSON_RESTORE: Final = "paste_json_restore"
+
+# OptionsFlow Dashboard Generator Steps
+OPTIONS_FLOW_STEP_DASHBOARD_GENERATOR: Final = "dashboard_generator"
+OPTIONS_FLOW_STEP_DASHBOARD_GENERATOR_CONFIRM: Final = "dashboard_generator_confirm"
+OPTIONS_FLOW_STEP_DASHBOARD_GENERATOR_RESULT: Final = "dashboard_generator_result"
+OPTIONS_FLOW_STEP_DASHBOARD_DELETE: Final = "dashboard_delete"
+OPTIONS_FLOW_STEP_DASHBOARD_DELETE_CONFIRM: Final = "dashboard_delete_confirm"
 
 OPTIONS_FLOW_STEP_ADD_ACHIEVEMENT: Final = "add_achievement"
 OPTIONS_FLOW_STEP_ADD_BADGE: Final = "add_badge"
@@ -731,6 +769,23 @@ CFOF_SYSTEM_INPUT_POINTS_ADJUST_VALUES: Final = "points_adjust_values"
 CFOF_SYSTEM_INPUT_RETENTION_PERIODS: Final = "retention_periods"
 CFOF_SYSTEM_INPUT_SHOW_LEGACY_ENTITIES: Final = "show_legacy_entities"
 CFOF_SYSTEM_INPUT_BACKUPS_MAX_RETAINED: Final = "backups_max_retained"
+
+# Dashboard Generator Input Fields (OptionsFlow)
+CFOF_DASHBOARD_INPUT_NAME: Final = "dashboard_name"
+CFOF_DASHBOARD_INPUT_STYLE: Final = "dashboard_style"
+CFOF_DASHBOARD_INPUT_KID_SELECTION: Final = "dashboard_kid_selection"
+CFOF_DASHBOARD_INPUT_INCLUDE_ADMIN: Final = "dashboard_include_admin"
+CFOF_DASHBOARD_INPUT_FORCE_REBUILD: Final = "dashboard_force_rebuild"
+CFOF_DASHBOARD_INPUT_ACTION: Final = "dashboard_action"
+CFOF_DASHBOARD_INPUT_DELETE_SELECTION: Final = "dashboard_delete_selection"
+CFOF_DASHBOARD_INPUT_CHECK_CARDS: Final = "dashboard_check_cards"
+
+# Dashboard Generator Defaults
+DASHBOARD_DEFAULT_NAME: Final = "Chores"
+
+# Dashboard Generator Actions
+DASHBOARD_ACTION_CREATE: Final = "create"
+DASHBOARD_ACTION_DELETE: Final = "delete"
 
 # Chore Custom Interval Reset Periods
 CUSTOM_INTERVAL_UNIT_OPTIONS: Final = [
@@ -1890,6 +1945,9 @@ TRANS_KEY_PURPOSE_BUTTON_BONUS_APPLY: Final = "purpose_button_bonus_apply"
 
 # Select purpose translation keys (select.py)
 TRANS_KEY_PURPOSE_SELECT_KID_CHORES: Final = "purpose_select_kid_chores"
+TRANS_KEY_PURPOSE_SYSTEM_DASHBOARD_ADMIN_KID: Final = (
+    "purpose_system_dashboard_admin_kid"
+)
 
 # Calendar purpose translation keys (calendar.py)
 TRANS_KEY_PURPOSE_CALENDAR_SCHEDULE: Final = "purpose_calendar_schedule"
@@ -2125,6 +2183,9 @@ ATTR_LAST_CLAIMED: Final = "last_claimed"
 ATTR_LAST_COMPLETED: Final = "last_completed"
 ATTR_LAST_DISAPPROVED: Final = "last_disapproved"
 ATTR_LAST_OVERDUE: Final = "last_overdue"
+ATTR_DASHBOARD_HELPER_EID: Final = "dashboard_helper_eid"
+ATTR_SELECTED_KID_SLUG: Final = "selected_kid_slug"
+ATTR_SELECTED_KID_NAME: Final = "selected_kid_name"
 ATTR_NEXT_HIGHER_BADGE_NAME: Final = "next_higher_badge_name"
 ATTR_NEXT_HIGHER_BADGE_EID: Final = "next_higher_badge_eid"
 ATTR_NEXT_LOWER_BADGE_NAME: Final = "next_lower_badge_name"
@@ -2336,6 +2397,9 @@ SELECT_KC_PREFIX: Final = "select.kc_"
 # Use SUFFIX pattern for consistent entity unique IDs
 SELECT_KC_UID_SUFFIX_KID_DASHBOARD_HELPER_CHORES_SELECT: Final = (
     "_kid_dashboard_helper_chores_select"
+)
+SELECT_KC_UID_SUFFIX_SYSTEM_DASHBOARD_ADMIN_KID_SELECT: Final = (
+    "_system_dashboard_admin_kid_select"
 )
 SELECT_KC_UID_SUFFIX_BONUSES_SELECT: Final = "_select_bonuses"
 SELECT_KC_UID_SUFFIX_CHORES_SELECT: Final = "_select_chores"
@@ -2726,8 +2790,9 @@ ENTITY_REGISTRY: Final[dict[str, EntityRequirement]] = {
     BUTTON_KC_UID_SUFFIX_KID_REWARD_REDEEM: EntityRequirement.GAMIFICATION,
     BUTTON_KC_UID_SUFFIX_PARENT_BONUS_APPLY: EntityRequirement.GAMIFICATION,
     BUTTON_KC_UID_SUFFIX_PARENT_PENALTY_APPLY: EntityRequirement.GAMIFICATION,
-    # === SELECT: Always (kid-specific dashboard helpers) ===
+    # === SELECT: Always (dashboard helpers) ===
     SELECT_KC_UID_SUFFIX_KID_DASHBOARD_HELPER_CHORES_SELECT: EntityRequirement.ALWAYS,
+    SELECT_KC_UID_SUFFIX_SYSTEM_DASHBOARD_ADMIN_KID_SELECT: EntityRequirement.ALWAYS,
     # === SELECT: Extra (system-wide legacy selects) ===
     SELECT_KC_UID_SUFFIX_CHORES_SELECT: EntityRequirement.EXTRA,
     SELECT_KC_UID_SUFFIX_REWARDS_SELECT: EntityRequirement.EXTRA,
@@ -3206,6 +3271,28 @@ TRANS_KEY_CFOF_INVALID_CALENDAR_SHOW_PERIOD: Final = "invalid_calendar_show_peri
 TRANS_KEY_CFOF_INVALID_RETENTION_PERIOD: Final = "invalid_retention_period"
 TRANS_KEY_CFOF_INVALID_POINTS_ADJUST_VALUES: Final = "invalid_points_adjust_values"
 
+# Dashboard Generator Translation Keys (Phase 4)
+TRANS_KEY_CFOF_DASHBOARD_STYLE: Final = "dashboard_style"
+TRANS_KEY_CFOF_DASHBOARD_KID_SELECTION: Final = "dashboard_kid_selection"
+TRANS_KEY_CFOF_DASHBOARD_FORCE_REBUILD: Final = "dashboard_force_rebuild"
+TRANS_KEY_CFOF_DASHBOARD_STYLE_FULL: Final = "dashboard_style_full"
+TRANS_KEY_CFOF_DASHBOARD_STYLE_MINIMAL: Final = "dashboard_style_minimal"
+TRANS_KEY_CFOF_DASHBOARD_STYLE_COMPACT: Final = "dashboard_style_compact"
+TRANS_KEY_CFOF_DASHBOARD_STYLE_ADMIN: Final = "dashboard_style_admin"
+TRANS_KEY_CFOF_DASHBOARD_EXISTS: Final = "dashboard_exists"
+TRANS_KEY_CFOF_DASHBOARD_TEMPLATE_ERROR: Final = "dashboard_template_error"
+TRANS_KEY_CFOF_DASHBOARD_RENDER_ERROR: Final = "dashboard_render_error"
+TRANS_KEY_CFOF_DASHBOARD_SAVE_ERROR: Final = "dashboard_save_error"
+TRANS_KEY_CFOF_DASHBOARD_SUCCESS: Final = "dashboard_success"
+TRANS_KEY_CFOF_DASHBOARD_NO_NAME: Final = "dashboard_no_name"
+TRANS_KEY_CFOF_DASHBOARD_NO_KIDS: Final = "dashboard_no_kids"
+TRANS_KEY_CFOF_DASHBOARD_ACTION: Final = "dashboard_action"
+TRANS_KEY_CFOF_DASHBOARD_ACTION_CREATE: Final = "dashboard_action_create"
+TRANS_KEY_CFOF_DASHBOARD_ACTION_DELETE: Final = "dashboard_action_delete"
+TRANS_KEY_CFOF_DASHBOARD_DELETE_SELECTION: Final = "dashboard_delete_selection"
+TRANS_KEY_CFOF_DASHBOARD_NO_DASHBOARDS: Final = "dashboard_no_dashboards"
+TRANS_KEY_CFOF_DASHBOARD_DELETED: Final = "dashboard_deleted"
+
 # Flow Helpers Translation Keys
 TRANS_KEY_FLOW_HELPERS_APPLICABLE_DAYS: Final = "applicable_days"
 TRANS_KEY_FLOW_HELPERS_APPROVAL_RESET_PENDING_CLAIM_ACTION: Final = (
@@ -3301,6 +3388,7 @@ TRANS_KEY_SELECT_BASE: Final = "kc_select_base"
 TRANS_KEY_SELECT_BONUSES: Final = "system_bonuses_select"
 TRANS_KEY_SELECT_CHORES: Final = "system_chores_select"
 TRANS_KEY_SELECT_CHORES_KID: Final = "kid_dashboard_helper_chores_select"
+TRANS_KEY_SELECT_SYSTEM_DASHBOARD_ADMIN_KID: Final = "system_dashboard_admin_kid_select"
 TRANS_KEY_SELECT_PENALTIES: Final = "system_penalties_select"
 TRANS_KEY_SELECT_REWARDS: Final = "system_rewards_select"
 

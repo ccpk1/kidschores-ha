@@ -56,6 +56,14 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             None  # For per-kid date editing
         )
         self._chore_template_date_raw: Any = None  # Template date for per-kid helper
+        # Dashboard generator state
+        self._dashboard_name: str = const.DASHBOARD_DEFAULT_NAME
+        self._dashboard_style: str = const.DASHBOARD_STYLE_FULL
+        self._dashboard_include_admin: bool = True
+        self._dashboard_force_rebuild: bool = False
+        self._dashboard_selected_kids: list[str] = []
+        self._dashboard_results: list[dict[str, Any]] = []
+        self._dashboard_delete_selection: list[str] = []
 
     # ----------------------------------------------------------------------------------
     # MAIN MENU
@@ -84,6 +92,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             if selection == const.OPTIONS_FLOW_GENERAL_OPTIONS:
                 return await self.async_step_manage_general_options()
 
+            if selection == const.OPTIONS_FLOW_DASHBOARD_GENERATOR:
+                return await self.async_step_dashboard_generator()
+
             if selection.startswith(const.OPTIONS_FLOW_MENU_MANAGE_PREFIX):
                 self._entity_type = selection.replace(
                     const.OPTIONS_FLOW_MENU_MANAGE_PREFIX, const.SENTINEL_EMPTY
@@ -101,6 +112,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             const.OPTIONS_FLOW_PENALTIES,
             const.OPTIONS_FLOW_ACHIEVEMENTS,
             const.OPTIONS_FLOW_CHALLENGES,
+            const.OPTIONS_FLOW_DASHBOARD_GENERATOR,
             const.OPTIONS_FLOW_GENERAL_OPTIONS,
         ]
 
@@ -3662,6 +3674,354 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             data_schema=vol.Schema({}),
             description_placeholders={
                 const.OPTIONS_FLOW_PLACEHOLDER_CHALLENGE_NAME: challenge_name
+            },
+        )
+
+    # ----------------------------------------------------------------------------------
+    # DASHBOARD GENERATOR
+    # ----------------------------------------------------------------------------------
+
+    async def async_step_dashboard_generator(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Handle the dashboard generator action selection.
+
+        First step: Select whether to create or delete dashboards.
+        """
+        from .helpers import dashboard_helpers as dh
+
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            # Check if user wants to verify card installation
+            check_cards = user_input.get(const.CFOF_DASHBOARD_INPUT_CHECK_CARDS, False)
+
+            if check_cards:
+                # Run detection and show results
+                card_status = await dh.check_custom_cards_installed(self.hass)
+
+                # Build status message
+                status_lines = ["Custom Card Installation Status:"]
+                all_installed = True
+                for card_name, installed in card_status.items():
+                    status_icon = "✅" if installed else "❌"
+                    card_display = {
+                        "mushroom": "Mushroom Cards",
+                        "auto_entities": "Auto-Entities",
+                        "mini_graph": "Mini Graph Card",
+                    }.get(card_name, card_name)
+
+                    status_lines.append(f"{status_icon} {card_display}")
+                    if not installed:
+                        all_installed = False
+
+                # Only show error and re-display form if cards are missing
+                if not all_installed:
+                    status_lines.append("")
+                    status_lines.append(
+                        "⚠️ Missing cards detected. Install via HACS → Frontend."
+                    )
+
+                    # Show results as an error and block progression
+                    errors["base"] = "\n".join(status_lines)
+
+                    # Re-show form with status - keep checkbox checked
+                    schema = dh.build_dashboard_action_schema(check_cards_default=True)
+                    return self.async_show_form(
+                        step_id=const.OPTIONS_FLOW_STEP_DASHBOARD_GENERATOR,
+                        data_schema=schema,
+                        errors=errors,
+                    )
+
+                # All cards installed - proceed normally (fall through to action handling)
+
+            # Proceed with selected action
+            action = str(
+                user_input.get(
+                    const.CFOF_DASHBOARD_INPUT_ACTION, const.DASHBOARD_ACTION_CREATE
+                )
+            )
+
+            if action == const.DASHBOARD_ACTION_DELETE:
+                return await self.async_step_dashboard_delete()
+            # Default to create flow
+            return await self.async_step_dashboard_create()
+
+        # Show action selection
+        schema = dh.build_dashboard_action_schema()
+
+        return self.async_show_form(
+            step_id=const.OPTIONS_FLOW_STEP_DASHBOARD_GENERATOR,
+            data_schema=schema,
+            errors=errors,
+        )
+
+    async def async_step_dashboard_create(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Handle the dashboard creation form.
+
+        Creates a single dashboard with multiple views (one per kid + optional admin).
+        """
+        from .helpers import dashboard_helpers as dh
+
+        errors: dict[str, str] = {}
+        coordinator = self._get_coordinator()
+
+        if user_input is not None:
+            dashboard_name = str(
+                user_input.get(
+                    const.CFOF_DASHBOARD_INPUT_NAME, const.DASHBOARD_DEFAULT_NAME
+                )
+            ).strip()
+            style = str(
+                user_input.get(
+                    const.CFOF_DASHBOARD_INPUT_STYLE, const.DASHBOARD_STYLE_FULL
+                )
+            )
+            include_admin = bool(
+                user_input.get(const.CFOF_DASHBOARD_INPUT_INCLUDE_ADMIN, True)
+            )
+            force_rebuild = bool(
+                user_input.get(const.CFOF_DASHBOARD_INPUT_FORCE_REBUILD, False)
+            )
+
+            # Validate dashboard name
+            if not dashboard_name:
+                errors[const.CFOP_ERROR_BASE] = const.TRANS_KEY_CFOF_DASHBOARD_NO_NAME
+            else:
+                # Validate kid selection
+                selected_kids_input = user_input.get(
+                    const.CFOF_DASHBOARD_INPUT_KID_SELECTION, []
+                )
+                selected_kids: list[str] = (
+                    list(selected_kids_input) if selected_kids_input else []
+                )
+
+                # Must have at least one kid OR include admin
+                if not selected_kids and not include_admin:
+                    errors[const.CFOP_ERROR_BASE] = (
+                        const.TRANS_KEY_CFOF_DASHBOARD_NO_KIDS
+                    )
+                else:
+                    # Store selections in instance for confirm step
+                    self._dashboard_name = dashboard_name
+                    self._dashboard_style = style
+                    self._dashboard_include_admin = include_admin
+                    self._dashboard_force_rebuild = force_rebuild
+                    self._dashboard_selected_kids = selected_kids
+                    return await self.async_step_dashboard_generator_confirm()
+
+        # Use helper to build schema
+        schema = dh.build_dashboard_generator_schema(coordinator)
+
+        return self.async_show_form(
+            step_id="dashboard_create",
+            data_schema=schema,
+            errors=errors,
+        )
+
+    async def async_step_dashboard_delete(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Handle dashboard deletion selection.
+
+        Shows list of existing KidsChores dashboards for deletion.
+        """
+        from .helpers import dashboard_helpers as dh
+
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            selected_dashboards = user_input.get(
+                const.CFOF_DASHBOARD_INPUT_DELETE_SELECTION, []
+            )
+            if selected_dashboards:
+                # Store for confirm step
+                self._dashboard_delete_selection = list(selected_dashboards)
+                return await self.async_step_dashboard_delete_confirm()
+            errors[const.CFOP_ERROR_BASE] = const.TRANS_KEY_CFOF_DASHBOARD_NO_DASHBOARDS
+
+        # Build schema with existing dashboards
+        schema = dh.build_dashboard_delete_schema(self.hass)
+
+        if schema is None:
+            # No dashboards to delete - show message and go back
+            return self.async_abort(reason="no_dashboards_to_delete")
+
+        return self.async_show_form(
+            step_id=const.OPTIONS_FLOW_STEP_DASHBOARD_DELETE,
+            data_schema=schema,
+            errors=errors,
+        )
+
+    async def async_step_dashboard_delete_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Confirm and execute dashboard deletion."""
+        from .helpers import dashboard_builder as builder
+
+        if user_input is not None:
+            # Execute deletion
+            results: list[dict[str, Any]] = []
+
+            for url_path in self._dashboard_delete_selection:
+                try:
+                    await builder.delete_kidschores_dashboard(self.hass, url_path)
+                    results.append(
+                        {
+                            "name": url_path,
+                            "success": True,
+                            "url_path": url_path,
+                            "error": None,
+                        }
+                    )
+                    const.LOGGER.info("Deleted dashboard: %s", url_path)
+                except Exception as err:
+                    results.append(
+                        {
+                            "name": url_path,
+                            "success": False,
+                            "url_path": url_path,
+                            "error": str(err),
+                        }
+                    )
+                    const.LOGGER.error(
+                        "Failed to delete dashboard %s: %s", url_path, err
+                    )
+
+            # Store results and show result
+            self._dashboard_results = results
+            return await self.async_step_dashboard_generator_result()
+
+        # Show confirmation
+        dashboards_to_delete = ", ".join(self._dashboard_delete_selection)
+
+        return self.async_show_form(
+            step_id=const.OPTIONS_FLOW_STEP_DASHBOARD_DELETE_CONFIRM,
+            data_schema=vol.Schema({}),
+            description_placeholders={"dashboards": dashboards_to_delete},
+        )
+
+    async def async_step_dashboard_generator_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Confirm and execute dashboard generation.
+
+        Shows summary of what will be created and executes on confirmation.
+        """
+        from .helpers import dashboard_builder as builder, dashboard_helpers as dh
+
+        errors: dict[str, str] = {}
+
+        # Use stored instance variables
+        dashboard_name = self._dashboard_name
+        style = self._dashboard_style
+        include_admin = self._dashboard_include_admin
+        force_rebuild = self._dashboard_force_rebuild
+        selected_kids = self._dashboard_selected_kids
+
+        if user_input is not None:
+            # Execute dashboard generation (single dashboard with multiple views)
+            try:
+                url_path = await builder.create_kidschores_dashboard(
+                    self.hass,
+                    dashboard_name=dashboard_name,
+                    kid_names=selected_kids,
+                    style=style,
+                    include_admin=include_admin,
+                    force_rebuild=force_rebuild,
+                )
+                result: dict[str, Any] = {
+                    "name": dashboard_name,
+                    "url_path": url_path,
+                    "success": True,
+                    "error": None,
+                    "view_count": len(selected_kids) + (1 if include_admin else 0),
+                }
+            except builder.DashboardExistsError:
+                result = {
+                    "name": dashboard_name,
+                    "url_path": None,
+                    "success": False,
+                    "error": const.TRANS_KEY_CFOF_DASHBOARD_EXISTS,
+                    "view_count": 0,
+                }
+            except builder.DashboardTemplateError:
+                result = {
+                    "name": dashboard_name,
+                    "url_path": None,
+                    "success": False,
+                    "error": const.TRANS_KEY_CFOF_DASHBOARD_TEMPLATE_ERROR,
+                    "view_count": 0,
+                }
+            except builder.DashboardRenderError:
+                result = {
+                    "name": dashboard_name,
+                    "url_path": None,
+                    "success": False,
+                    "error": const.TRANS_KEY_CFOF_DASHBOARD_RENDER_ERROR,
+                    "view_count": 0,
+                }
+            except builder.DashboardSaveError as err:
+                const.LOGGER.error(
+                    "Dashboard save failed for %s: %s", dashboard_name, err
+                )
+                result = {
+                    "name": dashboard_name,
+                    "url_path": None,
+                    "success": False,
+                    "error": const.TRANS_KEY_CFOF_DASHBOARD_SAVE_ERROR,
+                    "view_count": 0,
+                }
+
+            # Store results in instance and show result step
+            self._dashboard_results = [result]
+            return await self.async_step_dashboard_generator_result()
+
+        # Use helper to build summary text
+        summary_text = dh.format_dashboard_confirm_summary(
+            dashboard_name, style, selected_kids, include_admin
+        )
+
+        return self.async_show_form(
+            step_id=const.OPTIONS_FLOW_STEP_DASHBOARD_GENERATOR_CONFIRM,
+            data_schema=vol.Schema({}),
+            errors=errors,
+            description_placeholders={
+                "style": style,
+                "force_rebuild": str(force_rebuild),
+                "dashboards": summary_text,
+            },
+        )
+
+    async def async_step_dashboard_generator_result(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Show dashboard generation results.
+
+        Displays success/failure for each dashboard and returns to main menu.
+        """
+        from .helpers import dashboard_helpers as dh
+
+        results = self._dashboard_results
+
+        if user_input is not None:
+            # User acknowledged results, return to main menu
+            return await self.async_step_init()
+
+        # Use helper to format results
+        success_count = sum(1 for r in results if r.get("success"))
+        failure_count = len(results) - success_count
+        result_text = dh.format_dashboard_results(results)
+
+        return self.async_show_form(
+            step_id=const.OPTIONS_FLOW_STEP_DASHBOARD_GENERATOR_RESULT,
+            data_schema=vol.Schema({}),
+            description_placeholders={
+                "success_count": str(success_count),
+                "failure_count": str(failure_count),
+                "results": result_text,
             },
         )
 

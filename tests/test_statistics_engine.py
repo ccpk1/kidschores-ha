@@ -644,9 +644,9 @@ class TestGetPeriodTotal:
         assert result == 5
 
     def test_gets_all_time_total(self, stats: StatisticsEngine) -> None:
-        """Should get value from all_time (flat structure)."""
+        """Should get value from all_time (nested structure)."""
         data = {
-            "all_time": {"total_points": 1500},
+            "all_time": {"all_time": {"total_points": 1500}},
         }
 
         result = stats.get_period_total(data, const.PERIOD_ALL_TIME, "total_points")

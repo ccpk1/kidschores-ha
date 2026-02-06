@@ -1284,6 +1284,61 @@
         "description": "Are you sure you want to delete the challenge {challenge_name}?",
         "data": {}
       },
+      "dashboard_generator": {
+        "title": "Manage Dashboard",
+        "description": "Create or delete KidsChores Lovelace dashboards.\n\n⚠️ **Required Custom Cards** (install via HACS → Frontend):\n- [**Mushroom Cards**](https://github.com/piitaya/lovelace-mushroom) (`custom:mushroom-template-card`)\n- [**Auto-Entities**](https://github.com/thomasloven/lovelace-auto-entities) (`custom:auto-entities`)\n- [**Mini Graph Card**](https://github.com/kalkih/mini-graph-card) (`custom:mini-graph-card`)\n\nWithout these cards, dashboards will show errors. Install them first from HACS before generating dashboards.",
+        "data": {
+          "dashboard_action": "Action",
+          "dashboard_check_cards": "Check Card Installation"
+        },
+        "data_description": {
+          "dashboard_action": "Choose whether to create new dashboards or delete existing ones.",
+          "dashboard_check_cards": "Enable to verify that required custom cards are installed before proceeding."
+        }
+      },
+      "dashboard_create": {
+        "title": "Create / Update Dashboard",
+        "description": "Generate a KidsChores dashboard with tabs for each kid.\n\nChoose a name for the dashboard, select kids to include, and optionally add an Admin tab for parent management.",
+        "data": {
+          "dashboard_name": "Dashboard Name",
+          "dashboard_style": "Dashboard Style",
+          "dashboard_kid_selection": "Kids (one tab per kid)",
+          "dashboard_include_admin": "Include Admin Tab",
+          "dashboard_force_rebuild": "Force Rebuild (overwrite existing)"
+        },
+        "data_description": {
+          "dashboard_name": "Name for the dashboard (appears in sidebar). Suggested: Chores",
+          "dashboard_style": "Choose the dashboard layout: Full (all features), Minimal (essentials only), or Compact (dense layout).",
+          "dashboard_kid_selection": "Select which kids to create tabs for. Each kid gets their own view/tab.",
+          "dashboard_include_admin": "Add an Admin tab with parent controls for approvals and management.",
+          "dashboard_force_rebuild": "If enabled, existing dashboard will be overwritten. Otherwise, generation fails if dashboard exists."
+        }
+      },
+      "dashboard_delete": {
+        "title": "Delete Dashboard",
+        "description": "Select KidsChores dashboards to delete.\n\n⚠️ This action cannot be undone.",
+        "data": {
+          "dashboard_delete_selection": "Dashboards to Delete"
+        },
+        "data_description": {
+          "dashboard_delete_selection": "Select one or more dashboards to permanently remove."
+        }
+      },
+      "dashboard_delete_confirm": {
+        "title": "Confirm Deletion",
+        "description": "⚠️ **Warning:** The following dashboards will be permanently deleted:\n\n**{dashboards}**\n\nThis will remove the dashboard from the sidebar and delete all configuration.\n\nClick Submit to confirm deletion.",
+        "data": {}
+      },
+      "dashboard_generator_confirm": {
+        "title": "Confirm Dashboard Generation",
+        "description": "The following dashboards will be created:\n\n**Style:** {style}\n**Force Rebuild:** {force_rebuild}\n\n**Dashboards:**\n{dashboards}\n\nClick Submit to generate the dashboards.",
+        "data": {}
+      },
+      "dashboard_generator_result": {
+        "title": "Dashboard Generation Results",
+        "description": "**Results:** {success_count} succeeded, {failure_count} failed\n\n{results}\n\nClick Submit to return to the main menu.",
+        "data": {}
+      },
       "manage_general_options": {
         "title": "General Options",
         "description": "Manage general settings for the KidsChores integration.",
@@ -1452,7 +1507,14 @@
       "error_daily_multi_due_date_required": "'Multiple times per day' frequency requires a due date to be set. The date determines when scheduling starts and the times determine availability windows each day.",
       "error_at_due_date_reset_requires_due_date": "'At Due Date' approval reset types (Once or Multi) require a due date to be set. Without a due date, the approval reset will never trigger and the chore will remain approved indefinitely.",
       "error_per_kid_applicable_days_invalid": "Invalid applicable days format for one or more kids. Days must be integers 0-6 (Monday-Sunday) with no duplicates.",
-      "error_per_kid_daily_multi_times_invalid": "Invalid daily times format for one or more kids. Use 24-hour format separated by | (e.g., 08:00|17:00)."
+      "error_per_kid_daily_multi_times_invalid": "Invalid daily times format for one or more kids. Use 24-hour format separated by | (e.g., 08:00|17:00).",
+      "dashboard_exists": "A dashboard with this URL path already exists. Enable 'Force Rebuild' to overwrite.",
+      "dashboard_template_error": "Failed to fetch dashboard template. Check network connection or try again later.",
+      "dashboard_render_error": "Failed to render dashboard template. This may indicate a template bug.",
+      "dashboard_save_error": "Failed to save dashboard to Home Assistant. Check system logs for details.",
+      "dashboard_no_name": "Please enter a name for the dashboard.",
+      "dashboard_no_kids": "Please select at least one kid or enable 'Include Admin Tab'.",
+      "dashboard_no_dashboards": "Please select at least one dashboard to delete."
     },
     "abort": {
       "invalid_action": "Invalid Action",
@@ -1476,7 +1538,8 @@
       "no_achievement": "No Achievements are setup for edit. Add one entry first.",
       "no_challenge": "No Challenges are setup for edit. Add one entry first.",
       "setup_complete": "Setup Complete",
-      "backup_restored": "Backup restored successfully. The integration has been reloaded with the restored data."
+      "backup_restored": "Backup restored successfully. The integration has been reloaded with the restored data.",
+      "no_dashboards_to_delete": "No KidsChores dashboards found. Create one first using Manage Dashboard."
     }
   },
   "selector": {
@@ -1492,9 +1555,30 @@
         "manage_bonus": "Manage Bonus",
         "manage_achievement": "Manage Achievement",
         "manage_challenge": "Manage Challenge",
+        "dashboard_generator": "Manage Dashboard",
         "general_options": "General Options",
         "done": "Finish Setup"
       }
+    },
+    "dashboard_action": {
+      "options": {
+        "create": "Create / Update Dashboard",
+        "delete": "Delete Dashboard"
+      }
+    },
+    "dashboard_style": {
+      "options": {
+        "dashboard_style_full": "Full (All features)",
+        "dashboard_style_minimal": "Minimal (Essentials only)",
+        "dashboard_style_compact": "Compact (Dense layout)",
+        "dashboard_style_admin": "Admin (Parent dashboard)"
+      }
+    },
+    "dashboard_kid_selection": {
+      "options": {}
+    },
+    "dashboard_delete_selection": {
+      "options": {}
     },
     "manage_actions": {
       "options": {
@@ -3617,6 +3701,26 @@
       },
       "system_bonuses_select": {
         "name": "Select Bonus"
+      },
+      "system_dashboard_admin_kid_select": {
+        "name": "Admin Dashboard Kid Selector",
+        "state_attributes": {
+          "purpose": {
+            "name": "Purpose",
+            "state": {
+              "purpose_system_dashboard_admin_kid": "System-level kid selector for admin dashboard cards"
+            }
+          },
+          "dashboard_helper_eid": {
+            "name": "Dashboard Helper Entity ID"
+          },
+          "selected_kid_slug": {
+            "name": "Selected Kid Slug"
+          },
+          "selected_kid_name": {
+            "name": "Selected Kid Name"
+          }
+        }
       },
       "kid_dashboard_helper_chores_select": {
         "name": "UI Dashboard Chore List Helper",
