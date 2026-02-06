@@ -23,6 +23,14 @@
     "title": "⏰ Gjøremål snart ferdig!",
     "message": "{chore_name} forfaller om {minutes} minutter (+{points}poeng)"
   },
+  "chore_due_reminder": {
+    "title": "⏰ Gjøremål snart ferdig!",
+    "message": "{chore_name} forfaller om {minutes} minutter (+{points}poeng)"
+  },
+  "chore_due_window": {
+    "title": "🔔 Gjøremål forfaller nå",
+    "message": "{chore_name} forfaller nå! Fullfør innen {hours} time(r) for å tjene {points} poeng"
+  },
   "chore_reminder": {
     "title": "Barneoppgaver: Påminnelse om ventende gjøremål",
     "message": "Påminnelse: Gjøremål {chore_name} som er gjort krav på av {kid_name} venter på godkjenning"
@@ -101,10 +109,12 @@
   },
   "actions": {
     "approve": "Vedta",
+    "claim": "✋ Krav nå",
+    "complete": "Fullstendig",
     "disapprove": "Mislike",
     "remind_30": "Påminn om 30 min",
+    "skip": "Hopp over",
     "approve_latest": "✅ Godkjenn nyeste",
-    "review_all": "👀 Anmeld alle",
-    "claim": "✋ Krav nå"
+    "review_all": "👀 Anmeld alle"
   }
 }

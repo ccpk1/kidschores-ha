@@ -13,6 +13,16 @@
           "backup_selection": "Seleccionar opción"
         }
       },
+      "paste_json_input": {
+        "title": "Importar datos JSON",
+        "description": "Pegue el contenido JSON completo desde:\n\n• Un archivo de datos de KidsChores (kidschores_data)\n• Una descarga de diagnóstico\n\nEl sistema detectará y descomprimirá automáticamente el formato según sea necesario. Se admiten tanto los datos de almacenamiento sin procesar como los formatos de exportación de diagnóstico.",
+        "data": {
+          "json_data": "Datos JSON"
+        },
+        "data_description": {
+          "json_data": "Pegue aquí el contenido JSON completo. Acepta datos del archivo kidschores_data o de la exportación de diagnósticos (desenvuelve automáticamente la estructura adicional)."
+        }
+      },
       "points_label": {
         "title": "Etiqueta de puntos",
         "description": "Elija una etiqueta y un icono para los puntos.",
@@ -26,7 +36,25 @@
         "description": "Actualice la configuración del sistema, como la etiqueta y el ícono de los puntos.",
         "data": {
           "points_label": "Etiqueta de puntos",
-          "points_icon": "Icono de puntos"
+          "points_icon": "Icono de puntos",
+          "update_interval": "Intervalo de actualización (minutos)",
+          "calendar_show_period": "Periodo de visualización del calendario (días)",
+          "retention_daily": "Retención diaria (días)",
+          "retention_weekly": "Retención semanal (semanas)",
+          "retention_monthly": "Retención mensual (meses)",
+          "retention_yearly": "Retención anual (años)",
+          "points_adjust_values": "Valores de ajuste de puntos (separados por tuberías)"
+        },
+        "data_description": {
+          "points_label": "Etiqueta que se muestra para los puntos (por ejemplo, 'Puntos', 'Estrellas', 'Monedas')",
+          "points_icon": "Icono MDI para puntos (por ejemplo, 'mdi:star', 'mdi:coin', 'mdi:trophy')",
+          "update_interval": "Con qué frecuencia actualizar los datos (mínimo 1 minuto)",
+          "calendar_show_period": "Días de historial a mostrar en el calendario (mínimo 1)",
+          "retention_daily": "Días para mantener los agregados diarios",
+          "retention_weekly": "Semanas para mantener agregados semanales",
+          "retention_monthly": "Meses para mantener los agregados mensuales",
+          "retention_yearly": "Años para mantener agregados anuales",
+          "points_adjust_values": "Valores de puntos separados por barras verticales para botones de ajuste manual (p. ej., +1,0|-1,0|+10,0|-10,0)"
         }
       },
       "kid_count": {
@@ -40,7 +68,7 @@
         "title": "Definir niño",
         "description": "Introduzca el nombre de cada niño.",
         "data": {
-          "kid_name": "Nombre del niño",
+          "name": "Nombre del niño",
           "ha_user": "Usuario de Home Assistant",
           "mobile_notify_service": "Notificaciones",
           "dashboard_language": "Idioma"
@@ -61,13 +89,16 @@
         "title": "Definir padre",
         "description": "Ingrese detalles de cada padre.",
         "data": {
-          "parent_name": "Nombre del padre",
+          "name": "Nombre del padre",
           "ha_user_id": "Usuario de Home Assistant",
           "associated_kids": "Niños asociados",
           "mobile_notify_service": "Notificaciones",
           "dashboard_language": "Idioma"
         },
         "data_description": {
+          "name": "Nombre único para este padre, utilizado en todo el sistema.",
+          "ha_user_id": "Opcional: Vincula a este padre a un usuario de Home Assistant para recibir notificaciones y acceder al panel de control.",
+          "associated_kids": "Seleccione qué niños supervisa este padre para notificaciones y acciones de aprobación.",
           "mobile_notify_service": "Seleccione un servicio de notificación para habilitar las notificaciones para este padre o déjelo vacío para deshabilitarlo.",
           "dashboard_language": "Idioma utilizado para el panel de tareas y las notificaciones."
         }
@@ -83,7 +114,7 @@
         "title": "Agregar tarea",
         "description": "Crea una nueva tarea con puntos, asignaciones y un cronograma recurrente.",
         "data": {
-          "chore_name": "📋 Nombre de la tarea",
+          "name": "📋 Nombre de la tarea",
           "chore_description": "📋 Descripción (opcional)",
           "icon": "📋 Icono (mdi:xxx)",
           "chore_labels": "📋Etiquetas (opcional)",
@@ -99,11 +130,13 @@
           "custom_interval_unit": "🔄 Horario: Unidad de intervalo personalizada",
           "applicable_days": "📅 Horario: Días Aplicables (opcional)",
           "due_date": "📅 Horario: Fecha de entrega (opcional)",
+          "chore_due_window_offset": "⏱️ Ventana de vencimiento: Compensación antes de la fecha de vencimiento",
+          "chore_due_reminder_offset": "🔔 Recordatorio de vencimiento: Compensación antes de la fecha de vencimiento",
           "show_on_calendar": "📅 ¿Mostrar en el calendario?",
           "chore_notifications": "🔔 Eventos de notificación (opcional)"
         },
         "data_description": {
-          "chore_name": "Nombre único que se muestra en todo el sistema.",
+          "name": "Nombre único que se muestra en todo el sistema.",
           "chore_description": "Instrucciones opcionales o detalles sobre cómo completar esta tarea.",
           "icon": "Ícono de diseño de materiales (por ejemplo, mdi:escoba, mdi:lavavajillas).",
           "chore_labels": "Etiquetas para organizar tareas (p. ej., \"cocina\", \"exterior\"). Déjalo en blanco si no es necesario.",
@@ -119,6 +152,8 @@
           "custom_interval_unit": "Unidad de tiempo para intervalos personalizados (días, semanas, meses). Solo se usa con frecuencia personalizada.",
           "applicable_days": "Déjelo en blanco para todos los días. SOLO Seleccione días específicos para restringir.",
           "due_date": "Fecha límite opcional. Combinable con calendarios recurrentes.",
+          "chore_due_window_offset": "Cuando el estado de la tarea cambia de Pendiente a Vencida. Formato: \"1d 6h 30m\" o simplemente \"30\" para minutos. Introduzca \"0\" para desactivarla. Ejemplo: \"1d\" significa que la tarea aparece como \"Vencida\" 1 día antes de la fecha límite.",
+          "chore_due_reminder_offset": "Cuándo enviar la notificación de recordatorio de vencimiento. Formato: \"1d 6h 30m\" o simplemente \"30\" para minutos. Predeterminado: 30m (30 minutos antes del vencimiento). Introduzca \"0\" para desactivarlo.",
           "show_on_calendar": "Muestra esta tarea en la vista del calendario.",
           "chore_notifications": "Cuándo enviar notificaciones: por reclamo, por aprobación, por rechazo o cualquier combinación."
         }
@@ -191,10 +226,10 @@
         "title": "Definir recompensa",
         "description": "Ingrese detalles para cada recompensa.",
         "data": {
-          "reward_name": "Nombre de la recompensa",
+          "name": "Nombre de la recompensa",
           "internal_id": "Identificación interna",
-          "reward_cost": "Costo de recompensa",
-          "reward_description": "Descripción (opcional)",
+          "cost": "Costo de recompensa",
+          "description": "Descripción (opcional)",
           "reward_labels": "Etiquetas de recompensa",
           "icon": "Icono (mdi:xxx)"
         }
@@ -210,7 +245,7 @@
         "title": "Definir penalización",
         "description": "Ingrese detalles para cada penalización.",
         "data": {
-          "penalty_name": "Nombre de la penalización",
+          "name": "Nombre de la penalización",
           "penalty_description": "Descripción (opcional)",
           "penalty_labels": "Etiquetas de penalización",
           "internal_id": "Identificación interna",
@@ -229,7 +264,7 @@
         "title": "Definir bonificación",
         "description": "Ingrese detalles para cada bono.",
         "data": {
-          "bonus_name": "Nombre del bono",
+          "name": "Nombre del bono",
           "bonus_description": "Descripción (opcional)",
           "bonus_labels": "Etiquetas de bonificación",
           "internal_id": "Identificación interna",
@@ -308,6 +343,10 @@
       "due_date_in_past": "La fecha de vencimiento debe ser en el futuro.",
       "end_date_in_past": "La fecha de finalización debe ser futura.",
       "end_date_not_after_start_date": "La fecha de finalización debe ser posterior a la fecha de inicio",
+      "err_end_before_start": "La fecha de finalización debe ser posterior a la fecha de inicio",
+      "err_name_duplicate": "Ya existe un desafío con este nombre",
+      "achievement_no_kids_assigned": "Al menos un niño debe estar asignado al logro.",
+      "challenge_no_kids_assigned": "Al menos un niño debe ser asignado al desafío.",
       "invalid_achievement_count": "Recuento de logros no válido",
       "invalid_achievement_name": "Nombre de logro no válido",
       "invalid_badge": "Insignia no válida",
@@ -318,6 +357,7 @@
       "invalid_chore": "Tarea no válida",
       "invalid_chore_count": "Recuento de tareas no válido",
       "invalid_chore_name": "Nombre de tarea no válido",
+      "invalid_points": "Los puntos deben ser cero o mayores",
       "invalid_overdue_reset_combination": "La gestión de retrasos \"A la fecha de vencimiento y luego reiniciar\" solo funciona con reinicios a medianoche. Seleccione \"A medianoche (una vez)\" o \"A medianoche (repetidamente)\" para el tipo de reinicio de aprobación.",
       "invalid_due_date": "Fecha de vencimiento no válida",
       "date_required_for_frequency": "Se requiere una fecha de vencimiento para esta frecuencia recurrente. Borrar fechas solo funciona con las frecuencias Ninguna, Diaria o Semanal.",
@@ -333,6 +373,7 @@
       "invalid_reward": "Recompensa no válida",
       "invalid_reward_count": "Recuento de recompensas no válido",
       "invalid_reward_name": "Nombre de recompensa no válido",
+      "invalid_reward_cost": "El costo de la recompensa debe ser cero o mayor",
       "invalid_bonus": "Bono no válido",
       "invalid_bonus_count": "Recuento de bonificación no válido",
       "invalid_bonus_name": "Nombre de bono no válido",
@@ -399,13 +440,15 @@
         "title": "Agregar niño",
         "description": "Proporcione los detalles del nuevo niño.",
         "data": {
-          "kid_name": "Nombre del niño",
+          "name": "Nombre del niño",
           "ha_user": "Usuario de Home Assistant",
           "mobile_notify_service": "Notificaciones",
           "dashboard_language": "Idioma",
           "internal_id": "Identificación interna"
         },
         "data_description": {
+          "name": "Nombre único para este niño, utilizado en todo el sistema.",
+          "ha_user": "Opcional: vincule a este niño a un usuario de Home Assistant para controlar el acceso al panel.",
           "mobile_notify_service": "Seleccione un servicio de notificación para habilitar las notificaciones para este niño o déjelo vacío para deshabilitarlo.",
           "dashboard_language": "Idioma utilizado para el panel de tareas y las notificaciones."
         }
@@ -414,7 +457,7 @@
         "title": "Agregar padre",
         "description": "Proporcione los detalles del nuevo padre.",
         "data": {
-          "parent_name": "Nombre del padre",
+          "name": "Nombre del padre",
           "ha_user_id": "Usuario de Home Assistant",
           "associated_kids": "Niños asociados",
           "mobile_notify_service": "Notificaciones",
@@ -425,6 +468,9 @@
           "internal_id": "Identificación interna"
         },
         "data_description": {
+          "name": "Nombre único para este padre, utilizado en todo el sistema.",
+          "ha_user_id": "Opcional: Vincula a este padre a un usuario de Home Assistant para recibir notificaciones y acceder al panel de control.",
+          "associated_kids": "Seleccione qué niños supervisa este padre para notificaciones y acciones de aprobación.",
           "mobile_notify_service": "Seleccione un servicio de notificación para habilitar las notificaciones para este padre o déjelo vacío para deshabilitarlo.",
           "allow_chore_assignment": "Crea un perfil para que se te asignen tareas. De forma predeterminada, solo se muestra el botón \"Aprobar\" para completar con un solo clic. Nota: Al desmarcar la casilla, se conserva el perfil del niño con el sufijo \"_unlinked\" para su limpieza manual.",
           "enable_chore_workflow": "Agrega botones Reclamar y Desaprobar para un flujo de trabajo completo (reclamar → aprobar/desaprobar).",
@@ -436,7 +482,7 @@
         "title": "Agregar tarea",
         "description": "Crea una nueva tarea con puntos, asignaciones y un cronograma recurrente.",
         "data": {
-          "chore_name": "📋 Nombre de la tarea",
+          "name": "📋 Nombre de la tarea",
           "chore_description": "📋 Descripción (opcional)",
           "icon": "📋 Icono (mdi:xxx)",
           "chore_labels": "📋Etiquetas (opcional)",
@@ -452,11 +498,14 @@
           "custom_interval_unit": "🔄 Horario: Unidad de intervalo personalizada",
           "applicable_days": "📅 Horario: Días Aplicables (opcional)",
           "due_date": "📅 Horario: Fecha de entrega (opcional)",
+          "clear_due_date": "🗑️ Fecha de vencimiento clara",
+          "chore_due_window_offset": "⏱️ Ventana de vencimiento: Compensación antes de la fecha de vencimiento",
+          "chore_due_reminder_offset": "🔔 Recordatorio de vencimiento: Compensación antes de la fecha de vencimiento",
           "show_on_calendar": "📅 ¿Mostrar en el calendario?",
           "chore_notifications": "🔔 Eventos de notificación (opcional)"
         },
         "data_description": {
-          "chore_name": "Nombre único que se muestra en todo el sistema.",
+          "name": "Nombre único que se muestra en todo el sistema.",
           "chore_description": "Instrucciones opcionales o detalles sobre cómo completar esta tarea.",
           "icon": "Ícono de diseño de materiales (por ejemplo, mdi:escoba, mdi:lavavajillas).",
           "chore_labels": "Etiquetas para organizar tareas (p. ej., \"cocina\", \"exterior\"). Déjalo en blanco si no es necesario.",
@@ -472,6 +521,9 @@
           "custom_interval_unit": "Unidad de tiempo para intervalos personalizados (días, semanas, meses). Solo se usa con frecuencia personalizada.",
           "applicable_days": "Déjelo en blanco para todos los días. SOLO Seleccione días específicos para restringir.",
           "due_date": "Fecha límite opcional. Se puede combinar con horarios recurrentes. Para tareas independientes, esto sirve como plantilla; aparecerá una pantalla adicional que permite especificar fechas individuales por niño.",
+          "clear_due_date": "Marque esta casilla para eliminar la fecha de vencimiento de esta tarea.",
+          "chore_due_window_offset": "Cuando el estado de la tarea cambia de Pendiente a Vencida. Formato: \"1d 6h 30m\" o simplemente \"30\" para minutos. Introduzca \"0\" para desactivarla. Ejemplo: \"1d\" significa que la tarea aparece como \"Vencida\" 1 día antes de la fecha límite.",
+          "chore_due_reminder_offset": "Cuándo enviar la notificación de recordatorio de vencimiento. Formato: \"1d 6h 30m\" o simplemente \"30\" para minutos. Predeterminado: 30m (30 minutos antes del vencimiento). Introduzca \"0\" para desactivarlo.",
           "show_on_calendar": "Muestra esta tarea en la vista del calendario.",
           "chore_notifications": "Cuándo enviar notificaciones: por reclamo, por aprobación, por rechazo o cualquier combinación."
         }
@@ -695,10 +747,10 @@
         "title": "Añadir recompensa",
         "description": "Proporcione los detalles de la nueva recompensa.",
         "data": {
-          "reward_name": "Nombre de la recompensa",
+          "name": "Nombre de la recompensa",
           "internal_id": "Identificación interna",
-          "reward_cost": "Costo de recompensa",
-          "reward_description": "Descripción (opcional)",
+          "cost": "Costo de recompensa",
+          "description": "Descripción (opcional)",
           "reward_labels": "Etiquetas de recompensa",
           "icon": "Icono (mdi:xxx)"
         }
@@ -707,7 +759,7 @@
         "title": "Añadir penalización",
         "description": "Proporcionar los detalles de la nueva sanción.",
         "data": {
-          "penalty_name": "Nombre de la penalización",
+          "name": "Nombre de la penalización",
           "penalty_description": "Descripción (opcional)",
           "penalty_labels": "Etiquetas de penalización",
           "internal_id": "Identificación interna",
@@ -719,7 +771,7 @@
         "title": "Añadir bono",
         "description": "Proporcione los detalles del nuevo bono.",
         "data": {
-          "bonus_name": "Nombre del bono",
+          "name": "Nombre del bono",
           "bonus_description": "Descripción (opcional)",
           "bonus_labels": "Etiquetas de bonificación",
           "internal_id": "Identificación interna",
@@ -767,13 +819,15 @@
         "title": "Editar niño",
         "description": "Modificar los detalles del niño seleccionado.",
         "data": {
-          "kid_name": "Nombre del niño",
+          "name": "Nombre del niño",
           "ha_user": "Usuario de Home Assistant",
           "mobile_notify_service": "Notificaciones",
           "dashboard_language": "Idioma",
           "internal_id": "Identificación interna"
         },
         "data_description": {
+          "name": "Nombre único para este niño, utilizado en todo el sistema.",
+          "ha_user": "Opcional: vincule a este niño a un usuario de Home Assistant para controlar el acceso al panel.",
           "mobile_notify_service": "Seleccione un servicio de notificación para habilitar las notificaciones para este niño.",
           "dashboard_language": "Idioma utilizado para el panel de tareas y las notificaciones."
         }
@@ -782,14 +836,15 @@
         "title": "Editar Shadow Kid",
         "description": "Modifique los detalles del niño sombra seleccionado. ⚠️ Este niño está vinculado a un padre. Cambiar el nombre anulará el requisito de coincidencia de nombres para la desvinculación mediante el servicio.",
         "data": {
-          "kid_name": "Nombre del niño",
+          "name": "Nombre del niño",
           "ha_user": "Usuario de Home Assistant",
           "mobile_notify_service": "Notificaciones",
           "dashboard_language": "Idioma",
           "internal_id": "Identificación interna"
         },
         "data_description": {
-          "kid_name": "⚠️ Este niño sombra está vinculado a un padre. Cambiar este nombre interrumpirá la función de desvinculación del servicio, que requiere que los nombres coincidan.",
+          "name": "⚠️ Este niño sombra está vinculado a un padre. Cambiar este nombre interrumpirá la función de desvinculación del servicio, que requiere que los nombres coincidan.",
+          "ha_user": "Opcional: vincule a este niño a un usuario de Home Assistant para controlar el acceso al panel.",
           "mobile_notify_service": "⚠️ Notificaciones de niños supervisados: El padre o la madre vinculados ya reciben notificaciones de tareas supervisadas. Al activar esta opción, se crearán notificaciones duplicadas. Útil para recordatorios de fechas de entrega de 30 minutos o si se utilizan diferentes servicios de notificación.",
           "dashboard_language": "Idioma utilizado para el panel de tareas y las notificaciones."
         }
@@ -798,7 +853,7 @@
         "title": "Editar padre",
         "description": "Modificar los detalles del padre seleccionado.",
         "data": {
-          "parent_name": "Nombre del padre",
+          "name": "Nombre del padre",
           "ha_user_id": "Usuario de Home Assistant",
           "associated_kids": "Niños asociados",
           "mobile_notify_service": "Notificaciones",
@@ -809,6 +864,9 @@
           "internal_id": "Identificación interna"
         },
         "data_description": {
+          "name": "Nombre único para este padre, utilizado en todo el sistema.",
+          "ha_user_id": "Opcional: Vincula a este padre a un usuario de Home Assistant para recibir notificaciones y acceder al panel de control.",
+          "associated_kids": "Seleccione qué niños supervisará este padre para recibir notificaciones y acciones de aprobación.",
           "mobile_notify_service": "Seleccione un servicio de notificación para habilitar las notificaciones para este padre o déjelo vacío para deshabilitarlo.",
           "allow_chore_assignment": "Crea un perfil para que se te asignen tareas. De forma predeterminada, solo se muestra el botón \"Aprobar\" para completar con un solo clic. Nota: Al desmarcar la casilla, se conserva el perfil del niño con el sufijo \"_unlinked\" para su limpieza manual.",
           "enable_chore_workflow": "Agrega botones Reclamar y Desaprobar para un flujo de trabajo completo (reclamar → aprobar/desaprobar).",
@@ -820,7 +878,7 @@
         "title": "Editar tarea",
         "description": "Modificar los detalles de la tarea seleccionada.",
         "data": {
-          "chore_name": "📋 Nombre de la tarea",
+          "name": "📋 Nombre de la tarea",
           "chore_description": "📋 Descripción (opcional)",
           "icon": "📋 Icono (mdi:xxx)",
           "chore_labels": "📋Etiquetas (opcional)",
@@ -838,11 +896,13 @@
           "applicable_days": "📅 Horario: Días Aplicables (opcional)",
           "due_date": "📅 Horario: Fecha de entrega (opcional)",
           "clear_due_date": "🗑️ Fecha de vencimiento clara",
+          "chore_due_window_offset": "⏱️ Ventana de vencimiento: Compensación antes de la fecha de vencimiento",
+          "chore_due_reminder_offset": "🔔 Recordatorio de vencimiento: Compensación antes de la fecha de vencimiento",
           "show_on_calendar": "📅 ¿Mostrar en el calendario?",
           "chore_notifications": "🔔 Eventos de notificación (opcional)"
         },
         "data_description": {
-          "chore_name": "Nombre único que se muestra en todo el sistema.",
+          "name": "Nombre único que se muestra en todo el sistema.",
           "chore_description": "Instrucciones opcionales o detalles sobre cómo completar esta tarea.",
           "icon": "Ícono de diseño de materiales (por ejemplo, mdi:escoba, mdi:lavavajillas).",
           "chore_labels": "Etiquetas para organizar tareas (p. ej., \"cocina\", \"exterior\"). Déjalo en blanco si no es necesario.",
@@ -859,6 +919,8 @@
           "applicable_days": "Déjelo en blanco para todos los días. SOLO Seleccione días específicos para restringir.",
           "due_date": "Fecha límite opcional. Se puede combinar con horarios recurrentes. Para tareas independientes, esto sirve como plantilla; aparecerá una pantalla adicional que permite especificar fechas individuales por niño.",
           "clear_due_date": "Marque esta casilla para eliminar la fecha de vencimiento de esta tarea.",
+          "chore_due_window_offset": "Cuando el estado de la tarea cambia de Pendiente a Vencida. Formato: \"1d 6h 30m\" o simplemente \"30\" para minutos. Introduzca \"0\" para desactivarla. Ejemplo: \"1d\" significa que la tarea aparece como \"Vencida\" 1 día antes de la fecha límite.",
+          "chore_due_reminder_offset": "Cuándo enviar la notificación de recordatorio de vencimiento. Formato: \"1d 6h 30m\" o simplemente \"30\" para minutos. Predeterminado: 30m (30 minutos antes del vencimiento). Introduzca \"0\" para desactivarlo.",
           "show_on_calendar": "Muestra esta tarea en la vista del calendario.",
           "chore_notifications": "Cuándo enviar notificaciones: por reclamo, por aprobación, por rechazo o cualquier combinación."
         }
@@ -1109,10 +1171,10 @@
         "title": "Editar recompensa",
         "description": "Modificar los detalles de la recompensa seleccionada.",
         "data": {
-          "reward_name": "Nombre de la recompensa",
+          "name": "Nombre de la recompensa",
           "internal_id": "Identificación interna",
-          "reward_cost": "Costo de recompensa",
-          "reward_description": "Descripción (opcional)",
+          "cost": "Costo de recompensa",
+          "description": "Descripción (opcional)",
           "reward_labels": "Etiquetas de recompensa",
           "icon": "Icono (mdi:xxx)"
         }
@@ -1121,7 +1183,7 @@
         "title": "Editar penalización",
         "description": "Modificar los detalles de la penalización seleccionada.",
         "data": {
-          "penalty_name": "Nombre de la penalización",
+          "name": "Nombre de la penalización",
           "penalty_description": "Descripción (opcional)",
           "penalty_labels": "Etiquetas de penalización",
           "internal_id": "Identificación interna",
@@ -1133,7 +1195,7 @@
         "title": "Bonificación de edición",
         "description": "Modificar los detalles del bono seleccionado.",
         "data": {
-          "bonus_name": "Nombre del bono",
+          "name": "Nombre del bono",
           "bonus_description": "Descripción (opcional)",
           "bonus_labels": "Etiquetas de bonificación",
           "internal_id": "Identificación interna",
@@ -1222,6 +1284,61 @@
         "description": "¿Estás seguro de que deseas eliminar el desafío {challenge_name}?",
         "data": {}
       },
+      "dashboard_generator": {
+        "title": "Administrar el panel de control",
+        "description": "Crea, actualiza o elimina paneles de KidsChores Lovelace.\n\n⚠️ **Tarjetas personalizadas requeridas** (instalar mediante HACS → Frontend):\n- [**Tarjetas Mushroom**](https://github.com/piitaya/lovelace-mushroom) (`custom:mushroom-template-card`)\n- [**Auto-Entities**](https://github.com/thomasloven/lovelace-auto-entities) (`custom:auto-entities`)\n- [**Mini Graph Card**](https://github.com/kalkih/mini-graph-card) (`custom:mini-graph-card`)\n\nSin estas tarjetas, los paneles mostrarán errores. Instálalas primero desde HACS antes de generar paneles.",
+        "data": {
+          "dashboard_action": "Acción",
+          "dashboard_check_cards": "Instalación de la tarjeta de verificación"
+        },
+        "data_description": {
+          "dashboard_action": "Elija si desea crear nuevos paneles o eliminar los existentes.",
+          "dashboard_check_cards": "Habilite esta opción para verificar que las tarjetas personalizadas necesarias estén instaladas antes de continuar."
+        }
+      },
+      "dashboard_create": {
+        "title": "Crear/actualizar panel de control",
+        "description": "Genere un panel de KidsChores con pestañas para cada niño.\n\nElija un nombre para el panel, seleccione los niños que desea incluir y, opcionalmente, agregue una pestaña de Administración para la gestión de padres.",
+        "data": {
+          "dashboard_name": "Nombre del tablero",
+          "dashboard_style": "Estilo del tablero",
+          "dashboard_kid_selection": "Niños (una pestaña por niño)",
+          "dashboard_include_admin": "Incluir pestaña de administración",
+          "dashboard_force_rebuild": "Forzar reconstrucción (sobrescribir existente)"
+        },
+        "data_description": {
+          "dashboard_name": "Nombre del panel (aparece en la barra lateral). Sugerencia: Tareas",
+          "dashboard_style": "Elija el diseño del panel: Completo (todas las funciones), Mínimo (solo lo esencial) o Compacto (diseño denso).",
+          "dashboard_kid_selection": "Selecciona para qué niños crear pestañas. Cada niño tiene su propia vista/pestaña.",
+          "dashboard_include_admin": "Agregue una pestaña de administración con controles principales para aprobaciones y gestión.",
+          "dashboard_force_rebuild": "Si se habilita, se sobrescribirá el panel existente. De lo contrario, la generación falla si el panel ya existe."
+        }
+      },
+      "dashboard_delete": {
+        "title": "Eliminar el panel de control",
+        "description": "Seleccione los paneles de KidsChores que desea eliminar.\n\n⚠️ Esta acción no se puede deshacer.",
+        "data": {
+          "dashboard_delete_selection": "Paneles para eliminar"
+        },
+        "data_description": {
+          "dashboard_delete_selection": "Seleccione uno o más paneles para eliminarlos permanentemente."
+        }
+      },
+      "dashboard_delete_confirm": {
+        "title": "Confirmar eliminación",
+        "description": "⚠️ **Advertencia:** Los siguientes paneles se eliminarán de forma permanente:\n\n**{dashboards}**\n\nEsto eliminará el panel de la barra lateral y eliminará toda la configuración.\n\nHaga clic en Enviar para confirmar la eliminación.",
+        "data": {}
+      },
+      "dashboard_generator_confirm": {
+        "title": "Confirmar la generación del panel",
+        "description": "Se crearán los siguientes paneles:\n\n**Estilo:** {style}\n**Reconstrucción forzada:** {force_rebuild}\n\n**Paneles:**\n{dashboards}\n\nHaga clic en Enviar para generar los paneles.",
+        "data": {}
+      },
+      "dashboard_generator_result": {
+        "title": "Resultados de la generación del panel",
+        "description": "**Resultados:** {success_count} tuvo éxito, {failure_count} falló\n\n{results}\n\nHaga clic en Enviar para regresar al menú principal.",
+        "data": {}
+      },
       "manage_general_options": {
         "title": "Opciones generales",
         "description": "Administrar la configuración general para la integración de KidsChores.",
@@ -1248,7 +1365,7 @@
           "retention_monthly": "Número de meses de datos históricos mensuales que se conservarán antes de la limpieza. Mínimo 1, máximo 24.",
           "retention_yearly": "Número de años de datos históricos anuales que se deben conservar antes de la limpieza. Mínimo 1, máximo 10.",
           "show_legacy_entities": "Muestra entidades adicionales, como sensores y selecciones, que ahora están consolidadas en el sensor auxiliar del panel. Estas entidades son opcionales para la compatibilidad con automatizaciones existentes.",
-          "backups_max_retained": "Número máximo de archivos de copia de seguridad que se pueden conservar. Las copias de seguridad antiguas se eliminarán automáticamente. Establézcalo en 0 para desactivar las copias de seguridad automáticas.",
+          "backups_max_retained": "Número máximo de archivos de copia de seguridad que se pueden conservar por etiqueta (p. ej., 5 copias de seguridad manuales, 5 copias de seguridad con restablecimiento de datos). Las copias de seguridad antiguas se eliminan automáticamente tras cada nueva creación. Establézcalo en 0 para desactivar las copias de seguridad automáticas por completo.",
           "backup_action_selection": "Elija una acción de administración de copias de seguridad: crear una copia de seguridad manual, eliminar una copia de seguridad o restaurar desde una copia de seguridad."
         }
       },
@@ -1281,11 +1398,34 @@
       },
       "select_backup_to_delete": {
         "title": "Seleccionar copia de seguridad para eliminar",
-        "description": "Seleccione un archivo de respaldo para eliminar.\n\nCopias de seguridad disponibles: {backup_count}\n\n⚠️ Las copias de seguridad protegidas (previas a la migración, manuales) no se pueden eliminar."
+        "description": "Seleccione un archivo de respaldo para eliminar.\n\nCopias de seguridad disponibles: {backup_count}"
       },
       "select_backup_to_restore": {
         "title": "Seleccione Copia de seguridad para restaurar",
-        "description": "Elija un archivo de respaldo para restaurar.\n\nCopias de seguridad disponibles: {backup_count}\n\n⚠️ ¡Esto reemplazará sus datos actuales!"
+        "description": "Elija un archivo de respaldo para restaurar.\n\nCopias de seguridad disponibles: {backup_count}\n\n⚠️ ¡Esto reemplazará sus datos actuales!",
+        "data": {
+          "backup_selection": "Seleccionar una copia de seguridad"
+        },
+        "data_description": {
+          "backup_selection": "Seleccione el archivo de respaldo que desea restaurar."
+        }
+      },
+      "restore_backup": {
+        "title": "Opciones de recuperación de datos",
+        "description": "Datos existentes de KidsChores encontrados en:\n{storage_path}\n\nSe encontraron {backup_count} archivos de respaldo.\n\n¿Qué le gustaría hacer?",
+        "data": {
+          "backup_selection": "Seleccionar opción"
+        }
+      },
+      "paste_json_restore": {
+        "title": "Importar datos JSON",
+        "description": "Pegue el contenido JSON completo desde:\n\n• Un archivo de datos de KidsChores (kidschores_data)\n• Una descarga de diagnóstico\n\nEl sistema detectará y descomprimirá automáticamente el formato según sea necesario. Se admiten tanto los datos de almacenamiento sin procesar como los formatos de exportación de diagnóstico.",
+        "data": {
+          "json_data": "Datos JSON"
+        },
+        "data_description": {
+          "json_data": "Pegue aquí el contenido JSON completo. Acepta datos del archivo kidschores_data o de la exportación de diagnósticos (desenvuelve automáticamente la estructura adicional)."
+        }
       },
       "create_backup_confirm": {
         "title": "Crear copia de seguridad manual",
@@ -1331,6 +1471,8 @@
       "due_date_in_past": "La fecha de vencimiento debe ser en el futuro.",
       "end_date_in_past": "La fecha de finalización debe ser futura.",
       "end_date_not_after_start_date": "La fecha de finalización debe ser posterior a la fecha de inicio",
+      "err_end_before_start": "La fecha de finalización debe ser posterior a la fecha de inicio",
+      "err_name_duplicate": "Ya existe un desafío con este nombre",
       "invalid_badge": "Insignia no válida",
       "invalid_badge_count": "Recuento de insignias no válido",
       "invalid_chore": "Tarea no válida",
@@ -1341,6 +1483,8 @@
       "invalid_kid_count": "Recuento de niños no válido",
       "invalid_kid_name": "Nombre de niño no válido",
       "no_kids_assigned": "Al menos un niño debe estar asignado a la tarea.",
+      "achievement_no_kids_assigned": "Al menos un niño debe estar asignado al logro.",
+      "challenge_no_kids_assigned": "Al menos un niño debe ser asignado al desafío.",
       "invalid_penalty": "Penalización inválida",
       "invalid_penalty_count": "Recuento de penalizaciones no válido",
       "invalid_bonus": "Bono no válido",
@@ -1363,7 +1507,14 @@
       "error_daily_multi_due_date_required": "La frecuencia \"Varias veces al día\" requiere establecer una fecha de vencimiento. La fecha determina cuándo comienza la programación y las horas determinan los intervalos de disponibilidad diarios.",
       "error_at_due_date_reset_requires_due_date": "Los tipos de restablecimiento de aprobación \"En fecha de vencimiento\" (Única o Múltiple) requieren que se establezca una fecha de vencimiento. Sin una fecha de vencimiento, el restablecimiento de aprobación nunca se activará y la tarea permanecerá aprobada indefinidamente.",
       "error_per_kid_applicable_days_invalid": "Formato de días aplicable no válido para uno o más niños. Los días deben ser enteros del 0 al 6 (de lunes a domingo) sin duplicados.",
-      "error_per_kid_daily_multi_times_invalid": "Formato de hora diaria no válido para uno o más niños. Use el formato de 24 horas separado por | (p. ej., 08:00|17:00)."
+      "error_per_kid_daily_multi_times_invalid": "Formato de hora diaria no válido para uno o más niños. Use el formato de 24 horas separado por | (p. ej., 08:00|17:00).",
+      "dashboard_exists": "Ya existe un panel con esta URL. Activa \"Forzar reconstrucción\" para sobrescribirla.",
+      "dashboard_template_error": "No se pudo obtener la plantilla del panel. Verifique la conexión de red o inténtelo de nuevo más tarde.",
+      "dashboard_render_error": "No se pudo renderizar la plantilla del panel. Esto podría indicar un error en la plantilla.",
+      "dashboard_save_error": "No se pudo guardar el panel en Home Assistant. Consulta los registros del sistema para obtener más información.",
+      "dashboard_no_name": "Ingrese un nombre para el panel de control.",
+      "dashboard_no_kids": "Seleccione al menos un niño o habilite 'Incluir pestaña de administrador'.",
+      "dashboard_no_dashboards": "Seleccione al menos un panel para eliminar."
     },
     "abort": {
       "invalid_action": "Acción inválida",
@@ -1387,7 +1538,8 @@
       "no_achievement": "No hay logros configurados para editar. Agrega una entrada primero.",
       "no_challenge": "No hay desafíos configurados para editar. Agrega una entrada primero.",
       "setup_complete": "Configuración completada",
-      "backup_restored": "La copia de seguridad se restauró correctamente. La integración se ha recargado con los datos restaurados."
+      "backup_restored": "La copia de seguridad se restauró correctamente. La integración se ha recargado con los datos restaurados.",
+      "no_dashboards_to_delete": "No se encontraron paneles de KidsChores. Crea uno primero usando \"Administrar panel\"."
     }
   },
   "selector": {
@@ -1403,9 +1555,30 @@
         "manage_bonus": "Administrar bonificaciones",
         "manage_achievement": "Gestionar logros",
         "manage_challenge": "Gestionar el desafío",
+        "dashboard_generator": "Administrar el panel de control",
         "general_options": "Opciones generales",
         "done": "Finalizar configuración"
       }
+    },
+    "dashboard_action": {
+      "options": {
+        "create": "Crear/actualizar panel de control",
+        "delete": "Eliminar el panel de control"
+      }
+    },
+    "dashboard_style": {
+      "options": {
+        "dashboard_style_full": "Completo (Todas las funciones)",
+        "dashboard_style_minimal": "Mínimo (solo lo esencial)",
+        "dashboard_style_compact": "Compacto (diseño denso)",
+        "dashboard_style_admin": "Administrador (panel principal)"
+      }
+    },
+    "dashboard_kid_selection": {
+      "options": {}
+    },
+    "dashboard_delete_selection": {
+      "options": {}
     },
     "manage_actions": {
       "options": {
@@ -1524,7 +1697,9 @@
         "notify_on_claim": "Notificar sobre reclamación",
         "notify_on_approval": "Notificar sobre aprobación",
         "notify_on_disapproval": "Notificar en caso de desaprobación",
-        "notify_on_reminder": "Notificar 30 minutos antes del vencimiento"
+        "notify_on_reminder": "Notificar 30 minutos antes del vencimiento (Legado)",
+        "notify_on_due_window": "Notificar cuando comienza la ventana de vencimiento",
+        "notify_due_reminder": "Notificar en el momento del recordatorio de vencimiento"
       }
     },
     "recurring_frequency": {
@@ -1542,7 +1717,11 @@
         "custom_1_week": "Personalizado: 1 semana",
         "custom_1_month": "Personalizado: 1 mes",
         "custom_1_quarter": "Personalizado: 1 cuarto",
-        "custom_1_year": "Personalizado: 1 año"
+        "custom_1_year": "Personalizado: 1 año",
+        "week_end": "Fin de semana",
+        "month_end": "Fin de mes",
+        "quarter_end": "Fin de trimestre",
+        "year_end": "Fin de año"
       }
     },
     "occasion_type": {
@@ -1709,6 +1888,10 @@
           "name": "Nombre de la recompensa",
           "description": "El nombre de la recompensa que se está aprobando.",
           "example": "Tiempo extra frente a la pantalla"
+        },
+        "cost_override": {
+          "name": "Anulación de costos",
+          "description": "Anulación de costo opcional. Si se omite, se utiliza el costo almacenado de la recompensa. Se establece en 0 para una concesión gratuita (como las recompensas de insignias). Útil para precios contextuales (fines de semana, ocasiones especiales, etc.)."
         }
       }
     },
@@ -1775,13 +1958,306 @@
         }
       }
     },
-    "reset_all_data": {
-      "name": "Restablecer todos los datos",
-      "description": "Borra completamente los datos de KidsChores del almacenamiento."
+    "create_reward": {
+      "name": "Crear recompensa",
+      "description": "Cree una nueva recompensa mediante programación.",
+      "fields": {
+        "name": {
+          "name": "Nombre",
+          "description": "El nombre de la recompensa.",
+          "example": "Tiempo extra frente a la pantalla"
+        },
+        "cost": {
+          "name": "Costo",
+          "description": "Puntos necesarios para reclamar la recompensa.",
+          "example": "10"
+        },
+        "description": {
+          "name": "Descripción",
+          "description": "Descripción opcional de la recompensa.",
+          "example": "30 minutos de tiempo extra para tomar la tableta"
+        },
+        "icon": {
+          "name": "Icono",
+          "description": "Icono para representar la recompensa.",
+          "example": "mdi:regalo"
+        },
+        "labels": {
+          "name": "Etiquetas",
+          "description": "Etiquetas para agrupar recompensas.",
+          "example": "['fin de semana', 'especial']"
+        }
+      }
     },
-    "reset_all_chores": {
-      "name": "Restablecer todas las tareas",
-      "description": "Restablecer manualmente las tareas al estado pendiente, eliminando reclamos y aprobaciones."
+    "update_reward": {
+      "name": "Recompensa por actualización",
+      "description": "Actualizar una recompensa existente (se admiten actualizaciones parciales).",
+      "fields": {
+        "id": {
+          "name": "ID de recompensa",
+          "description": "ID interno de la recompensa que se actualizará. Use ID o nombre.",
+          "example": "abc123-def456-789..."
+        },
+        "name": {
+          "name": "Nombre",
+          "description": "Nombre de la recompensa a actualizar, o nuevo nombre para la recompensa.",
+          "example": "Tiempo extra frente a la pantalla"
+        },
+        "cost": {
+          "name": "Costo",
+          "description": "Valor de costo actualizado.",
+          "example": "15"
+        },
+        "description": {
+          "name": "Descripción",
+          "description": "Descripción actualizada.",
+          "example": "45 minutos de tiempo extra para tomar la tableta"
+        },
+        "icon": {
+          "name": "Icono",
+          "description": "Icono actualizado.",
+          "example": "mdi:estrella"
+        },
+        "labels": {
+          "name": "Etiquetas",
+          "description": "Etiquetas actualizadas.",
+          "example": "['premium', 'especial']"
+        }
+      }
+    },
+    "delete_reward": {
+      "name": "Eliminar recompensa",
+      "description": "Eliminar una recompensa por ID o nombre.",
+      "fields": {
+        "id": {
+          "name": "ID de recompensa",
+          "description": "ID interno de la recompensa a eliminar. Use ID o nombre.",
+          "example": "abc123-def456-789..."
+        },
+        "name": {
+          "name": "Nombre",
+          "description": "Nombre de la recompensa a eliminar.",
+          "example": "Tiempo extra frente a la pantalla"
+        }
+      }
+    },
+    "create_chore": {
+      "name": "Crear tarea",
+      "description": "Crea una nueva tarea que los niños puedan completar para ganar puntos.",
+      "fields": {
+        "name": {
+          "name": "Nombre de la tarea",
+          "description": "El nombre de la tarea a crear.",
+          "example": "Sala limpia"
+        },
+        "assigned_kids": {
+          "name": "Niños asignados",
+          "description": "Lista de nombres de niños para asignar a esta tarea.",
+          "example": "['Emma', 'Jack']"
+        },
+        "points": {
+          "name": "Agujas",
+          "description": "Puntos otorgados cuando se completa la tarea.",
+          "example": "10"
+        },
+        "description": {
+          "name": "Descripción",
+          "description": "Descripción opcional de la tarea.",
+          "example": "Hacer la cama, guardar los juguetes, aspirar el suelo."
+        },
+        "icon": {
+          "name": "Icono",
+          "description": "Icono de Material Design para la tarea.",
+          "example": "mdi:escoba"
+        },
+        "labels": {
+          "name": "Etiquetas",
+          "description": "Etiquetas opcionales para categorizar la tarea.",
+          "example": "['diario', 'dormitorio']"
+        },
+        "frequency": {
+          "name": "Frecuencia",
+          "description": "Con qué frecuencia se repite la tarea: ninguna, diariamente, diariamente_varias, semanalmente, quincenalmente, mensualmente, trimestralmente, anualmente, personalizada, personalizada_desde_completo o fin de período (fin_de_semana, fin_de_mes, fin_de_trimestre, fin_de_año).",
+          "example": "a diario"
+        },
+        "applicable_days": {
+          "name": "Días aplicables",
+          "description": "Días de la semana en que corresponde la tarea.",
+          "example": "['lun', 'mié', 'vie']"
+        },
+        "completion_criteria": {
+          "name": "Criterios de finalización",
+          "description": "Cómo se completa la tarea cuando se asignan varios niños: independiente (cada niño la completa por separado), compartida_primero (el primer niño que la complete gana puntos) o compartida_todos (todos los niños deben completarla). No se puede cambiar después de crearla.",
+          "example": "independiente"
+        },
+        "approval_reset_type": {
+          "name": "Tipo de restablecimiento de aprobación",
+          "description": "Cuando la tarea se reinicia para volver a completarse.",
+          "example": "a medianoche una vez"
+        },
+        "pending_claims": {
+          "name": "Acción de reclamaciones pendientes",
+          "description": "¿Qué sucede con las reclamaciones pendientes cuando se reinicia la tarea?: hold_pending (mantener reclamaciones), clear_pending (eliminar reclamaciones) o auto_approve_pending (aprobar todas las pendientes).",
+          "example": "retención_pendiente"
+        },
+        "overdue_handling": {
+          "name": "Manejo de vencimientos",
+          "description": "Cómo manejar una tarea cuando ya no es necesaria",
+          "example": "en la fecha de vencimiento"
+        },
+        "auto_approve": {
+          "name": "Aprobación automática",
+          "description": "Si es verdadero, la tarea se aprueba automáticamente cuando se reclama.",
+          "example": "FALSO"
+        },
+        "due_date": {
+          "name": "Fecha de vencimiento",
+          "description": "Fecha de entrega opcional para la tarea. Use el selector de fecha y hora para elegir una fecha y hora válidas.",
+          "example": "01/03/2025 23:59:00"
+        },
+        "due_window_offset": {
+          "name": "Desplazamiento de ventana debido",
+          "description": "Tiempo antes de la fecha de vencimiento cuando la tarea entra en estado de vencimiento. Formato: 30 min, 1 h, 1 d 6 h 30 min, etc. Use 0 para desactivar la función de ventana de vencimiento.",
+          "example": "30 metros"
+        },
+        "due_reminder_offset": {
+          "name": "Compensación del recordatorio de vencimiento",
+          "description": "Tiempo antes de la fecha límite para enviar la notificación de recordatorio. Formato: '30m', '1h', '1d 6h 30m', etc. Use '0' para desactivar los recordatorios.",
+          "example": "30 metros"
+        }
+      }
+    },
+    "update_chore": {
+      "name": "Actualizar tarea",
+      "description": "Actualizar las propiedades de una tarea existente. Proporcione el ID o el nombre para identificar la tarea. Solo se actualizarán los campos proporcionados. Nota: Los criterios de finalización no se pueden modificar después de su creación.",
+      "fields": {
+        "id": {
+          "name": "Identificación de tarea",
+          "description": "El ID interno de la tarea a actualizar (alternativa al nombre).",
+          "example": "abc-123-def-456"
+        },
+        "name": {
+          "name": "Nombre de la tarea (identificador)",
+          "description": "El nombre de la tarea a actualizar (alternativa a id). Más intuitivo que id.",
+          "example": "Sala limpia"
+        },
+        "assigned_kids": {
+          "name": "Niños asignados",
+          "description": "Nueva lista de nombres de niños para asignar a esta tarea.",
+          "example": "['Emma', 'Jack']"
+        },
+        "points": {
+          "name": "Agujas",
+          "description": "Nuevo valor en puntos para la tarea.",
+          "example": "15"
+        },
+        "description": {
+          "name": "Descripción",
+          "description": "Nueva descripción de la tarea.",
+          "example": "Hacer la cama, organizar el escritorio, aspirar el suelo."
+        },
+        "icon": {
+          "name": "Icono",
+          "description": "Nuevo icono de Material Design para la tarea.",
+          "example": "mdi:vacío"
+        },
+        "labels": {
+          "name": "Etiquetas",
+          "description": "Nuevas etiquetas para la tarea.",
+          "example": "['semanal', 'limpieza']"
+        },
+        "frequency": {
+          "name": "Frecuencia",
+          "description": "Nueva frecuencia recurrente: ninguna, diaria, diaria_múltiple, semanal, quincenal, mensual, trimestral, anual, personalizada, personalizada_desde_completo o fin de período (fin_de_semana, fin_de_mes, fin_de_trimestre, fin_de_año).",
+          "example": "semanalmente"
+        },
+        "applicable_days": {
+          "name": "Días aplicables",
+          "description": "Nuevos días de la semana en los que se aplica la tarea.",
+          "example": "['sáb', 'sol']"
+        },
+        "approval_reset_type": {
+          "name": "Tipo de restablecimiento de aprobación",
+          "description": "Nuevo tipo de reinicio para cuando se reinicia la tarea.",
+          "example": "en_la_fecha_de_vencimiento_una_vez"
+        },
+        "pending_claims": {
+          "name": "Acción de reclamaciones pendientes",
+          "description": "Nueva acción para reclamaciones pendientes cuando se reinicia la tarea.",
+          "example": "pendiente de borrado"
+        },
+        "overdue_handling": {
+          "name": "Manejo de vencimientos",
+          "description": "Nuevo comportamiento de manejo de retrasos.",
+          "example": "nunca_vencido"
+        },
+        "auto_approve": {
+          "name": "Aprobación automática",
+          "description": "Nueva configuración de aprobación automática.",
+          "example": "verdadero"
+        },
+        "due_date": {
+          "name": "Fecha de vencimiento",
+          "description": "Nueva fecha de entrega de la tarea. Use el selector de fecha y hora para elegir una fecha y hora válidas.",
+          "example": "01/04/2025 18:00:00Z"
+        },
+        "due_window_offset": {
+          "name": "Desplazamiento de ventana debido",
+          "description": "Nuevo desplazamiento de ventana de vencimiento. Duración antes de la fecha de vencimiento cuando la tarea entra en estado de vencimiento. Formato: 30 min, 1 h, 1 d 6 h 30 min, etc. Use \"0\" para desactivar.",
+          "example": "1 hora"
+        },
+        "due_reminder_offset": {
+          "name": "Compensación del recordatorio de vencimiento",
+          "description": "Nuevo tiempo de espera para el recordatorio de vencimiento. Tiempo antes de la fecha de vencimiento para enviar la notificación de recordatorio. Formato: '30m', '1h', '1d 6h 30m', etc. Use '0' para desactivarlo.",
+          "example": "30 metros"
+        }
+      }
+    },
+    "delete_chore": {
+      "name": "Eliminar tarea",
+      "description": "Eliminar una tarea por ID o nombre. Se eliminarán todos los estados e historiales específicos de cada niño.",
+      "fields": {
+        "id": {
+          "name": "Identificación de tarea",
+          "description": "ID interno de la tarea a eliminar. Use ID o nombre.",
+          "example": "abc123-def456-789..."
+        },
+        "name": {
+          "name": "Nombre",
+          "description": "Nombre de la tarea a eliminar.",
+          "example": "Sala limpia"
+        }
+      }
+    },
+    "reset_chores_to_pending_state": {
+      "name": "Restablecer tareas al estado pendiente",
+      "description": "Restablecer manualmente todas las tareas al estado pendiente, eliminando reclamos y aprobaciones."
+    },
+    "reset_transactional_data": {
+      "name": "Restablecer datos transaccionales",
+      "description": "Restablezca los datos de ejecución/transaccionales conservando la configuración (niños, tareas, recompensas, etc.). Se crea una copia de seguridad automática antes del restablecimiento, llamada kidschores_data_<timestamp>_reset, en el directorio .storage. Use el ámbito para identificar niños o dominios específicos. IMPORTANTE: Requiere confirm_destructive: true como mecanismo de seguridad.",
+      "fields": {
+        "confirm_destructive": {
+          "name": "Confirmar Destructivo",
+          "description": "Debe establecerse como verdadero para confirmar que desea continuar con el restablecimiento. Este es un mecanismo de seguridad."
+        },
+        "scope": {
+          "name": "Alcance",
+          "description": "Restablecer alcance: 'global' restablece todos los datos, 'niño' restablece los datos de un niño específico únicamente."
+        },
+        "kid_name": {
+          "name": "Nombre del niño",
+          "description": "Obligatorio si el ámbito es \"niño\". El nombre del niño cuyos datos deben restablecerse."
+        },
+        "item_type": {
+          "name": "Tipo de artículo",
+          "description": "Filtro opcional para restablecer solo un dominio específico (por ejemplo, solo puntos o solo tareas)."
+        },
+        "item_name": {
+          "name": "Nombre del artículo",
+          "description": "Filtro opcional para restablecer un elemento específico dentro del dominio item_type."
+        }
+      }
     },
     "reset_overdue_chores": {
       "name": "Restablecer tareas atrasadas",
@@ -1856,54 +2332,6 @@
         }
       }
     },
-    "reset_penalties": {
-      "name": "Restablecer penalizaciones",
-      "description": "Restablecer todas las sanciones aplicadas a todos los niños. Opcionalmente, proporcione el nombre de la sanción para restablecer una sanción específica para todos los niños. Use el nombre del niño para restablecer todas las sanciones de un niño específico. Combine ambos para restablecer una sanción específica para un niño específico.",
-      "fields": {
-        "kid_name": {
-          "name": "Nombre del niño",
-          "description": "El niño al que se le reiniciarán las sanciones.",
-          "example": "Alicia"
-        },
-        "penalty_name": {
-          "name": "Nombre de la penalización",
-          "description": "El nombre de la penalización a reiniciar.",
-          "example": "Gritos"
-        }
-      }
-    },
-    "reset_bonuses": {
-      "name": "Bonos de reinicio",
-      "description": "Restablecer todas las bonificaciones aplicadas a todos los niños. Opcionalmente, proporcione el nombre de la bonificación para restablecer una bonificación específica para todos los niños. Use el nombre del niño para restablecer todas las bonificaciones de un niño específico. Combine ambos para restablecer una bonificación específica para un niño específico.",
-      "fields": {
-        "kid_name": {
-          "name": "Nombre del niño",
-          "description": "El niño para el cual se reiniciarán las bonificaciones.",
-          "example": "Alicia"
-        },
-        "bonus_name": {
-          "name": "Nombre del bono",
-          "description": "El nombre del bono a reiniciar.",
-          "example": "Ración"
-        }
-      }
-    },
-    "reset_rewards": {
-      "name": "Restablecer recompensas",
-      "description": "Restablecer todos los recuentos de solicitudes y aprobaciones de recompensas para todos los niños. Opcionalmente, proporcione el nombre de la recompensa para restablecer un recuento específico para todos los niños. Use el nombre del niño para restablecer todos los recuentos de recompensas para un niño específico. Combine ambos para restablecer una recompensa específica para un niño específico.",
-      "fields": {
-        "kid_name": {
-          "name": "Nombre del niño",
-          "description": "El niño para el cual se restablecerán los recuentos de recompensa.",
-          "example": "Alicia"
-        },
-        "reward_name": {
-          "name": "Nombre de la recompensa",
-          "description": "El nombre de la recompensa a restablecer.",
-          "example": "Helado"
-        }
-      }
-    },
     "remove_awarded_badges": {
       "name": "Eliminar insignias otorgadas",
       "description": "Eliminar todas las insignias otorgadas a todos los niños. Opcionalmente, proporcione el nombre de la insignia para restablecer una insignia específica para todos los niños. Use el nombre del niño para restablecer todas las insignias de un niño específico. Combine ambos para restablecer una insignia específica para un niño específico.",
@@ -1929,6 +2357,7 @@
           "pending": "Pendiente",
           "approved": "Aprobado",
           "claimed": "Reclamado",
+          "due": "Pendiente",
           "overdue": "Atrasado",
           "unknown": "Desconocido",
           "none": "Ninguno",
@@ -1968,8 +2397,8 @@
             "name": "Criterios de finalización",
             "state": {
               "independent": "Independiente",
-              "shared_first_only": "Compartido (Primero)",
-              "shared_all_required": "Compartido (Todos)"
+              "shared_first": "Compartido (Primero)",
+              "shared_all": "Compartido (Todos)"
             }
           },
           "approval_reset_type": {
@@ -2028,13 +2457,16 @@
             }
           },
           "chore_points_earned": {
-            "name": "Puntos ganados"
+            "name": "Puntos ganados (de todos los tiempos)"
           },
           "chore_approvals_count": {
             "name": "Aprobaciones (de todos los tiempos)"
           },
           "chore_claims_count": {
             "name": "Reclamaciones (de todos los tiempos)"
+          },
+          "chore_completed_count": {
+            "name": "Completado (todos los tiempos)"
           },
           "chore_disapproved_count": {
             "name": "Desaprobaciones (de todos los tiempos)"
@@ -2048,8 +2480,8 @@
           "chore_current_streak": {
             "name": "Racha actual"
           },
-          "chore_highest_streak": {
-            "name": "Racha más alta"
+          "chore_longest_streak": {
+            "name": "La racha más larga"
           },
           "chore_last_longest_streak_date": {
             "name": "Fecha de la última racha más larga"
@@ -2059,6 +2491,9 @@
           },
           "last_approved": {
             "name": "Última aprobación"
+          },
+          "last_completed": {
+            "name": "Último completado"
           },
           "last_disapproved": {
             "name": "Último desaprobado"
@@ -2102,6 +2537,15 @@
           },
           "claim_button_eid": {
             "name": "ID de entidad del botón de reclamación"
+          },
+          "due_window_start": {
+            "name": "Ventana de inicio prevista"
+          },
+          "time_until_due": {
+            "name": "Tiempo hasta el vencimiento"
+          },
+          "time_until_overdue": {
+            "name": "Tiempo hasta el vencimiento"
           }
         }
       },
@@ -2312,6 +2756,57 @@
           "chore_stat_disapproved_all_time": {
             "name": "Desaprobado todo el tiempo"
           },
+          "chore_stat_completed_today": {
+            "name": "Completado hoy"
+          },
+          "chore_stat_completed_week": {
+            "name": "Completado esta semana"
+          },
+          "chore_stat_completed_month": {
+            "name": "Completado este mes"
+          },
+          "chore_stat_completed_year": {
+            "name": "Completado este año"
+          },
+          "chore_stat_completed_all_time": {
+            "name": "Completado todos los tiempos"
+          },
+          "chore_stat_points_today": {
+            "name": "Puntos de hoy"
+          },
+          "chore_stat_points_week": {
+            "name": "Puntos de esta semana"
+          },
+          "chore_stat_points_month": {
+            "name": "Puntos este mes"
+          },
+          "chore_stat_points_year": {
+            "name": "Puntos este año"
+          },
+          "chore_stat_points_all_time": {
+            "name": "Puntos de todos los tiempos"
+          },
+          "chore_stat_top_chores_week": {
+            "name": "Tarea principal (semana)"
+          },
+          "chore_stat_top_chores_month": {
+            "name": "Tarea principal (mes)"
+          },
+          "chore_stat_top_chores_year": {
+            "name": "Tarea principal (año)"
+          },
+          "chore_stat_chores_completed_today": {
+            "name": "Completado hoy"
+          },
+          "chore_stat_chores_completed_week": {
+            "name": "Completado esta semana"
+          },
+          "chore_stat_chores_completed_month": {
+            "name": "Completado este mes"
+          },
+          "chore_stat_chores_completed_year": {
+            "name": "Completado este año"
+          },
           "chore_stat_current_due_today": {
             "name": "Corriente con vencimiento hoy"
           },
@@ -2336,11 +2831,17 @@
           "chore_stat_longest_streak_all_time": {
             "name": "La racha más larga (de todos los tiempos)"
           },
+          "chore_stat_longest_streak": {
+            "name": "La racha más larga"
+          },
           "chore_stat_avg_per_day_week": {
             "name": "Promedio por día (semana)"
           },
           "chore_stat_avg_per_day_month": {
             "name": "Promedio por día (mes)"
+          },
+          "chore_stat_avg_per_day_year": {
+            "name": "Promedio por día (año)"
           }
         }
       },
@@ -2593,6 +3094,7 @@
           "pending": "Pendiente",
           "approved": "Aprobado",
           "claimed": "Reclamado",
+          "due": "Pendiente",
           "overdue": "Atrasado",
           "unknown": "Desconocido",
           "none": "Ninguno",
@@ -2629,8 +3131,8 @@
             "name": "Criterios de finalización",
             "state": {
               "independent": "Independiente",
-              "shared_first_only": "Compartido (Solo el primero)",
-              "shared_all_required": "Compartido (Todos requeridos)"
+              "shared_first": "Compartido (Solo el primero)",
+              "shared_all": "Compartido (Todos requeridos)"
             }
           },
           "approval_reset_type": {
@@ -2689,20 +3191,33 @@
           "last_approved": {
             "name": "Última aprobación"
           },
+          "last_completed": {
+            "name": "Último completado"
+          },
           "chore_claimed_by": {
             "name": "Reclamado por"
           },
           "chore_completed_by": {
             "name": "Completado por"
+          },
+          "due_window_start": {
+            "name": "Ventana de inicio prevista"
+          },
+          "time_until_due": {
+            "name": "Tiempo hasta el vencimiento"
+          },
+          "time_until_overdue": {
+            "name": "Tiempo hasta el vencimiento"
           }
         }
       },
       "kid_reward_status_sensor": {
         "name": "Estado de recompensa - {reward_name}",
         "state": {
-          "not_claimed": "No reclamado",
+          "locked": "Bloqueado",
+          "available": "Disponible",
+          "requested": "Solicitado",
           "approved": "Aprobado",
-          "claimed": "Reclamado",
           "unknown": "Desconocido",
           "none": "Ninguno"
         },
@@ -2733,6 +3248,9 @@
           },
           "last_approved": {
             "name": "Última aprobación"
+          },
+          "last_completed": {
+            "name": "Último completado"
           },
           "last_disapproved": {
             "name": "Último desaprobado"
@@ -3184,6 +3702,26 @@
       "system_bonuses_select": {
         "name": "Seleccionar Bono"
       },
+      "system_dashboard_admin_kid_select": {
+        "name": "Selector de niños del panel de administración",
+        "state_attributes": {
+          "purpose": {
+            "name": "Objetivo",
+            "state": {
+              "purpose_system_dashboard_admin_kid": "Selector de niños a nivel de sistema para tarjetas del panel de administración"
+            }
+          },
+          "dashboard_helper_eid": {
+            "name": "ID de entidad auxiliar del panel"
+          },
+          "selected_kid_slug": {
+            "name": "Babosa infantil seleccionada"
+          },
+          "selected_kid_name": {
+            "name": "Nombre del niño seleccionado"
+          }
+        }
+      },
       "kid_dashboard_helper_chores_select": {
         "name": "Asistente de lista de tareas del panel de interfaz de usuario",
         "state_attributes": {
@@ -3394,6 +3932,10 @@
       },
       "parent_points_adjust_button": {
         "name": "{sign_label} {points_label}",
+        "sign_label": {
+          "increment": "Incremento",
+          "decrement": "Decremento"
+        },
         "state_attributes": {
           "purpose": {
             "name": "Objetivo",
@@ -3484,6 +4026,9 @@
     "shared_chore_cannot_have_kid": {
       "message": "No se puede especificar un niño para la tarea compartida {chore_name}. Las tareas compartidas tienen una fecha de vencimiento para todos los niños."
     },
+    "reward_not_found": {
+      "message": "Recompensa con ID '{reward_id}' no encontrada"
+    },
     "required_field": {
       "message": "Debe proporcionar {field}"
     },
@@ -3495,6 +4040,18 @@
     },
     "missing_chore": {
       "message": "Debe proporcionar el ID de la tarea o el nombre de la tarea."
+    },
+    "missing_chore_identifier": {
+      "message": "Debe proporcionar chore_id o chore_name para identificar la tarea."
+    },
+    "chore_not_found": {
+      "message": "Tarea con ID '{chore_id}' no encontrada."
+    },
+    "completion_criteria_immutable": {
+      "message": "Los criterios de finalización no se pueden cambiar después de crear la tarea. Elimínela y vuelva a crearla si necesita criterios de finalización diferentes."
+    },
+    "missing_reward_identifier": {
+      "message": "Debe proporcionar reward_id o reward_name para identificar la recompensa a actualizar."
     },
     "missing_field": {
       "message": "Falta el campo obligatorio {field} en {entity}"
@@ -3510,6 +4067,36 @@
     },
     "configuration_error": {
       "message": "Error de configuración: {detail}"
+    },
+    "data_reset_confirmation_required": {
+      "message": "Debes configurar confirm_destructive: true para continuar con el restablecimiento de datos"
+    },
+    "data_reset_kid_not_found": {
+      "message": "Niño '{kid_name}' no encontrado"
+    },
+    "data_reset_item_not_found": {
+      "message": "{item_type} '{item_name}' no encontrado"
+    },
+    "data_reset_invalid_scope": {
+      "message": "Ámbito no válido '{scope}'. Debe ser: global, kid, item_type o item."
+    },
+    "data_reset_invalid_item_type": {
+      "message": "Item_type '{item_type}' no válido. Debe ser: niños, tareas, recompensas, insignias, logros, desafíos, penalizaciones o bonificaciones."
+    },
+    "notif_title_data_reset": {
+      "message": "Restablecimiento de datos transaccionales"
+    },
+    "notif_message_data_reset_global": {
+      "message": "Se han restablecido todos los datos de ejecución. Se conserva la configuración."
+    },
+    "notif_message_data_reset_kid": {
+      "message": "Restablecimiento de datos completo para {kid_name}. Puntos, estadísticas y progreso borrados."
+    },
+    "notif_message_data_reset_item_type": {
+      "message": "Restablecimiento de datos completo para todos los {item_type}. Se borraron los datos de tiempo de ejecución."
+    },
+    "notif_message_data_reset_item": {
+      "message": "Restablecimiento de datos completo para {item_name}. Se borraron los datos de tiempo de ejecución."
     }
   }
 }

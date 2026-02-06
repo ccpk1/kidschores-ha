@@ -23,6 +23,14 @@
     "title": "⏰ Tarefa para entregar em breve!",
     "message": "{chore_name} deve ser entregue em {minutes} minutos (+{points}pts)"
   },
+  "chore_due_reminder": {
+    "title": "⏰ Tarefa para entregar em breve!",
+    "message": "{chore_name} deve ser entregue em {minutes} minutos (+{points}pts)"
+  },
+  "chore_due_window": {
+    "title": "🔔 Tarefa a fazer agora",
+    "message": "{chore_name} já está disponível! Conclua-a em {hours} hora(s) para ganhar {points} pontos."
+  },
   "chore_reminder": {
     "title": "KidsChores: Lembrete para Tarefas Pendentes",
     "message": "Lembrete: A tarefa {chore_name} reivindicada por {kid_name} está a aguardar aprovação."
@@ -101,10 +109,12 @@
   },
   "actions": {
     "approve": "Aprovar",
+    "claim": "✋ Reivindique agora",
+    "complete": "Concluir",
     "disapprove": "Desaprovar",
     "remind_30": "Lembrete em 30 minutos",
+    "skip": "Ignorar",
     "approve_latest": "✅ Aprovar mais recente",
-    "review_all": "👀 Analisar tudo",
-    "claim": "✋ Reivindique agora"
+    "review_all": "👀 Analisar tudo"
   }
 }

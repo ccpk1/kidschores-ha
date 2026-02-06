@@ -23,6 +23,14 @@
     "title": "⏰ Klus die binnenkort af moet!",
     "message": "{chore_name} moet binnen {minutes} minuten (+{points}punten) worden voldaan."
   },
+  "chore_due_reminder": {
+    "title": "⏰ Klus die binnenkort af moet!",
+    "message": "{chore_name} moet binnen {minutes} minuten (+{points}punten) worden voldaan."
+  },
+  "chore_due_window": {
+    "title": "🔔 Taak die nu moet worden uitgevoerd",
+    "message": "{chore_name} moet nu ingeleverd worden! Voltooi het binnen {hours} uur om {points} punten te verdienen."
+  },
   "chore_reminder": {
     "title": "KidsChores: Herinnering voor nog uit te voeren klusjes",
     "message": "Herinnering: De taak {chore_name} die is geclaimd door {kid_name} wacht op goedkeuring."
@@ -101,10 +109,12 @@
   },
   "actions": {
     "approve": "Goedkeuren",
+    "claim": "✋ Claim nu",
+    "complete": "Compleet",
     "disapprove": "Afkeuren",
     "remind_30": "Herinnering over 30 minuten",
+    "skip": "Overslaan",
     "approve_latest": "✅ Keur de nieuwste goed",
-    "review_all": "👀 Alles beoordelen",
-    "claim": "✋ Claim nu"
+    "review_all": "👀 Alles beoordelen"
   }
 }

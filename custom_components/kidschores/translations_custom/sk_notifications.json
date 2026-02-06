@@ -23,6 +23,14 @@
     "title": "⏰ Úloha čoskoro!",
     "message": "{chore_name} je potrebné odovzdať o {minutes} minút (+{points}bodov)"
   },
+  "chore_due_reminder": {
+    "title": "⏰ Úloha čoskoro!",
+    "message": "{chore_name} je potrebné odovzdať o {minutes} minút (+{points}bodov)"
+  },
+  "chore_due_window": {
+    "title": "🔔 Domáca úloha teraz",
+    "message": "Termín {chore_name} je teraz! Dokončite ho do {hours} hodiny a získajte {points} bodov"
+  },
   "chore_reminder": {
     "title": "KidsChores: Pripomienka na čakajúcu domácu úlohu",
     "message": "Pripomienka: Domáca úloha {chore_name} nárokovaná používateľom {kid_name} čaká na schválenie"
@@ -101,10 +109,12 @@
   },
   "actions": {
     "approve": "Schváliť",
+    "claim": "✋ Uplatniť teraz",
+    "complete": "Dokončené",
     "disapprove": "Neschváliť",
     "remind_30": "Pripomenúť o 30 minút",
+    "skip": "Preskočiť",
     "approve_latest": "✅ Schváliť najnovšie",
-    "review_all": "👀 Prehodnotiť všetko",
-    "claim": "✋ Uplatniť teraz"
+    "review_all": "👀 Prehodnotiť všetko"
   }
 }

@@ -23,6 +23,14 @@
     "title": "⏰ Huslige pligter skal snart afleveres!",
     "message": "{chore_name} skal afleveres om {minutes} minutter (+{points}point)"
   },
+  "chore_due_reminder": {
+    "title": "⏰ Huslige pligter skal snart afleveres!",
+    "message": "{chore_name} skal afleveres om {minutes} minutter (+{points}point)"
+  },
+  "chore_due_window": {
+    "title": "🔔 Huslige pligter skal udføres nu",
+    "message": "{chore_name} skal nu afleveres! Færdiggør det inden for {hours} time(r) for at optjene {points} point"
+  },
   "chore_reminder": {
     "title": "KidsChores: Påmindelse om ventende pligt",
     "message": "Påmindelse: Opgave {chore_name} , som {kid_name} har gjort krav på, venter på godkendelse"
@@ -101,10 +109,12 @@
   },
   "actions": {
     "approve": "Godkende",
+    "claim": "✋ Gør krav nu",
+    "complete": "Komplet",
     "disapprove": "Misbillige",
     "remind_30": "Påmind om 30 min",
+    "skip": "Springe",
     "approve_latest": "✅ Godkend seneste",
-    "review_all": "👀 Anmeld alle",
-    "claim": "✋ Gør krav nu"
+    "review_all": "👀 Anmeld alle"
   }
 }

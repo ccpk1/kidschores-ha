@@ -23,6 +23,14 @@
     "title": "⏰ Tâches à rendre bientôt !",
     "message": "{chore_name} est dû dans {minutes} minutes (+{points}pts)"
   },
+  "chore_due_reminder": {
+    "title": "⏰ Tâches à rendre bientôt !",
+    "message": "{chore_name} est dû dans {minutes} minutes (+{points}pts)"
+  },
+  "chore_due_window": {
+    "title": "🔔 Tâche à faire maintenant",
+    "message": "{chore_name} est maintenant à rendre ! Terminez-le dans un délai de {hours} heure(s) pour gagner {points} points"
+  },
   "chore_reminder": {
     "title": "KidsChores : Rappel pour les tâches ménagères en attente",
     "message": "Rappel : La tâche {chore_name} demandée par {kid_name} est en attente d’approbation"
@@ -101,10 +109,12 @@
   },
   "actions": {
     "approve": "Approuver",
+    "claim": "✋ Réclamez maintenant",
+    "complete": "Complet",
     "disapprove": "Désapprouver",
     "remind_30": "Rappel dans 30 min",
+    "skip": "Sauter",
     "approve_latest": "✅ Approuver les dernières modifications",
-    "review_all": "👀 Tout examiner",
-    "claim": "✋ Réclamez maintenant"
+    "review_all": "👀 Tout examiner"
   }
 }

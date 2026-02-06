@@ -23,6 +23,14 @@
     "title": "⏰ ¡Tarea pendiente pronto!",
     "message": "{chore_name} debe entregarse en {minutes} minutos (+{points}pts)"
   },
+  "chore_due_reminder": {
+    "title": "⏰ ¡Tarea pendiente pronto!",
+    "message": "{chore_name} debe entregarse en {minutes} minutos (+{points}pts)"
+  },
+  "chore_due_window": {
+    "title": "🔔 Tarea pendiente",
+    "message": "¡{chore_name} ya vence! Complétalo en {hours} hora(s) para ganar {points} puntos."
+  },
   "chore_reminder": {
     "title": "KidsChores: Recordatorio de tareas pendientes",
     "message": "Recordatorio: La tarea {chore_name} reclamada por {kid_name} está esperando aprobación"
@@ -101,10 +109,12 @@
   },
   "actions": {
     "approve": "Aprobar",
+    "claim": "✋ Reclama ahora",
+    "complete": "Completo",
     "disapprove": "Desaprobar",
     "remind_30": "Recordar en 30 min",
+    "skip": "Saltar",
     "approve_latest": "✅ Aprobar lo último",
-    "review_all": "👀 Revisar todo",
-    "claim": "✋ Reclama ahora"
+    "review_all": "👀 Revisar todo"
   }
 }

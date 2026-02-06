@@ -13,6 +13,16 @@
           "backup_selection": "Välj alternativ"
         }
       },
+      "paste_json_input": {
+        "title": "Importera JSON-data",
+        "description": "Klistra in hela JSON-innehållet från antingen:\n\n• En KidsChores-datafil (kidschores_data)\n• En diagnostiknedladdning\n\nSystemet kommer automatiskt att upptäcka och packa upp formatet efter behov. Både rådata för lagring och export av diagnostik stöds.",
+        "data": {
+          "json_data": "JSON-data"
+        },
+        "data_description": {
+          "json_data": "Klistra in hela JSON-innehållet här. Tar emot data från kidschores_data-filen eller diagnostikexporten (packar upp extra struktur automatiskt)."
+        }
+      },
       "points_label": {
         "title": "Poängetikett",
         "description": "Välj en etikett och ikon för punkter.",
@@ -26,7 +36,25 @@
         "description": "Uppdatera systeminställningar som poängetikett och ikon.",
         "data": {
           "points_label": "Poängetikett",
-          "points_icon": "Poängikon"
+          "points_icon": "Poängikon",
+          "update_interval": "Uppdateringsintervall (minuter)",
+          "calendar_show_period": "Kalendervisningsperiod (dagar)",
+          "retention_daily": "Daglig retention (dagar)",
+          "retention_weekly": "Veckovis retention (veckor)",
+          "retention_monthly": "Månatlig retention (månader)",
+          "retention_yearly": "Årlig retention (år)",
+          "points_adjust_values": "Punktjusteringsvärden (rörseparerade)"
+        },
+        "data_description": {
+          "points_label": "Etikett som visas för poäng (t.ex. 'Poäng', 'Stjärnor', 'Mynt')",
+          "points_icon": "MDI-ikon för poäng (t.ex. 'mdi:star', 'mdi:coin', 'mdi:trophy')",
+          "update_interval": "Hur ofta data ska uppdateras (minst 1 minut)",
+          "calendar_show_period": "Historikdagar som ska visas i kalendern (minst 1)",
+          "retention_daily": "Dagar att spara dagliga aggregat",
+          "retention_weekly": "Veckor för att spara veckoaggregat",
+          "retention_monthly": "Månader att spara månatliga aggregat",
+          "retention_yearly": "År för att spara årliga aggregat",
+          "points_adjust_values": "Rörseparerade punktvärden för manuella justeringsknappar (t.ex. +1,0|-1,0|+10,0|-10,0)"
         }
       },
       "kid_count": {
@@ -40,7 +68,7 @@
         "title": "Definiera barn",
         "description": "Ange namnet för varje barn.",
         "data": {
-          "kid_name": "Barnets namn",
+          "name": "Barnets namn",
           "ha_user": "Hemassistent-användare",
           "mobile_notify_service": "Aviseringar",
           "dashboard_language": "Språk"
@@ -61,13 +89,16 @@
         "title": "Definiera förälder",
         "description": "Ange uppgifter för varje förälder.",
         "data": {
-          "parent_name": "Föräldernamn",
+          "name": "Föräldernamn",
           "ha_user_id": "Hemassistent-användare",
           "associated_kids": "Associerade barn",
           "mobile_notify_service": "Aviseringar",
           "dashboard_language": "Språk"
         },
         "data_description": {
+          "name": "Unikt namn för denna förälder, som används i hela systemet.",
+          "ha_user_id": "Valfritt: Länka den här föräldern till en Home Assistant-användare för aviseringar och åtkomst till instrumentpanelen.",
+          "associated_kids": "Välj vilka barn den här föräldern övervakar för aviseringar och godkännandeåtgärder.",
           "mobile_notify_service": "Välj en aviseringstjänst för att aktivera aviseringar för den här föräldern, eller lämna tomt för att inaktivera.",
           "dashboard_language": "Språk som används för din syssloöversikt och dina aviseringar."
         }
@@ -83,7 +114,7 @@
         "title": "Lägg till syssla",
         "description": "Skapa en ny syssla med poäng, uppgifter och ett återkommande schema.",
         "data": {
-          "chore_name": "📋 Namn på syssla",
+          "name": "📋 Namn på syssla",
           "chore_description": "📋 Beskrivning (valfritt)",
           "icon": "📋 Ikon (mdi:xxx)",
           "chore_labels": "📋 Etiketter (valfritt)",
@@ -99,11 +130,13 @@
           "custom_interval_unit": "🔄 Schema: Anpassad intervallenhet",
           "applicable_days": "📅 Schema: Tillämpliga dagar (valfritt)",
           "due_date": "📅 Schema: Förfallodatum (valfritt)",
+          "chore_due_window_offset": "⏱️ Förfallofönster: Förskjutning före förfallodatum",
+          "chore_due_reminder_offset": "🔔 Förfallopåminnelse: Förskjutning före förfallodatum",
           "show_on_calendar": "📅 Visa i kalendern?",
           "chore_notifications": "🔔 Aviseringshändelser (valfritt)"
         },
         "data_description": {
-          "chore_name": "Unikt namn som visas i hela systemet.",
+          "name": "Unikt namn som visas i hela systemet.",
           "chore_description": "Valfria instruktioner eller detaljer om hur man slutför den här sysslan.",
           "icon": "Ikon för materialdesign (t.ex. mdi:kvast, mdi:diskmaskin).",
           "chore_labels": "Taggar för att organisera sysslor (t.ex. 'kök', 'utomhus'). Lämna tomt om det inte behövs.",
@@ -119,6 +152,8 @@
           "custom_interval_unit": "Tidsenhet för anpassat intervall (dagar, veckor, månader). Används endast med anpassad frekvens.",
           "applicable_days": "Lämna tomt för alla dagar. ENDAST Välj specifika dagar att begränsa.",
           "due_date": "Valfri deadline. Kan kombineras med återkommande scheman.",
+          "chore_due_window_offset": "När sysslan visas som \"Förfaller\" 1 dag före deadline. Format: '1d 6h 30m' eller bara '30' för minuter. Ange '0' för att inaktivera. Exempel: '1d' betyder att sysslan visas som \"Förfaller\" 1 dag före deadline.",
+          "chore_due_reminder_offset": "När påminnelsen om förfallodatum ska skickas. Format: '1d 6h 30m' eller bara '30' för minuter. Standard: 30m (30 minuter före förfallodatum). Ange '0' för att inaktivera.",
           "show_on_calendar": "Visa den här uppgiften i kalendervyn.",
           "chore_notifications": "När aviseringar ska skickas: Vid anspråk, vid godkännande, vid avslag eller någon kombination."
         }
@@ -191,10 +226,10 @@
         "title": "Definiera belöning",
         "description": "Ange detaljer för varje belöning.",
         "data": {
-          "reward_name": "Belöningsnamn",
+          "name": "Belöningsnamn",
           "internal_id": "Internt ID",
-          "reward_cost": "Belöningskostnad",
-          "reward_description": "Beskrivning (valfritt)",
+          "cost": "Belöningskostnad",
+          "description": "Beskrivning (valfritt)",
           "reward_labels": "Belöningsetiketter",
           "icon": "Ikon (mdi:xxx)"
         }
@@ -210,7 +245,7 @@
         "title": "Definiera straff",
         "description": "Ange detaljer för varje straff.",
         "data": {
-          "penalty_name": "Straffnamn",
+          "name": "Straffnamn",
           "penalty_description": "Beskrivning (valfritt)",
           "penalty_labels": "Straffetiketter",
           "internal_id": "Internt ID",
@@ -229,7 +264,7 @@
         "title": "Definiera bonus",
         "description": "Ange detaljer för varje bonus.",
         "data": {
-          "bonus_name": "Bonusnamn",
+          "name": "Bonusnamn",
           "bonus_description": "Beskrivning (valfritt)",
           "bonus_labels": "Bonusetiketter",
           "internal_id": "Internt ID",
@@ -308,6 +343,10 @@
       "due_date_in_past": "Förfallodatumet måste vara i framtiden.",
       "end_date_in_past": "Slutdatumet måste vara i framtiden.",
       "end_date_not_after_start_date": "Slutdatumet måste vara senare än startdatumet",
+      "err_end_before_start": "Slutdatumet måste vara efter startdatumet",
+      "err_name_duplicate": "En utmaning med detta namn finns redan",
+      "achievement_no_kids_assigned": "Minst ett barn måste tilldelas prestationen",
+      "challenge_no_kids_assigned": "Minst ett barn måste tilldelas utmaningen",
       "invalid_achievement_count": "Ogiltigt antal prestationer",
       "invalid_achievement_name": "Ogiltigt prestationsnamn",
       "invalid_badge": "Ogiltigt märke",
@@ -318,6 +357,7 @@
       "invalid_chore": "Ogiltig syssla",
       "invalid_chore_count": "Ogiltigt antal sysslor",
       "invalid_chore_name": "Ogiltigt namn på syssla",
+      "invalid_points": "Poängen måste vara noll eller större",
       "invalid_overdue_reset_combination": "Hanteringen av förseningar \"Återställ sedan vid förfallodatum\" fungerar endast med återställningstyperna midnatt. Välj \"Vid midnatt (en gång)\" eller \"Vid midnatt (upprepad)\" för återställningstypen för godkännande.",
       "invalid_due_date": "Ogiltigt förfallodatum",
       "date_required_for_frequency": "Ett förfallodatum krävs för denna återkommande frekvens. Rensa datum fungerar endast med frekvensen Ingen, Daglig eller Veckovis.",
@@ -333,6 +373,7 @@
       "invalid_reward": "Ogiltig belöning",
       "invalid_reward_count": "Ogiltigt antal belöningar",
       "invalid_reward_name": "Ogiltigt belöningsnamn",
+      "invalid_reward_cost": "Belöningskostnaden måste vara noll eller högre",
       "invalid_bonus": "Ogiltig bonus",
       "invalid_bonus_count": "Ogiltigt bonusantal",
       "invalid_bonus_name": "Ogiltigt bonusnamn",
@@ -399,13 +440,15 @@
         "title": "Lägg till barn",
         "description": "Ange detaljerna för det nya barnet.",
         "data": {
-          "kid_name": "Barnets namn",
+          "name": "Barnets namn",
           "ha_user": "Hemassistent-användare",
           "mobile_notify_service": "Aviseringar",
           "dashboard_language": "Språk",
           "internal_id": "Internt ID"
         },
         "data_description": {
+          "name": "Unikt namn för det här barnet, som används i hela systemet.",
+          "ha_user": "Valfritt: Länka det här barnet till en Home Assistant-användare för åtkomstkontroll till instrumentpanelen.",
           "mobile_notify_service": "Välj en aviseringstjänst för att aktivera aviseringar för det här barnet, eller lämna tomt för att inaktivera.",
           "dashboard_language": "Språk som används för din syssloöversikt och dina aviseringar."
         }
@@ -414,7 +457,7 @@
         "title": "Lägg till förälder",
         "description": "Ange uppgifterna för den nya föräldern.",
         "data": {
-          "parent_name": "Föräldernamn",
+          "name": "Föräldernamn",
           "ha_user_id": "Hemassistent-användare",
           "associated_kids": "Associerade barn",
           "mobile_notify_service": "Aviseringar",
@@ -425,6 +468,9 @@
           "internal_id": "Internt ID"
         },
         "data_description": {
+          "name": "Unikt namn för denna förälder, som används i hela systemet.",
+          "ha_user_id": "Valfritt: Länka den här föräldern till en Home Assistant-användare för aviseringar och åtkomst till instrumentpanelen.",
+          "associated_kids": "Välj vilka barn den här föräldern övervakar för aviseringar och godkännandeåtgärder.",
           "mobile_notify_service": "Välj en aviseringstjänst för att aktivera aviseringar för den här föräldern, eller lämna tomt för att inaktivera.",
           "allow_chore_assignment": "Skapar en profil så att uppgifter kan tilldelas dig. Som standard visas bara en Godkänn-knapp för slutförande med ett klick. Obs: Om du avmarkerar rutan bevaras barnprofilen med suffixet '_unlinked' för manuell rensning.",
           "enable_chore_workflow": "Lägger till knappar för att göra anspråk och avvisa för hela arbetsflödet (göra anspråk → godkänn/avvisa).",
@@ -436,7 +482,7 @@
         "title": "Lägg till syssla",
         "description": "Skapa en ny syssla med poäng, uppgifter och ett återkommande schema.",
         "data": {
-          "chore_name": "📋 Namn på syssla",
+          "name": "📋 Namn på syssla",
           "chore_description": "📋 Beskrivning (valfritt)",
           "icon": "📋 Ikon (mdi:xxx)",
           "chore_labels": "📋 Etiketter (valfritt)",
@@ -452,11 +498,14 @@
           "custom_interval_unit": "🔄 Schema: Anpassad intervallenhet",
           "applicable_days": "📅 Schema: Tillämpliga dagar (valfritt)",
           "due_date": "📅 Schema: Förfallodatum (valfritt)",
+          "clear_due_date": "🗑️ Rensa förfallodatum",
+          "chore_due_window_offset": "⏱️ Förfallofönster: Förskjutning före förfallodatum",
+          "chore_due_reminder_offset": "🔔 Förfallopåminnelse: Förskjutning före förfallodatum",
           "show_on_calendar": "📅 Visa i kalendern?",
           "chore_notifications": "🔔 Aviseringshändelser (valfritt)"
         },
         "data_description": {
-          "chore_name": "Unikt namn som visas i hela systemet.",
+          "name": "Unikt namn som visas i hela systemet.",
           "chore_description": "Valfria instruktioner eller detaljer om hur man slutför den här sysslan.",
           "icon": "Ikon för materialdesign (t.ex. mdi:kvast, mdi:diskmaskin).",
           "chore_labels": "Taggar för att organisera sysslor (t.ex. 'kök', 'utomhus'). Lämna tomt om det inte behövs.",
@@ -472,6 +521,9 @@
           "custom_interval_unit": "Tidsenhet för anpassat intervall (dagar, veckor, månader). Används endast med anpassad frekvens.",
           "applicable_days": "Lämna tomt för alla dagar. ENDAST Välj specifika dagar att begränsa.",
           "due_date": "Valfri deadline. Kan kombineras med återkommande scheman. För SJÄLVSTÄNDIGA sysslor fungerar detta som en mall – en ytterligare skärm visas som tillåter individuella datum per barn.",
+          "clear_due_date": "Markera den här rutan för att ta bort förfallodatumet från den här sysslan.",
+          "chore_due_window_offset": "När sysslan visas som \"Förfaller\" 1 dag före deadline. Format: '1d 6h 30m' eller bara '30' för minuter. Ange '0' för att inaktivera. Exempel: '1d' betyder att sysslan visas som \"Förfaller\" 1 dag före deadline.",
+          "chore_due_reminder_offset": "När påminnelsen om förfallodatum ska skickas. Format: '1d 6h 30m' eller bara '30' för minuter. Standard: 30m (30 minuter före förfallodatum). Ange '0' för att inaktivera.",
           "show_on_calendar": "Visa den här uppgiften i kalendervyn.",
           "chore_notifications": "När aviseringar ska skickas: Vid anspråk, vid godkännande, vid avslag eller någon kombination."
         }
@@ -695,10 +747,10 @@
         "title": "Lägg till belöning",
         "description": "Ange detaljerna för den nya belöningen.",
         "data": {
-          "reward_name": "Belöningsnamn",
+          "name": "Belöningsnamn",
           "internal_id": "Internt ID",
-          "reward_cost": "Belöningskostnad",
-          "reward_description": "Beskrivning (valfritt)",
+          "cost": "Belöningskostnad",
+          "description": "Beskrivning (valfritt)",
           "reward_labels": "Belöningsetiketter",
           "icon": "Ikon (mdi:xxx)"
         }
@@ -707,7 +759,7 @@
         "title": "Lägg till straff",
         "description": "Ange detaljerna för det nya straffet.",
         "data": {
-          "penalty_name": "Straffnamn",
+          "name": "Straffnamn",
           "penalty_description": "Beskrivning (valfritt)",
           "penalty_labels": "Straffetiketter",
           "internal_id": "Internt ID",
@@ -719,7 +771,7 @@
         "title": "Lägg till bonus",
         "description": "Ange detaljerna för den nya bonusen.",
         "data": {
-          "bonus_name": "Bonusnamn",
+          "name": "Bonusnamn",
           "bonus_description": "Beskrivning (valfritt)",
           "bonus_labels": "Bonusetiketter",
           "internal_id": "Internt ID",
@@ -767,13 +819,15 @@
         "title": "Redigera barn",
         "description": "Ändra detaljerna för det valda barnet.",
         "data": {
-          "kid_name": "Barnets namn",
+          "name": "Barnets namn",
           "ha_user": "Hemassistent-användare",
           "mobile_notify_service": "Aviseringar",
           "dashboard_language": "Språk",
           "internal_id": "Internt ID"
         },
         "data_description": {
+          "name": "Unikt namn för det här barnet, som används i hela systemet.",
+          "ha_user": "Valfritt: Länka det här barnet till en Home Assistant-användare för åtkomstkontroll till instrumentpanelen.",
           "mobile_notify_service": "Välj en aviseringstjänst för att aktivera aviseringar för det här barnet.",
           "dashboard_language": "Språk som används för din syssloöversikt och dina aviseringar."
         }
@@ -782,14 +836,15 @@
         "title": "Redigera skuggbarn",
         "description": "Ändra informationen om det valda skuggbarnet. ⚠️ Det här barnet är länkat till en förälder. Om namnet ändras bryts kravet på namnmatchning för att ta bort länken via tjänsten.",
         "data": {
-          "kid_name": "Barnets namn",
+          "name": "Barnets namn",
           "ha_user": "Hemassistent-användare",
           "mobile_notify_service": "Aviseringar",
           "dashboard_language": "Språk",
           "internal_id": "Internt ID"
         },
         "data_description": {
-          "kid_name": "⚠️ Detta skuggbarn är länkat till en förälder. Om du ändrar detta namn kommer funktionen för att koppla bort tjänsten att sluta fungera, vilket kräver matchande namn.",
+          "name": "⚠️ Detta skuggbarn är länkat till en förälder. Om du ändrar detta namn kommer funktionen för att koppla bort tjänsten att sluta fungera, vilket kräver matchande namn.",
+          "ha_user": "Valfritt: Länka det här barnet till en Home Assistant-användare för åtkomstkontroll till instrumentpanelen.",
           "mobile_notify_service": "⚠️ Skuggaviseringar för barn: Den länkade föräldern får redan aviseringar för övervakade sysslor. Om du aktiverar här skapas dubbletter aviseringar. Användbart för påminnelser om 30-minuters förfallodatum eller om du använder olika aviseringstjänster.",
           "dashboard_language": "Språk som används för din syssloöversikt och dina aviseringar."
         }
@@ -798,7 +853,7 @@
         "title": "Redigera förälder",
         "description": "Ändra informationen om den valda föräldern.",
         "data": {
-          "parent_name": "Föräldernamn",
+          "name": "Föräldernamn",
           "ha_user_id": "Hemassistent-användare",
           "associated_kids": "Associerade barn",
           "mobile_notify_service": "Aviseringar",
@@ -809,6 +864,9 @@
           "internal_id": "Internt ID"
         },
         "data_description": {
+          "name": "Unikt namn för denna förälder, som används i hela systemet.",
+          "ha_user_id": "Valfritt: Länka den här föräldern till en Home Assistant-användare för aviseringar och åtkomst till instrumentpanelen.",
+          "associated_kids": "Välj vilka barn den här föräldern övervakar för aviseringar och godkännandeåtgärder.",
           "mobile_notify_service": "Välj en aviseringstjänst för att aktivera aviseringar för den här föräldern, eller lämna tomt för att inaktivera.",
           "allow_chore_assignment": "Skapar en profil så att uppgifter kan tilldelas dig. Som standard visas bara en Godkänn-knapp för slutförande med ett klick. Obs: Om du avmarkerar rutan bevaras barnprofilen med suffixet '_unlinked' för manuell rensning.",
           "enable_chore_workflow": "Lägger till knappar för att göra anspråk och avvisa för hela arbetsflödet (göra anspråk → godkänn/avvisa).",
@@ -820,7 +878,7 @@
         "title": "Redigera syssla",
         "description": "Ändra detaljerna för den valda sysslan.",
         "data": {
-          "chore_name": "📋 Namn på syssla",
+          "name": "📋 Namn på syssla",
           "chore_description": "📋 Beskrivning (valfritt)",
           "icon": "📋 Ikon (mdi:xxx)",
           "chore_labels": "📋 Etiketter (valfritt)",
@@ -838,11 +896,13 @@
           "applicable_days": "📅 Schema: Tillämpliga dagar (valfritt)",
           "due_date": "📅 Schema: Förfallodatum (valfritt)",
           "clear_due_date": "🗑️ Rensa förfallodatum",
+          "chore_due_window_offset": "⏱️ Förfallofönster: Förskjutning före förfallodatum",
+          "chore_due_reminder_offset": "🔔 Förfallopåminnelse: Förskjutning före förfallodatum",
           "show_on_calendar": "📅 Visa i kalendern?",
           "chore_notifications": "🔔 Aviseringshändelser (valfritt)"
         },
         "data_description": {
-          "chore_name": "Unikt namn som visas i hela systemet.",
+          "name": "Unikt namn som visas i hela systemet.",
           "chore_description": "Valfria instruktioner eller detaljer om hur man slutför den här sysslan.",
           "icon": "Ikon för materialdesign (t.ex. mdi:kvast, mdi:diskmaskin).",
           "chore_labels": "Taggar för att organisera sysslor (t.ex. 'kök', 'utomhus'). Lämna tomt om det inte behövs.",
@@ -859,6 +919,8 @@
           "applicable_days": "Lämna tomt för alla dagar. ENDAST Välj specifika dagar att begränsa.",
           "due_date": "Valfri deadline. Kan kombineras med återkommande scheman. För SJÄLVSTÄNDIGA sysslor fungerar detta som en mall – en ytterligare skärm visas som tillåter individuella datum per barn.",
           "clear_due_date": "Markera den här rutan för att ta bort förfallodatumet från den här sysslan.",
+          "chore_due_window_offset": "När sysslan visas som \"Förfaller\" 1 dag före deadline. Format: '1d 6h 30m' eller bara '30' för minuter. Ange '0' för att inaktivera. Exempel: '1d' betyder att sysslan visas som \"Förfaller\" 1 dag före deadline.",
+          "chore_due_reminder_offset": "När påminnelsen om förfallodatum ska skickas. Format: '1d 6h 30m' eller bara '30' för minuter. Standard: 30m (30 minuter före förfallodatum). Ange '0' för att inaktivera.",
           "show_on_calendar": "Visa den här uppgiften i kalendervyn.",
           "chore_notifications": "När aviseringar ska skickas: Vid anspråk, vid godkännande, vid avslag eller någon kombination."
         }
@@ -1109,10 +1171,10 @@
         "title": "Redigera belöning",
         "description": "Ändra detaljerna för den valda belöningen.",
         "data": {
-          "reward_name": "Belöningsnamn",
+          "name": "Belöningsnamn",
           "internal_id": "Internt ID",
-          "reward_cost": "Belöningskostnad",
-          "reward_description": "Beskrivning (valfritt)",
+          "cost": "Belöningskostnad",
+          "description": "Beskrivning (valfritt)",
           "reward_labels": "Belöningsetiketter",
           "icon": "Ikon (mdi:xxx)"
         }
@@ -1121,7 +1183,7 @@
         "title": "Redigera straff",
         "description": "Ändra detaljerna för det valda straffet.",
         "data": {
-          "penalty_name": "Straffnamn",
+          "name": "Straffnamn",
           "penalty_description": "Beskrivning (valfritt)",
           "penalty_labels": "Straffetiketter",
           "internal_id": "Internt ID",
@@ -1133,7 +1195,7 @@
         "title": "Redigera bonus",
         "description": "Ändra detaljerna för den valda bonusen.",
         "data": {
-          "bonus_name": "Bonusnamn",
+          "name": "Bonusnamn",
           "bonus_description": "Beskrivning (valfritt)",
           "bonus_labels": "Bonusetiketter",
           "internal_id": "Internt ID",
@@ -1222,6 +1284,61 @@
         "description": "Är du säker på att du vill ta bort utmaningen {challenge_name}?",
         "data": {}
       },
+      "dashboard_generator": {
+        "title": "Hantera instrumentpanelen",
+        "description": "Skapa, uppdatera eller ta bort KidsChores Lovelace-instrumentpaneler.\n\n⚠️ **Obligatoriska anpassade kort** (installera via HACS → Frontend):\n- [**Svampkort**](https://github.com/piitaya/lovelace-mushroom) (`custom:svampmall-kort`)\n- [**Auto-entiteter**](https://github.com/thomasloven/lovelace-auto-entities) (`custom:auto-entities`)\n- [**Mini-grafkort**](https://github.com/kalkih/mini-graph-card) (`custom:mini-grafkort`)\n\nUtan dessa kort kommer instrumentpaneler att visa fel. Installera dem först från HACS innan du genererar instrumentpaneler.",
+        "data": {
+          "dashboard_action": "Handling",
+          "dashboard_check_cards": "Kontrollera kortinstallationen"
+        },
+        "data_description": {
+          "dashboard_action": "Välj om du vill skapa nya instrumentpaneler eller ta bort befintliga.",
+          "dashboard_check_cards": "Aktivera för att verifiera att nödvändiga anpassade kort är installerade innan du fortsätter."
+        }
+      },
+      "dashboard_create": {
+        "title": "Skapa/uppdatera instrumentpanel",
+        "description": "Generera en KidsChores-instrumentpanel med flikar för varje barn.\n\nVälj ett namn för instrumentpanelen, välj vilka barn som ska inkluderas och lägg eventuellt till en administratörsflik för föräldrahantering.",
+        "data": {
+          "dashboard_name": "Instrumentpanelens namn",
+          "dashboard_style": "Instrumentpanelens stil",
+          "dashboard_kid_selection": "Barn (en flik per barn)",
+          "dashboard_include_admin": "Inkludera administratörsfliken",
+          "dashboard_force_rebuild": "Tvinga ombyggnad (skriv över befintlig)"
+        },
+        "data_description": {
+          "dashboard_name": "Namn på instrumentpanelen (visas i sidofältet). Förslag: Sysslor",
+          "dashboard_style": "Välj layout för instrumentpanelen: Fullständig (alla funktioner), Minimal (endast det viktigaste) eller Kompakt (tät layout).",
+          "dashboard_kid_selection": "Välj vilka barn som ska skapas flikar för. Varje barn får sin egen vy/flik.",
+          "dashboard_include_admin": "Lägg till en administratörsflik med överordnade kontroller för godkännanden och hantering.",
+          "dashboard_force_rebuild": "Om aktiverad kommer den befintliga instrumentpanelen att skrivas över. Annars misslyckas genereringen om instrumentpanelen finns."
+        }
+      },
+      "dashboard_delete": {
+        "title": "Ta bort instrumentpanelen",
+        "description": "Välj KidsChores-instrumentpaneler att ta bort.\n\n⚠️ Den här åtgärden kan inte ångras.",
+        "data": {
+          "dashboard_delete_selection": "Instrumentpaneler att ta bort"
+        },
+        "data_description": {
+          "dashboard_delete_selection": "Välj en eller flera instrumentpaneler som ska tas bort permanent."
+        }
+      },
+      "dashboard_delete_confirm": {
+        "title": "Bekräfta borttagning",
+        "description": "⚠️ **Varning:** Följande instrumentpaneler kommer att raderas permanent:\n\n**{dashboards}**\n\nDetta tar bort instrumentpanelen från sidofältet och all konfiguration raderas.\n\nKlicka på Skicka för att bekräfta raderingen.",
+        "data": {}
+      },
+      "dashboard_generator_confirm": {
+        "title": "Bekräfta generering av instrumentpanel",
+        "description": "Följande instrumentpaneler kommer att skapas:\n\n**Stil:** {style}\n**Tvingad ombyggnad:** {force_rebuild}\n\n**Instrumentpaneler:**\n{dashboards}\n\nKlicka på Skicka för att generera instrumentpanelerna.",
+        "data": {}
+      },
+      "dashboard_generator_result": {
+        "title": "Resultat av generering av instrumentpaneler",
+        "description": "**Resultat:** {success_count} lyckades, {failure_count} misslyckades\n\n{results}\n\nKlicka på Skicka för att återgå till huvudmenyn.",
+        "data": {}
+      },
       "manage_general_options": {
         "title": "Allmänna alternativ",
         "description": "Hantera allmänna inställningar för KidsChores-integrationen.",
@@ -1248,7 +1365,7 @@
           "retention_monthly": "Antal månader med månatlig historisk data som ska behållas före rensning. Minst 1, högst 24.",
           "retention_yearly": "Antal år av årliga historiska data som ska behållas före sanering. Minst 1, högst 10.",
           "show_legacy_entities": "Visa extra entiteter som sensor och selects som nu är konsoliderade i instrumentpanelshjälpsensorn. Dessa entiteter är valfria för bakåtkompatibilitet med befintliga automatiseringar.",
-          "backups_max_retained": "Maximalt antal säkerhetskopior att behålla. Äldre säkerhetskopior raderas automatiskt. Ställ in på 0 för att inaktivera automatiska säkerhetskopior.",
+          "backups_max_retained": "Maximalt antal säkerhetskopior att behålla per tagg (t.ex. 5 manuella säkerhetskopior, 5 data_reset-säkerhetskopior). Äldre säkerhetskopior raderas automatiskt efter att varje ny säkerhetskopia skapas. Ställ in på 0 för att inaktivera automatiska säkerhetskopior helt.",
           "backup_action_selection": "Välj en åtgärd för säkerhetskopieringshantering: skapa en manuell säkerhetskopia, ta bort en säkerhetskopia eller återställ från en säkerhetskopia."
         }
       },
@@ -1281,11 +1398,34 @@
       },
       "select_backup_to_delete": {
         "title": "Välj Säkerhetskopiering att radera",
-        "description": "Välj en säkerhetskopia att radera.\n\nTillgängliga säkerhetskopior: {backup_count}\n\n⚠️ Skyddade säkerhetskopior (före migrering, manuella) kan inte raderas."
+        "description": "Välj en säkerhetskopia att radera.\n\nTillgängliga säkerhetskopior: {backup_count}"
       },
       "select_backup_to_restore": {
         "title": "Välj Säkerhetskopiera för att återställa",
-        "description": "Välj en säkerhetskopia att återställa.\n\nTillgängliga säkerhetskopior: {backup_count}\n\n⚠️ Detta kommer att ersätta dina nuvarande data!"
+        "description": "Välj en säkerhetskopia att återställa.\n\nTillgängliga säkerhetskopior: {backup_count}\n\n⚠️ Detta kommer att ersätta dina nuvarande data!",
+        "data": {
+          "backup_selection": "Välj en säkerhetskopia"
+        },
+        "data_description": {
+          "backup_selection": "Välj den säkerhetskopia du vill återställa."
+        }
+      },
+      "restore_backup": {
+        "title": "Alternativ för dataåterställning",
+        "description": "Befintlig KidsChores-data hittades i:\n{storage_path}\n\nHittade {backup_count} säkerhetskopior.\n\nVad vill du göra?",
+        "data": {
+          "backup_selection": "Välj alternativ"
+        }
+      },
+      "paste_json_restore": {
+        "title": "Importera JSON-data",
+        "description": "Klistra in hela JSON-innehållet från antingen:\n\n• En KidsChores-datafil (kidschores_data)\n• En diagnostiknedladdning\n\nSystemet kommer automatiskt att upptäcka och packa upp formatet efter behov. Både rådata för lagring och export av diagnostik stöds.",
+        "data": {
+          "json_data": "JSON-data"
+        },
+        "data_description": {
+          "json_data": "Klistra in hela JSON-innehållet här. Tar emot data från kidschores_data-filen eller diagnostikexporten (packar upp extra struktur automatiskt)."
+        }
       },
       "create_backup_confirm": {
         "title": "Skapa manuell säkerhetskopia",
@@ -1331,6 +1471,8 @@
       "due_date_in_past": "Förfallodatumet måste vara i framtiden.",
       "end_date_in_past": "Slutdatumet måste vara i framtiden.",
       "end_date_not_after_start_date": "Slutdatumet måste vara senare än startdatumet",
+      "err_end_before_start": "Slutdatumet måste vara efter startdatumet",
+      "err_name_duplicate": "En utmaning med detta namn finns redan",
       "invalid_badge": "Ogiltigt märke",
       "invalid_badge_count": "Ogiltigt antal märken",
       "invalid_chore": "Ogiltig syssla",
@@ -1341,6 +1483,8 @@
       "invalid_kid_count": "Ogiltigt antal barn",
       "invalid_kid_name": "Ogiltigt barnnamn",
       "no_kids_assigned": "Minst ett barn måste tilldelas sysslan",
+      "achievement_no_kids_assigned": "Minst ett barn måste tilldelas prestationen",
+      "challenge_no_kids_assigned": "Minst ett barn måste tilldelas utmaningen",
       "invalid_penalty": "Ogiltig straff",
       "invalid_penalty_count": "Ogiltigt antal straff",
       "invalid_bonus": "Ogiltig bonus",
@@ -1363,7 +1507,14 @@
       "error_daily_multi_due_date_required": "Frekvensen \"Flera gånger per dag\" kräver att ett förfallodatum anges. Datumet avgör när schemaläggningen startar och tiderna avgör tillgänglighetsfönstren varje dag.",
       "error_at_due_date_reset_requires_due_date": "Godkännandeåterställningstyperna \"Vid förfallodatum\" (en gång eller flera gånger) kräver att ett förfallodatum anges. Utan ett förfallodatum kommer återställningen av godkännandet aldrig att utlösas och sysslan förblir godkänd på obestämd tid.",
       "error_per_kid_applicable_days_invalid": "Ogiltigt tillämpligt dagsformat för ett eller flera barn. Dagarna måste vara heltal 0–6 (måndag–söndag) utan dubbletter.",
-      "error_per_kid_daily_multi_times_invalid": "Ogiltigt dagligt tidsformat för ett eller flera barn. Använd 24-timmarsformat avgränsat med | (t.ex. 08:00|17:00)."
+      "error_per_kid_daily_multi_times_invalid": "Ogiltigt dagligt tidsformat för ett eller flera barn. Använd 24-timmarsformat avgränsat med | (t.ex. 08:00|17:00).",
+      "dashboard_exists": "En instrumentpanel med den här URL-sökvägen finns redan. Aktivera \"Tvinga ombyggnad\" för att skriva över.",
+      "dashboard_template_error": "Det gick inte att hämta instrumentpanelsmallen. Kontrollera nätverksanslutningen eller försök igen senare.",
+      "dashboard_render_error": "Misslyckades med att rendera instrumentpanelsmallen. Detta kan tyda på ett mallfel.",
+      "dashboard_save_error": "Det gick inte att spara instrumentpanelen i Home Assistant. Kontrollera systemloggarna för mer information.",
+      "dashboard_no_name": "Ange ett namn för instrumentpanelen.",
+      "dashboard_no_kids": "Välj minst ett barn eller aktivera \"Inkludera administratörsflik\".",
+      "dashboard_no_dashboards": "Välj minst en instrumentpanel att ta bort."
     },
     "abort": {
       "invalid_action": "Ogiltig åtgärd",
@@ -1387,7 +1538,8 @@
       "no_achievement": "Inga prestationer är konfigurerade för redigering. Lägg till ett bidrag först.",
       "no_challenge": "Inga utmaningar är konfigurerade för redigering. Lägg till ett bidrag först.",
       "setup_complete": "Installationen är klar",
-      "backup_restored": "Säkerhetskopieringen har återställts. Integrationen har laddats om med den återställda datan."
+      "backup_restored": "Säkerhetskopieringen har återställts. Integrationen har laddats om med den återställda datan.",
+      "no_dashboards_to_delete": "Inga KidsChores-instrumentpaneler hittades. Skapa en först med hjälp av Hantera instrumentpanel."
     }
   },
   "selector": {
@@ -1403,9 +1555,30 @@
         "manage_bonus": "Hantera bonus",
         "manage_achievement": "Hantera prestation",
         "manage_challenge": "Hantera utmaning",
+        "dashboard_generator": "Hantera instrumentpanelen",
         "general_options": "Allmänna alternativ",
         "done": "Slutför installationen"
       }
+    },
+    "dashboard_action": {
+      "options": {
+        "create": "Skapa/uppdatera instrumentpanel",
+        "delete": "Ta bort instrumentpanelen"
+      }
+    },
+    "dashboard_style": {
+      "options": {
+        "dashboard_style_full": "Fullständig (alla funktioner)",
+        "dashboard_style_minimal": "Minimal (endast nödvändigheter)",
+        "dashboard_style_compact": "Kompakt (tät layout)",
+        "dashboard_style_admin": "Admin (föräldraöversikt)"
+      }
+    },
+    "dashboard_kid_selection": {
+      "options": {}
+    },
+    "dashboard_delete_selection": {
+      "options": {}
     },
     "manage_actions": {
       "options": {
@@ -1524,7 +1697,9 @@
         "notify_on_claim": "Meddela vid anspråk",
         "notify_on_approval": "Meddela vid godkännande",
         "notify_on_disapproval": "Meddela vid avslag",
-        "notify_on_reminder": "Meddela 30 minuter före förfallodatum"
+        "notify_on_reminder": "Meddela 30 minuter före förfallodatum (äldre version)",
+        "notify_on_due_window": "Meddela när förfallofönstret börjar",
+        "notify_due_reminder": "Meddela vid förfallotidpunkten för påminnelse"
       }
     },
     "recurring_frequency": {
@@ -1542,7 +1717,11 @@
         "custom_1_week": "Anpassad: 1 vecka",
         "custom_1_month": "Anpassad: 1 månad",
         "custom_1_quarter": "Anpassad: 1 Kvart",
-        "custom_1_year": "Anpassad: 1 år"
+        "custom_1_year": "Anpassad: 1 år",
+        "week_end": "Helgen",
+        "month_end": "Månadsslut",
+        "quarter_end": "Kvartsslut",
+        "year_end": "Årsslut"
       }
     },
     "occasion_type": {
@@ -1709,6 +1888,10 @@
           "name": "Belöningsnamn",
           "description": "Namnet på den belöning som godkänns.",
           "example": "Extra skärmtid"
+        },
+        "cost_override": {
+          "name": "Kostnadsåsidosättning",
+          "description": "Valfri kostnadsåsidosättning. Om utelämnad används belöningens lagrade kostnad. Sätt till 0 för ett gratis beviljande (som badge-belöningar). Användbart för kontextmedveten prissättning (helger, speciella tillfällen etc.)."
         }
       }
     },
@@ -1775,13 +1958,306 @@
         }
       }
     },
-    "reset_all_data": {
-      "name": "Återställ alla data",
-      "description": "Rensar KidsChores-data helt från lagringen."
+    "create_reward": {
+      "name": "Skapa belöning",
+      "description": "Skapa en ny belöning programmatiskt.",
+      "fields": {
+        "name": {
+          "name": "Namn",
+          "description": "Belöningens namn.",
+          "example": "Extra skärmtid"
+        },
+        "cost": {
+          "name": "Kosta",
+          "description": "Poäng som krävs för att hämta ut belöningen.",
+          "example": "10"
+        },
+        "description": {
+          "name": "Beskrivning",
+          "description": "Valfri beskrivning av belöningen.",
+          "example": "30 minuter extra tabletttid"
+        },
+        "icon": {
+          "name": "Ikon",
+          "description": "Ikon som representerar belöningen.",
+          "example": "mdi:gåva"
+        },
+        "labels": {
+          "name": "Etiketter",
+          "description": "Etiketter för gruppering av belöningar.",
+          "example": "['helg', 'special']"
+        }
+      }
     },
-    "reset_all_chores": {
-      "name": "Återställ alla sysslor",
-      "description": "Återställ manuellt sysslor till väntande tillstånd, vilket tar bort anspråk och godkännanden."
+    "update_reward": {
+      "name": "Uppdatera belöning",
+      "description": "Uppdatera en befintlig belöning (delvisa uppdateringar stöds).",
+      "fields": {
+        "id": {
+          "name": "Belönings-ID",
+          "description": "Internt ID för belöningen som ska uppdateras. Använd antingen ID ELLER namn.",
+          "example": "abc123-def456-789..."
+        },
+        "name": {
+          "name": "Namn",
+          "description": "Namn på belöningen som ska uppdateras, eller nytt namn för belöningen.",
+          "example": "Extra skärmtid"
+        },
+        "cost": {
+          "name": "Kosta",
+          "description": "Uppdaterat kostnadsvärde.",
+          "example": "15"
+        },
+        "description": {
+          "name": "Beskrivning",
+          "description": "Uppdaterad beskrivning.",
+          "example": "45 minuter extra tabletttid"
+        },
+        "icon": {
+          "name": "Ikon",
+          "description": "Uppdaterad ikon.",
+          "example": "mdi:stjärna"
+        },
+        "labels": {
+          "name": "Etiketter",
+          "description": "Uppdaterade etiketter.",
+          "example": "['premium', 'special']"
+        }
+      }
+    },
+    "delete_reward": {
+      "name": "Ta bort belöning",
+      "description": "Ta bort en belöning efter ID eller namn.",
+      "fields": {
+        "id": {
+          "name": "Belönings-ID",
+          "description": "Internt ID för belöningen som ska raderas. Använd antingen ID ELLER namn.",
+          "example": "abc123-def456-789..."
+        },
+        "name": {
+          "name": "Namn",
+          "description": "Namn på belöningen som ska raderas.",
+          "example": "Extra skärmtid"
+        }
+      }
+    },
+    "create_chore": {
+      "name": "Skapa syssla",
+      "description": "Skapa en ny syssla som barnen kan slutföra för att tjäna poäng.",
+      "fields": {
+        "name": {
+          "name": "Sysslanamn",
+          "description": "Namnet på den syssla som ska skapas.",
+          "example": "Rent rum"
+        },
+        "assigned_kids": {
+          "name": "Tilldelade barn",
+          "description": "Lista med barnnamn att tilldela den här sysslan.",
+          "example": "['Emma', 'Jack']"
+        },
+        "points": {
+          "name": "Poäng",
+          "description": "Poäng ges när sysslan är klar.",
+          "example": "10"
+        },
+        "description": {
+          "name": "Beskrivning",
+          "description": "Valfri beskrivning av sysslan.",
+          "example": "Bädda sängen, lägga undan leksaker, dammsuga golvet"
+        },
+        "icon": {
+          "name": "Ikon",
+          "description": "Material Design-ikon för sysslan.",
+          "example": "mdi:kvast"
+        },
+        "labels": {
+          "name": "Etiketter",
+          "description": "Valfria etiketter för att kategorisera sysslan.",
+          "example": "['dagligen', 'sovrum']"
+        },
+        "frequency": {
+          "name": "Frekvens",
+          "description": "Hur ofta sysslan återkommer: ingen, dagligen, dagligen_fler gånger, veckovis, varannan vecka, månadsvis, kvartalsvis, årlig, anpassad, anpassad_från_fullständig eller periodslut (veckoslut, månadsslut, kvartalsslut, årsslut).",
+          "example": "dagligen"
+        },
+        "applicable_days": {
+          "name": "Tillämpliga dagar",
+          "description": "Veckodagar då sysslan är tillämplig.",
+          "example": "['mån', 'ons', 'fre']"
+        },
+        "completion_criteria": {
+          "name": "Slutförandekriterier",
+          "description": "Hur sysslan slutförs när flera barn tilldelas: oberoende (varje barn slutför separat), delad_först (första barnet som slutför får poäng) eller delad_alla (alla barn måste slutföra). Kan inte ändras efter att den skapats.",
+          "example": "oberoende"
+        },
+        "approval_reset_type": {
+          "name": "Återställningstyp för godkännande",
+          "description": "När sysslan återställs för att slutföras på nytt.",
+          "example": "vid_midnatt_en_gång"
+        },
+        "pending_claims": {
+          "name": "Väntande kravåtgärder",
+          "description": "Vad händer med väntande anspråk när rutin återställs: hold_pending (behåll anspråk), clear_pending (ta bort anspråk) eller auto_approve_pending (godkänn alla väntande).",
+          "example": "väntande_på_att_hålla"
+        },
+        "overdue_handling": {
+          "name": "Försenad hantering",
+          "description": "Hur man hanterar sysslan när den blir försenad.",
+          "example": "förfallodatum"
+        },
+        "auto_approve": {
+          "name": "Autogodkänn",
+          "description": "Om det är sant godkänns sysslan automatiskt när den görs anspråk på.",
+          "example": "falsk"
+        },
+        "due_date": {
+          "name": "Förfallodatum",
+          "description": "Valfritt förfallodatum för sysslan. Använd datum-/tidsväljaren för att välja ett giltigt datum och tid.",
+          "example": "2025-03-01T23:59:00Z"
+        },
+        "due_window_offset": {
+          "name": "Förskjutning för förfallet fönster",
+          "description": "Varaktighet före förfallodatum när sysslan går in i förfalloläget. Format: '30m', '1h', '1d 6h 30m', etc. Använd '0' för att inaktivera funktionen för förfallofönster.",
+          "example": "30m"
+        },
+        "due_reminder_offset": {
+          "name": "Förskjutning av förfallna påminnelser",
+          "description": "Tid före förfallodatum för att skicka påminnelsemeddelande. Format: '30m', '1h', '1d 6h 30m', etc. Använd '0' för att inaktivera påminnelser.",
+          "example": "30m"
+        }
+      }
+    },
+    "update_chore": {
+      "name": "Uppdatera syssla",
+      "description": "Uppdatera egenskaperna för en befintlig syssla. Ange antingen id ELLER namn för att identifiera sysslan. Endast angivna fält kommer att uppdateras. Obs: completion_criteria kan inte ändras efter att den skapats.",
+      "fields": {
+        "id": {
+          "name": "Sysslo-ID",
+          "description": "Det interna ID:t för den syssla som ska uppdateras (alternativt till namn).",
+          "example": "abc-123-def-456"
+        },
+        "name": {
+          "name": "Sysslans namn (identifierare)",
+          "description": "Namnet på den syssla som ska uppdateras (alternativ till id). Mer användarvänligt än id.",
+          "example": "Rent rum"
+        },
+        "assigned_kids": {
+          "name": "Tilldelade barn",
+          "description": "Ny lista med barnnamn att tilldela den här sysslan.",
+          "example": "['Emma', 'Jack']"
+        },
+        "points": {
+          "name": "Poäng",
+          "description": "Nytt poängvärde för sysslan.",
+          "example": "15"
+        },
+        "description": {
+          "name": "Beskrivning",
+          "description": "Ny beskrivning av sysslan.",
+          "example": "Bädda sängen, organisera skrivbordet, dammsuga golvet"
+        },
+        "icon": {
+          "name": "Ikon",
+          "description": "Ny materialdesignikon för sysslan.",
+          "example": "mdi:vakuum"
+        },
+        "labels": {
+          "name": "Etiketter",
+          "description": "Nya etiketter för sysslan.",
+          "example": "['veckovis', 'städning']"
+        },
+        "frequency": {
+          "name": "Frekvens",
+          "description": "Ny återkommande frekvens: ingen, dagligen, daily_multi, veckovis, varannan vecka, månadsvis, kvartalsvis, årlig, anpassad, anpassad_från_komplett eller periodslut (week_end, month_end, quarter_end, year_end).",
+          "example": "varje vecka"
+        },
+        "applicable_days": {
+          "name": "Tillämpliga dagar",
+          "description": "Nya veckodagar då sysslan är tillämplig.",
+          "example": "['lör', 'sol']"
+        },
+        "approval_reset_type": {
+          "name": "Återställningstyp för godkännande",
+          "description": "Ny återställningstyp för när sysslan återställs.",
+          "example": "förfallodatum_en_gång"
+        },
+        "pending_claims": {
+          "name": "Väntande kravåtgärder",
+          "description": "Ny åtgärd för väntande anspråk när sysslan återställs.",
+          "example": "rensa_väntande"
+        },
+        "overdue_handling": {
+          "name": "Försenad hantering",
+          "description": "Nytt beteende vid hantering av försenade händelser.",
+          "example": "aldrig_försenad"
+        },
+        "auto_approve": {
+          "name": "Autogodkänn",
+          "description": "Ny inställning för automatiskt godkännande.",
+          "example": "sann"
+        },
+        "due_date": {
+          "name": "Förfallodatum",
+          "description": "Nytt förfallodatum för sysslan. Använd datum-/tidsväljaren för att välja ett giltigt datum och tid.",
+          "example": "2025-04-01T18:00:00Z"
+        },
+        "due_window_offset": {
+          "name": "Förskjutning för förfallet fönster",
+          "description": "Ny förskjutning för förfallodatum. Längd före förfallodatum när sysslan går in i förfalloläget. Format: '30m', '1h', '1d 6h 30m', etc. Använd '0' för att inaktivera.",
+          "example": "1 timme"
+        },
+        "due_reminder_offset": {
+          "name": "Förskjutning av förfallna påminnelser",
+          "description": "Ny förskjutning för förfallodatum för påminnelse. Tid före förfallodatum för att skicka påminnelsemeddelande. Format: '30m', '1h', '1d 6h 30m', etc. Använd '0' för att inaktivera.",
+          "example": "30m"
+        }
+      }
+    },
+    "delete_chore": {
+      "name": "Ta bort syssla",
+      "description": "Ta bort en syssla efter ID eller namn. Alla barnspecifika statusar och historik kommer att tas bort.",
+      "fields": {
+        "id": {
+          "name": "Sysslo-ID",
+          "description": "Internt ID för den syssla som ska raderas. Använd antingen ID ELLER namn.",
+          "example": "abc123-def456-789..."
+        },
+        "name": {
+          "name": "Namn",
+          "description": "Namn på den syssla som ska raderas.",
+          "example": "Rent rum"
+        }
+      }
+    },
+    "reset_chores_to_pending_state": {
+      "name": "Återställ sysslor till väntande tillstånd",
+      "description": "Återställ alla sysslor manuellt till väntande tillstånd, vilket tar bort anspråk och godkännanden."
+    },
+    "reset_transactional_data": {
+      "name": "Återställ transaktionsdata",
+      "description": "Återställ runtime-/transaktionsdata samtidigt som konfigurationen (barn, sysslor, belöningar etc.) bevaras. En automatisk säkerhetskopia skapas före återställning som kidschores_data_<timestamp>_reset i .storage-katalogen. Använd scope för att rikta in sig på specifika barn eller domäner. VIKTIGT: Kräver confirm_destructive: true som en säkerhetsmekanism.",
+      "fields": {
+        "confirm_destructive": {
+          "name": "Bekräfta destruktiv",
+          "description": "Måste vara satt till sant för att bekräfta att du vill fortsätta med återställningen. Detta är en säkerhetsmekanism."
+        },
+        "scope": {
+          "name": "Omfattning",
+          "description": "Återställ omfattning: 'global' återställer all data, 'kid' återställer endast data för ett specifikt barn."
+        },
+        "kid_name": {
+          "name": "Barnets namn",
+          "description": "Obligatoriskt om omfånget är 'kid'. Namnet på det barn vars data ska återställas."
+        },
+        "item_type": {
+          "name": "Artikeltyp",
+          "description": "Valfritt filter för att endast återställa en specifik domän (t.ex. bara poäng eller bara sysslor)."
+        },
+        "item_name": {
+          "name": "Artikelnamn",
+          "description": "Valfritt filter för att återställa ett specifikt objekt inom domänen item_type."
+        }
+      }
     },
     "reset_overdue_chores": {
       "name": "Återställ försenade sysslor",
@@ -1856,54 +2332,6 @@
         }
       }
     },
-    "reset_penalties": {
-      "name": "Återställ straff",
-      "description": "Återställ alla tillämpade straff för alla barn. Ange valfritt straffnamn för att återställa ett specifikt straff för alla barn. Använd barnets namn för att återställa alla straff för ett specifikt barn. Kombinera båda för att återställa ett specifikt straff för ett specifikt barn.",
-      "fields": {
-        "kid_name": {
-          "name": "Barnets namn",
-          "description": "Barnet för vilket straffen kommer att återställas.",
-          "example": "Alice"
-        },
-        "penalty_name": {
-          "name": "Straffnamn",
-          "description": "Namnet på straffet som ska återställas.",
-          "example": "Skriker"
-        }
-      }
-    },
-    "reset_bonuses": {
-      "name": "Återställ bonusar",
-      "description": "Återställ alla tillämpade bonusar för alla barn. Ange eventuellt bonusnamn för att återställa en specifik bonus för alla barn. Använd barnets namn för att återställa alla bonusar för ett specifikt barn. Kombinera båda för att återställa en specifik bonus för ett specifikt barn.",
-      "fields": {
-        "kid_name": {
-          "name": "Barnets namn",
-          "description": "Barnet vars bonusar kommer att återställas.",
-          "example": "Alice"
-        },
-        "bonus_name": {
-          "name": "Bonusnamn",
-          "description": "Namnet på bonusen som ska återställas.",
-          "example": "Portion"
-        }
-      }
-    },
-    "reset_rewards": {
-      "name": "Återställ belöningar",
-      "description": "Återställ alla antal belöningsanspråk och godkännanden för alla barn. Ange valfritt ett namn på en belöning för att återställa ett specifikt belöningsantal för alla barn. Använd barnets namn för att återställa alla belöningsantal för ett specifikt barn. Kombinera båda för att återställa en specifik belöning för ett specifikt barn.",
-      "fields": {
-        "kid_name": {
-          "name": "Barnets namn",
-          "description": "Barnet som belöningen räknas för kommer att nollställas.",
-          "example": "Alice"
-        },
-        "reward_name": {
-          "name": "Belöningsnamn",
-          "description": "Namnet på belöningen som ska återställas.",
-          "example": "Glass"
-        }
-      }
-    },
     "remove_awarded_badges": {
       "name": "Ta bort tilldelade märken",
       "description": "Ta bort alla tilldelade märken för alla barn. Ange eventuellt märkets namn för att återställa ett specifikt märke för alla barn. Använd barnets namn för att återställa alla märken för ett specifikt barn. Kombinera båda för att återställa ett specifikt märke för ett specifikt barn.",
@@ -1929,6 +2357,7 @@
           "pending": "I avvaktan på",
           "approved": "Godkänd",
           "claimed": "Anspråk",
+          "due": "Förfaller",
           "overdue": "Försenad",
           "unknown": "Okänd",
           "none": "Ingen",
@@ -1968,8 +2397,8 @@
             "name": "Slutförandekriterier",
             "state": {
               "independent": "Oberoende",
-              "shared_first_only": "Delad (först)",
-              "shared_all_required": "Delad (alla)"
+              "shared_first": "Delad (först)",
+              "shared_all": "Delad (alla)"
             }
           },
           "approval_reset_type": {
@@ -2028,13 +2457,16 @@
             }
           },
           "chore_points_earned": {
-            "name": "Intjänade poäng"
+            "name": "Intjänade poäng (hela tiden)"
           },
           "chore_approvals_count": {
             "name": "Godkännanden (hela tiden)"
           },
           "chore_claims_count": {
             "name": "Anspråk (hela tiden)"
+          },
+          "chore_completed_count": {
+            "name": "Avslutad (hela tiden)"
           },
           "chore_disapproved_count": {
             "name": "Avslag (alla tider)"
@@ -2048,8 +2480,8 @@
           "chore_current_streak": {
             "name": "Nuvarande svit"
           },
-          "chore_highest_streak": {
-            "name": "Högsta svit"
+          "chore_longest_streak": {
+            "name": "Längsta svit"
           },
           "chore_last_longest_streak_date": {
             "name": "Senaste längsta seriedatum"
@@ -2059,6 +2491,9 @@
           },
           "last_approved": {
             "name": "Senast godkänd"
+          },
+          "last_completed": {
+            "name": "Senast slutförd"
           },
           "last_disapproved": {
             "name": "Senast avvisad"
@@ -2102,6 +2537,15 @@
           },
           "claim_button_eid": {
             "name": "Enhets-ID för knappen Anspråk"
+          },
+          "due_window_start": {
+            "name": "Förfallofönstrets start"
+          },
+          "time_until_due": {
+            "name": "Tid till förfallodatum"
+          },
+          "time_until_overdue": {
+            "name": "Tid till förfallodatum"
           }
         }
       },
@@ -2312,6 +2756,57 @@
           "chore_stat_disapproved_all_time": {
             "name": "Ej godkänd hela tiden"
           },
+          "chore_stat_completed_today": {
+            "name": "Avslutad idag"
+          },
+          "chore_stat_completed_week": {
+            "name": "Avslutad denna vecka"
+          },
+          "chore_stat_completed_month": {
+            "name": "Avslutad denna månad"
+          },
+          "chore_stat_completed_year": {
+            "name": "Färdigställd i år"
+          },
+          "chore_stat_completed_all_time": {
+            "name": "Avslutad hela tiden"
+          },
+          "chore_stat_points_today": {
+            "name": "Poäng idag"
+          },
+          "chore_stat_points_week": {
+            "name": "Poäng denna vecka"
+          },
+          "chore_stat_points_month": {
+            "name": "Poäng denna månad"
+          },
+          "chore_stat_points_year": {
+            "name": "Poäng i år"
+          },
+          "chore_stat_points_all_time": {
+            "name": "Poäng genom tiderna"
+          },
+          "chore_stat_top_chores_week": {
+            "name": "Bästa syssla (vecka)"
+          },
+          "chore_stat_top_chores_month": {
+            "name": "Bästa syssla (månad)"
+          },
+          "chore_stat_top_chores_year": {
+            "name": "Bästa syssla (år)"
+          },
+          "chore_stat_chores_completed_today": {
+            "name": "Avslutad idag"
+          },
+          "chore_stat_chores_completed_week": {
+            "name": "Avslutad denna vecka"
+          },
+          "chore_stat_chores_completed_month": {
+            "name": "Avslutad denna månad"
+          },
+          "chore_stat_chores_completed_year": {
+            "name": "Färdigställd i år"
+          },
           "chore_stat_current_due_today": {
             "name": "Förfallodag idag"
           },
@@ -2336,11 +2831,17 @@
           "chore_stat_longest_streak_all_time": {
             "name": "Längsta serie (genom tiderna)"
           },
+          "chore_stat_longest_streak": {
+            "name": "Längsta svit"
+          },
           "chore_stat_avg_per_day_week": {
             "name": "Genomsnitt per dag (vecka)"
           },
           "chore_stat_avg_per_day_month": {
             "name": "Genomsnitt per dag (månad)"
+          },
+          "chore_stat_avg_per_day_year": {
+            "name": "Genomsnitt per dag (år)"
           }
         }
       },
@@ -2593,6 +3094,7 @@
           "pending": "I avvaktan på",
           "approved": "Godkänd",
           "claimed": "Anspråk",
+          "due": "Förfaller",
           "overdue": "Försenad",
           "unknown": "Okänd",
           "none": "Ingen",
@@ -2629,8 +3131,8 @@
             "name": "Slutförandekriterier",
             "state": {
               "independent": "Oberoende",
-              "shared_first_only": "Delad (endast första)",
-              "shared_all_required": "Delat (alla obligatoriska)"
+              "shared_first": "Delad (endast första)",
+              "shared_all": "Delat (alla obligatoriska)"
             }
           },
           "approval_reset_type": {
@@ -2689,20 +3191,33 @@
           "last_approved": {
             "name": "Senast godkänd"
           },
+          "last_completed": {
+            "name": "Senast slutförd"
+          },
           "chore_claimed_by": {
             "name": "Anspråk på av"
           },
           "chore_completed_by": {
             "name": "Slutförd av"
+          },
+          "due_window_start": {
+            "name": "Förfallofönstrets start"
+          },
+          "time_until_due": {
+            "name": "Tid till förfallodatum"
+          },
+          "time_until_overdue": {
+            "name": "Tid till förfallodatum"
           }
         }
       },
       "kid_reward_status_sensor": {
         "name": "Belöningsstatus - {reward_name}",
         "state": {
-          "not_claimed": "Inte gjort anspråk",
+          "locked": "Låst",
+          "available": "Tillgänglig",
+          "requested": "Begärde",
           "approved": "Godkänd",
-          "claimed": "Anspråk",
           "unknown": "Okänd",
           "none": "Ingen"
         },
@@ -2733,6 +3248,9 @@
           },
           "last_approved": {
             "name": "Senast godkänd"
+          },
+          "last_completed": {
+            "name": "Senast slutförd"
           },
           "last_disapproved": {
             "name": "Senast avvisad"
@@ -3184,6 +3702,26 @@
       "system_bonuses_select": {
         "name": "Välj bonus"
       },
+      "system_dashboard_admin_kid_select": {
+        "name": "Admin-instrumentpanel Barnväljare",
+        "state_attributes": {
+          "purpose": {
+            "name": "Ändamål",
+            "state": {
+              "purpose_system_dashboard_admin_kid": "Systemnivåväljare för barn för administratörsöversiktskort"
+            }
+          },
+          "dashboard_helper_eid": {
+            "name": "Enhets-ID för instrumentpanelshjälp"
+          },
+          "selected_kid_slug": {
+            "name": "Vald barnsnigel"
+          },
+          "selected_kid_name": {
+            "name": "Valt barnnamn"
+          }
+        }
+      },
       "kid_dashboard_helper_chores_select": {
         "name": "Hjälp för sysslolista för UI-instrumentpanelen",
         "state_attributes": {
@@ -3394,6 +3932,10 @@
       },
       "parent_points_adjust_button": {
         "name": "{sign_label} {points_label}",
+        "sign_label": {
+          "increment": "Ökning",
+          "decrement": "Minskning"
+        },
         "state_attributes": {
           "purpose": {
             "name": "Ändamål",
@@ -3484,6 +4026,9 @@
     "shared_chore_cannot_have_kid": {
       "message": "Kan inte ange barn för delad syssla {chore_name}. Delade sysslor har ett förfallodatum för alla barn."
     },
+    "reward_not_found": {
+      "message": "Belöning med ID '{reward_id}' hittades inte"
+    },
     "required_field": {
       "message": "Måste ange {field}"
     },
@@ -3495,6 +4040,18 @@
     },
     "missing_chore": {
       "message": "Måste ange antingen sysslo-ID eller sysslonamn."
+    },
+    "missing_chore_identifier": {
+      "message": "Måste ange antingen chore_id eller chore_name för att identifiera sysslan."
+    },
+    "chore_not_found": {
+      "message": "Syssla med ID '{chore_id}' hittades inte."
+    },
+    "completion_criteria_immutable": {
+      "message": "Slutförandekriterier kan inte ändras efter att rutin har skapats. Ta bort och återskapa rutin om du behöver ett annat slutförandekriterium."
+    },
+    "missing_reward_identifier": {
+      "message": "Måste ange antingen reward_id eller reward_name för att identifiera den belöning som ska uppdateras."
     },
     "missing_field": {
       "message": "Obligatoriskt fält {field} saknas från {entity}"
@@ -3510,6 +4067,36 @@
     },
     "configuration_error": {
       "message": "Konfigurationsfel: {detail}"
+    },
+    "data_reset_confirmation_required": {
+      "message": "Du måste ange confirm_destructive: true för att fortsätta med dataåterställningen"
+    },
+    "data_reset_kid_not_found": {
+      "message": "Barnet '{kid_name}' hittades inte"
+    },
+    "data_reset_item_not_found": {
+      "message": "{item_type} '{item_name}' hittades inte"
+    },
+    "data_reset_invalid_scope": {
+      "message": "Ogiltigt omfång '{scope}'. Måste vara: global, kid, item_type eller item"
+    },
+    "data_reset_invalid_item_type": {
+      "message": "Ogiltig objekttyp '{item_type}'. Måste vara: barn, sysslor, belöningar, märken, prestationer, utmaningar, straff eller bonusar"
+    },
+    "notif_title_data_reset": {
+      "message": "Återställning av transaktionsdata"
+    },
+    "notif_message_data_reset_global": {
+      "message": "All körtidsdata har återställts. Konfigurationen har bevarats."
+    },
+    "notif_message_data_reset_kid": {
+      "message": "Dataåterställning klar för {kid_name}. Poäng, statistik och framsteg har rensats."
+    },
+    "notif_message_data_reset_item_type": {
+      "message": "Dataåterställning klar för alla {item_type}. Körtidsdata rensad."
+    },
+    "notif_message_data_reset_item": {
+      "message": "Dataåterställning klar för {item_name}. Körtidsdata rensad."
     }
   }
 }

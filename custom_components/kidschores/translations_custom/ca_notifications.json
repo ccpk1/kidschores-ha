@@ -23,6 +23,14 @@
     "title": "⏰ Tasques pendents aviat!",
     "message": "{chore_name} s'ha d'entregar en {minutes} minuts (+{points}pts)"
   },
+  "chore_due_reminder": {
+    "title": "⏰ Tasques pendents aviat!",
+    "message": "{chore_name} s'ha d'entregar en {minutes} minuts (+{points}pts)"
+  },
+  "chore_due_window": {
+    "title": "🔔 Tasca pendent",
+    "message": "{chore_name} ja ha d'arribar! Completa-ho en {hours} hora(es) per guanyar {points} punts"
+  },
   "chore_reminder": {
     "title": "KidsChores: Recordatori per a tasques pendents",
     "message": "Recordatori: La tasca {chore_name} reclamada per {kid_name} està pendent d'aprovació."
@@ -101,10 +109,12 @@
   },
   "actions": {
     "approve": "Aprova",
+    "claim": "✋ Reclama ara",
+    "complete": "Complet",
     "disapprove": "Rebutjar",
     "remind_30": "Recorda en 30 minuts",
+    "skip": "Omet",
     "approve_latest": "✅ Aprova l'última versió",
-    "review_all": "👀 Revisa-ho tot",
-    "claim": "✋ Reclama ara"
+    "review_all": "👀 Revisa-ho tot"
   }
 }

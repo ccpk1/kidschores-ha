@@ -23,6 +23,14 @@
     "title": "⏰ Aufgabe bald fällig!",
     "message": "{chore_name} ist in {minutes} Minuten fällig (+{points}Punkte)"
   },
+  "chore_due_reminder": {
+    "title": "⏰ Aufgabe bald fällig!",
+    "message": "{chore_name} ist in {minutes} Minuten fällig (+{points}Punkte)"
+  },
+  "chore_due_window": {
+    "title": "🔔 Aufgabe jetzt fällig",
+    "message": "{chore_name} ist jetzt fällig! Schließe es innerhalb von {hours} Stunden ab, um {points} Punkte zu erhalten."
+  },
   "chore_reminder": {
     "title": "Kinderaufgaben: Erinnerung an anstehende Aufgaben",
     "message": "Hinweis: Die von {kid_name} beanspruchte Aufgabe {chore_name} wartet auf Genehmigung"
@@ -101,10 +109,12 @@
   },
   "actions": {
     "approve": "Genehmigen",
+    "claim": "✋ Jetzt beanspruchen",
+    "complete": "Vollständig",
     "disapprove": "Missbilligen",
     "remind_30": "Erinnere in 30 Minuten",
+    "skip": "Überspringen",
     "approve_latest": "✅ Neueste Version genehmigen",
-    "review_all": "👀 Alle ansehen",
-    "claim": "✋ Jetzt beanspruchen"
+    "review_all": "👀 Alle ansehen"
   }
 }
