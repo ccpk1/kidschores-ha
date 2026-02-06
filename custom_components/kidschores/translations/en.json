@@ -1286,7 +1286,7 @@
       },
       "dashboard_generator": {
         "title": "Manage Dashboard",
-        "description": "Create, update, or delete KidsChores Lovelace dashboards.\n\n⚠️ **Required Custom Cards** (install via HACS → Frontend):\n- [**Mushroom Cards**](https://github.com/piitaya/lovelace-mushroom) (`custom:mushroom-template-card`)\n- [**Auto-Entities**](https://github.com/thomasloven/lovelace-auto-entities) (`custom:auto-entities`)\n- [**Mini Graph Card**](https://github.com/kalkih/mini-graph-card) (`custom:mini-graph-card`)\n\nWithout these cards, dashboards will show errors. Install them first from HACS before generating dashboards.",
+        "description": "Create, update, or delete KidsChores Lovelace dashboards. Required Custom Cards (install via HACS Frontend): Mushroom Cards (custom:mushroom-template-card), Auto-Entities (custom:auto-entities), Mini Graph Card (custom:mini-graph-card). Without these cards, dashboards will show errors. Install them first from HACS before generating dashboards.",
         "data": {
           "dashboard_action": "Action",
           "dashboard_check_cards": "Check Card Installation"
@@ -2235,7 +2235,7 @@
     },
     "reset_transactional_data": {
       "name": "Reset Transactional Data",
-      "description": "Reset runtime/transactional data while preserving configuration (kids, chores, rewards, etc.). An automatic backup is created before reset as kidschores_data_<timestamp>_reset in the .storage directory. Use scope to target specific kids or domains. IMPORTANT: Requires confirm_destructive: true as a safety mechanism.",
+      "description": "Reset runtime/transactional data while preserving configuration (kids, chores, rewards, etc.). An automatic backup is created before reset as kidschores_data_timestamp_reset in the .storage directory. Use scope to target specific kids or domains. Requires confirm_destructive parameter set to true as a safety mechanism.",
       "fields": {
         "confirm_destructive": {
           "name": "Confirm Destructive",
@@ -3931,11 +3931,7 @@
         }
       },
       "parent_points_adjust_button": {
-        "name": "{sign_label} {points_label}",
-        "sign_label": {
-          "increment": "Increment",
-          "decrement": "Decrement"
-        },
+        "name": "Adjust {points_label}",
         "state_attributes": {
           "purpose": {
             "name": "Purpose",
@@ -4027,7 +4023,7 @@
       "message": "Cannot specify kid for shared chore {chore_name}. Shared chores have one due date for all kids."
     },
     "reward_not_found": {
-      "message": "Reward with ID '{reward_id}' not found"
+      "message": "Reward with ID {reward_id} not found"
     },
     "required_field": {
       "message": "Must provide {field}"
@@ -4045,7 +4041,7 @@
       "message": "Must provide either chore_id or chore_name to identify the chore."
     },
     "chore_not_found": {
-      "message": "Chore with ID '{chore_id}' not found."
+      "message": "Chore with ID {chore_id} not found."
     },
     "completion_criteria_immutable": {
       "message": "Completion criteria cannot be changed after chore creation. Delete and recreate the chore if you need a different completion criteria."
@@ -4072,16 +4068,16 @@
       "message": "You must set confirm_destructive: true to proceed with data reset"
     },
     "data_reset_kid_not_found": {
-      "message": "Kid '{kid_name}' not found"
+      "message": "Kid {kid_name} not found"
     },
     "data_reset_item_not_found": {
-      "message": "{item_type} '{item_name}' not found"
+      "message": "{item_type} {item_name} not found"
     },
     "data_reset_invalid_scope": {
-      "message": "Invalid scope '{scope}'. Must be: global, kid, item_type, or item"
+      "message": "Invalid scope {scope}. Must be: global, kid, item_type, or item"
     },
     "data_reset_invalid_item_type": {
-      "message": "Invalid item_type '{item_type}'. Must be: kids, chores, rewards, badges, achievements, challenges, penalties, or bonuses"
+      "message": "Invalid item_type {item_type}. Must be: kids, chores, rewards, badges, achievements, challenges, penalties, or bonuses"
     },
     "notif_title_data_reset": {
       "message": "Transactional Data Reset"

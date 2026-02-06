@@ -3,7 +3,7 @@
   "name": "KidsChores",
   "codeowners": ["@ad-ha", "@ccpk1"],
   "config_flow": true,
-  "dependencies": [],
+  "dependencies": ["lovelace"],
   "documentation": "https://github.com/ad-ha/kidschores-ha",
   "integration_type": "service",
   "iot_class": "calculated",
