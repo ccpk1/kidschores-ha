@@ -9,15 +9,15 @@
   },
   "chore_approved": {
     "title": "KidsChores: Goedgekeurde klusjes",
-    "message": "Chore {chore_name} goedgekeurd! +{points} punten"
+    "message": "{kid_name}: {chore_name} goedgekeurd! +{points} punten"
   },
   "chore_disapproved": {
     "title": "KidsChores: Klusjes afgekeurd",
-    "message": "Chore {chore_name} is niet goedgekeurd"
+    "message": "De taak van {kid_name} {chore_name} werd niet goedgekeurd"
   },
   "chore_overdue": {
     "title": "KidsChores: Klusjes die al lang hadden moeten gebeuren",
-    "message": "De klus {chore_name} is te laat! De uiterste inleverdatum was {due_date}"
+    "message": "{kid_name}: {chore_name} is te laat! De uiterste inleverdatum was {due_date}"
   },
   "chore_due_soon": {
     "title": "⏰ Klus die binnenkort af moet!",

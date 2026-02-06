@@ -9,15 +9,15 @@
   },
   "chore_approved": {
     "title": "Tasques infantils: Tasques aprovades",
-    "message": "Tasca {chore_name} aprovada! +{points} punts"
+    "message": "{kid_name}: {chore_name} aprovat! +{points} punts"
   },
   "chore_disapproved": {
     "title": "Tasques infantils: Tasca rebutjada",
-    "message": "La tasca {chore_name} no s'ha aprovat"
+    "message": "La tasca de {kid_name} {chore_name} no ha estat aprovada"
   },
   "chore_overdue": {
     "title": "Tasques infantils: Tasca pendent",
-    "message": "La tasca {chore_name} està endarrerida! La data de venciment era {due_date}"
+    "message": "{kid_name}: {chore_name} està vençut! La data de venciment era {due_date}"
   },
   "chore_due_soon": {
     "title": "⏰ Tasques pendents aviat!",

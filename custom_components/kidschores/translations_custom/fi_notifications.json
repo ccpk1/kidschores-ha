@@ -9,15 +9,15 @@
   },
   "chore_approved": {
     "title": "KidsChores: Kotitöiden hyväksyntä",
-    "message": "Kotitehtävä {chore_name} hyväksytty! +{points} pistettä"
+    "message": "{kid_name}: {chore_name} hyväksytty! +{points} pistettä"
   },
   "chore_disapproved": {
     "title": "KidsChores: Kotitehtävä hylätty",
-    "message": "Työtä {chore_name} ei hyväksytty"
+    "message": "{kid_name}:n tehtävää {chore_name} ei hyväksytty"
   },
   "chore_overdue": {
     "title": "KidsChores: Kotiapu myöhässä",
-    "message": "Kotityö {chore_name} on myöhässä! Määräpäivä oli {due_date}"
+    "message": "{kid_name}: {chore_name} on myöhässä! Eräpäivä oli {due_date}"
   },
   "chore_due_soon": {
     "title": "⏰ Pian erääntyy kotityö!",

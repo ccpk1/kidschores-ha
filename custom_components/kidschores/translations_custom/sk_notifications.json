@@ -9,15 +9,15 @@
   },
   "chore_approved": {
     "title": "KidsChores: Schválené domáce práce",
-    "message": "Domáca úloha {chore_name} schválená! +{points} bodov"
+    "message": "{kid_name}: {chore_name} schválené! +{points} bodov"
   },
   "chore_disapproved": {
     "title": "Domáce práce pre deti: Domáce práce zamietnuté",
-    "message": "Úloha {chore_name} nebola schválená"
+    "message": "Úloha od {kid_name} {chore_name} nebola schválená"
   },
   "chore_overdue": {
     "title": "Detské domáce práce: Domáce práce po termíne",
-    "message": "Domáca úloha {chore_name} je po termíne! Dátum odovzdania bol {due_date}"
+    "message": "{kid_name}: {chore_name} je po termíne! Dátum splatnosti bol {due_date}"
   },
   "chore_due_soon": {
     "title": "⏰ Úloha čoskoro!",

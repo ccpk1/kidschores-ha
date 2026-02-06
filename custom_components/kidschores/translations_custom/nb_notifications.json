@@ -9,15 +9,15 @@
   },
   "chore_approved": {
     "title": "Barnehusarbeid: Godkjent for husarbeid",
-    "message": "Gjøremål {chore_name} godkjent! +{points} poeng"
+    "message": "{kid_name}: {chore_name} godkjent! +{points} poeng"
   },
   "chore_disapproved": {
     "title": "Barneoppgaver: Gjøremål ikke godkjent",
-    "message": "Gjøremål {chore_name} ble ikke godkjent"
+    "message": "{kid_name}sitt gjøremål {chore_name} ble ikke godkjent"
   },
   "chore_overdue": {
     "title": "Barneoppgaver: Forfalte oppgaver",
-    "message": "Gjøremål {chore_name} er for sent! Forfallsdato var {due_date}"
+    "message": "{kid_name}: {chore_name} er for sent! Forfallsdatoen var {due_date}"
   },
   "chore_due_soon": {
     "title": "⏰ Gjøremål snart ferdig!",

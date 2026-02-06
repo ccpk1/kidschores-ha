@@ -9,15 +9,15 @@
   },
   "chore_approved": {
     "title": "KidsChores : Les tâches ménagères approuvées",
-    "message": "Tâche {chore_name} approuvée ! +{points} points"
+    "message": "{kid_name}: {chore_name} approuvé ! +{points} points"
   },
   "chore_disapproved": {
     "title": "KidsChores : Tâches désapprouvées",
-    "message": "La tâche {chore_name} n'a pas été approuvée"
+    "message": "La tâche de {kid_name} {chore_name} n'a pas été approuvée"
   },
   "chore_overdue": {
     "title": "KidsChores : Tâches ménagères en retard",
-    "message": "La tâche {chore_name} est en retard ! La date limite était le {due_date}"
+    "message": "{kid_name}: {chore_name} est en retard ! La date d'échéance était le {due_date}"
   },
   "chore_due_soon": {
     "title": "⏰ Tâches à rendre bientôt !",
