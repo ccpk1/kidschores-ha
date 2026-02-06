@@ -134,12 +134,15 @@ async def migrate_config_to_storage(
     )
 
     # Create backup of storage data before migration
+    # Set flag to prevent duplicate backup in schema migrations
+    backup_flag_key = f"{const.DOMAIN}_pre_migration_backup_created"
     try:
         backup_name = await bh.create_timestamped_backup(
             hass, store, const.BACKUP_TAG_PRE_MIGRATION
         )
         if backup_name:
             const.LOGGER.info("INFO: Created pre-migration backup: %s", backup_name)
+            hass.data[backup_flag_key] = True
         else:
             const.LOGGER.warning("WARNING: No data available for pre-migration backup")
     except Exception as err:
@@ -307,7 +310,7 @@ class PreV50Migrator:
         """
         self.coordinator = coordinator
 
-    def run_all_migrations(self) -> None:
+    async def run_all_migrations(self) -> None:
         """Execute all pre-v50 migrations in the correct order.
 
         Migrations are run sequentially with proper error handling and logging.
@@ -317,6 +320,29 @@ class PreV50Migrator:
         const.LOGGER.info(
             "Starting pre-v50 schema migrations for upgrade to modern format"
         )
+
+        # Create pre-migration backup before any schema transformations
+        # Skip if config→storage migration already created one this session
+        backup_flag_key = f"{const.DOMAIN}_pre_migration_backup_created"
+        if not self.coordinator.hass.data.get(backup_flag_key, False):
+            try:
+                backup_name = await bh.create_timestamped_backup(
+                    self.coordinator.hass,
+                    self.coordinator.store,
+                    const.BACKUP_TAG_PRE_MIGRATION,
+                )
+                if backup_name:
+                    const.LOGGER.info("Created pre-migration backup: %s", backup_name)
+                    self.coordinator.hass.data[backup_flag_key] = True
+            except Exception as ex:
+                const.LOGGER.warning(
+                    "Failed to create pre-migration backup (migration will continue): %s",
+                    ex,
+                )
+        else:
+            const.LOGGER.debug(
+                "Skipping schema migration backup (config→storage backup already created)"
+            )
 
         # Phase 1: Schema migrations (data structure transformations)
         self._migrate_datetime_wrapper()
@@ -911,13 +937,13 @@ class PreV50Migrator:
             # Step 6: Clear broken per-chore temporal periods
             # Earlier migrations incorrectly populated yearly/monthly/weekly/daily
             # with cumulative all_time values instead of period-specific values.
-            # We cannot retroactively compute correct values, so reset to empty.
-            # StatisticsEngine will repopulate on-demand from new transactions.
+            # CRITICAL FIX: Only clear if data appears broken (single bucket with all-time key)
+            # Preserve legitimate period data from beta2+ installations.
             chore_data = kid_info.get(const.DATA_KID_CHORE_DATA, {})
             for chore_item in chore_data.values():
                 periods = chore_item.get(const.DATA_KID_CHORE_DATA_PERIODS, {})
 
-                # Clear all temporal period buckets (keep all_time intact)
+                # Clear temporal period buckets ONLY if broken (single "all_time" key)
                 for period_type in (
                     const.PERIOD_DAILY,
                     const.PERIOD_WEEKLY,
@@ -925,7 +951,22 @@ class PreV50Migrator:
                     const.PERIOD_YEARLY,
                 ):
                     if period_type in periods:
-                        periods[period_type] = {}
+                        period_bucket = periods[period_type]
+                        # Broken data has single key "all_time" with cumulative values
+                        # Valid data has date keys like "2026-02-01", "2026-W05", "2026-02", "2026"
+                        if (
+                            len(period_bucket) == 1
+                            and const.PERIOD_ALL_TIME in period_bucket
+                        ):
+                            # Broken format detected - clear it
+                            periods[period_type] = {}
+                            const.LOGGER.debug(
+                                "Cleared broken %s period data for chore '%s' (kid '%s')",
+                                period_type,
+                                chore_item.get(const.DATA_CHORE_NAME, "unknown"),
+                                kid_name,
+                            )
+                        # Otherwise preserve existing valid period data
 
         const.LOGGER.info(
             "Completed v43 chore_periods migration: "

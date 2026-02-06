@@ -13,7 +13,7 @@ This guide documents the rules and patterns for creating, modifying, and managin
 KidsChores generates a **single dashboard** with **multiple views (tabs)**:
 
 ```
-kc-chores (Dashboard)
+kcd-chores (Dashboard)
 ├── Kid1 (View/Tab) ← kid template rendered with kid context
 ├── Kid2 (View/Tab)  ← kid template rendered with kid context
 └── Admin (View/Tab) ← admin template rendered with empty context
@@ -22,7 +22,7 @@ kc-chores (Dashboard)
 **Key Points**:
 
 - One dashboard per installation (user names it, e.g., "Chores")
-- URL path: `kc-{slugified-name}` (e.g., `kc-chores`)
+- URL path: `kcd-{slugified-name}` (e.g., `kcd-chores`)
 - Each kid gets their own view/tab
 - Optional Admin tab for parent controls
 - Style (full/minimal/compact) applies to all kid views

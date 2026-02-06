@@ -62,8 +62,8 @@ STORAGE_VERSION: Final = 1
 # Schema version for template context structure (bump when context dict changes)
 DASHBOARD_TEMPLATE_SCHEMA_VERSION: Final = 1
 
-# URL path prefix for generated dashboards (e.g., kc-alice, kc-admin)
-DASHBOARD_URL_PATH_PREFIX: Final = "kc-"
+# URL path prefix for generated dashboards (e.g., kcd-alice, kcd-admin)
+DASHBOARD_URL_PATH_PREFIX: Final = "kcd-"
 
 # Available dashboard styles
 DASHBOARD_STYLE_FULL: Final = "full"

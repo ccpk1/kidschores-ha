@@ -74,7 +74,7 @@
      - [x] **Admin template**: Includes kid dropdown selector for parent administration
      - [x] Use HA's `DashboardsCollection.async_create_item()` for dashboard registration
      - [x] Store dashboard config via `LovelaceStorage.async_save()`
-     - [x] Dashboard URL path pattern: `kc-{kid_slug}` or `kc-admin` (e.g., `kc-alice`, `kc-admin`)
+     - [x] Dashboard URL path pattern: `kcd-{kid_slug}` or `kcd-admin` (e.g., `kcd-alice`, `kcd-admin`)
      - [x] Custom card detection with warning box and verification checkbox
      - [x] SystemDashboardAdminKidSelect entity for dynamic admin kid selection
    - **Completion confirmation**: `[x]` All follow-up items completed, plan archived

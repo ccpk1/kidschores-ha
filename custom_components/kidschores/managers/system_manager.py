@@ -151,7 +151,7 @@ class SystemManager(BaseManager):
         # NOTE: The migrator handles ALL pre-v50 logic including meta section setup
         # and legacy key cleanup. This keeps migration logic in one droppable module.
         if current_version < const.SCHEMA_VERSION_STORAGE_ONLY:
-            self._run_pre_v50_migrations()
+            await self._run_pre_v50_migrations()
             const.LOGGER.info(
                 "SystemManager: Migrated from schema %s to %s",
                 current_version,
@@ -175,7 +175,7 @@ class SystemManager(BaseManager):
         # Signal domain managers to begin their initialization
         self.emit(const.SIGNAL_SUFFIX_DATA_READY)
 
-    def _run_pre_v50_migrations(self) -> None:
+    async def _run_pre_v50_migrations(self) -> None:
         """Run pre-v50 schema migrations.
 
         Lazy-loads the migration module to avoid any cost for v50+ users.
@@ -187,7 +187,7 @@ class SystemManager(BaseManager):
         from ..migration_pre_v50 import PreV50Migrator
 
         migrator = PreV50Migrator(self.coordinator)
-        migrator.run_all_migrations()
+        await migrator.run_all_migrations()
 
     async def run_startup_safety_net(self) -> int:
         """Run startup safety net - removes orphaned entities.

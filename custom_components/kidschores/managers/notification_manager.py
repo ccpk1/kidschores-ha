@@ -2128,6 +2128,9 @@ class NotificationManager(BaseManager):
         parent_actions.extend(self.build_skip_action(kid_id, chore_id))
         parent_actions.extend(self.build_remind_action(kid_id, chore_id))
 
+        # Get kid name from payload (ChoreManager includes it)
+        kid_name = payload.get("kid_name", "Unknown")
+
         # Format due date for parents (using parent language)
         # Note: due_date is pre-formatted by ChoreManager for kid language,
         # so we pass through for parents (could refactor to pass raw datetime)
@@ -2136,7 +2139,11 @@ class NotificationManager(BaseManager):
                 kid_id,
                 title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_OVERDUE,
                 message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_OVERDUE,
-                message_data={"chore_name": chore_name, "due_date": due_date},
+                message_data={
+                    "kid_name": kid_name,
+                    "chore_name": chore_name,
+                    "due_date": due_date,
+                },
                 actions=parent_actions,
                 tag_type=const.NOTIFY_TAG_TYPE_STATUS,
                 tag_identifiers=(chore_id, kid_id),

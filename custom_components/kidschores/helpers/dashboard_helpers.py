@@ -126,15 +126,15 @@ def get_dashboard_url_path(kid_name: str, style: str) -> str:
         style: Dashboard style (full, minimal, compact, admin).
 
     Returns:
-        URL path like "kc-alice" or "kc-alice-compact".
+        URL path like "kcd-alice" or "kcd-alice-compact".
 
     Examples:
         >>> get_dashboard_url_path("Alice", "full")
-        'kc-alice'
+        'kcd-alice'
         >>> get_dashboard_url_path("Alice", "compact")
-        'kc-alice-compact'
+        'kcd-alice-compact'
         >>> get_dashboard_url_path("", "admin")
-        'kc-admin'
+        'kcd-admin'
     """
     if style == const.DASHBOARD_STYLE_ADMIN:
         return f"{const.DASHBOARD_URL_PATH_PREFIX}admin"
@@ -374,7 +374,7 @@ def get_existing_kidschores_dashboards(
     """Get list of existing KidsChores dashboards.
 
     Scans the lovelace dashboards collection for dashboards
-    with url_path starting with 'kc-' (our namespace).
+    with url_path starting with 'kcd-' (our namespace).
 
     Args:
         hass: Home Assistant instance.
@@ -391,12 +391,12 @@ def get_existing_kidschores_dashboards(
 
     lovelace_data = hass.data[LOVELACE_DATA]
 
-    # Check dashboards dict for kc-* entries
+    # Check dashboards dict for kcd-* entries
     for url_path in lovelace_data.dashboards:
         # Skip None or non-string keys
         if not url_path or not isinstance(url_path, str):
             continue
-        if url_path.startswith("kc-"):
+        if url_path.startswith("kcd-"):
             # Try to get the title from the panel
             title = url_path  # Fallback
             if hasattr(lovelace_data.dashboards[url_path], "config"):

@@ -263,10 +263,10 @@ def get_multi_view_url_path(dashboard_name: str) -> str:
         dashboard_name: User-specified dashboard name (e.g., "Chores").
 
     Returns:
-        Slugified URL path with kc- prefix (e.g., "kc-chores").
+        Slugified URL path with kcd- prefix (e.g., "kcd-chores").
     """
     slug = slugify(dashboard_name.lower())
-    return f"kc-{slug}"
+    return f"kcd-{slug}"
 
 
 # ==============================================================================
@@ -279,7 +279,7 @@ def check_dashboard_exists(hass: HomeAssistant, url_path: str) -> bool:
 
     Args:
         hass: Home Assistant instance.
-        url_path: Dashboard URL path to check (e.g., "kc-alice").
+        url_path: Dashboard URL path to check (e.g., "kcd-alice").
 
     Returns:
         True if dashboard exists, False otherwise.
@@ -331,7 +331,7 @@ async def create_kidschores_dashboard(
         icon: Dashboard icon.
 
     Returns:
-        The URL path of the created dashboard (e.g., "kc-chores").
+        The URL path of the created dashboard (e.g., "kcd-chores").
 
     Raises:
         DashboardExistsError: If dashboard exists and force_rebuild is False.
@@ -479,7 +479,7 @@ async def delete_kidschores_dashboard(
 
     Args:
         hass: Home Assistant instance.
-        url_path: Dashboard URL path (e.g., "kc-alice").
+        url_path: Dashboard URL path (e.g., "kcd-alice").
 
     Raises:
         DashboardSaveError: If deletion fails.
@@ -487,7 +487,7 @@ async def delete_kidschores_dashboard(
     if hass.config.recovery_mode:
         raise DashboardSaveError("Cannot delete dashboards in recovery mode")
 
-    if not url_path.startswith("kc-"):
+    if not url_path.startswith("kcd-"):
         raise DashboardSaveError(f"Cannot delete non-KidsChores dashboard: {url_path}")
 
     await _delete_dashboard(hass, url_path)

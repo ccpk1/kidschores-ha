@@ -9,15 +9,15 @@
   },
   "chore_approved": {
     "title": "KidsChores: Chore Approved",
-    "message": "Chore {chore_name} approved! +{points} points"
+    "message": "{kid_name}: {chore_name} approved! +{points} points"
   },
   "chore_disapproved": {
     "title": "KidsChores: Chore Disapproved",
-    "message": "Chore {chore_name} was not approved"
+    "message": "{kid_name}'s chore {chore_name} was not approved"
   },
   "chore_overdue": {
     "title": "KidsChores: Chore Overdue",
-    "message": "Chore {chore_name} is overdue! Due date was {due_date}"
+    "message": "{kid_name}: {chore_name} is overdue! Due date was {due_date}"
   },
   "chore_due_soon": {
     "title": "⏰ Chore Due Soon!",

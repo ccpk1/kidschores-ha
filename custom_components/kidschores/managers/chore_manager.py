@@ -688,9 +688,11 @@ class ChoreManager(BaseManager):
 
         # Emit approval event - EconomyManager listens and handles point deposit
         # (Platinum Architecture: signal-first, no cross-manager writes)
+        kid_name = self._get_kid_name(kid_id)
         self.emit(
             const.SIGNAL_SUFFIX_CHORE_APPROVED,
             kid_id=kid_id,
+            kid_name=kid_name,
             chore_id=chore_id,
             parent_name=parent_name,
             base_points=base_points,  # EconomyManager applies multiplier
@@ -884,9 +886,11 @@ class ChoreManager(BaseManager):
 
         # Emit disapproval event
         # StatisticsManager._on_chore_disapproved handles cache refresh and entity notification
+        kid_name = self._get_kid_name(kid_id)
         self.emit(
             const.SIGNAL_SUFFIX_CHORE_DISAPPROVED,
             kid_id=kid_id,
+            kid_name=kid_name,
             chore_id=chore_id,
             parent_name=parent_name,
             reason=reason,
@@ -1366,6 +1370,7 @@ class ChoreManager(BaseManager):
             self.emit(
                 const.SIGNAL_SUFFIX_CHORE_OVERDUE,
                 kid_id=kid_id,
+                kid_name=kid_name,
                 chore_id=chore_id,
                 chore_name=chore_data.get(const.DATA_CHORE_NAME, ""),
                 days_overdue=days_overdue,
