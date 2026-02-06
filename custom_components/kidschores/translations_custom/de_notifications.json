@@ -9,15 +9,15 @@
   },
   "chore_approved": {
     "title": "KidsChores: Von der Hausarbeit geprüft",
-    "message": "Aufgabe {chore_name} genehmigt! +{points} Punkte"
+    "message": "{kid_name}: {chore_name} genehmigt! +{points} Punkte"
   },
   "chore_disapproved": {
     "title": "Kinderaufgaben: Aufgaben missbilligt",
-    "message": "Aufgabe {chore_name} wurde nicht genehmigt"
+    "message": "{kid_name}s Aufgabe {chore_name} wurde nicht genehmigt"
   },
   "chore_overdue": {
     "title": "Kinderaufgaben: Überfällige Aufgabe",
-    "message": "Aufgabe {chore_name} ist überfällig! Fälligkeitsdatum war {due_date}"
+    "message": "{kid_name}: {chore_name} ist überfällig! Fälligkeitsdatum war {due_date}"
   },
   "chore_due_soon": {
     "title": "⏰ Aufgabe bald fällig!",

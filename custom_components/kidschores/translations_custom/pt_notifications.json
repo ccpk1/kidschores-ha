@@ -9,15 +9,15 @@
   },
   "chore_approved": {
     "title": "Tarefas para Crianças: Aprovadas",
-    "message": "Tarefa {chore_name} aprovada! +{points} pontos"
+    "message": "{kid_name}: {chore_name} aprovado! +{points} pontos"
   },
   "chore_disapproved": {
     "title": "Tarefas para Crianças: Tarefas Não Aprovadas",
-    "message": "A tarefa {chore_name} não foi aprovada."
+    "message": "{kid_name}'s chore {chore_name} was not approved"
   },
   "chore_overdue": {
     "title": "Tarefas para Crianças: Tarefas Atrasadas",
-    "message": "A tarefa {chore_name} está atrasada! A data de validade era {due_date}"
+    "message": "{kid_name}: {chore_name} está atrasado! A data de validade era {due_date}"
   },
   "chore_due_soon": {
     "title": "⏰ Tarefa para entregar em breve!",

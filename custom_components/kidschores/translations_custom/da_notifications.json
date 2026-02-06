@@ -9,15 +9,15 @@
   },
   "chore_approved": {
     "title": "Børneopgaver: Godkendt til pligter",
-    "message": "Opgave {chore_name} godkendt! +{points} point"
+    "message": "{kid_name}: {chore_name} godkendt! +{points} point"
   },
   "chore_disapproved": {
     "title": "Børneopgaver: Huslige pligter ikke godkendt",
-    "message": "Opgave {chore_name} blev ikke godkendt"
+    "message": "{kid_name}s opgave {chore_name} blev ikke godkendt"
   },
   "chore_overdue": {
     "title": "Børneopgaver: Forsinkede opgaver",
-    "message": "Opgave {chore_name} er for sent! Forfaldsdatoen var {due_date}"
+    "message": "{kid_name}: {chore_name} er for sent! Forfaldsdatoen var {due_date}"
   },
   "chore_due_soon": {
     "title": "⏰ Huslige pligter skal snart afleveres!",

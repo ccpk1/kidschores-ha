@@ -9,15 +9,15 @@
   },
   "chore_approved": {
     "title": "KidsChores: Tareas aprobadas",
-    "message": "Tarea {chore_name} ¡aprobada! +{points} puntos"
+    "message": "{kid_name}: {chore_name} ¡aprobado! +{points} puntos"
   },
   "chore_disapproved": {
     "title": "KidsChores: Tarea desaprobada",
-    "message": "La tarea {chore_name} no fue aprobada"
+    "message": "La tarea {kid_name}de {chore_name} no fue aprobada"
   },
   "chore_overdue": {
     "title": "KidsChores: Tareas atrasadas",
-    "message": "¡La tarea {chore_name} está atrasada! La fecha de entrega era {due_date}"
+    "message": "{kid_name}: ¡ {chore_name} está vencido! La fecha de entrega era {due_date}"
   },
   "chore_due_soon": {
     "title": "⏰ ¡Tarea pendiente pronto!",
