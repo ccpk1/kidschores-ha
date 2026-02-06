@@ -13,6 +13,16 @@
           "backup_selection": "Selecione a opção"
         }
       },
+      "paste_json_input": {
+        "title": "Importar dados JSON",
+        "description": "Cole o conteúdo JSON completo de um dos seguintes ficheiros:\n\n• Um ficheiro de dados do KidsChores (kidschores_data)\n• Um ficheiro de diagnóstico descarregado\n\nO sistema irá detetar e converter o formato automaticamente, conforme necessário. Os formatos de dados brutos armazenados e de exportação de diagnóstico são suportados.",
+        "data": {
+          "json_data": "Dados JSON"
+        },
+        "data_description": {
+          "json_data": "Cole aqui todo o conteúdo JSON. Aceita dados do ficheiro kidschores_data ou da exportação de diagnósticos (desempacota automaticamente a estrutura extra)."
+        }
+      },
       "points_label": {
         "title": "Rótulo de Pontos",
         "description": "Escolha um rótulo e um ícone para os pontos.",
@@ -26,7 +36,25 @@
         "description": "Atualize as definições do sistema, como o rótulo e o ícone dos pontos.",
         "data": {
           "points_label": "Rótulo de Pontos",
-          "points_icon": "Ícone de Pontos"
+          "points_icon": "Ícone de Pontos",
+          "update_interval": "Intervalo de atualização (minutos)",
+          "calendar_show_period": "Período de exibição do calendário (dias)",
+          "retention_daily": "Retenção diária (dias)",
+          "retention_weekly": "Retenção semanal (semanas)",
+          "retention_monthly": "Retenção mensal (meses)",
+          "retention_yearly": "Retenção anual (anos)",
+          "points_adjust_values": "Valores de ajuste de ponto (tubagem separada)"
+        },
+        "data_description": {
+          "points_label": "Etiqueta apresentada para pontos (ex.: 'Pontos', 'Estrelas', 'Moedas')",
+          "points_icon": "Ícone MDI para pontos (ex: 'mdi:star', 'mdi:coin', 'mdi:trophy')",
+          "update_interval": "Com que frequência atualizar os dados (mínimo de 1 minuto)?",
+          "calendar_show_period": "Dias históricos a apresentar no calendário (mínimo 1)",
+          "retention_daily": "Dias para manter os agregados diários",
+          "retention_weekly": "Semanas para manter os agregados semanais",
+          "retention_monthly": "Meses para manter os agregados mensais",
+          "retention_yearly": "Anos para manter os agregados anuais",
+          "points_adjust_values": "Valores de ponto separados por pipe para botões de ajuste manual (ex: +1,0|-1,0|+10,0|-10,0)"
         }
       },
       "kid_count": {
@@ -40,7 +68,7 @@
         "title": "Defina criança",
         "description": "Introduza o nome de cada criança.",
         "data": {
-          "kid_name": "Nome da criança",
+          "name": "Nome da criança",
           "ha_user": "Utilizador do Home Assistant",
           "mobile_notify_service": "Notificações",
           "dashboard_language": "Idioma"
@@ -61,13 +89,16 @@
         "title": "Definir pai",
         "description": "Introduza os dados de cada um dos pais.",
         "data": {
-          "parent_name": "Nome do responsável",
+          "name": "Nome do responsável",
           "ha_user_id": "Utilizador do Home Assistant",
           "associated_kids": "Crianças Associadas",
           "mobile_notify_service": "Notificações",
           "dashboard_language": "Idioma"
         },
         "data_description": {
+          "name": "Nome único para este pai, utilizado em todo o sistema.",
+          "ha_user_id": "Opcional: Ligue este pai a um utilizador do Home Assistant para receber notificações e aceder ao painel de controlo.",
+          "associated_kids": "Selecione quais as crianças que este responsável supervisiona para receber notificações e aprovações.",
           "mobile_notify_service": "Selecione um serviço de notificação para ativar as notificações para este pai ou deixe em branco para as desativar.",
           "dashboard_language": "Idioma utilizado no seu painel de tarefas e nas notificações."
         }
@@ -83,7 +114,7 @@
         "title": "Adicionar tarefa",
         "description": "Crie uma nova tarefa com pontos, atribuições e um cronograma recorrente.",
         "data": {
-          "chore_name": "📋 Nome da tarefa",
+          "name": "📋 Nome da tarefa",
           "chore_description": "📋 Descrição (opcional)",
           "icon": "📋 Ícone (mdi:xxx)",
           "chore_labels": "📋 Etiquetas (opcional)",
@@ -99,11 +130,13 @@
           "custom_interval_unit": "🔄 Cronograma: Unidade de Intervalo Personalizada",
           "applicable_days": "📅 Cronograma: Dias aplicáveis (opcional)",
           "due_date": "📅 Cronograma: Data de vencimento (opcional)",
+          "chore_due_window_offset": "⏱️ Prazo de vencimento: Pagar antes da data de vencimento",
+          "chore_due_reminder_offset": "🔔 Lembrete: Pague antes do vencimento",
           "show_on_calendar": "📅 Mostrar no calendário?",
           "chore_notifications": "🔔 Eventos de notificação (opcional)"
         },
         "data_description": {
-          "chore_name": "Nome único apresentado em todo o sistema.",
+          "name": "Nome único apresentado em todo o sistema.",
           "chore_description": "Instruções ou detalhes opcionais sobre como completar esta tarefa.",
           "icon": "Ícone do Material Design (ex.: mdi:broom, mdi:dishwasher).",
           "chore_labels": "Etiquetas para organizar tarefas (ex.: 'cozinha', 'exterior'). Deixe em branco se não for necessário.",
@@ -119,6 +152,8 @@
           "custom_interval_unit": "Unidade de tempo para intervalo personalizado (dias, semanas, meses). Utilizada apenas com frequência personalizada.",
           "applicable_days": "Deixe em branco para todos os dias. Selecione APENAS os dias específicos que pretende restringir.",
           "due_date": "Prazo facultativo. Pode ser combinado com marcações recorrentes.",
+          "chore_due_window_offset": "Quando o estado da tarefa mudar de Pendente para Vencimento. Formato: '1d 6h 30m' ou apenas '30' para minutos. Introduza '0' para desativar. Exemplo: '1d' significa que a tarefa aparece como 'Vencindo' 1 dia antes do prazo.",
+          "chore_due_reminder_offset": "Quando enviar a notificação de lembrete de vencimento. Formato: '1d 6h 30m' ou apenas '30' para minutos. Padrão: 30m (30 minutos antes do vencimento). Introduza '0' para desativar.",
           "show_on_calendar": "Visualizar esta tarefa na visualização de calendário.",
           "chore_notifications": "Quando enviar notificações: No pedido, na aprovação, na rejeição ou em qualquer combinação destes fatores."
         }
@@ -191,10 +226,10 @@
         "title": "Defina recompensa",
         "description": "Introduza os detalhes para cada recompensa.",
         "data": {
-          "reward_name": "Nome da recompensa",
+          "name": "Nome da recompensa",
           "internal_id": "ID interno",
-          "reward_cost": "Custo da recompensa",
-          "reward_description": "Descrição (opcional)",
+          "cost": "Custo da recompensa",
+          "description": "Descrição (opcional)",
           "reward_labels": "Etiquetas de recompensa",
           "icon": "Ícone (mdi:xxx)"
         }
@@ -210,7 +245,7 @@
         "title": "Defina penalidade",
         "description": "Introduza os detalhes de cada penalidade.",
         "data": {
-          "penalty_name": "Nome da penalidade",
+          "name": "Nome da penalidade",
           "penalty_description": "Descrição (opcional)",
           "penalty_labels": "Etiquetas de penalização",
           "internal_id": "ID interno",
@@ -229,7 +264,7 @@
         "title": "Defina bónus",
         "description": "Insira os detalhes de cada bónus.",
         "data": {
-          "bonus_name": "Nome do bónus",
+          "name": "Nome do bónus",
           "bonus_description": "Descrição (opcional)",
           "bonus_labels": "Etiquetas bónus",
           "internal_id": "ID interno",
@@ -308,6 +343,10 @@
       "due_date_in_past": "A data de vencimento deve ser futura.",
       "end_date_in_past": "A data de fim deve ser futura.",
       "end_date_not_after_start_date": "A data de fim deve ser posterior à data de início.",
+      "err_end_before_start": "A data de fim deve ser posterior à data de início.",
+      "err_name_duplicate": "Já existe um desafio com este nome.",
+      "achievement_no_kids_assigned": "Pelo menos uma criança deve ser designada para esta conquista.",
+      "challenge_no_kids_assigned": "Pelo menos uma criança deve ser atribuída ao desafio.",
       "invalid_achievement_count": "Contagem de conquistas inválida",
       "invalid_achievement_name": "Nome de conquista inválido",
       "invalid_badge": "Crachá inválido",
@@ -318,6 +357,7 @@
       "invalid_chore": "Tarefa inválida",
       "invalid_chore_count": "Contagem de tarefas inválida",
       "invalid_chore_name": "Nome de tarefa inválido",
+      "invalid_points": "A pontuação deve ser zero ou superior.",
       "invalid_overdue_reset_combination": "A opção \"Repor na data de vencimento\" só funciona com reinicializações à meia-noite. Selecione \"À meia-noite (uma vez)\" ou \"À meia-noite (repetíveis)\" para obter o tipo de reposição de aprovação.",
       "invalid_due_date": "Data de vencimento inválida",
       "date_required_for_frequency": "É necessário definir uma data de vencimento para esta frequência recorrente. A opção \"Limpar datas\" só funciona com as frequências \"Nenhuma\", \"Diária\" ou \"Semanal\".",
@@ -333,6 +373,7 @@
       "invalid_reward": "Recompensa inválida",
       "invalid_reward_count": "Contagem de recompensas inválida",
       "invalid_reward_name": "Nome de recompensa inválido",
+      "invalid_reward_cost": "O custo da recompensa deve ser zero ou superior.",
       "invalid_bonus": "Bónus inválido",
       "invalid_bonus_count": "Contagem de bónus inválida",
       "invalid_bonus_name": "Nome de bónus inválido",
@@ -399,13 +440,15 @@
         "title": "Adicionar criança",
         "description": "Forneça os detalhes sobre a criança nova.",
         "data": {
-          "kid_name": "Nome da criança",
+          "name": "Nome da criança",
           "ha_user": "Utilizador do Home Assistant",
           "mobile_notify_service": "Notificações",
           "dashboard_language": "Idioma",
           "internal_id": "ID interno"
         },
         "data_description": {
+          "name": "Nome único para esta criança, utilizado em todo o sistema.",
+          "ha_user": "Opcional: Ligue esta criança a um utilizador do Home Assistant para controlo de acesso ao painel de controlo.",
           "mobile_notify_service": "Selecione um serviço de notificações para ativar as notificações para esta criança ou deixe em branco para as desativar.",
           "dashboard_language": "Idioma utilizado no seu painel de tarefas e nas notificações."
         }
@@ -414,7 +457,7 @@
         "title": "Adicionar pai",
         "description": "Forneça os dados do novo responsável legal.",
         "data": {
-          "parent_name": "Nome do responsável",
+          "name": "Nome do responsável",
           "ha_user_id": "Utilizador do Home Assistant",
           "associated_kids": "Crianças Associadas",
           "mobile_notify_service": "Notificações",
@@ -425,6 +468,9 @@
           "internal_id": "ID interno"
         },
         "data_description": {
+          "name": "Nome único para este pai, utilizado em todo o sistema.",
+          "ha_user_id": "Opcional: Ligue este pai a um utilizador do Home Assistant para receber notificações e aceder ao painel de controlo.",
+          "associated_kids": "Selecione quais as crianças que este responsável supervisiona para receber notificações e aprovações.",
           "mobile_notify_service": "Selecione um serviço de notificação para ativar as notificações para este pai ou deixe em branco para as desativar.",
           "allow_chore_assignment": "Cria um perfil para que lhe possam ser atribuídas tarefas. Por predefinição, apenas é apresentado um botão \"Aprovar\" para conclusão com um clique. Nota: desmarcar esta opção preserva o perfil da criança com o sufixo \"_unlinked\" para limpeza manual.",
           "enable_chore_workflow": "Adiciona botões de Reivindicar e Desaprovar para um fluxo de trabalho completo (reivindicar → aprovar/desaprovar).",
@@ -436,7 +482,7 @@
         "title": "Adicionar tarefa",
         "description": "Crie uma nova tarefa com pontos, atribuições e um cronograma recorrente.",
         "data": {
-          "chore_name": "📋 Nome da tarefa",
+          "name": "📋 Nome da tarefa",
           "chore_description": "📋 Descrição (opcional)",
           "icon": "📋 Ícone (mdi:xxx)",
           "chore_labels": "📋 Etiquetas (opcional)",
@@ -452,11 +498,14 @@
           "custom_interval_unit": "🔄 Cronograma: Unidade de Intervalo Personalizada",
           "applicable_days": "📅 Cronograma: Dias aplicáveis (opcional)",
           "due_date": "📅 Cronograma: Data de vencimento (opcional)",
+          "clear_due_date": "🗑️ Limpar data de validade",
+          "chore_due_window_offset": "⏱️ Prazo de vencimento: Pagar antes da data de vencimento",
+          "chore_due_reminder_offset": "🔔 Lembrete: Pague antes do vencimento",
           "show_on_calendar": "📅 Mostrar no calendário?",
           "chore_notifications": "🔔 Eventos de notificação (opcional)"
         },
         "data_description": {
-          "chore_name": "Nome único apresentado em todo o sistema.",
+          "name": "Nome único apresentado em todo o sistema.",
           "chore_description": "Instruções ou detalhes opcionais sobre como completar esta tarefa.",
           "icon": "Ícone do Material Design (ex.: mdi:broom, mdi:dishwasher).",
           "chore_labels": "Etiquetas para organizar tarefas (ex.: 'cozinha', 'exterior'). Deixe em branco se não for necessário.",
@@ -472,6 +521,9 @@
           "custom_interval_unit": "Unidade de tempo para intervalo personalizado (dias, semanas, meses). Utilizada apenas com frequência personalizada.",
           "applicable_days": "Deixe em branco para todos os dias. Selecione APENAS os dias específicos que pretende restringir.",
           "due_date": "Prazo facultativo. Pode ser combinado com horários recorrentes. Para tarefas INDIVIDUAIS, isto serve como modelo — será apresentado um ecrã adicional permitindo datas individuais para cada criança.",
+          "clear_due_date": "Marque esta caixa para remover a data de validade desta tarefa.",
+          "chore_due_window_offset": "Quando o estado da tarefa mudar de Pendente para Vencimento. Formato: '1d 6h 30m' ou apenas '30' para minutos. Introduza '0' para desativar. Exemplo: '1d' significa que a tarefa aparece como 'Vencindo' 1 dia antes do prazo.",
+          "chore_due_reminder_offset": "Quando enviar a notificação de lembrete de vencimento. Formato: '1d 6h 30m' ou apenas '30' para minutos. Padrão: 30m (30 minutos antes do vencimento). Introduza '0' para desativar.",
           "show_on_calendar": "Visualizar esta tarefa na visualização de calendário.",
           "chore_notifications": "Quando enviar notificações: No pedido, na aprovação, na rejeição ou em qualquer combinação destes fatores."
         }
@@ -695,10 +747,10 @@
         "title": "Adicionar recompensa",
         "description": "Forneça os detalhes da nova recompensa.",
         "data": {
-          "reward_name": "Nome da recompensa",
+          "name": "Nome da recompensa",
           "internal_id": "ID interno",
-          "reward_cost": "Custo da recompensa",
-          "reward_description": "Descrição (opcional)",
+          "cost": "Custo da recompensa",
+          "description": "Descrição (opcional)",
           "reward_labels": "Etiquetas de recompensa",
           "icon": "Ícone (mdi:xxx)"
         }
@@ -707,7 +759,7 @@
         "title": "Adicionar penalidade",
         "description": "Forneça os detalhes da nova penalização.",
         "data": {
-          "penalty_name": "Nome da penalidade",
+          "name": "Nome da penalidade",
           "penalty_description": "Descrição (opcional)",
           "penalty_labels": "Etiquetas de penalização",
           "internal_id": "ID interno",
@@ -719,7 +771,7 @@
         "title": "Adicionar bónus",
         "description": "Forneça os detalhes do novo bónus.",
         "data": {
-          "bonus_name": "Nome do bónus",
+          "name": "Nome do bónus",
           "bonus_description": "Descrição (opcional)",
           "bonus_labels": "Etiquetas bónus",
           "internal_id": "ID interno",
@@ -767,13 +819,15 @@
         "title": "Editar Criança",
         "description": "Modifique os dados da criança selecionada.",
         "data": {
-          "kid_name": "Nome da criança",
+          "name": "Nome da criança",
           "ha_user": "Utilizador do Home Assistant",
           "mobile_notify_service": "Notificações",
           "dashboard_language": "Idioma",
           "internal_id": "ID interno"
         },
         "data_description": {
+          "name": "Nome único para esta criança, utilizado em todo o sistema.",
+          "ha_user": "Opcional: Ligue esta criança a um utilizador do Home Assistant para controlo de acesso ao painel de controlo.",
           "mobile_notify_service": "Selecione um serviço de notificação para ativar as notificações para esta criança.",
           "dashboard_language": "Idioma utilizado no seu painel de tarefas e nas notificações."
         }
@@ -782,14 +836,15 @@
         "title": "Editar Shadow Kid",
         "description": "Modifique os detalhes da criança sombra selecionada. ⚠️ Esta criança está ligada a um dos pais. A alteração do nome invalidará o requisito de correspondência de nomes para desvinculação via serviço.",
         "data": {
-          "kid_name": "Nome da criança",
+          "name": "Nome da criança",
           "ha_user": "Utilizador do Home Assistant",
           "mobile_notify_service": "Notificações",
           "dashboard_language": "Idioma",
           "internal_id": "ID interno"
         },
         "data_description": {
-          "kid_name": "⚠️ Esta criança fantasma está ligada a um dos progenitores. A alteração deste nome impedirá o funcionamento da função de desvinculação do serviço, que exige que os nomes correspondam.",
+          "name": "⚠️ Esta criança fantasma está ligada a um dos progenitores. A alteração deste nome impedirá o funcionamento da função de desvinculação do serviço, que exige que os nomes correspondam.",
+          "ha_user": "Opcional: Ligue esta criança a um utilizador do Home Assistant para controlo de acesso ao painel de controlo.",
           "mobile_notify_service": "⚠️ Notificações de criança sombra: O responsável vinculado já recebe notificações para tarefas supervisionadas. Ativar esta opção aqui criará notificações duplicadas. Útil para lembretes de prazos de 30 minutos ou se utilizar serviços de notificação diferentes.",
           "dashboard_language": "Idioma utilizado no seu painel de tarefas e nas notificações."
         }
@@ -798,7 +853,7 @@
         "title": "Editar pai",
         "description": "Modifique os dados do pai selecionado.",
         "data": {
-          "parent_name": "Nome do responsável",
+          "name": "Nome do responsável",
           "ha_user_id": "Utilizador do Home Assistant",
           "associated_kids": "Crianças Associadas",
           "mobile_notify_service": "Notificações",
@@ -809,6 +864,9 @@
           "internal_id": "ID interno"
         },
         "data_description": {
+          "name": "Nome único para este pai, utilizado em todo o sistema.",
+          "ha_user_id": "Opcional: Ligue este pai a um utilizador do Home Assistant para receber notificações e aceder ao painel de controlo.",
+          "associated_kids": "Selecione quais as crianças que este responsável supervisiona para receber notificações e aprovações.",
           "mobile_notify_service": "Selecione um serviço de notificação para ativar as notificações para este pai ou deixe em branco para as desativar.",
           "allow_chore_assignment": "Cria um perfil para que lhe possam ser atribuídas tarefas. Por predefinição, apenas é apresentado um botão \"Aprovar\" para conclusão com um clique. Nota: desmarcar esta opção preserva o perfil da criança com o sufixo \"_unlinked\" para limpeza manual.",
           "enable_chore_workflow": "Adiciona botões de Reivindicar e Desaprovar para um fluxo de trabalho completo (reivindicar → aprovar/desaprovar).",
@@ -820,7 +878,7 @@
         "title": "Editar tarefa",
         "description": "Modifique os detalhes da tarefa selecionada.",
         "data": {
-          "chore_name": "📋 Nome da tarefa",
+          "name": "📋 Nome da tarefa",
           "chore_description": "📋 Descrição (opcional)",
           "icon": "📋 Ícone (mdi:xxx)",
           "chore_labels": "📋 Etiquetas (opcional)",
@@ -838,11 +896,13 @@
           "applicable_days": "📅 Cronograma: Dias aplicáveis (opcional)",
           "due_date": "📅 Cronograma: Data de vencimento (opcional)",
           "clear_due_date": "🗑️ Limpar data de validade",
+          "chore_due_window_offset": "⏱️ Prazo de vencimento: Pagar antes da data de vencimento",
+          "chore_due_reminder_offset": "🔔 Lembrete: Pague antes do vencimento",
           "show_on_calendar": "📅 Mostrar no calendário?",
           "chore_notifications": "🔔 Eventos de notificação (opcional)"
         },
         "data_description": {
-          "chore_name": "Nome único apresentado em todo o sistema.",
+          "name": "Nome único apresentado em todo o sistema.",
           "chore_description": "Instruções ou detalhes opcionais sobre como completar esta tarefa.",
           "icon": "Ícone do Material Design (ex.: mdi:broom, mdi:dishwasher).",
           "chore_labels": "Etiquetas para organizar tarefas (ex.: 'cozinha', 'exterior'). Deixe em branco se não for necessário.",
@@ -859,6 +919,8 @@
           "applicable_days": "Deixe em branco para todos os dias. Selecione APENAS os dias específicos que pretende restringir.",
           "due_date": "Prazo facultativo. Pode ser combinado com horários recorrentes. Para tarefas INDIVIDUAIS, isto serve como modelo — será apresentado um ecrã adicional permitindo datas individuais para cada criança.",
           "clear_due_date": "Marque esta caixa para remover a data de validade desta tarefa.",
+          "chore_due_window_offset": "Quando o estado da tarefa mudar de Pendente para Vencimento. Formato: '1d 6h 30m' ou apenas '30' para minutos. Introduza '0' para desativar. Exemplo: '1d' significa que a tarefa aparece como 'Vencindo' 1 dia antes do prazo.",
+          "chore_due_reminder_offset": "Quando enviar a notificação de lembrete de vencimento. Formato: '1d 6h 30m' ou apenas '30' para minutos. Padrão: 30m (30 minutos antes do vencimento). Introduza '0' para desativar.",
           "show_on_calendar": "Visualizar esta tarefa na visualização de calendário.",
           "chore_notifications": "Quando enviar notificações: No pedido, na aprovação, na rejeição ou em qualquer combinação destes fatores."
         }
@@ -1109,10 +1171,10 @@
         "title": "Editar Recompensa",
         "description": "Modifique os detalhes da recompensa selecionada.",
         "data": {
-          "reward_name": "Nome da recompensa",
+          "name": "Nome da recompensa",
           "internal_id": "ID interno",
-          "reward_cost": "Custo da recompensa",
-          "reward_description": "Descrição (opcional)",
+          "cost": "Custo da recompensa",
+          "description": "Descrição (opcional)",
           "reward_labels": "Etiquetas de recompensa",
           "icon": "Ícone (mdi:xxx)"
         }
@@ -1121,7 +1183,7 @@
         "title": "Penalidade de edição",
         "description": "Modifique os detalhes da penalização selecionada.",
         "data": {
-          "penalty_name": "Nome da penalidade",
+          "name": "Nome da penalidade",
           "penalty_description": "Descrição (opcional)",
           "penalty_labels": "Etiquetas de penalização",
           "internal_id": "ID interno",
@@ -1133,7 +1195,7 @@
         "title": "Editar Bónus",
         "description": "Modifique os detalhes do bónus selecionado.",
         "data": {
-          "bonus_name": "Nome do bónus",
+          "name": "Nome do bónus",
           "bonus_description": "Descrição (opcional)",
           "bonus_labels": "Etiquetas bónus",
           "internal_id": "ID interno",
@@ -1222,6 +1284,61 @@
         "description": "Tem a certeza de que pretende eliminar o desafio {challenge_name}?",
         "data": {}
       },
+      "dashboard_generator": {
+        "title": "Gerir painel de controle",
+        "description": "Crie, atualize ou apague painéis do KidsChores Lovelace.\n\n⚠️ **Cartões personalizados necessários** (instalar via HACS → Frontend):\n- [**Cartões Cogumelo**](https://github.com/piitaya/lovelace-mushroom) (`custom:mushroom-template-card`)\n- [**Entidades Automáticas**](https://github.com/thomasloven/lovelace-auto-entities) (`custom:auto-entities`)\n- [**Cartão Mini Gráfico**](https://github.com/kalkih/mini-graph-card) (`custom:mini-graph-card`)\n\nSem estes cartões, os painéis irão apresentar erros. Instale-os primeiro pelo HACS antes de gerar os painéis.",
+        "data": {
+          "dashboard_action": "Ação",
+          "dashboard_check_cards": "Instalação do cartão de verificação"
+        },
+        "data_description": {
+          "dashboard_action": "Escolha se pretende criar novos painéis ou eliminar os existentes.",
+          "dashboard_check_cards": "Ative para verificar se os cartões personalizados necessários estão instalados antes de prosseguir."
+        }
+      },
+      "dashboard_create": {
+        "title": "Criar/Atualizar Painel de Controlo",
+        "description": "Gere um painel KidsChores com separadores para cada criança.\n\nEscolha um nome para o painel, selecione as crianças que pretende incluir e, opcionalmente, adicione um separador de Administrador para gestão pelos pais.",
+        "data": {
+          "dashboard_name": "Nome do painel de controlo",
+          "dashboard_style": "Estilo do painel de controlo",
+          "dashboard_kid_selection": "Crianças (um tablet por criança)",
+          "dashboard_include_admin": "Incluir guia de administração",
+          "dashboard_force_rebuild": "Forçar reconstrução (sobrescrever existente)"
+        },
+        "data_description": {
+          "dashboard_name": "Nome para o painel (aparece na barra lateral). Sugestão: Tarefas",
+          "dashboard_style": "Escolha o layout do painel: Completo (todas as funcionalidades), Minimalista (apenas o essencial) ou Compacto (layout denso).",
+          "dashboard_kid_selection": "Selecione para que crianças pretende criar separadores. Cada criança terá a sua própria visualização/tab.",
+          "dashboard_include_admin": "Adicione um separador de Administração com controlos principais para aprovações e gestão.",
+          "dashboard_force_rebuild": "Se estiver ativada, a função sobrescreverá o painel existente. Caso contrário, a geração falhará se o painel já existir."
+        }
+      },
+      "dashboard_delete": {
+        "title": "Apagar painel de controlo",
+        "description": "Selecione os painéis KidsChores que pretende eliminar.\n\n⚠️ Esta ação não pode ser anulada.",
+        "data": {
+          "dashboard_delete_selection": "Painéis a eliminar"
+        },
+        "data_description": {
+          "dashboard_delete_selection": "Selecione um ou mais painéis para remover permanentemente."
+        }
+      },
+      "dashboard_delete_confirm": {
+        "title": "Confirmar eliminação",
+        "description": "⚠️ **Aviso:** Os seguintes painéis serão eliminados permanentemente:\n\n**{dashboards}**\n\nIsto irá remover o painel da barra lateral e eliminar toda a configuração.\n\nClique em Enviar para confirmar a eliminação.",
+        "data": {}
+      },
+      "dashboard_generator_confirm": {
+        "title": "Confirmar geração do painel",
+        "description": "Serão criados os seguintes painéis:\n\n**Estilo:** {style}\n**Forçar Recriação:** {force_rebuild}\n\n**Painéis:**\n{dashboards}\n\nClique em Enviar para gerar os painéis.",
+        "data": {}
+      },
+      "dashboard_generator_result": {
+        "title": "Resultados da geração do painel de controlo",
+        "description": "**Resultados:** {success_count} sucesso, {failure_count} falha\n\n{results}\n\nClique em Enviar para voltar ao menu principal.",
+        "data": {}
+      },
       "manage_general_options": {
         "title": "Opções gerais",
         "description": "Faça a gestão das configurações gerais da integração com o KidsChores.",
@@ -1248,7 +1365,7 @@
           "retention_monthly": "Número de meses de dados históricos mensais a manter antes da limpeza. Mínimo 1, máximo 24.",
           "retention_yearly": "Número de anos de dados históricos anuais a manter antes da limpeza. Mínimo 1, máximo 10.",
           "show_legacy_entities": "Apresente entidades adicionais, como sensores e seleções, que estão agora consolidadas no sensor auxiliar do painel. Estas entidades são opcionais para manter a compatibilidade com versões anteriores de automatizações.",
-          "backups_max_retained": "Número máximo de ficheiros de cópia de segurança a manter. Os backups mais antigos serão automaticamente eliminados. Defina para 0 para desativar os backups automáticos.",
+          "backups_max_retained": "Número máximo de ficheiros de cópia de segurança a manter por etiqueta (ex.: 5 cópias de segurança manuais, 5 cópias de segurança de reposição de dados). Os backups mais antigos são automaticamente eliminados após a criação de cada novo backup. Defina para 0 para desativar completamente os backups automáticos.",
           "backup_action_selection": "Escolha uma ação de gestão de cópias de segurança: criar uma cópia de segurança manual, eliminar uma cópia de segurança ou restaurar a partir de uma cópia de segurança."
         }
       },
@@ -1281,11 +1398,34 @@
       },
       "select_backup_to_delete": {
         "title": "Selecione \"Cópia de segurança a eliminar\".",
-        "description": "Selecione um ficheiro de cópia de segurança para eliminar.\n\nBackups disponíveis: {backup_count}\n\n⚠️ Os backups protegidos (pré-migração, manual) não podem ser eliminados."
+        "description": "Selecione um ficheiro de cópia de segurança para eliminar.\n\nBackups disponíveis: {backup_count}"
       },
       "select_backup_to_restore": {
         "title": "Selecione o backup que pretende restaurar.",
-        "description": "Escolha um ficheiro de cópia de segurança para restaurar.\n\nBackups disponíveis: {backup_count}\n\n⚠️ Isto irá substituir os seus dados atuais!"
+        "description": "Escolha um ficheiro de cópia de segurança para restaurar.\n\nBackups disponíveis: {backup_count}\n\n⚠️ Isto irá substituir os seus dados atuais!",
+        "data": {
+          "backup_selection": "Selecione um backup"
+        },
+        "data_description": {
+          "backup_selection": "Selecione o ficheiro de cópia de segurança que pretende restaurar."
+        }
+      },
+      "restore_backup": {
+        "title": "Opções de recuperação de dados",
+        "description": "Dados existentes do KidsChores encontrados em:\n{storage_path}\n\nEncontrados {backup_count} ficheiros de cópia de segurança.\n\nO que gostaria de fazer?",
+        "data": {
+          "backup_selection": "Selecione a opção"
+        }
+      },
+      "paste_json_restore": {
+        "title": "Importar dados JSON",
+        "description": "Cole o conteúdo JSON completo de um dos seguintes ficheiros:\n\n• Um ficheiro de dados do KidsChores (kidschores_data)\n• Um ficheiro de diagnóstico descarregado\n\nO sistema irá detetar e converter o formato automaticamente, conforme necessário. Os formatos de dados brutos armazenados e de exportação de diagnóstico são suportados.",
+        "data": {
+          "json_data": "Dados JSON"
+        },
+        "data_description": {
+          "json_data": "Cole aqui todo o conteúdo JSON. Aceita dados do ficheiro kidschores_data ou da exportação de diagnósticos (desempacota automaticamente a estrutura extra)."
+        }
       },
       "create_backup_confirm": {
         "title": "Criar backup manual",
@@ -1331,6 +1471,8 @@
       "due_date_in_past": "A data de vencimento deve ser futura.",
       "end_date_in_past": "A data de fim deve ser futura.",
       "end_date_not_after_start_date": "A data de fim deve ser posterior à data de início.",
+      "err_end_before_start": "A data de fim deve ser posterior à data de início.",
+      "err_name_duplicate": "Já existe um desafio com este nome.",
       "invalid_badge": "Crachá inválido",
       "invalid_badge_count": "Contagem de crachás inválida",
       "invalid_chore": "Tarefa inválida",
@@ -1341,6 +1483,8 @@
       "invalid_kid_count": "Contagem de crianças inválida",
       "invalid_kid_name": "Nome de criança inválido",
       "no_kids_assigned": "Pelo menos uma criança deve ser atribuída à tarefa.",
+      "achievement_no_kids_assigned": "Pelo menos uma criança deve ser designada para esta conquista.",
+      "challenge_no_kids_assigned": "Pelo menos uma criança deve ser atribuída ao desafio.",
       "invalid_penalty": "Penalidade inválida",
       "invalid_penalty_count": "Contagem de penalizações inválida",
       "invalid_bonus": "Bónus inválido",
@@ -1363,7 +1507,14 @@
       "error_daily_multi_due_date_required": "A frequência \"várias vezes por dia\" exige a definição de uma data de vencimento. A data determina quando começa o agendamento e os horários determinam os períodos de disponibilidade em cada dia.",
       "error_at_due_date_reset_requires_due_date": "Os tipos de reposição de aprovação \"Na Data de Vencimento\" (Uma vez ou Várias) exigem que seja definida uma data de vencimento. Sem data de vencimento, a reposição da aprovação nunca será acionada e a tarefa permanecerá aprovada indefinidamente.",
       "error_per_kid_applicable_days_invalid": "Formato inválido para os dias aplicáveis a uma ou mais crianças. Os dias devem ser números inteiros de 0 a 6 (de segunda-feira a domingo), sem repetições.",
-      "error_per_kid_daily_multi_times_invalid": "Formato de horário diário inválido para uma ou mais crianças. Utilize o formato de 24 horas separado por | (ex.: 08h00|17h00)."
+      "error_per_kid_daily_multi_times_invalid": "Formato de horário diário inválido para uma ou mais crianças. Utilize o formato de 24 horas separado por | (ex.: 08h00|17h00).",
+      "dashboard_exists": "Já existe um painel com este caminho URL. Ative \"Forçar Recriação\" para sobrescrever.",
+      "dashboard_template_error": "Não foi possível obter o modelo do painel de controlo. Verifique a sua ligação de rede ou tente novamente mais tarde.",
+      "dashboard_render_error": "Falha ao renderizar o modelo do painel. Isto pode indicar um erro no modelo.",
+      "dashboard_save_error": "Falha ao guardar o painel no Home Assistant. Verifique os registos do sistema para obter detalhes.",
+      "dashboard_no_name": "Por favor, introduza um nome para o painel de controlo.",
+      "dashboard_no_kids": "Selecione pelo menos uma criança ou ative a opção \"Incluir separador de administrador\".",
+      "dashboard_no_dashboards": "Selecione pelo menos um painel para eliminar."
     },
     "abort": {
       "invalid_action": "Ação inválida",
@@ -1387,7 +1538,8 @@
       "no_achievement": "Nenhuma conquista está configurada para edição. Adicione uma entrada primeiro.",
       "no_challenge": "Nenhum desafio está configurado para edição. Adicione uma entrada primeiro.",
       "setup_complete": "Configuração concluída",
-      "backup_restored": "O backup foi restaurado com sucesso. A integração foi recarregada com os dados restaurados."
+      "backup_restored": "O backup foi restaurado com sucesso. A integração foi recarregada com os dados restaurados.",
+      "no_dashboards_to_delete": "Nenhum painel KidsChores encontrado. Crie um primeiro utilizando Gerir Painel."
     }
   },
   "selector": {
@@ -1403,9 +1555,30 @@
         "manage_bonus": "Gerir bónus",
         "manage_achievement": "Gerir Conquistas",
         "manage_challenge": "Gerir desafio",
+        "dashboard_generator": "Gerir painel de controle",
         "general_options": "Opções gerais",
         "done": "Finalizar configuração"
       }
+    },
+    "dashboard_action": {
+      "options": {
+        "create": "Criar/Atualizar Painel de Controlo",
+        "delete": "Apagar painel de controlo"
+      }
+    },
+    "dashboard_style": {
+      "options": {
+        "dashboard_style_full": "Completo (Todas as características)",
+        "dashboard_style_minimal": "Minimalista (apenas o essencial)",
+        "dashboard_style_compact": "Compacto (Layout denso)",
+        "dashboard_style_admin": "Administrador (Painel de controlo principal)"
+      }
+    },
+    "dashboard_kid_selection": {
+      "options": {}
+    },
+    "dashboard_delete_selection": {
+      "options": {}
     },
     "manage_actions": {
       "options": {
@@ -1524,7 +1697,9 @@
         "notify_on_claim": "Notificar sobre a reclamação",
         "notify_on_approval": "Notificar sobre a aprovação",
         "notify_on_disapproval": "Notificar em caso de reprovação",
-        "notify_on_reminder": "Avisar com 30 minutos de antecedência."
+        "notify_on_reminder": "Notificar com 30 minutos de antecedência (método antigo)",
+        "notify_on_due_window": "Avise quando o prazo começar.",
+        "notify_due_reminder": "Notificar no horário de vencimento"
       }
     },
     "recurring_frequency": {
@@ -1542,7 +1717,11 @@
         "custom_1_week": "Personalizado: 1 semana",
         "custom_1_month": "Personalizado: 1 mês",
         "custom_1_quarter": "Personalizado: 1 quarto",
-        "custom_1_year": "Personalizado: 1 ano"
+        "custom_1_year": "Personalizado: 1 ano",
+        "week_end": "Fim de semana",
+        "month_end": "Fim do mês",
+        "quarter_end": "Fim do trimestre",
+        "year_end": "Fim de ano"
       }
     },
     "occasion_type": {
@@ -1709,6 +1888,10 @@
           "name": "Nome da recompensa",
           "description": "O nome da recompensa que está a ser aprovada.",
           "example": "Tempo extra de ecrã"
+        },
+        "cost_override": {
+          "name": "Substituição de custos",
+          "description": "Substituição opcional de custos. Se for omitido, utiliza o custo armazenado da recompensa. Defina como 0 para uma concessão gratuita (como recompensas por distintivos). Útil para a definição de preços contextuais (fins de semana, ocasiões especiais, etc.)."
         }
       }
     },
@@ -1775,13 +1958,306 @@
         }
       }
     },
-    "reset_all_data": {
-      "name": "Apagar todos os dados",
-      "description": "Apaga completamente os dados do KidsChores do armazenamento."
+    "create_reward": {
+      "name": "Criar recompensa",
+      "description": "Criar uma nova recompensa programaticamente.",
+      "fields": {
+        "name": {
+          "name": "Nome",
+          "description": "O nome da recompensa.",
+          "example": "Tempo extra de ecrã"
+        },
+        "cost": {
+          "name": "Custo",
+          "description": "Pontos necessários para resgatar a recompensa.",
+          "example": "10"
+        },
+        "description": {
+          "name": "Descrição",
+          "description": "Descrição opcional da recompensa.",
+          "example": "30 minutos extra de tempo de tablet"
+        },
+        "icon": {
+          "name": "Ícone",
+          "description": "Ícone para representar a recompensa.",
+          "example": "mdi:presente"
+        },
+        "labels": {
+          "name": "Etiquetas",
+          "description": "Etiquetas para agrupar recompensas.",
+          "example": "['fim de semana', 'especial']"
+        }
+      }
     },
-    "reset_all_chores": {
-      "name": "Repor todas as tarefas",
-      "description": "Reponha manualmente as tarefas para o estado pendente, removendo pedidos e aprovações."
+    "update_reward": {
+      "name": "Atualizar recompensa",
+      "description": "Atualizar uma recompensa existente (as atualizações parciais são suportadas).",
+      "fields": {
+        "id": {
+          "name": "ID da recompensa",
+          "description": "ID interno da recompensa a atualizar. Utilize o ID OU o nome.",
+          "example": "abc123-def456-789..."
+        },
+        "name": {
+          "name": "Nome",
+          "description": "Nome da recompensa a atualizar ou novo nome para a recompensa.",
+          "example": "Tempo extra de ecrã"
+        },
+        "cost": {
+          "name": "Custo",
+          "description": "Valor de custo atualizado.",
+          "example": "15"
+        },
+        "description": {
+          "name": "Descrição",
+          "description": "Descrição atualizada.",
+          "example": "45 minutos extra de tempo de utilização do tablet"
+        },
+        "icon": {
+          "name": "Ícone",
+          "description": "Ícone atualizado.",
+          "example": "mdi:estrela"
+        },
+        "labels": {
+          "name": "Etiquetas",
+          "description": "Etiquetas atualizadas.",
+          "example": "['premium', 'especial']"
+        }
+      }
+    },
+    "delete_reward": {
+      "name": "Excluir recompensa",
+      "description": "Apagar uma recompensa por ID ou nome.",
+      "fields": {
+        "id": {
+          "name": "ID da recompensa",
+          "description": "Identificação interna da recompensa a eliminar. Utilize o ID OU o nome.",
+          "example": "abc123-def456-789..."
+        },
+        "name": {
+          "name": "Nome",
+          "description": "Nome da recompensa a eliminar.",
+          "example": "Tempo extra de ecrã"
+        }
+      }
+    },
+    "create_chore": {
+      "name": "Criar tarefa",
+      "description": "Crie uma nova tarefa que as crianças possam completar para ganhar pontos.",
+      "fields": {
+        "name": {
+          "name": "Nome da tarefa",
+          "description": "O nome da tarefa a criar.",
+          "example": "Sala limpa"
+        },
+        "assigned_kids": {
+          "name": "Crianças designadas",
+          "description": "Lista de nomes de crianças a atribuir a esta tarefa.",
+          "example": "['Emma', 'Jack']"
+        },
+        "points": {
+          "name": "Pontos",
+          "description": "Pontos atribuídos quando a tarefa estiver concluída.",
+          "example": "10"
+        },
+        "description": {
+          "name": "Descrição",
+          "description": "Descrição opcional da tarefa.",
+          "example": "Fazer a cama, arrumar os brinquedos, passar o aspirador."
+        },
+        "icon": {
+          "name": "Ícone",
+          "description": "Ícone do Material Design para a tarefa doméstica.",
+          "example": "mdi:vassoura"
+        },
+        "labels": {
+          "name": "Etiquetas",
+          "description": "Etiquetas opcionais para categorizar a tarefa.",
+          "example": "['diariamente', 'quarto']"
+        },
+        "frequency": {
+          "name": "Frequência",
+          "description": "Frequência de repetição da tarefa: nenhuma, diária, diária_várias, semanal, quinzenal, mensal, trimestral, anual, personalizada, personalizada_a_concluída ou no final do período (fim_da_semana, fim_do_mês, fim_do_trimestre, fim_do_ano).",
+          "example": "diariamente"
+        },
+        "applicable_days": {
+          "name": "Dias aplicáveis",
+          "description": "Dias da semana em que a tarefa se aplica.",
+          "example": "['seg', 'qua', 'sex']"
+        },
+        "completion_criteria": {
+          "name": "Critérios de conclusão",
+          "description": "Como a tarefa é concluída quando são atribuídas várias crianças: independente (cada criança completa em separado), partilhada_primeiro (a primeira criança a completar ganha pontos) ou partilhada_todos (todas as crianças devem completar). Não pode ser alterada após a criação.",
+          "example": "independente"
+        },
+        "approval_reset_type": {
+          "name": "Tipo de reposição de aprovação",
+          "description": "Quando a tarefa é reiniciada para ser concluída novamente.",
+          "example": "à meia-noite"
+        },
+        "pending_claims": {
+          "name": "Ação de Sinistros Pendentes",
+          "description": "O que acontece aos pedidos pendentes quando a tarefa é reiniciada: hold_pending (manter os pedidos), clear_pending (remover os pedidos) ou auto_approve_pending (aprovar todos os pedidos pendentes).",
+          "example": "espera_pendente"
+        },
+        "overdue_handling": {
+          "name": "Manuseamento em atraso",
+          "description": "Como lidar com a tarefa quando esta se atrasa.",
+          "example": "data_de_vencimento"
+        },
+        "auto_approve": {
+          "name": "Aprovação automática",
+          "description": "Se for verdade, a tarefa é aprovada automaticamente quando é solicitada.",
+          "example": "FALSO"
+        },
+        "due_date": {
+          "name": "Data de vencimento",
+          "description": "Data de entrega opcional para a tarefa. Utilize o seletor de data/hora para escolher uma data e hora válidas.",
+          "example": "2025-03-01T23:59:00Z"
+        },
+        "due_window_offset": {
+          "name": "Deslocamento da janela devido",
+          "description": "Duração até à data de vencimento, altura em que a tarefa entra no estado \"vencida\". Formato: '30m', '1h', '1d 6h 30m', etc. Utilize '0' para desativar a janela de vencimento.",
+          "example": "30m"
+        },
+        "due_reminder_offset": {
+          "name": "Compensação de lembrete de vencimento",
+          "description": "Duração antes do vencimento para envio da notificação de lembrete. Formato: '30m', '1h', '1d 6h 30m', etc. Utilize '0' para desativar os lembretes.",
+          "example": "30m"
+        }
+      }
+    },
+    "update_chore": {
+      "name": "Atualizar tarefa",
+      "description": "Atualize as propriedades de uma tarefa existente. Forneça um ID OU um nome para identificar a tarefa. Apenas os campos fornecidos serão atualizados. Nota: os critérios de conclusão não podem ser alterados após a criação.",
+      "fields": {
+        "id": {
+          "name": "ID da tarefa",
+          "description": "O ID interno da tarefa a atualizar (alternativa ao nome).",
+          "example": "abc-123-def-456"
+        },
+        "name": {
+          "name": "Nome da tarefa (Identificador)",
+          "description": "O nome da tarefa a atualizar (alternativa ao ID). Mais amigável para o utilizador do que o ID.",
+          "example": "Sala limpa"
+        },
+        "assigned_kids": {
+          "name": "Crianças designadas",
+          "description": "Nova lista de nomes de crianças para atribuir a esta tarefa.",
+          "example": "['Emma', 'Jack']"
+        },
+        "points": {
+          "name": "Pontos",
+          "description": "Novo valor em pontos para a tarefa.",
+          "example": "15"
+        },
+        "description": {
+          "name": "Descrição",
+          "description": "Nova descrição da tarefa.",
+          "example": "Fazer a cama, organizar a secretária, passar o aspirador."
+        },
+        "icon": {
+          "name": "Ícone",
+          "description": "Novo ícone do Material Design para a tarefa.",
+          "example": "mdi:vácuo"
+        },
+        "labels": {
+          "name": "Etiquetas",
+          "description": "Novas etiquetas para a tarefa.",
+          "example": "['semanal', 'limpeza']"
+        },
+        "frequency": {
+          "name": "Frequência",
+          "description": "Nova frequência de recorrência: nenhuma, diária, diária_múltipla, semanal, quinzenal, mensal, trimestral, anual, personalizada, personalizada_a_partir_do_concluído ou fim de período (fim_de_semana, fim_de_mês, fim_de_trimestre, fim_de_ano).",
+          "example": "semanalmente"
+        },
+        "applicable_days": {
+          "name": "Dias aplicáveis",
+          "description": "Novos dias da semana em que a tarefa é aplicável.",
+          "example": "['sábado', 'domingo']"
+        },
+        "approval_reset_type": {
+          "name": "Tipo de reposição de aprovação",
+          "description": "Novo tipo de reinicialização para quando a tarefa é reiniciada.",
+          "example": "na data de vencimento"
+        },
+        "pending_claims": {
+          "name": "Ação de Sinistros Pendentes",
+          "description": "Nova ação para as reclamações pendentes quando a tarefa é reiniciada.",
+          "example": "limpar_pendente"
+        },
+        "overdue_handling": {
+          "name": "Manuseamento em atraso",
+          "description": "Novo comportamento de manuseamento atrasado.",
+          "example": "nunca_atrasado"
+        },
+        "auto_approve": {
+          "name": "Aprovação automática",
+          "description": "Nova configuração de aprovação automática.",
+          "example": "VERDADE"
+        },
+        "due_date": {
+          "name": "Data de vencimento",
+          "description": "Nova data limite para a tarefa. Utilize o seletor de data/hora para escolher uma data e hora válidas.",
+          "example": "2025-04-01T18:00:00Z"
+        },
+        "due_window_offset": {
+          "name": "Deslocamento da janela devido",
+          "description": "Novo intervalo de tempo antes do vencimento. Duração antes da data de vencimento em que a tarefa entra no estado \"vencida\". Formato: '30m', '1h', '1d 6h 30m', etc. Utilize '0' para desativar.",
+          "example": "1 hora"
+        },
+        "due_reminder_offset": {
+          "name": "Compensação de lembrete de vencimento",
+          "description": "Novo lembrete de vencimento. Duração antes do vencimento para enviar a notificação de lembrete. Formato: '30m', '1h', '1d 6h 30m', etc. Utilize '0' para desativar.",
+          "example": "30m"
+        }
+      }
+    },
+    "delete_chore": {
+      "name": "Apagar tarefa",
+      "description": "Apague uma tarefa por ID ou nome. Todos os estados e antecedentes específicos da criança serão removidos.",
+      "fields": {
+        "id": {
+          "name": "ID da tarefa",
+          "description": "Identificador interno da tarefa a eliminar. Utilize o ID OU o nome.",
+          "example": "abc123-def456-789..."
+        },
+        "name": {
+          "name": "Nome",
+          "description": "Nome da tarefa a eliminar.",
+          "example": "Sala limpa"
+        }
+      }
+    },
+    "reset_chores_to_pending_state": {
+      "name": "Repor tarefas para o estado pendente",
+      "description": "Reponha manualmente todas as tarefas para o estado pendente, removendo pedidos e aprovações."
+    },
+    "reset_transactional_data": {
+      "name": "Redefinir dados transacionais",
+      "description": "Redefine os dados de tempo de execução/transacionais, preservando a configuração (crianças, tarefas, recompensas, etc.). É criado um backup automático antes da reposição como kidschores_data_<timestamp>_reset no diretório . storage. Utilize o âmbito para direcionar crianças ou domínios específicos. IMPORTANTE: Requer confirm_destructive: true como mecanismo de segurança.",
+      "fields": {
+        "confirm_destructive": {
+          "name": "Confirmar Destrutivo",
+          "description": "Deve ser definido como verdadeiro para confirmar que pretende prosseguir com a reinicialização. Este é um mecanismo de segurança."
+        },
+        "scope": {
+          "name": "Âmbito",
+          "description": "Repor o âmbito: 'global' repõe todos os dados, 'kid' repõe os dados apenas para uma criança específica."
+        },
+        "kid_name": {
+          "name": "Nome da criança",
+          "description": "Obrigatório se o âmbito for 'criança'. O nome da criança cujos dados devem ser repostos."
+        },
+        "item_type": {
+          "name": "Tipo de artigo",
+          "description": "Filtro opcional para repor apenas um domínio específico (por exemplo, apenas pontos ou apenas tarefas)."
+        },
+        "item_name": {
+          "name": "Nome do artigo",
+          "description": "Filtro opcional para repor um item específico dentro do domínio item_type."
+        }
+      }
     },
     "reset_overdue_chores": {
       "name": "Reiniciar tarefas atrasadas",
@@ -1856,54 +2332,6 @@
         }
       }
     },
-    "reset_penalties": {
-      "name": "Redefinir as penalidades",
-      "description": "Redefina todas as penalizações aplicadas a todas as crianças. Opcionalmente, forneça o nome da penalização para redefinir uma penalização específica para todas as crianças. Utilize o nome da criança para repor todas as penalizações para uma criança específica. Combine ambos para repor uma penalização específica para uma criança específica.",
-      "fields": {
-        "kid_name": {
-          "name": "Nome da criança",
-          "description": "A criança cujas penalizações serão reiniciadas.",
-          "example": "Alice"
-        },
-        "penalty_name": {
-          "name": "Nome da penalidade",
-          "description": "O nome da grande penalidade a ser reposta.",
-          "example": "Gritando"
-        }
-      }
-    },
-    "reset_bonuses": {
-      "name": "Bónus de reinicialização",
-      "description": "Redefina todos os bónus aplicados a todas as crianças. Opcionalmente, forneça o nome do bónus para redefinir um bónus específico para todas as crianças. Utilize o nome da criança para repor todos os bónus para uma criança específica. Combine ambos para repor um bónus específico para uma criança específica.",
-      "fields": {
-        "kid_name": {
-          "name": "Nome da criança",
-          "description": "A criança cujos bónus serão reiniciados.",
-          "example": "Alice"
-        },
-        "bonus_name": {
-          "name": "Nome do bónus",
-          "description": "O nome do bónus a ser reiniciado.",
-          "example": "Ajudando"
-        }
-      }
-    },
-    "reset_rewards": {
-      "name": "Redefinir recompensas",
-      "description": "Redefina todas as contagens de pedidos e aprovações de recompensas para todas as crianças. Opcionalmente, forneça o nome da recompensa para repor as contagens de uma recompensa específica para todas as crianças. Utilize o nome da criança para repor todas as contagens de recompensas para uma criança específica. Combine ambos para repor uma recompensa específica para uma criança específica.",
-      "fields": {
-        "kid_name": {
-          "name": "Nome da criança",
-          "description": "A contagem de recompensas da criança será reiniciada.",
-          "example": "Alice"
-        },
-        "reward_name": {
-          "name": "Nome da recompensa",
-          "description": "O nome da recompensa a ser reiniciada.",
-          "example": "Gelado"
-        }
-      }
-    },
     "remove_awarded_badges": {
       "name": "Remover distintivos concedidos",
       "description": "Retire todos os distintivos concedidos a todas as crianças. Opcionalmente, forneça o nome do distintivo para redefinir um distintivo específico para todas as crianças. Utilize o nome da criança para repor todos os distintivos de uma criança específica. Combine ambos para repor um distintivo específico para uma criança específica.",
@@ -1929,6 +2357,7 @@
           "pending": "Pendente",
           "approved": "Aprovado",
           "claimed": "Reivindicado",
+          "due": "Devido",
           "overdue": "Atrasado",
           "unknown": "Desconhecido",
           "none": "Nenhum",
@@ -1968,8 +2397,8 @@
             "name": "Critérios de conclusão",
             "state": {
               "independent": "Independente",
-              "shared_first_only": "Partilhado (Primeiro)",
-              "shared_all_required": "Partilhado (Todos)"
+              "shared_first": "Partilhado (Primeiro)",
+              "shared_all": "Partilhado (Todos)"
             }
           },
           "approval_reset_type": {
@@ -2028,13 +2457,16 @@
             }
           },
           "chore_points_earned": {
-            "name": "Pontos Ganhos"
+            "name": "Pontos Obtidos (Total)"
           },
           "chore_approvals_count": {
             "name": "Aprovações (Todas as épocas)"
           },
           "chore_claims_count": {
             "name": "Reivindicações (Todo o período)"
+          },
+          "chore_completed_count": {
+            "name": "Concluído (Todo o período)"
           },
           "chore_disapproved_count": {
             "name": "Desaprovações (Todas as épocas)"
@@ -2048,8 +2480,8 @@
           "chore_current_streak": {
             "name": "Sequência atual"
           },
-          "chore_highest_streak": {
-            "name": "Maior sequência"
+          "chore_longest_streak": {
+            "name": "Sequência mais longa"
           },
           "chore_last_longest_streak_date": {
             "name": "Última data de maior sequência"
@@ -2059,6 +2491,9 @@
           },
           "last_approved": {
             "name": "Última aprovação"
+          },
+          "last_completed": {
+            "name": "Última conclusão"
           },
           "last_disapproved": {
             "name": "Última reprovação"
@@ -2102,6 +2537,15 @@
           },
           "claim_button_eid": {
             "name": "ID da entidade do botão de reclamação"
+          },
+          "due_window_start": {
+            "name": "Início da janela de vencimento"
+          },
+          "time_until_due": {
+            "name": "Tempo restante"
+          },
+          "time_until_overdue": {
+            "name": "Tempo até ao vencimento"
           }
         }
       },
@@ -2312,6 +2756,57 @@
           "chore_stat_disapproved_all_time": {
             "name": "Totalmente reprovado"
           },
+          "chore_stat_completed_today": {
+            "name": "Concluído hoje"
+          },
+          "chore_stat_completed_week": {
+            "name": "Concluído esta semana"
+          },
+          "chore_stat_completed_month": {
+            "name": "Concluído este mês"
+          },
+          "chore_stat_completed_year": {
+            "name": "Concluído este ano"
+          },
+          "chore_stat_completed_all_time": {
+            "name": "Concluído em todos os tempos"
+          },
+          "chore_stat_points_today": {
+            "name": "Pontos hoje"
+          },
+          "chore_stat_points_week": {
+            "name": "Pontos desta semana"
+          },
+          "chore_stat_points_month": {
+            "name": "Pontos deste mês"
+          },
+          "chore_stat_points_year": {
+            "name": "Os pontos deste ano"
+          },
+          "chore_stat_points_all_time": {
+            "name": "Pontos de todos os tempos"
+          },
+          "chore_stat_top_chores_week": {
+            "name": "Tarefa principal (da semana)"
+          },
+          "chore_stat_top_chores_month": {
+            "name": "Tarefa principal (mês)"
+          },
+          "chore_stat_top_chores_year": {
+            "name": "Tarefa principal (ano)"
+          },
+          "chore_stat_chores_completed_today": {
+            "name": "Concluído hoje"
+          },
+          "chore_stat_chores_completed_week": {
+            "name": "Concluído esta semana"
+          },
+          "chore_stat_chores_completed_month": {
+            "name": "Concluído este mês"
+          },
+          "chore_stat_chores_completed_year": {
+            "name": "Concluído este ano"
+          },
           "chore_stat_current_due_today": {
             "name": "Atual com vencimento hoje"
           },
@@ -2336,11 +2831,17 @@
           "chore_stat_longest_streak_all_time": {
             "name": "Maior sequência (de sempre)"
           },
+          "chore_stat_longest_streak": {
+            "name": "Sequência mais longa"
+          },
           "chore_stat_avg_per_day_week": {
             "name": "Média por dia (semana)"
           },
           "chore_stat_avg_per_day_month": {
             "name": "Média por dia (mês)"
+          },
+          "chore_stat_avg_per_day_year": {
+            "name": "Média por dia (ano)"
           }
         }
       },
@@ -2593,6 +3094,7 @@
           "pending": "Pendente",
           "approved": "Aprovado",
           "claimed": "Reivindicado",
+          "due": "Devido",
           "overdue": "Atrasado",
           "unknown": "Desconhecido",
           "none": "Nenhum",
@@ -2629,8 +3131,8 @@
             "name": "Critérios de conclusão",
             "state": {
               "independent": "Independente",
-              "shared_first_only": "Partilhado (apenas o primeiro)",
-              "shared_all_required": "Partilhado (Todos os requisitos obrigatórios)"
+              "shared_first": "Partilhado (apenas o primeiro)",
+              "shared_all": "Partilhado (Todos os requisitos obrigatórios)"
             }
           },
           "approval_reset_type": {
@@ -2689,20 +3191,33 @@
           "last_approved": {
             "name": "Última aprovação"
           },
+          "last_completed": {
+            "name": "Última conclusão"
+          },
           "chore_claimed_by": {
             "name": "Reivindicado por"
           },
           "chore_completed_by": {
             "name": "Concluído por"
+          },
+          "due_window_start": {
+            "name": "Início da janela de vencimento"
+          },
+          "time_until_due": {
+            "name": "Tempo restante"
+          },
+          "time_until_overdue": {
+            "name": "Tempo até ao vencimento"
           }
         }
       },
       "kid_reward_status_sensor": {
         "name": "Estado da recompensa - {reward_name}",
         "state": {
-          "not_claimed": "Não Reclamado",
+          "locked": "Trancado",
+          "available": "Disponível",
+          "requested": "Solicitado",
           "approved": "Aprovado",
-          "claimed": "Reivindicado",
           "unknown": "Desconhecido",
           "none": "Nenhum"
         },
@@ -2733,6 +3248,9 @@
           },
           "last_approved": {
             "name": "Última aprovação"
+          },
+          "last_completed": {
+            "name": "Última conclusão"
           },
           "last_disapproved": {
             "name": "Última reprovação"
@@ -3184,6 +3702,26 @@
       "system_bonuses_select": {
         "name": "Selecione o bónus"
       },
+      "system_dashboard_admin_kid_select": {
+        "name": "Painel de administração Seletor de crianças",
+        "state_attributes": {
+          "purpose": {
+            "name": "Finalidade",
+            "state": {
+              "purpose_system_dashboard_admin_kid": "Seletor de crianças ao nível do sistema para cartões do painel de administração"
+            }
+          },
+          "dashboard_helper_eid": {
+            "name": "ID da entidade auxiliar do painel de controlo"
+          },
+          "selected_kid_slug": {
+            "name": "Lesma-criança selecionada"
+          },
+          "selected_kid_name": {
+            "name": "Nome da criança selecionado"
+          }
+        }
+      },
       "kid_dashboard_helper_chores_select": {
         "name": "Painel de controlo da interface do utilizador - Lista de tarefas - Auxiliar",
         "state_attributes": {
@@ -3394,6 +3932,10 @@
       },
       "parent_points_adjust_button": {
         "name": "{sign_label} {points_label}",
+        "sign_label": {
+          "increment": "Incremento",
+          "decrement": "Diminuição"
+        },
         "state_attributes": {
           "purpose": {
             "name": "Finalidade",
@@ -3484,6 +4026,9 @@
     "shared_chore_cannot_have_kid": {
       "message": "Não é possível especificar criança para tarefa partilhada {chore_name}. As tarefas partilhadas têm uma data de entrega para todas as crianças."
     },
+    "reward_not_found": {
+      "message": "Recompensa com ID '{reward_id}' não encontrada"
+    },
     "required_field": {
       "message": "Deve fornecer {field}"
     },
@@ -3495,6 +4040,18 @@
     },
     "missing_chore": {
       "message": "É necessário fornecer o ID ou o nome da tarefa."
+    },
+    "missing_chore_identifier": {
+      "message": "É necessário fornecer chore_id ou chore_name para identificar a tarefa."
+    },
+    "chore_not_found": {
+      "message": "Tarefa com ID '{chore_id}' não encontrada."
+    },
+    "completion_criteria_immutable": {
+      "message": "Os critérios de conclusão não podem ser alterados após a criação da tarefa. Apague e volte a criar a tarefa se precisar de critérios de conclusão diferentes."
+    },
+    "missing_reward_identifier": {
+      "message": "É necessário fornecer o reward_id ou o reward_name para identificar a recompensa a atualizar."
     },
     "missing_field": {
       "message": "O campo obrigatório {field} está em falta em {entity}"
@@ -3510,6 +4067,36 @@
     },
     "configuration_error": {
       "message": "Erro de configuração: {detail}"
+    },
+    "data_reset_confirmation_required": {
+      "message": "Deve definir `confirm_destructive: true` para prosseguir com a reposição dos dados."
+    },
+    "data_reset_kid_not_found": {
+      "message": "Criança '{kid_name}' não encontrada"
+    },
+    "data_reset_item_not_found": {
+      "message": "{item_type} '{item_name}' não encontrado"
+    },
+    "data_reset_invalid_scope": {
+      "message": "Âmbito inválido '{scope}'. Deve ser: global, kid, item_type ou item"
+    },
+    "data_reset_invalid_item_type": {
+      "message": "Tipo de item inválido '{item_type}'. Deve ser: kids, chores, rewards, badges, achievements, challenges, penaltys ou bonuses"
+    },
+    "notif_title_data_reset": {
+      "message": "Redefinição de dados transacionais"
+    },
+    "notif_message_data_reset_global": {
+      "message": "Todos os dados de tempo de execução foram repostos. A configuração foi preservada."
+    },
+    "notif_message_data_reset_kid": {
+      "message": "Reinicialização de dados concluída para {kid_name}. Pontos, estatísticas e progresso a zero."
+    },
+    "notif_message_data_reset_item_type": {
+      "message": "Reinicialização de dados concluída para todos os {item_type}. Dados de tempo de execução apagados."
+    },
+    "notif_message_data_reset_item": {
+      "message": "Reinicialização de dados concluída para {item_name}. Dados de tempo de execução apagados."
     }
   }
 }

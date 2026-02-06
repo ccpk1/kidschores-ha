@@ -13,6 +13,16 @@
           "backup_selection": "Izberite možnost"
         }
       },
+      "paste_json_input": {
+        "title": "Uvozi podatke JSON",
+        "description": "Prilepite celotno vsebino JSON iz:\n\n• Podatkovne datoteke KidsChores (kidschores_data)\n• Prenosa diagnostičnih podatkov\n\nSistem bo samodejno zaznal in po potrebi razpakiral format. Podprti so tako formati surovih podatkov za shranjevanje kot tudi formati izvoza diagnostičnih podatkov.",
+        "data": {
+          "json_data": "Podatki JSON"
+        },
+        "data_description": {
+          "json_data": "Prilepite celotno vsebino JSON sem. Sprejema podatke iz datoteke kidschores_data ali izvoza diagnostike (samodejno odvije dodatno strukturo)."
+        }
+      },
       "points_label": {
         "title": "Oznaka točk",
         "description": "Izberite oznako in ikono za točke.",
@@ -26,7 +36,25 @@
         "description": "Posodobite sistemske nastavitve, kot sta oznaka in ikona točk.",
         "data": {
           "points_label": "Oznaka točk",
-          "points_icon": "Ikona točk"
+          "points_icon": "Ikona točk",
+          "update_interval": "Interval posodobitve (minute)",
+          "calendar_show_period": "Obdobje prikaza koledarja (dnevi)",
+          "retention_daily": "Dnevno zadrževanje (dni)",
+          "retention_weekly": "Tedensko zadrževanje (tedni)",
+          "retention_monthly": "Mesečno hrambo (meseci)",
+          "retention_yearly": "Letno hrambo (leta)",
+          "points_adjust_values": "Vrednosti prilagoditve točk (ločene po ceveh)"
+        },
+        "data_description": {
+          "points_label": "Oznaka, prikazana za točke (npr. »Točke«, »Zvezdice«, »Kovanci«)",
+          "points_icon": "Ikona MDI za točke (npr. 'mdi:star', 'mdi:coin', 'mdi:trophy')",
+          "update_interval": "Kako pogosto posodabljati podatke (najmanj 1 minuta)",
+          "calendar_show_period": "Število dni zgodovine za prikaz v koledarju (najmanj 1)",
+          "retention_daily": "Dnevi za hrambo dnevnih agregatov",
+          "retention_weekly": "Tedni za shranjevanje tedenskih agregatov",
+          "retention_monthly": "Meseci za hrambo mesečnih agregatov",
+          "retention_yearly": "Leta za hrambo letnih agregatov",
+          "points_adjust_values": "Vrednosti točk, ločenih s cevmi, za gumbe za ročno nastavitev (npr. +1,0|-1,0|+10,0|-10,0)"
         }
       },
       "kid_count": {
@@ -40,7 +68,7 @@
         "title": "Definiraj otroka",
         "description": "Vpišite ime za vsakega otroka.",
         "data": {
-          "kid_name": "Ime otroka",
+          "name": "Ime otroka",
           "ha_user": "Uporabnik domačega pomočnika",
           "mobile_notify_service": "Obvestila",
           "dashboard_language": "Jezik"
@@ -61,13 +89,16 @@
         "title": "Definiraj starša",
         "description": "Vnesite podatke za vsakega starša.",
         "data": {
-          "parent_name": "Ime starša",
+          "name": "Ime starša",
           "ha_user_id": "Uporabnik domačega pomočnika",
           "associated_kids": "Povezani otroci",
           "mobile_notify_service": "Obvestila",
           "dashboard_language": "Jezik"
         },
         "data_description": {
+          "name": "Edinstveno ime za tega nadrejenega, ki se uporablja v celotnem sistemu.",
+          "ha_user_id": "Izbirno: Povežite tega starša z uporabnikom Home Assistant za obvestila in dostop do nadzorne plošče.",
+          "associated_kids": "Izberite, katere otroke bo ta starš nadzoroval glede obvestil in dejanj odobritve.",
           "mobile_notify_service": "Izberite storitev obveščanja, da omogočite obvestila za tega starša, ali pustite prazno, da onemogočite obvestila.",
           "dashboard_language": "Jezik, ki se uporablja za nadzorno ploščo opravil in obvestila."
         }
@@ -83,7 +114,7 @@
         "title": "Dodaj opravilo",
         "description": "Ustvarite novo opravilo s točkami, nalogami in ponavljajočim se urnikom.",
         "data": {
-          "chore_name": "📋 Ime opravila",
+          "name": "📋 Ime opravila",
           "chore_description": "📋 Opis (neobvezno)",
           "icon": "Ikona 📋 (mdi:xxx)",
           "chore_labels": "📋 Oznake (neobvezno)",
@@ -99,11 +130,13 @@
           "custom_interval_unit": "🔄 Urnik: Intervalna enota po meri",
           "applicable_days": "📅 Urnik: Ustrezni dnevi (neobvezno)",
           "due_date": "📅 Razpored: Datum oddaje (neobvezno)",
+          "chore_due_window_offset": "⏱️ Rok: Poravnava pred rokom",
+          "chore_due_reminder_offset": "🔔 Opomnik za zapadlost: Poravnava pred rokom",
           "show_on_calendar": "📅 Prikaži v koledarju?",
           "chore_notifications": "🔔 Obvestila o dogodkih (neobvezno)"
         },
         "data_description": {
-          "chore_name": "Enolično ime, prikazano po celotnem sistemu.",
+          "name": "Enolično ime, prikazano po celotnem sistemu.",
           "chore_description": "Neobvezna navodila ali podrobnosti o tem, kako opraviti to opravilo.",
           "icon": "Ikona materialnega oblikovanja (npr. mdi:metla, mdi:pomivalni stroj).",
           "chore_labels": "Oznake za organizacijo opravil (npr. »kuhinja«, »na prostem«). Če niso potrebne, pustite prazno.",
@@ -119,6 +152,8 @@
           "custom_interval_unit": "Časovna enota za interval po meri (dnevi, tedni, meseci). Uporablja se samo s frekvenco po meri.",
           "applicable_days": "Za vse dni pustite prazno. Izberite SAMO določene dni, ki jih želite omejiti.",
           "due_date": "Neobvezen rok. Lahko se kombinira s ponavljajočimi se urniki.",
+          "chore_due_window_offset": "Ko se stanje opravila spremeni iz »V teku« v »Zakonito«. Oblika: »1d 6h 30m« ali samo »30« za minute. Za onemogočanje vnesite »0«. Primer: »1d« pomeni, da se opravilo prikaže kot »Zakonito« 1 dan pred rokom.",
+          "chore_due_reminder_offset": "Kdaj poslati opomnik o zapadlosti. Oblika: »1d 6h 30m« ali samo »30« za minute. Privzeto: 30m (30 minut pred zapadlostjo). Za onemogočanje vnesite »0«.",
           "show_on_calendar": "Prikaži to opravilo v pogledu koledarja.",
           "chore_notifications": "Kdaj poslati obvestila: Ob zahtevku, ob odobritvi, ob zavrnitvi ali kateri koli kombinaciji."
         }
@@ -191,10 +226,10 @@
         "title": "Definiraj nagrado",
         "description": "Vnesite podrobnosti za vsako nagrado.",
         "data": {
-          "reward_name": "Ime nagrade",
+          "name": "Ime nagrade",
           "internal_id": "Notranja identifikacija",
-          "reward_cost": "Stroški nagrade",
-          "reward_description": "Opis (neobvezno)",
+          "cost": "Stroški nagrade",
+          "description": "Opis (neobvezno)",
           "reward_labels": "Oznake nagrad",
           "icon": "Ikona (mdi:xxx)"
         }
@@ -210,7 +245,7 @@
         "title": "Definiraj kazen",
         "description": "Vnesite podrobnosti za vsako kazen.",
         "data": {
-          "penalty_name": "Ime kazni",
+          "name": "Ime kazni",
           "penalty_description": "Opis (neobvezno)",
           "penalty_labels": "Kazenske oznake",
           "internal_id": "Notranja identifikacija",
@@ -229,7 +264,7 @@
         "title": "Definiraj bonus",
         "description": "Vnesite podrobnosti za vsak bonus.",
         "data": {
-          "bonus_name": "Ime bonusa",
+          "name": "Ime bonusa",
           "bonus_description": "Opis (neobvezno)",
           "bonus_labels": "Bonus oznake",
           "internal_id": "Notranja identifikacija",
@@ -308,6 +343,10 @@
       "due_date_in_past": "Rok mora biti v prihodnosti.",
       "end_date_in_past": "Končni datum mora biti v prihodnosti.",
       "end_date_not_after_start_date": "Končni datum mora biti poznejši od začetnega datuma",
+      "err_end_before_start": "Končni datum mora biti po začetnem datumu",
+      "err_name_duplicate": "Izziv s tem imenom že obstaja",
+      "achievement_no_kids_assigned": "Dosežku mora biti dodeljen vsaj en otrok",
+      "challenge_no_kids_assigned": "V izziv mora biti dodeljen vsaj en otrok",
       "invalid_achievement_count": "Neveljavno število dosežkov",
       "invalid_achievement_name": "Neveljavno ime dosežka",
       "invalid_badge": "Neveljavna značka",
@@ -318,6 +357,7 @@
       "invalid_chore": "Neveljavna naloga",
       "invalid_chore_count": "Neveljavno število opravil",
       "invalid_chore_name": "Neveljavno ime opravila",
+      "invalid_points": "Točke morajo biti nič ali večje",
       "invalid_overdue_reset_combination": "Obravnava zamud »Ob datumu zapadlosti, nato ponastavitev« deluje samo pri vrstah ponastavitve ob polnoči. Za vrsto ponastavitve odobritve izberite »Ob polnoči (enkrat)« ali »Ob polnoči (ponavljajoče se)«.",
       "invalid_due_date": "Neveljaven rok",
       "date_required_for_frequency": "Za to ponavljajočo se frekvenco je potreben rok. Počisti datume deluje samo s frekvenco Brez, Dnevno ali Tedensko.",
@@ -333,6 +373,7 @@
       "invalid_reward": "Neveljavna nagrada",
       "invalid_reward_count": "Neveljavno število nagrad",
       "invalid_reward_name": "Neveljavno ime nagrade",
+      "invalid_reward_cost": "Stroški nagrade morajo biti nič ali večji",
       "invalid_bonus": "Neveljaven bonus",
       "invalid_bonus_count": "Neveljavno število bonusov",
       "invalid_bonus_name": "Neveljavno ime bonusa",
@@ -399,13 +440,15 @@
         "title": "Dodaj otroka",
         "description": "Navedite podrobnosti za novega otroka.",
         "data": {
-          "kid_name": "Ime otroka",
+          "name": "Ime otroka",
           "ha_user": "Uporabnik domačega pomočnika",
           "mobile_notify_service": "Obvestila",
           "dashboard_language": "Jezik",
           "internal_id": "Notranja identifikacija"
         },
         "data_description": {
+          "name": "Edinstveno ime za tega otroka, ki se uporablja v celotnem sistemu.",
+          "ha_user": "Izbirno: Povežite tega otroka z uporabnikom Home Assistant za nadzor dostopa do nadzorne plošče.",
           "mobile_notify_service": "Izberite storitev obveščanja, da omogočite obvestila za tega otroka, ali pustite prazno, da jih onemogočite.",
           "dashboard_language": "Jezik, ki se uporablja za nadzorno ploščo opravil in obvestila."
         }
@@ -414,7 +457,7 @@
         "title": "Dodaj starša",
         "description": "Navedite podrobnosti za novega starša.",
         "data": {
-          "parent_name": "Ime starša",
+          "name": "Ime starša",
           "ha_user_id": "Uporabnik domačega pomočnika",
           "associated_kids": "Povezani otroci",
           "mobile_notify_service": "Obvestila",
@@ -425,6 +468,9 @@
           "internal_id": "Notranja identifikacija"
         },
         "data_description": {
+          "name": "Edinstveno ime za tega nadrejenega, ki se uporablja v celotnem sistemu.",
+          "ha_user_id": "Izbirno: Povežite tega starša z uporabnikom Home Assistant za obvestila in dostop do nadzorne plošče.",
+          "associated_kids": "Izberite, katere otroke bo ta starš nadzoroval glede obvestil in dejanj odobritve.",
           "mobile_notify_service": "Izberite storitev obveščanja, da omogočite obvestila za tega starša, ali pustite prazno, da onemogočite obvestila.",
           "allow_chore_assignment": "Ustvari profil, da vam je mogoče dodeliti naloge. Privzeto je za dokončanje z enim klikom prikazan samo gumb »Odobri«. Opomba: Če počistite polje, se profil otroka ohrani s pripono »_unlinked« za ročno čiščenje.",
           "enable_chore_workflow": "Doda gumba Zahtevaj in Zavrni za celoten potek dela (zahtevaj → odobri/zavrni).",
@@ -436,7 +482,7 @@
         "title": "Dodaj opravilo",
         "description": "Ustvarite novo opravilo s točkami, nalogami in ponavljajočim se urnikom.",
         "data": {
-          "chore_name": "📋 Ime opravila",
+          "name": "📋 Ime opravila",
           "chore_description": "📋 Opis (neobvezno)",
           "icon": "Ikona 📋 (mdi:xxx)",
           "chore_labels": "📋 Oznake (neobvezno)",
@@ -452,11 +498,14 @@
           "custom_interval_unit": "🔄 Urnik: Intervalna enota po meri",
           "applicable_days": "📅 Urnik: Ustrezni dnevi (neobvezno)",
           "due_date": "📅 Razpored: Datum oddaje (neobvezno)",
+          "clear_due_date": "🗑️ Jasen rok",
+          "chore_due_window_offset": "⏱️ Rok: Poravnava pred rokom",
+          "chore_due_reminder_offset": "🔔 Opomnik za zapadlost: Poravnava pred rokom",
           "show_on_calendar": "📅 Prikaži v koledarju?",
           "chore_notifications": "🔔 Obvestila o dogodkih (neobvezno)"
         },
         "data_description": {
-          "chore_name": "Enolično ime, prikazano po celotnem sistemu.",
+          "name": "Enolično ime, prikazano po celotnem sistemu.",
           "chore_description": "Neobvezna navodila ali podrobnosti o tem, kako opraviti to opravilo.",
           "icon": "Ikona materialnega oblikovanja (npr. mdi:metla, mdi:pomivalni stroj).",
           "chore_labels": "Oznake za organizacijo opravil (npr. »kuhinja«, »na prostem«). Če niso potrebne, pustite prazno.",
@@ -472,6 +521,9 @@
           "custom_interval_unit": "Časovna enota za interval po meri (dnevi, tedni, meseci). Uporablja se samo s frekvenco po meri.",
           "applicable_days": "Za vse dni pustite prazno. Izberite SAMO določene dni, ki jih želite omejiti.",
           "due_date": "Neobvezen rok. Lahko se kombinira s ponavljajočimi se urniki. Za SAMOSTOJNA opravila to služi kot predloga – prikazal se bo dodaten zaslon, ki bo omogočal posamezne datume za vsakega otroka.",
+          "clear_due_date": "Označite to polje, če želite odstraniti rok za to opravilo.",
+          "chore_due_window_offset": "Ko se stanje opravila spremeni iz »V teku« v »Zakonito«. Oblika: »1d 6h 30m« ali samo »30« za minute. Za onemogočanje vnesite »0«. Primer: »1d« pomeni, da se opravilo prikaže kot »Zakonito« 1 dan pred rokom.",
+          "chore_due_reminder_offset": "Kdaj poslati opomnik o zapadlosti. Oblika: »1d 6h 30m« ali samo »30« za minute. Privzeto: 30m (30 minut pred zapadlostjo). Za onemogočanje vnesite »0«.",
           "show_on_calendar": "Prikaži to opravilo v pogledu koledarja.",
           "chore_notifications": "Kdaj poslati obvestila: Ob zahtevku, ob odobritvi, ob zavrnitvi ali kateri koli kombinaciji."
         }
@@ -695,10 +747,10 @@
         "title": "Dodaj nagrado",
         "description": "Navedite podrobnosti za novo nagrado.",
         "data": {
-          "reward_name": "Ime nagrade",
+          "name": "Ime nagrade",
           "internal_id": "Notranja identifikacija",
-          "reward_cost": "Stroški nagrade",
-          "reward_description": "Opis (neobvezno)",
+          "cost": "Stroški nagrade",
+          "description": "Opis (neobvezno)",
           "reward_labels": "Oznake nagrad",
           "icon": "Ikona (mdi:xxx)"
         }
@@ -707,7 +759,7 @@
         "title": "Dodaj kazen",
         "description": "Navedite podrobnosti o novi kazni.",
         "data": {
-          "penalty_name": "Ime kazni",
+          "name": "Ime kazni",
           "penalty_description": "Opis (neobvezno)",
           "penalty_labels": "Kazenske oznake",
           "internal_id": "Notranja identifikacija",
@@ -719,7 +771,7 @@
         "title": "Dodaj bonus",
         "description": "Navedite podrobnosti za novi bonus.",
         "data": {
-          "bonus_name": "Ime bonusa",
+          "name": "Ime bonusa",
           "bonus_description": "Opis (neobvezno)",
           "bonus_labels": "Bonus oznake",
           "internal_id": "Notranja identifikacija",
@@ -767,13 +819,15 @@
         "title": "Uredi otroka",
         "description": "Spremenite podrobnosti izbranega otroka.",
         "data": {
-          "kid_name": "Ime otroka",
+          "name": "Ime otroka",
           "ha_user": "Uporabnik domačega pomočnika",
           "mobile_notify_service": "Obvestila",
           "dashboard_language": "Jezik",
           "internal_id": "Notranja identifikacija"
         },
         "data_description": {
+          "name": "Edinstveno ime za tega otroka, ki se uporablja v celotnem sistemu.",
+          "ha_user": "Izbirno: Povežite tega otroka z uporabnikom Home Assistant za nadzor dostopa do nadzorne plošče.",
           "mobile_notify_service": "Izberite storitev obveščanja, da omogočite obvestila za tega otroka.",
           "dashboard_language": "Jezik, ki se uporablja za nadzorno ploščo opravil in obvestila."
         }
@@ -782,14 +836,15 @@
         "title": "Uredi Shadow Kida",
         "description": "Spremenite podrobnosti izbranega otroka v senci. ⚠️ Ta otrok je povezan s staršem. Sprememba imena bo prekršila zahtevo po ujemanju imen za prekinitev povezave prek storitve.",
         "data": {
-          "kid_name": "Ime otroka",
+          "name": "Ime otroka",
           "ha_user": "Uporabnik domačega pomočnika",
           "mobile_notify_service": "Obvestila",
           "dashboard_language": "Jezik",
           "internal_id": "Notranja identifikacija"
         },
         "data_description": {
-          "kid_name": "⚠️ Ta senčni otrok je povezan s staršem. Sprememba tega imena bo prekinila funkcijo prekinitve povezave storitve, ki zahteva ujemajoča se imena.",
+          "name": "⚠️ Ta senčni otrok je povezan s staršem. Sprememba tega imena bo prekinila funkcijo prekinitve povezave storitve, ki zahteva ujemajoča se imena.",
+          "ha_user": "Izbirno: Povežite tega otroka z uporabnikom Home Assistant za nadzor dostopa do nadzorne plošče.",
           "mobile_notify_service": "⚠️ Obvestila za senčnega otroka: Povezani starš že prejema obvestila za nadzorovana opravila. Če to omogočite, boste ustvarili podvojena obvestila. Uporabno za 30-minutne opomnike o roku ali če uporabljate različne storitve obveščanja.",
           "dashboard_language": "Jezik, ki se uporablja za nadzorno ploščo opravil in obvestila."
         }
@@ -798,7 +853,7 @@
         "title": "Uredi nadrejenega",
         "description": "Spremenite podrobnosti izbranega nadrejenega elementa.",
         "data": {
-          "parent_name": "Ime starša",
+          "name": "Ime starša",
           "ha_user_id": "Uporabnik domačega pomočnika",
           "associated_kids": "Povezani otroci",
           "mobile_notify_service": "Obvestila",
@@ -809,6 +864,9 @@
           "internal_id": "Notranja identifikacija"
         },
         "data_description": {
+          "name": "Edinstveno ime za tega nadrejenega elementa, ki se uporablja v celotnem sistemu.",
+          "ha_user_id": "Izbirno: Povežite tega starša z uporabnikom Home Assistant za obvestila in dostop do nadzorne plošče.",
+          "associated_kids": "Izberite, katere otroke bo ta starš nadzoroval glede obvestil in dejanj odobritve.",
           "mobile_notify_service": "Izberite storitev obveščanja, da omogočite obvestila za tega starša, ali pustite prazno, da jih onemogočite.",
           "allow_chore_assignment": "Ustvari profil, da vam je mogoče dodeliti naloge. Privzeto je za dokončanje z enim klikom prikazan samo gumb »Odobri«. Opomba: Če počistite polje, se profil otroka ohrani s pripono »_unlinked« za ročno čiščenje.",
           "enable_chore_workflow": "Doda gumba Zahtevaj in Zavrni za celoten potek dela (zahtevaj → odobri/zavrni).",
@@ -820,7 +878,7 @@
         "title": "Uredi opravilo",
         "description": "Spremenite podrobnosti izbranega opravila.",
         "data": {
-          "chore_name": "📋 Ime opravila",
+          "name": "📋 Ime opravila",
           "chore_description": "📋 Opis (neobvezno)",
           "icon": "Ikona 📋 (mdi:xxx)",
           "chore_labels": "📋 Oznake (neobvezno)",
@@ -838,11 +896,13 @@
           "applicable_days": "📅 Urnik: Ustrezni dnevi (neobvezno)",
           "due_date": "📅 Razpored: Datum oddaje (neobvezno)",
           "clear_due_date": "🗑️ Jasen rok",
+          "chore_due_window_offset": "⏱️ Rok: Poravnava pred rokom",
+          "chore_due_reminder_offset": "🔔 Opomnik za zapadlost: Poravnava pred rokom",
           "show_on_calendar": "📅 Prikaži v koledarju?",
           "chore_notifications": "🔔 Obvestila o dogodkih (neobvezno)"
         },
         "data_description": {
-          "chore_name": "Enolično ime, prikazano po celotnem sistemu.",
+          "name": "Enolično ime, prikazano po celotnem sistemu.",
           "chore_description": "Neobvezna navodila ali podrobnosti o tem, kako opraviti to opravilo.",
           "icon": "Ikona materialnega oblikovanja (npr. mdi:metla, mdi:pomivalni stroj).",
           "chore_labels": "Oznake za organizacijo opravil (npr. »kuhinja«, »na prostem«). Če niso potrebne, pustite prazno.",
@@ -859,6 +919,8 @@
           "applicable_days": "Za vse dni pustite prazno. Izberite SAMO določene dni, ki jih želite omejiti.",
           "due_date": "Neobvezen rok. Lahko se kombinira s ponavljajočimi se urniki. Za SAMOSTOJNA opravila to služi kot predloga – prikazal se bo dodaten zaslon, ki bo omogočal posamezne datume za vsakega otroka.",
           "clear_due_date": "Označite to polje, če želite odstraniti rok za to opravilo.",
+          "chore_due_window_offset": "Ko se stanje opravila spremeni iz »V teku« v »Zakonito«. Oblika: »1d 6h 30m« ali samo »30« za minute. Za onemogočanje vnesite »0«. Primer: »1d« pomeni, da se opravilo prikaže kot »Zakonito« 1 dan pred rokom.",
+          "chore_due_reminder_offset": "Kdaj poslati opomnik o zapadlosti. Oblika: »1d 6h 30m« ali samo »30« za minute. Privzeto: 30m (30 minut pred zapadlostjo). Za onemogočanje vnesite »0«.",
           "show_on_calendar": "Prikaži to opravilo v pogledu koledarja.",
           "chore_notifications": "Kdaj poslati obvestila: Ob zahtevku, ob odobritvi, ob zavrnitvi ali kateri koli kombinaciji."
         }
@@ -1109,10 +1171,10 @@
         "title": "Uredi nagrado",
         "description": "Spremenite podrobnosti izbrane nagrade.",
         "data": {
-          "reward_name": "Ime nagrade",
+          "name": "Ime nagrade",
           "internal_id": "Notranja identifikacija",
-          "reward_cost": "Stroški nagrade",
-          "reward_description": "Opis (neobvezno)",
+          "cost": "Stroški nagrade",
+          "description": "Opis (neobvezno)",
           "reward_labels": "Oznake nagrad",
           "icon": "Ikona (mdi:xxx)"
         }
@@ -1121,7 +1183,7 @@
         "title": "Uredi kazen",
         "description": "Spremenite podrobnosti izbrane kazni.",
         "data": {
-          "penalty_name": "Ime kazni",
+          "name": "Ime kazni",
           "penalty_description": "Opis (neobvezno)",
           "penalty_labels": "Kazenske oznake",
           "internal_id": "Notranja identifikacija",
@@ -1133,7 +1195,7 @@
         "title": "Uredi bonus",
         "description": "Spremenite podrobnosti izbranega bonusa.",
         "data": {
-          "bonus_name": "Ime bonusa",
+          "name": "Ime bonusa",
           "bonus_description": "Opis (neobvezno)",
           "bonus_labels": "Bonus oznake",
           "internal_id": "Notranja identifikacija",
@@ -1222,6 +1284,61 @@
         "description": "Ali ste prepričani, da želite izbrisati izziv {challenge_name}?",
         "data": {}
       },
+      "dashboard_generator": {
+        "title": "Upravljanje nadzorne plošče",
+        "description": "Ustvarjanje, posodabljanje ali brisanje nadzornih plošč KidsChores Lovelace.\n\n⚠️ **Zahtevane kartice po meri** (namestitev prek HACS → Frontend):\n- [**Kartice z gobami**](https://github.com/piitaya/lovelace-mushroom) (`custom:mushroom-template-card`)\n- [**Auto-Entities**](https://github.com/thomasloven/lovelace-auto-entities) (`custom:auto-entities`)\n- [**Mini Graph Card**](https://github.com/kalkih/mini-graph-card) (`custom:mini-graph-card`)\n\nBrez teh kartic bodo nadzorne plošče prikazovale napake. Najprej jih namestite iz HACS, preden ustvarite nadzorne plošče.",
+        "data": {
+          "dashboard_action": "Dejanje",
+          "dashboard_check_cards": "Preverite namestitev kartice"
+        },
+        "data_description": {
+          "dashboard_action": "Izberite, ali želite ustvariti nove nadzorne plošče ali izbrisati obstoječe.",
+          "dashboard_check_cards": "Omogočite, da pred nadaljevanjem preverite, ali so nameščene zahtevane kartice po meri."
+        }
+      },
+      "dashboard_create": {
+        "title": "Ustvari/posodobi nadzorno ploščo",
+        "description": "Ustvarite nadzorno ploščo KidsChores z zavihki za vsakega otroka.\n\nIzberite ime za nadzorno ploščo, izberite otroke, ki jih želite vključiti, in po želji dodajte zavihek Skrbnik za upravljanje s starši.",
+        "data": {
+          "dashboard_name": "Ime nadzorne plošče",
+          "dashboard_style": "Slog nadzorne plošče",
+          "dashboard_kid_selection": "Otroci (ena tableta na otroka)",
+          "dashboard_include_admin": "Vključi zavihek »Skrbnik«",
+          "dashboard_force_rebuild": "Vsiljena ponovna izgradnja (prepis obstoječega)"
+        },
+        "data_description": {
+          "dashboard_name": "Ime za nadzorno ploščo (prikaže se v stranski vrstici). Predlagano: Opravila",
+          "dashboard_style": "Izberite postavitev nadzorne plošče: Polna (vse funkcije), Minimalna (samo bistvene funkcije) ali Kompaktna (gosta postavitev).",
+          "dashboard_kid_selection": "Izberite, za katere otroke želite ustvariti zavihke. Vsak otrok dobi svoj pogled/zavihek.",
+          "dashboard_include_admin": "Dodajte zavihek Skrbnik s starševskimi kontrolami za odobritve in upravljanje.",
+          "dashboard_force_rebuild": "Če je omogočeno, bo obstoječa nadzorna plošča prepisana. V nasprotnem primeru generiranje ne uspe, če nadzorna plošča obstaja."
+        }
+      },
+      "dashboard_delete": {
+        "title": "Izbriši nadzorno ploščo",
+        "description": "Izberite nadzorne plošče KidsChores, ki jih želite izbrisati.\n\n⚠️ Tega dejanja ni mogoče razveljaviti.",
+        "data": {
+          "dashboard_delete_selection": "Nadzorne plošče za brisanje"
+        },
+        "data_description": {
+          "dashboard_delete_selection": "Izberite eno ali več nadzornih plošč, ki jih želite trajno odstraniti."
+        }
+      },
+      "dashboard_delete_confirm": {
+        "title": "Potrdi brisanje",
+        "description": "⚠️ **Opozorilo:** Naslednje nadzorne plošče bodo trajno izbrisane:\n\n**{dashboards}**\n\nS tem boste nadzorno ploščo odstranili iz stranske vrstice in izbrisali vso konfiguracijo.\n\nKliknite Pošlji, da potrdite brisanje.",
+        "data": {}
+      },
+      "dashboard_generator_confirm": {
+        "title": "Potrdi generiranje nadzorne plošče",
+        "description": "Ustvarjene bodo naslednje nadzorne plošče:\n\n**Slog:** {style}\n**Vsilna ponovna izgradnja:** {force_rebuild}\n\n**Nadzorne plošče:**\n{dashboards}\n\nKliknite Pošlji, da ustvarite nadzorne plošče.",
+        "data": {}
+      },
+      "dashboard_generator_result": {
+        "title": "Rezultati ustvarjanja nadzorne plošče",
+        "description": "**Rezultati:** {success_count} uspešno, {failure_count} neuspešno\n\n{results}\n\nKliknite Pošlji, da se vrnete v glavni meni.",
+        "data": {}
+      },
       "manage_general_options": {
         "title": "Splošne možnosti",
         "description": "Upravljajte splošne nastavitve za integracijo KidsChores.",
@@ -1248,7 +1365,7 @@
           "retention_monthly": "Število mesecev mesečnih zgodovinskih podatkov, ki jih je treba hraniti pred čiščenjem. Najmanj 1, največ 24.",
           "retention_yearly": "Število let letnih zgodovinskih podatkov, ki jih je treba hraniti pred čiščenjem. Najmanj 1, največ 10.",
           "show_legacy_entities": "Prikažite dodatne entitete, kot sta senzor in izbire, ki so zdaj združene v senzor pomočnika nadzorne plošče. Te entitete so izbirne zaradi združljivosti z obstoječimi avtomatizacijami.",
-          "backups_max_retained": "Največje število varnostnih kopij datotek, ki jih želite shraniti. Starejše varnostne kopije bodo samodejno izbrisane. Nastavite na 0, da onemogočite samodejno varnostno kopiranje.",
+          "backups_max_retained": "Največje število varnostnih kopij datotek, ki jih lahko hranite na oznako (npr. 5 ročnih varnostnih kopij, 5 varnostnih kopij data_reset). Starejše varnostne kopije se samodejno izbrišejo po vsaki novi varnostni kopiji. Nastavite na 0, da popolnoma onemogočite samodejne varnostne kopije.",
           "backup_action_selection": "Izberite dejanje upravljanja varnostnih kopij: ustvarite ročno varnostno kopijo, izbrišite varnostno kopijo ali obnovite iz varnostne kopije."
         }
       },
@@ -1281,11 +1398,34 @@
       },
       "select_backup_to_delete": {
         "title": "Izberite varnostno kopijo za brisanje",
-        "description": "Izberite datoteko varnostne kopije, ki jo želite izbrisati.\n\nRazpoložljive varnostne kopije: {backup_count}\n\n⚠️ Zaščitenih varnostnih kopij (pred selitvijo, ročnih) ni mogoče izbrisati."
+        "description": "Izberite varnostno kopijo, ki jo želite izbrisati.\n\nRazpoložljive varnostne kopije: {backup_count}"
       },
       "select_backup_to_restore": {
         "title": "Izberite varnostno kopijo za obnovitev",
-        "description": "Izberite varnostno kopijo datoteke za obnovitev.\n\nRazpoložljive varnostne kopije: {backup_count}\n\n⚠️ To bo nadomestilo vaše trenutne podatke!"
+        "description": "Izberite varnostno kopijo datoteke za obnovitev.\n\nRazpoložljive varnostne kopije: {backup_count}\n\n⚠️ To bo nadomestilo vaše trenutne podatke!",
+        "data": {
+          "backup_selection": "Izberite varnostno kopijo"
+        },
+        "data_description": {
+          "backup_selection": "Izberite varnostno kopijo datoteke, ki jo želite obnoviti."
+        }
+      },
+      "restore_backup": {
+        "title": "Možnosti obnovitve podatkov",
+        "description": "Obstoječi podatki KidsChores so bili najdeni v:\n{storage_path}\n\nNajdenih {backup_count} varnostnih kopij datotek.\n\nKaj želite storiti?",
+        "data": {
+          "backup_selection": "Izberite možnost"
+        }
+      },
+      "paste_json_restore": {
+        "title": "Uvozi podatke JSON",
+        "description": "Prilepite celotno vsebino JSON iz:\n\n• Podatkovne datoteke KidsChores (kidschores_data)\n• Prenosa diagnostičnih podatkov\n\nSistem bo samodejno zaznal in po potrebi razpakiral obliko zapisa. Podprti so tako formati surovih podatkov za shranjevanje kot tudi izvoz diagnostičnih podatkov.",
+        "data": {
+          "json_data": "Podatki JSON"
+        },
+        "data_description": {
+          "json_data": "Prilepite celotno vsebino JSON sem. Sprejema podatke iz datoteke kidschores_data ali izvoza diagnostike (samodejno odvije dodatno strukturo)."
+        }
       },
       "create_backup_confirm": {
         "title": "Ustvari ročno varnostno kopijo",
@@ -1331,6 +1471,8 @@
       "due_date_in_past": "Rok mora biti v prihodnosti.",
       "end_date_in_past": "Končni datum mora biti v prihodnosti.",
       "end_date_not_after_start_date": "Končni datum mora biti poznejši od začetnega datuma",
+      "err_end_before_start": "Končni datum mora biti po začetnem datumu",
+      "err_name_duplicate": "Izziv s tem imenom že obstaja",
       "invalid_badge": "Neveljavna značka",
       "invalid_badge_count": "Neveljavno število značk",
       "invalid_chore": "Neveljavna naloga",
@@ -1341,6 +1483,8 @@
       "invalid_kid_count": "Neveljavno število otrok",
       "invalid_kid_name": "Neveljavno ime otroka",
       "no_kids_assigned": "Vsaj enemu otroku mora biti dodeljeno opravilo",
+      "achievement_no_kids_assigned": "Dosežku mora biti dodeljen vsaj en otrok",
+      "challenge_no_kids_assigned": "V izziv mora biti dodeljen vsaj en otrok",
       "invalid_penalty": "Neveljavna kazen",
       "invalid_penalty_count": "Neveljavno štetje kazni",
       "invalid_bonus": "Neveljaven bonus",
@@ -1363,7 +1507,14 @@
       "error_daily_multi_due_date_required": "Za pogostost »Večkrat na dan« je treba nastaviti rok. Datum določa začetek razporejanja, časi pa določajo okna razpoložljivosti za vsak dan.",
       "error_at_due_date_reset_requires_due_date": "Za vrste ponastavitve odobritve »Ob roku« (enkrat ali večkrat) je treba nastaviti rok. Brez roka se ponastavitev odobritve ne bo nikoli sprožila in opravilo bo ostalo odobreno za nedoločen čas.",
       "error_per_kid_applicable_days_invalid": "Neveljavna veljavna oblika dni za enega ali več otrok. Dnevi morajo biti cela števila od 0 do 6 (ponedeljek–nedelja) brez dvojnikov.",
-      "error_per_kid_daily_multi_times_invalid": "Neveljavna oblika dnevnega časa za enega ali več otrok. Uporabite 24-urno obliko, ločeno z znakom | (npr. 08:00|17:00)."
+      "error_per_kid_daily_multi_times_invalid": "Neveljavna oblika dnevnega časa za enega ali več otrok. Uporabite 24-urno obliko, ločeno z znakom | (npr. 08:00|17:00).",
+      "dashboard_exists": "Nadzorna plošča s to potjo URL-ja že obstaja. Omogočite »Vsilno obnovitev«, da prepišete.",
+      "dashboard_template_error": "Predloge nadzorne plošče ni bilo mogoče pridobiti. Preverite omrežno povezavo ali poskusite znova pozneje.",
+      "dashboard_render_error": "Predloge nadzorne plošče ni bilo mogoče upodobiti. To lahko kaže na napako v predlogi.",
+      "dashboard_save_error": "Nadzorne plošče ni bilo mogoče shraniti v Home Assistant. Za podrobnosti preverite sistemske dnevnike.",
+      "dashboard_no_name": "Vnesite ime za nadzorno ploščo.",
+      "dashboard_no_kids": "Izberite vsaj enega otroka ali omogočite možnost »Vključi zavihek za skrbnike«.",
+      "dashboard_no_dashboards": "Izberite vsaj eno nadzorno ploščo za brisanje."
     },
     "abort": {
       "invalid_action": "Neveljavno dejanje",
@@ -1387,7 +1538,8 @@
       "no_achievement": "Ni dosežkov za urejanje. Najprej dodajte en vnos.",
       "no_challenge": "Ni izzivov, ki bi jih bilo mogoče urejati. Najprej dodajte en vnos.",
       "setup_complete": "Nastavitev končana",
-      "backup_restored": "Varnostna kopija je bila uspešno obnovljena. Integracija je bila ponovno naložena z obnovljenimi podatki."
+      "backup_restored": "Varnostna kopija je bila uspešno obnovljena. Integracija je bila ponovno naložena z obnovljenimi podatki.",
+      "no_dashboards_to_delete": "Nadzornih plošč KidsChores ni bilo mogoče najti. Najprej ustvarite eno z možnostjo Upravljanje nadzorne plošče."
     }
   },
   "selector": {
@@ -1403,9 +1555,30 @@
         "manage_bonus": "Upravljaj bonus",
         "manage_achievement": "Upravljanje dosežkov",
         "manage_challenge": "Upravljaj izziv",
+        "dashboard_generator": "Upravljanje nadzorne plošče",
         "general_options": "Splošne možnosti",
         "done": "Dokončaj nastavitev"
       }
+    },
+    "dashboard_action": {
+      "options": {
+        "create": "Ustvari/posodobi nadzorno ploščo",
+        "delete": "Izbriši nadzorno ploščo"
+      }
+    },
+    "dashboard_style": {
+      "options": {
+        "dashboard_style_full": "Polno (vse funkcije)",
+        "dashboard_style_minimal": "Minimalno (samo osnovno)",
+        "dashboard_style_compact": "Kompaktna (gosta postavitev)",
+        "dashboard_style_admin": "Skrbnik (nadrejena nadzorna plošča)"
+      }
+    },
+    "dashboard_kid_selection": {
+      "options": {}
+    },
+    "dashboard_delete_selection": {
+      "options": {}
     },
     "manage_actions": {
       "options": {
@@ -1524,7 +1697,9 @@
         "notify_on_claim": "Obvesti o zahtevku",
         "notify_on_approval": "Obvesti o odobritvi",
         "notify_on_disapproval": "Obvesti o zavrnitvi",
-        "notify_on_reminder": "Obvesti 30 minut pred rokom"
+        "notify_on_reminder": "Obvesti 30 minut pred rokom (zastarelo)",
+        "notify_on_due_window": "Obvesti me, ko se začne rok",
+        "notify_due_reminder": "Obvesti ob predvidenem času opomnika"
       }
     },
     "recurring_frequency": {
@@ -1542,7 +1717,11 @@
         "custom_1_week": "Po meri: 1 teden",
         "custom_1_month": "Po meri: 1 mesec",
         "custom_1_quarter": "Po meri: 1 četrtina",
-        "custom_1_year": "Po meri: 1 leto"
+        "custom_1_year": "Po meri: 1 leto",
+        "week_end": "Konec tedna",
+        "month_end": "Konec meseca",
+        "quarter_end": "Konec četrtine",
+        "year_end": "Konec leta"
       }
     },
     "occasion_type": {
@@ -1709,6 +1888,10 @@
           "name": "Ime nagrade",
           "description": "Ime nagrade, ki se odobrava.",
           "example": "Dodaten čas pred zaslonom"
+        },
+        "cost_override": {
+          "name": "Preglasitev stroškov",
+          "description": "Neobvezna preglasitev stroškov. Če je izpuščeno, se uporabi shranjena cena nagrade. Nastavite na 0 za brezplačno podelitev (kot so nagrade z značko). Uporabno za cene, ki se zavedajo konteksta (vikendi, posebne priložnosti itd.)."
         }
       }
     },
@@ -1775,13 +1958,306 @@
         }
       }
     },
-    "reset_all_data": {
-      "name": "Ponastavi vse podatke",
-      "description": "Popolnoma izbriše podatke KidsChores iz pomnilnika."
+    "create_reward": {
+      "name": "Ustvari nagrado",
+      "description": "Programsko ustvarite novo nagrado.",
+      "fields": {
+        "name": {
+          "name": "Ime",
+          "description": "Ime nagrade.",
+          "example": "Dodaten čas pred zaslonom"
+        },
+        "cost": {
+          "name": "Stroški",
+          "description": "Točke, potrebne za uveljavitev nagrade.",
+          "example": "10"
+        },
+        "description": {
+          "name": "Opis",
+          "description": "Neobvezen opis nagrade.",
+          "example": "30 minut dodatnega časa za uporabo tablete"
+        },
+        "icon": {
+          "name": "Ikona",
+          "description": "Ikona, ki predstavlja nagrado.",
+          "example": "mdi:darilo"
+        },
+        "labels": {
+          "name": "Oznake",
+          "description": "Oznake za združevanje nagrad.",
+          "example": "['vikend', 'posebna ponudba']"
+        }
+      }
     },
-    "reset_all_chores": {
-      "name": "Ponastavi vsa opravila",
-      "description": "Ročno ponastavite opravila v stanje čakanja, s čimer odstranite zahtevke in odobritve."
+    "update_reward": {
+      "name": "Posodobi nagrado",
+      "description": "Posodobi obstoječo nagrado (podprte so delne posodobitve).",
+      "fields": {
+        "id": {
+          "name": "ID nagrade",
+          "description": "Notranji ID nagrade, ki jo želite posodobiti. Uporabite ID ALI ime.",
+          "example": "abc123-def456-789..."
+        },
+        "name": {
+          "name": "Ime",
+          "description": "Ime nagrade, ki jo želite posodobiti, ali novo ime nagrade.",
+          "example": "Dodaten čas pred zaslonom"
+        },
+        "cost": {
+          "name": "Stroški",
+          "description": "Posodobljena vrednost stroškov.",
+          "example": "15"
+        },
+        "description": {
+          "name": "Opis",
+          "description": "Posodobljen opis.",
+          "example": "45 minut dodatnega časa za uporabo tablete"
+        },
+        "icon": {
+          "name": "Ikona",
+          "description": "Posodobljena ikona.",
+          "example": "mdi:zvezda"
+        },
+        "labels": {
+          "name": "Oznake",
+          "description": "Posodobljene oznake.",
+          "example": "['premium', 'posebno']"
+        }
+      }
+    },
+    "delete_reward": {
+      "name": "Izbriši nagrado",
+      "description": "Izbriši nagrado po ID-ju ali imenu.",
+      "fields": {
+        "id": {
+          "name": "ID nagrade",
+          "description": "Notranji ID nagrade, ki jo želite izbrisati. Uporabite ID ALI ime.",
+          "example": "abc123-def456-789..."
+        },
+        "name": {
+          "name": "Ime",
+          "description": "Ime nagrade, ki jo želite izbrisati.",
+          "example": "Dodaten čas pred zaslonom"
+        }
+      }
+    },
+    "create_chore": {
+      "name": "Ustvari opravilo",
+      "description": "Ustvarite novo opravilo, ki ga lahko otroci opravijo za zaslužek točk.",
+      "fields": {
+        "name": {
+          "name": "Ime opravila",
+          "description": "Ime opravila, ki ga želite ustvariti.",
+          "example": "Čista soba"
+        },
+        "assigned_kids": {
+          "name": "Dodeljeni otroci",
+          "description": "Seznam imen otrok, ki jih je treba dodeliti tej opravilni nalogi.",
+          "example": "['Emma', 'Jack']"
+        },
+        "points": {
+          "name": "Točke",
+          "description": "Točke se dodelijo, ko je naloga opravljena.",
+          "example": "10"
+        },
+        "description": {
+          "name": "Opis",
+          "description": "Neobvezen opis opravila.",
+          "example": "Postlaj posteljo, pospravi igrače, posesaj tla"
+        },
+        "icon": {
+          "name": "Ikona",
+          "description": "Ikona materialnega oblikovanja za opravilo.",
+          "example": "mdi:metla"
+        },
+        "labels": {
+          "name": "Oznake",
+          "description": "Neobvezne oznake za kategorizacijo opravila.",
+          "example": "['dnevno', 'spalnica']"
+        },
+        "frequency": {
+          "name": "Pogostost",
+          "description": "Kako pogosto se opravilo ponavlja: brez, dnevno, dnevno_večkrat, tedensko, dvotedensko, mesečno, četrtletno, letno, po meri, po meri_od_zaključenega ali ob koncu obdobja (konec_tedena, konec_meseca, konec_četrtletja, konec_leta).",
+          "example": "dnevno"
+        },
+        "applicable_days": {
+          "name": "Veljavnimi dnevi",
+          "description": "Dnevi v tednu, ko je opravilo ustrezno.",
+          "example": "['pon', 'sre', 'pet']"
+        },
+        "completion_criteria": {
+          "name": "Merila za dokončanje",
+          "description": "Kako se opravilo opravi, ko je dodeljenih več otrok: neodvisno (vsak otrok opravi posebej), deljeno_prvi (prvi otrok, ki opravi opravilo, prejme točke) ali deljeno_vse (vsi otroci morajo opraviti opravilo). Po ustvarjanju ni mogoče spremeniti.",
+          "example": "neodvisen"
+        },
+        "approval_reset_type": {
+          "name": "Vrsta ponastavitve odobritve",
+          "description": "Ko se opravilo ponastavi za ponovno dokončanje.",
+          "example": "enkrat_opolnoči"
+        },
+        "pending_claims": {
+          "name": "Čakajoče ukrepanje glede zahtevkov",
+          "description": "Kaj se zgodi s čakajočimi zahtevki, ko se opravilo ponastavi: hold_pending (ohrani zahtevke), clear_pending (odstrani zahtevke) ali auto_approve_pending (odobri vse čakajoče zahtevke).",
+          "example": "čakanje_na_zadrževanje"
+        },
+        "overdue_handling": {
+          "name": "Zamujeno ravnanje",
+          "description": "Kako se lotiti opravila, ko ga je treba opraviti pozneje.",
+          "example": "ob_roku_"
+        },
+        "auto_approve": {
+          "name": "Samodejna odobritev",
+          "description": "Če je vrednost »true«, se opravilo samodejno odobri ob prevzemu.",
+          "example": "lažno"
+        },
+        "due_date": {
+          "name": "Datum zapadlosti",
+          "description": "Neobvezen rok za opravilo. Z izbirnikom datuma/ure izberite veljaven datum in uro.",
+          "example": "2025-03-01T23:59:00Z"
+        },
+        "due_window_offset": {
+          "name": "Odmik zapadlega okna",
+          "description": "Trajanje pred datumom zapadlosti, ko opravilo preide v stanje »zakonito«. Oblika: »30 min«, »1 ura«, »1 dan 6 ur 30 minut« itd. Za onemogočanje funkcije okna za zapadlost uporabite »0«.",
+          "example": "30 m"
+        },
+        "due_reminder_offset": {
+          "name": "Zamik opomnika za zapadlost",
+          "description": "Trajanje pred datumom zapadlosti za pošiljanje opomnika. Oblika: '30 min', '1 ura', '1 dan 6 ur 30 min' itd. Za onemogočanje opomnikov uporabite '0'.",
+          "example": "30 m"
+        }
+      }
+    },
+    "update_chore": {
+      "name": "Posodobi opravilo",
+      "description": "Posodobite lastnosti obstoječega opravila. Navedite ID ALI ime za identifikacijo opravila. Posodobljena bodo samo navedena polja. Opomba: kriterijev za dokončanje ni mogoče spremeniti po ustvarjanju.",
+      "fields": {
+        "id": {
+          "name": "ID opravila",
+          "description": "Notranji ID opravila, ki ga je treba posodobiti (alternativa imenu).",
+          "example": "abc-123-def-456"
+        },
+        "name": {
+          "name": "Ime opravila (identifikator)",
+          "description": "Ime opravila, ki ga je treba posodobiti (alternativa id-ju). Uporabniku prijaznejše kot id.",
+          "example": "Čista soba"
+        },
+        "assigned_kids": {
+          "name": "Dodeljeni otroci",
+          "description": "Nov seznam imen otrok, ki jih je treba dodeliti tej opravilni nalogi.",
+          "example": "['Emma', 'Jack']"
+        },
+        "points": {
+          "name": "Točke",
+          "description": "Nova vrednost točk za opravilo.",
+          "example": "15"
+        },
+        "description": {
+          "name": "Opis",
+          "description": "Nov opis opravila.",
+          "example": "Postlajte posteljo, organizirajte mizo, posesajte tla"
+        },
+        "icon": {
+          "name": "Ikona",
+          "description": "Nova ikona materialnega oblikovanja za opravilo.",
+          "example": "mdi:vakuum"
+        },
+        "labels": {
+          "name": "Oznake",
+          "description": "Nove oznake za opravilo.",
+          "example": "['tedensko', 'čiščenje']"
+        },
+        "frequency": {
+          "name": "Pogostost",
+          "description": "Nova ponavljajoča se pogostost: brez, dnevno, dnevno_večkratno, tedensko, dvotedensko, mesečno, četrtletno, letno, po meri, po meri_od_kompleta ali ob koncu obdobja (konec_tedena, konec_meseca, konec_četrtleta, konec_leta).",
+          "example": "tedensko"
+        },
+        "applicable_days": {
+          "name": "Veljavnimi dnevi",
+          "description": "Novi dnevi v tednu, ko je opravilo uporabno.",
+          "example": "['sob', 'ned']"
+        },
+        "approval_reset_type": {
+          "name": "Vrsta ponastavitve odobritve",
+          "description": "Nova vrsta ponastavitve za primer ponastavitve opravila.",
+          "example": "enkrat na datum_zadnjega_roka"
+        },
+        "pending_claims": {
+          "name": "Čakajoče ukrepanje glede zahtevkov",
+          "description": "Novo dejanje za čakajoče zahtevke, ko se opravilo ponastavi.",
+          "example": "clear_peaning"
+        },
+        "overdue_handling": {
+          "name": "Zamujeno ravnanje",
+          "description": "Novo vedenje pri ravnanju z zamudo.",
+          "example": "nikoli_prepogojno"
+        },
+        "auto_approve": {
+          "name": "Samodejna odobritev",
+          "description": "Nova nastavitev samodejne odobritve.",
+          "example": "res"
+        },
+        "due_date": {
+          "name": "Datum zapadlosti",
+          "description": "Nov rok za opravilo. Z izbirnikom datuma/ure izberite veljaven datum in uro.",
+          "example": "2025-04-01T18:00:00Z"
+        },
+        "due_window_offset": {
+          "name": "Odmik zapadlega okna",
+          "description": "Nov odmik okna zapadlosti. Trajanje pred datumom zapadlosti, ko opravilo preide v stanje »zapadlost«. Oblika: »30 min«, »1 ura«, »1 dan 6 ur 30 min« itd. Za onemogočanje uporabite »0«.",
+          "example": "1 ura"
+        },
+        "due_reminder_offset": {
+          "name": "Zamik opomnika za zapadlost",
+          "description": "Nov odmik opomnika za zapadlost. Trajanje pred datumom zapadlosti za pošiljanje obvestila o opomniku. Oblika: '30 min', '1 ura', '1 dan 6 ur 30 min' itd. Za onemogočanje uporabite '0'.",
+          "example": "30 m"
+        }
+      }
+    },
+    "delete_chore": {
+      "name": "Izbriši opravilo",
+      "description": "Izbriši opravilo po ID-ju ali imenu. Vsi statusi in zgodovina, specifični za otroka, bodo odstranjeni.",
+      "fields": {
+        "id": {
+          "name": "ID opravila",
+          "description": "Notranji ID opravila, ki ga želite izbrisati. Uporabite ID ALI ime.",
+          "example": "abc123-def456-789..."
+        },
+        "name": {
+          "name": "Ime",
+          "description": "Ime opravila, ki ga želite izbrisati.",
+          "example": "Čista soba"
+        }
+      }
+    },
+    "reset_chores_to_pending_state": {
+      "name": "Ponastavi opravila na stanje čakanja",
+      "description": "Ročno ponastavite vsa opravila na čakajoče stanje, s čimer odstranite zahtevke in odobritve."
+    },
+    "reset_transactional_data": {
+      "name": "Ponastavi transakcijske podatke",
+      "description": "Ponastavi podatke o izvajanju/transakcijah, hkrati pa ohrani konfiguracijo (otroci, opravila, nagrade itd.). Pred ponastavitvijo se ustvari samodejna varnostna kopija kot kidschores_data_<timestamp>_reset v imeniku .storage. Za ciljanje določenih otrok ali domen uporabite obseg. POMEMBNO: Kot varnostni mehanizem zahteva confirm_destructive: true.",
+      "fields": {
+        "confirm_destructive": {
+          "name": "Potrdi uničujoče",
+          "description": "Za potrditev, da želite nadaljevati s ponastavitvijo, mora biti nastavljeno na »true«. To je varnostni mehanizem."
+        },
+        "scope": {
+          "name": "Obseg",
+          "description": "Ponastavi obseg: »global« ponastavi vse podatke, »kid« pa ponastavi podatke samo za določenega otroka."
+        },
+        "kid_name": {
+          "name": "Ime otroka",
+          "description": "Obvezno, če je obseg »otrok«. Ime otroka, katerega podatke je treba ponastaviti."
+        },
+        "item_type": {
+          "name": "Vrsta elementa",
+          "description": "Izbirni filter za ponastavitev samo določene domene (npr. samo točke ali samo opravila)."
+        },
+        "item_name": {
+          "name": "Ime elementa",
+          "description": "Neobvezen filter za ponastavitev določenega elementa znotraj domene item_type."
+        }
+      }
     },
     "reset_overdue_chores": {
       "name": "Ponastavi zamujena opravila",
@@ -1856,54 +2332,6 @@
         }
       }
     },
-    "reset_penalties": {
-      "name": "Ponastavi kazni",
-      "description": "Ponastavi vse uporabljene kazni za vse otroke. Po želji navedi ime kazni, da ponastaviš določeno kazen za vse otroke. Z imenom otroka ponastavi vse kazni za določenega otroka. Združi oboje, da ponastaviš določeno kazen za določenega otroka.",
-      "fields": {
-        "kid_name": {
-          "name": "Ime otroka",
-          "description": "Otrok, za katerega bodo kazni ponastavljene.",
-          "example": "Alice"
-        },
-        "penalty_name": {
-          "name": "Ime kazni",
-          "description": "Ime kazni, ki jo je treba ponastaviti.",
-          "example": "Kričanje"
-        }
-      }
-    },
-    "reset_bonuses": {
-      "name": "Ponastavi bonuse",
-      "description": "Ponastavi vse uporabljene bonuse za vse otroke. Po želji navedi ime bonusa, da ponastaviš določen bonus za vse otroke. Z imenom otroka ponastavi vse bonuse za določenega otroka. Združi oboje, da ponastaviš določen bonus za določenega otroka.",
-      "fields": {
-        "kid_name": {
-          "name": "Ime otroka",
-          "description": "Otrok, za katerega bodo bonusi ponastavljeni.",
-          "example": "Alice"
-        },
-        "bonus_name": {
-          "name": "Ime bonusa",
-          "description": "Ime bonusa, ki ga želite ponastaviti.",
-          "example": "Pomaganje"
-        }
-      }
-    },
-    "reset_rewards": {
-      "name": "Ponastavi nagrade",
-      "description": "Ponastavite vse zahteve za nagrade in števila odobritev za vse otroke. Po želji navedite ime nagrade, da ponastavite določeno število nagrad za vse otroke. Uporabite ime otroka, da ponastavite vse število nagrad za določenega otroka. Združite oboje, da ponastavite določeno nagrado za določenega otroka.",
-      "fields": {
-        "kid_name": {
-          "name": "Ime otroka",
-          "description": "Otrok, za katerega se bodo štetja nagrad ponastavila.",
-          "example": "Alice"
-        },
-        "reward_name": {
-          "name": "Ime nagrade",
-          "description": "Ime nagrade, ki jo želite ponastaviti.",
-          "example": "Sladoled"
-        }
-      }
-    },
     "remove_awarded_badges": {
       "name": "Odstrani podeljene značke",
       "description": "Odstranite vse podeljene značke za vse otroke. Po želji navedite ime značke, da ponastavite določeno značko za vse otroke. Uporabite ime otroka, da ponastavite vse značke za določenega otroka. Združite oboje, da ponastavite določeno značko za določenega otroka.",
@@ -1929,6 +2357,7 @@
           "pending": "V teku",
           "approved": "Odobreno",
           "claimed": "Zahtevano",
+          "due": "Zapadlo",
           "overdue": "Zamujeno",
           "unknown": "Neznano",
           "none": "Nobena",
@@ -1968,8 +2397,8 @@
             "name": "Merila za dokončanje",
             "state": {
               "independent": "Neodvisen",
-              "shared_first_only": "Deljeno (prvo)",
-              "shared_all_required": "Deljeno (vse)"
+              "shared_first": "Deljeno (prvo)",
+              "shared_all": "Deljeno (vse)"
             }
           },
           "approval_reset_type": {
@@ -2028,13 +2457,16 @@
             }
           },
           "chore_points_earned": {
-            "name": "Prislužene točke"
+            "name": "Zbrane točke (ves čas)"
           },
           "chore_approvals_count": {
             "name": "Odobritve (ves čas)"
           },
           "chore_claims_count": {
             "name": "Zahtevki (ves čas)"
+          },
+          "chore_completed_count": {
+            "name": "Dokončano (ves čas)"
           },
           "chore_disapproved_count": {
             "name": "Neodobrenosti (ves čas)"
@@ -2048,8 +2480,8 @@
           "chore_current_streak": {
             "name": "Trenutni niz"
           },
-          "chore_highest_streak": {
-            "name": "Najvišji niz"
+          "chore_longest_streak": {
+            "name": "Najdaljši niz"
           },
           "chore_last_longest_streak_date": {
             "name": "Zadnji najdaljši niz"
@@ -2059,6 +2491,9 @@
           },
           "last_approved": {
             "name": "Nazadnje odobreno"
+          },
+          "last_completed": {
+            "name": "Nazadnje dokončano"
           },
           "last_disapproved": {
             "name": "Nazadnje zavrnjeno"
@@ -2102,6 +2537,15 @@
           },
           "claim_button_eid": {
             "name": "ID entitete gumba za zahtevo"
+          },
+          "due_window_start": {
+            "name": "Začetek zapadlega obdobja"
+          },
+          "time_until_due": {
+            "name": "Čas do zapadlosti"
+          },
+          "time_until_overdue": {
+            "name": "Čas do zapadlosti"
           }
         }
       },
@@ -2312,6 +2756,57 @@
           "chore_stat_disapproved_all_time": {
             "name": "Neodobreno ves čas"
           },
+          "chore_stat_completed_today": {
+            "name": "Dokončano danes"
+          },
+          "chore_stat_completed_week": {
+            "name": "Dokončano ta teden"
+          },
+          "chore_stat_completed_month": {
+            "name": "Dokončano ta mesec"
+          },
+          "chore_stat_completed_year": {
+            "name": "Dokončano letos"
+          },
+          "chore_stat_completed_all_time": {
+            "name": "Dokončano ves čas"
+          },
+          "chore_stat_points_today": {
+            "name": "Točke danes"
+          },
+          "chore_stat_points_week": {
+            "name": "Točke ta teden"
+          },
+          "chore_stat_points_month": {
+            "name": "Točke ta mesec"
+          },
+          "chore_stat_points_year": {
+            "name": "Točke letos"
+          },
+          "chore_stat_points_all_time": {
+            "name": "Točke vseh časov"
+          },
+          "chore_stat_top_chores_week": {
+            "name": "Najboljša opravila (teden)"
+          },
+          "chore_stat_top_chores_month": {
+            "name": "Najpomembnejše opravilo (mesec)"
+          },
+          "chore_stat_top_chores_year": {
+            "name": "Najboljša opravila (leto)"
+          },
+          "chore_stat_chores_completed_today": {
+            "name": "Dokončano danes"
+          },
+          "chore_stat_chores_completed_week": {
+            "name": "Dokončano ta teden"
+          },
+          "chore_stat_chores_completed_month": {
+            "name": "Dokončano ta mesec"
+          },
+          "chore_stat_chores_completed_year": {
+            "name": "Dokončano letos"
+          },
           "chore_stat_current_due_today": {
             "name": "Trenutni zapadlost danes"
           },
@@ -2336,11 +2831,17 @@
           "chore_stat_longest_streak_all_time": {
             "name": "Najdaljši niz (vseh časov)"
           },
+          "chore_stat_longest_streak": {
+            "name": "Najdaljši niz"
+          },
           "chore_stat_avg_per_day_week": {
             "name": "Povprečno na dan (teden)"
           },
           "chore_stat_avg_per_day_month": {
             "name": "Povprečno na dan (mesec)"
+          },
+          "chore_stat_avg_per_day_year": {
+            "name": "Povprečno na dan (leto)"
           }
         }
       },
@@ -2593,6 +3094,7 @@
           "pending": "V teku",
           "approved": "Odobreno",
           "claimed": "Zahtevano",
+          "due": "Zapadlo",
           "overdue": "Zamujeno",
           "unknown": "Neznano",
           "none": "Nobena",
@@ -2629,8 +3131,8 @@
             "name": "Merila za dokončanje",
             "state": {
               "independent": "Neodvisen",
-              "shared_first_only": "Deljeno (samo prvo)",
-              "shared_all_required": "Deljeno (vse obvezno)"
+              "shared_first": "Deljeno (samo prvo)",
+              "shared_all": "Deljeno (vse obvezno)"
             }
           },
           "approval_reset_type": {
@@ -2689,20 +3191,33 @@
           "last_approved": {
             "name": "Nazadnje odobreno"
           },
+          "last_completed": {
+            "name": "Nazadnje dokončano"
+          },
           "chore_claimed_by": {
             "name": "Zahteval/a"
           },
           "chore_completed_by": {
             "name": "Dokončal/a"
+          },
+          "due_window_start": {
+            "name": "Začetek zapadlega obdobja"
+          },
+          "time_until_due": {
+            "name": "Čas do zapadlosti"
+          },
+          "time_until_overdue": {
+            "name": "Čas do zapadlosti"
           }
         }
       },
       "kid_reward_status_sensor": {
         "name": "Status nagrade - {reward_name}",
         "state": {
-          "not_claimed": "Ni zahtevano",
+          "locked": "Zaklenjeno",
+          "available": "Na voljo",
+          "requested": "Zahtevano",
           "approved": "Odobreno",
-          "claimed": "Zahtevano",
           "unknown": "Neznano",
           "none": "Nobena"
         },
@@ -2733,6 +3248,9 @@
           },
           "last_approved": {
             "name": "Nazadnje odobreno"
+          },
+          "last_completed": {
+            "name": "Nazadnje dokončano"
           },
           "last_disapproved": {
             "name": "Nazadnje zavrnjeno"
@@ -3184,6 +3702,26 @@
       "system_bonuses_select": {
         "name": "Izberite bonus"
       },
+      "system_dashboard_admin_kid_select": {
+        "name": "Izbirnik otrok na skrbniški nadzorni plošči",
+        "state_attributes": {
+          "purpose": {
+            "name": "Namen",
+            "state": {
+              "purpose_system_dashboard_admin_kid": "Izbirnik otrok na ravni sistema za kartice skrbniške nadzorne plošče"
+            }
+          },
+          "dashboard_helper_eid": {
+            "name": "ID entitete pomočnika nadzorne plošče"
+          },
+          "selected_kid_slug": {
+            "name": "Izbrani otroški polž"
+          },
+          "selected_kid_name": {
+            "name": "Izbrano ime otroka"
+          }
+        }
+      },
       "kid_dashboard_helper_chores_select": {
         "name": "Pomočnik za seznam opravil na nadzorni plošči uporabniškega vmesnika",
         "state_attributes": {
@@ -3394,6 +3932,10 @@
       },
       "parent_points_adjust_button": {
         "name": "{sign_label} {points_label}",
+        "sign_label": {
+          "increment": "Prirastek",
+          "decrement": "Zmanjšanje"
+        },
         "state_attributes": {
           "purpose": {
             "name": "Namen",
@@ -3484,6 +4026,9 @@
     "shared_chore_cannot_have_kid": {
       "message": "Za skupno opravilo {chore_name}ni mogoče določiti otroka. Skupna opravila imajo en rok za vse otroke."
     },
+    "reward_not_found": {
+      "message": "Nagrada z ID-jem '{reward_id}' ni bila najdena"
+    },
     "required_field": {
       "message": "Obvezno navesti {field}"
     },
@@ -3495,6 +4040,18 @@
     },
     "missing_chore": {
       "message": "Navesti morate bodisi ID opravila bodisi ime opravila."
+    },
+    "missing_chore_identifier": {
+      "message": "Za identifikacijo opravila morate navesti bodisi chore_id bodisi chore_name."
+    },
+    "chore_not_found": {
+      "message": "Opravila z ID-jem '{chore_id}' ni bilo mogoče najti."
+    },
+    "completion_criteria_immutable": {
+      "message": "Meril za dokončanje po ustvarjanju opravila ni mogoče spremeniti. Če potrebujete drugačna merila za dokončanje, opravilo izbrišite in ga znova ustvarite."
+    },
+    "missing_reward_identifier": {
+      "message": "Za identifikacijo nagrade, ki jo želite posodobiti, morate navesti bodisi reward_id bodisi reward_name."
     },
     "missing_field": {
       "message": "V {entity}manjka obvezno polje {field}"
@@ -3510,6 +4067,36 @@
     },
     "configuration_error": {
       "message": "Napaka v konfiguraciji: {detail}"
+    },
+    "data_reset_confirmation_required": {
+      "message": "Za nadaljevanje ponastavitve podatkov morate nastaviti confirm_destructive: true"
+    },
+    "data_reset_kid_not_found": {
+      "message": "Otroka '{kid_name}' ni mogoče najti"
+    },
+    "data_reset_item_not_found": {
+      "message": "{item_type} '{item_name}' ni bilo najdeno"
+    },
+    "data_reset_invalid_scope": {
+      "message": "Neveljaven obseg '{scope}'. Mora biti: globalno, podrejeno, vrsta_elementa ali element"
+    },
+    "data_reset_invalid_item_type": {
+      "message": "Neveljavna vrsta_predmeta '{item_type}'. Mora biti: otroci, opravila, nagrade, značke, dosežki, izzivi, kazni ali bonusi"
+    },
+    "notif_title_data_reset": {
+      "message": "Ponastavitev transakcijskih podatkov"
+    },
+    "notif_message_data_reset_global": {
+      "message": "Vsi podatki o izvajanju so bili ponastavljeni. Konfiguracija je ohranjena."
+    },
+    "notif_message_data_reset_kid": {
+      "message": "Ponastavitev podatkov za {kid_name}je končana. Točke, statistika in napredek so izbrisani."
+    },
+    "notif_message_data_reset_item_type": {
+      "message": "Ponastavitev podatkov za vse {item_type}je končana. Podatki o izvajanju so izbrisani."
+    },
+    "notif_message_data_reset_item": {
+      "message": "Ponastavitev podatkov za {item_name}je končana. Podatki o izvajanju so izbrisani."
     }
   }
 }

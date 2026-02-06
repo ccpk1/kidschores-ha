@@ -13,6 +13,16 @@
           "backup_selection": "Selecciona l'opció"
         }
       },
+      "paste_json_input": {
+        "title": "Importa dades JSON",
+        "description": "Enganxa el contingut JSON complet des de:\n\n• Un fitxer de dades KidsChores (kidschores_data)\n• Una descàrrega de diagnòstics\n\nEl sistema detectarà i desembolicarà automàticament el format segons calgui. S'admeten tant els formats d'emmagatzematge en brut com els d'exportació de diagnòstics.",
+        "data": {
+          "json_data": "Dades JSON"
+        },
+        "data_description": {
+          "json_data": "Enganxa aquí tot el contingut JSON. Accepta dades del fitxer kidschores_data o de l'exportació de diagnòstics (desembolica automàticament l'estructura addicional)."
+        }
+      },
       "points_label": {
         "title": "Etiqueta de punts",
         "description": "Trieu una etiqueta i una icona per als punts.",
@@ -26,7 +36,25 @@
         "description": "Actualitza la configuració del sistema com ara l'etiqueta i la icona dels punts.",
         "data": {
           "points_label": "Etiqueta de punts",
-          "points_icon": "Icona de punts"
+          "points_icon": "Icona de punts",
+          "update_interval": "Interval d'actualització (minuts)",
+          "calendar_show_period": "Període de visualització del calendari (dies)",
+          "retention_daily": "Retenció diària (dies)",
+          "retention_weekly": "Retenció setmanal (setmanes)",
+          "retention_monthly": "Retenció mensual (mesos)",
+          "retention_yearly": "Retenció anual (anys)",
+          "points_adjust_values": "Valors d'ajust de punts (separats per canonades)"
+        },
+        "data_description": {
+          "points_label": "Etiqueta que es mostra per als punts (per exemple, \"Punts\", \"Estrelles\", \"Monedes\")",
+          "points_icon": "Icona MDI per a punts (per exemple, 'mdi:star', 'mdi:coin', 'mdi:trophy')",
+          "update_interval": "Amb quina freqüència s'han d'actualitzar les dades (mínim 1 minut)",
+          "calendar_show_period": "Dies de l'historial per mostrar al calendari (mínim 1)",
+          "retention_daily": "Dies per mantenir els agregats diaris",
+          "retention_weekly": "Setmanes per mantenir els agregats setmanals",
+          "retention_monthly": "Mesos per mantenir els agregats mensuals",
+          "retention_yearly": "Anys per mantenir els agregats anuals",
+          "points_adjust_values": "Valors de punts separats per barres verticals per a botons d'ajust manual (per exemple, +1.0|-1.0|+10.0|-10.0)"
         }
       },
       "kid_count": {
@@ -40,7 +68,7 @@
         "title": "Defineix el nen",
         "description": "Introduïu el nom de cada nen/a.",
         "data": {
-          "kid_name": "Nom del nen/a",
+          "name": "Nom del nen/a",
           "ha_user": "Usuari de l'Assistent de la Llar",
           "mobile_notify_service": "Notificacions",
           "dashboard_language": "Llengua"
@@ -61,13 +89,16 @@
         "title": "Defineix el pare",
         "description": "Introduïu les dades de cada progenitor.",
         "data": {
-          "parent_name": "Nom del pare/mare",
+          "name": "Nom del pare/mare",
           "ha_user_id": "Usuari de l'Assistent de la Llar",
           "associated_kids": "Nens associats",
           "mobile_notify_service": "Notificacions",
           "dashboard_language": "Llengua"
         },
         "data_description": {
+          "name": "Nom únic per a aquest pare, utilitzat a tot el sistema.",
+          "ha_user_id": "Opcional: Enllaça aquest pare o mare a un usuari de Home Assistant per a notificacions i accés al tauler de control.",
+          "associated_kids": "Selecciona quins nens aquest pare supervisa per a notificacions i accions d'aprovació.",
           "mobile_notify_service": "Seleccioneu un servei de notificacions per activar les notificacions per a aquest pare o deixeu-ho en blanc per desactivar-les.",
           "dashboard_language": "Idioma utilitzat per al tauler de control i les notificacions de les tasques."
         }
@@ -83,7 +114,7 @@
         "title": "Afegeix una tasca",
         "description": "Crea una nova tasca amb punts, tasques i un horari recurrent.",
         "data": {
-          "chore_name": "📋 Nom de la tasca",
+          "name": "📋 Nom de la tasca",
           "chore_description": "📋 Descripció (opcional)",
           "icon": "📋 Icona (mdi:xxx)",
           "chore_labels": "📋 Etiquetes (opcional)",
@@ -99,11 +130,13 @@
           "custom_interval_unit": "🔄 Programació: Unitat d'interval personalitzada",
           "applicable_days": "📅 Horari: Dies aplicables (opcional)",
           "due_date": "📅 Horari: Data de venciment (opcional)",
+          "chore_due_window_offset": "⏱️ Finestra de venciment: Compensació abans de la data de venciment",
+          "chore_due_reminder_offset": "🔔 Recordatori de venciment: Compensació abans de la data de venciment",
           "show_on_calendar": "📅 Mostrar al calendari?",
           "chore_notifications": "🔔 Esdeveniments de notificació (opcional)"
         },
         "data_description": {
-          "chore_name": "Nom únic que es mostra a tot el sistema.",
+          "name": "Nom únic que es mostra a tot el sistema.",
           "chore_description": "Instruccions o detalls opcionals sobre com completar aquesta tasca.",
           "icon": "Icona de disseny de materials (per exemple, mdi:broom, mdi:dishwasher).",
           "chore_labels": "Etiquetes per organitzar les tasques (per exemple, \"cuina\", \"exterior\"). Deixeu-ho en blanc si no és necessari.",
@@ -119,6 +152,8 @@
           "custom_interval_unit": "Unitat de temps per a l'interval personalitzat (dies, setmanes, mesos). Només s'utilitza amb la freqüència personalitzada.",
           "applicable_days": "Deixeu-ho en blanc per a tots els dies. NOMÉS Seleccioneu els dies específics per restringir.",
           "due_date": "Data límit opcional. Es pot combinar amb programacions recurrents.",
+          "chore_due_window_offset": "Quan l'estat de la tasca canvia de Pendent a Vençuda. Format: '1d 6h 30m' o simplement '30' per a minuts. Introduïu '0' per desactivar-ho. Exemple: '1d' significa que la tasca es mostra com a 'Vençuda' 1 dia abans de la data límit.",
+          "chore_due_reminder_offset": "Quan s'ha d'enviar la notificació de recordatori de venciment. Format: \"1d 6h 30m\" o simplement \"30\" per a minuts. Per defecte: 30m (30 minuts abans del venciment). Introduïu \"0\" per desactivar-ho.",
           "show_on_calendar": "Mostra aquesta tasca a la vista de calendari.",
           "chore_notifications": "Quan enviar notificacions: En cas de reclamació, aprovació, rebuig o qualsevol combinació."
         }
@@ -191,10 +226,10 @@
         "title": "Definir recompensa",
         "description": "Introdueix els detalls de cada recompensa.",
         "data": {
-          "reward_name": "Nom de la recompensa",
+          "name": "Nom de la recompensa",
           "internal_id": "ID intern",
-          "reward_cost": "Cost de la recompensa",
-          "reward_description": "Descripció (opcional)",
+          "cost": "Cost de la recompensa",
+          "description": "Descripció (opcional)",
           "reward_labels": "Etiquetes de recompensa",
           "icon": "Icona (mdi:xxx)"
         }
@@ -210,7 +245,7 @@
         "title": "Definir penalització",
         "description": "Introduïu els detalls de cada penalització.",
         "data": {
-          "penalty_name": "Nom de la penalització",
+          "name": "Nom de la penalització",
           "penalty_description": "Descripció (opcional)",
           "penalty_labels": "Etiquetes de penalització",
           "internal_id": "ID intern",
@@ -229,7 +264,7 @@
         "title": "Definir bonificació",
         "description": "Introduïu els detalls de cada bonificació.",
         "data": {
-          "bonus_name": "Nom de la bonificació",
+          "name": "Nom de la bonificació",
           "bonus_description": "Descripció (opcional)",
           "bonus_labels": "Etiquetes de bonificació",
           "internal_id": "ID intern",
@@ -308,6 +343,10 @@
       "due_date_in_past": "La data de venciment ha de ser en el futur.",
       "end_date_in_past": "La data de finalització ha de ser en el futur.",
       "end_date_not_after_start_date": "La data de finalització ha de ser posterior a la data d'inici",
+      "err_end_before_start": "La data de finalització ha de ser posterior a la data d'inici",
+      "err_name_duplicate": "Ja existeix un repte amb aquest nom",
+      "achievement_no_kids_assigned": "Com a mínim un nen ha d'estar assignat a l'assoliment.",
+      "challenge_no_kids_assigned": "Com a mínim un nen ha d'estar assignat al repte",
       "invalid_achievement_count": "Recompte d'assoliments no vàlid",
       "invalid_achievement_name": "Nom d'assoliment no vàlid",
       "invalid_badge": "Insígnia no vàlida",
@@ -318,6 +357,7 @@
       "invalid_chore": "Tasca no vàlida",
       "invalid_chore_count": "Recompte de tasques no vàlid",
       "invalid_chore_name": "Nom de tasca no vàlid",
+      "invalid_points": "Els punts han de ser zero o superiors",
       "invalid_overdue_reset_combination": "La gestió de venciments \"A la data de venciment, després es reinicia\" només funciona amb els tipus de restabliment a mitjanit. Seleccioneu \"A mitjanit (una vegada)\" o \"A mitjanit (repetint)\" per al tipus de restabliment d'aprovació.",
       "invalid_due_date": "Data de venciment no vàlida",
       "date_required_for_frequency": "Cal una data de venciment per a aquesta freqüència recurrent. L'opció \"Esborrar dates\" només funciona amb la freqüència Cap, Diària o Setmanal.",
@@ -333,6 +373,7 @@
       "invalid_reward": "Recompensa no vàlida",
       "invalid_reward_count": "Recompte de recompenses no vàlid",
       "invalid_reward_name": "Nom de recompensa no vàlid",
+      "invalid_reward_cost": "El cost de la recompensa ha de ser zero o superior",
       "invalid_bonus": "Bonificació no vàlida",
       "invalid_bonus_count": "Recompte de bonificacions no vàlid",
       "invalid_bonus_name": "Nom de bonificació no vàlid",
@@ -399,13 +440,15 @@
         "title": "Afegeix un nen/a",
         "description": "Proporciona els detalls del nen nouvingut.",
         "data": {
-          "kid_name": "Nom del nen/a",
+          "name": "Nom del nen/a",
           "ha_user": "Usuari de l'Assistent de la Llar",
           "mobile_notify_service": "Notificacions",
           "dashboard_language": "Llengua",
           "internal_id": "ID intern"
         },
         "data_description": {
+          "name": "Nom únic per a aquest nen, utilitzat a tot el sistema.",
+          "ha_user": "Opcional: Enllaça aquest nen a un usuari de Home Assistant per al control d'accés al tauler de control.",
           "mobile_notify_service": "Seleccioneu un servei de notificacions per activar les notificacions per a aquest nen o deixeu-ho en blanc per desactivar-les.",
           "dashboard_language": "Idioma utilitzat per al tauler de control i les notificacions de les tasques."
         }
@@ -414,7 +457,7 @@
         "title": "Afegeix un pare",
         "description": "Proporcioneu les dades del nou progenitor.",
         "data": {
-          "parent_name": "Nom del pare/mare",
+          "name": "Nom del pare/mare",
           "ha_user_id": "Usuari de l'Assistent de la Llar",
           "associated_kids": "Nens associats",
           "mobile_notify_service": "Notificacions",
@@ -425,6 +468,9 @@
           "internal_id": "ID intern"
         },
         "data_description": {
+          "name": "Nom únic per a aquest pare, utilitzat a tot el sistema.",
+          "ha_user_id": "Opcional: Enllaça aquest pare o mare a un usuari de Home Assistant per a notificacions i accés al tauler de control.",
+          "associated_kids": "Selecciona quins nens aquest pare supervisa per a notificacions i accions d'aprovació.",
           "mobile_notify_service": "Seleccioneu un servei de notificacions per activar les notificacions per a aquest pare o deixeu-ho en blanc per desactivar-les.",
           "allow_chore_assignment": "Crea un perfil perquè se us puguin assignar tasques. Per defecte, només es mostra un botó Aprova per completar-les amb un sol clic. Nota: Si desmarqueu aquesta opció, es conserva el perfil infantil amb el sufix \"_unlinked\" per a la neteja manual.",
           "enable_chore_workflow": "Afegeix els botons Reclama i Rebutja per al flux de treball complet (reclama → aprova/rebutja).",
@@ -436,7 +482,7 @@
         "title": "Afegeix una tasca",
         "description": "Crea una nova tasca amb punts, tasques i un horari recurrent.",
         "data": {
-          "chore_name": "📋 Nom de la tasca",
+          "name": "📋 Nom de la tasca",
           "chore_description": "📋 Descripció (opcional)",
           "icon": "📋 Icona (mdi:xxx)",
           "chore_labels": "📋 Etiquetes (opcional)",
@@ -452,11 +498,14 @@
           "custom_interval_unit": "🔄 Programació: Unitat d'interval personalitzada",
           "applicable_days": "📅 Horari: Dies aplicables (opcional)",
           "due_date": "📅 Horari: Data de venciment (opcional)",
+          "clear_due_date": "🗑️ Data de venciment clara",
+          "chore_due_window_offset": "⏱️ Finestra de venciment: Compensació abans de la data de venciment",
+          "chore_due_reminder_offset": "🔔 Recordatori de venciment: Compensació abans de la data de venciment",
           "show_on_calendar": "📅 Mostrar al calendari?",
           "chore_notifications": "🔔 Esdeveniments de notificació (opcional)"
         },
         "data_description": {
-          "chore_name": "Nom únic que es mostra a tot el sistema.",
+          "name": "Nom únic que es mostra a tot el sistema.",
           "chore_description": "Instruccions o detalls opcionals sobre com completar aquesta tasca.",
           "icon": "Icona de disseny de materials (per exemple, mdi:broom, mdi:dishwasher).",
           "chore_labels": "Etiquetes per organitzar les tasques (per exemple, \"cuina\", \"exterior\"). Deixeu-ho en blanc si no és necessari.",
@@ -472,6 +521,9 @@
           "custom_interval_unit": "Unitat de temps per a l'interval personalitzat (dies, setmanes, mesos). Només s'utilitza amb la freqüència personalitzada.",
           "applicable_days": "Deixeu-ho en blanc per a tots els dies. NOMÉS Seleccioneu els dies específics per restringir.",
           "due_date": "Data límit opcional. Es pot combinar amb horaris recurrents. Per a tasques INDEPENDENTS, això serveix com a plantilla: apareixerà una pantalla addicional que permetrà dates individuals per nen.",
+          "clear_due_date": "Marqueu aquesta casella per eliminar la data de venciment d'aquesta tasca.",
+          "chore_due_window_offset": "Quan l'estat de la tasca canvia de Pendent a Vençuda. Format: '1d 6h 30m' o simplement '30' per a minuts. Introduïu '0' per desactivar-ho. Exemple: '1d' significa que la tasca es mostra com a 'Vençuda' 1 dia abans de la data límit.",
+          "chore_due_reminder_offset": "Quan s'ha d'enviar la notificació de recordatori de venciment. Format: \"1d 6h 30m\" o simplement \"30\" per a minuts. Per defecte: 30m (30 minuts abans del venciment). Introduïu \"0\" per desactivar-ho.",
           "show_on_calendar": "Mostra aquesta tasca a la vista de calendari.",
           "chore_notifications": "Quan enviar notificacions: En cas de reclamació, aprovació, rebuig o qualsevol combinació."
         }
@@ -695,10 +747,10 @@
         "title": "Afegeix una recompensa",
         "description": "Proporcioneu els detalls de la nova recompensa.",
         "data": {
-          "reward_name": "Nom de la recompensa",
+          "name": "Nom de la recompensa",
           "internal_id": "ID intern",
-          "reward_cost": "Cost de la recompensa",
-          "reward_description": "Descripció (opcional)",
+          "cost": "Cost de la recompensa",
+          "description": "Descripció (opcional)",
           "reward_labels": "Etiquetes de recompensa",
           "icon": "Icona (mdi:xxx)"
         }
@@ -707,7 +759,7 @@
         "title": "Afegeix penalització",
         "description": "Proporcioneu els detalls de la nova sanció.",
         "data": {
-          "penalty_name": "Nom de la penalització",
+          "name": "Nom de la penalització",
           "penalty_description": "Descripció (opcional)",
           "penalty_labels": "Etiquetes de penalització",
           "internal_id": "ID intern",
@@ -719,7 +771,7 @@
         "title": "Afegeix una bonificació",
         "description": "Proporcioneu els detalls de la nova bonificació.",
         "data": {
-          "bonus_name": "Nom de la bonificació",
+          "name": "Nom de la bonificació",
           "bonus_description": "Descripció (opcional)",
           "bonus_labels": "Etiquetes de bonificació",
           "internal_id": "ID intern",
@@ -767,13 +819,15 @@
         "title": "Edita el nen/a",
         "description": "Modifiqueu les dades del nen/a seleccionat/da.",
         "data": {
-          "kid_name": "Nom del nen/a",
+          "name": "Nom del nen/a",
           "ha_user": "Usuari de l'Assistent de la Llar",
           "mobile_notify_service": "Notificacions",
           "dashboard_language": "Llengua",
           "internal_id": "ID intern"
         },
         "data_description": {
+          "name": "Nom únic per a aquest nen, utilitzat a tot el sistema.",
+          "ha_user": "Opcional: Enllaça aquest nen a un usuari de Home Assistant per al control d'accés al tauler de control.",
           "mobile_notify_service": "Selecciona un servei de notificacions per activar les notificacions per a aquest nen/a.",
           "dashboard_language": "Idioma utilitzat per al tauler de control i les notificacions de les tasques."
         }
@@ -782,14 +836,15 @@
         "title": "Edita el nen de l'ombra",
         "description": "Modifiqueu els detalls del nen ombra seleccionat. ⚠️ Aquest nen està vinculat a un pare o mare. Canviar el nom incomplirà el requisit de coincidència de noms per desenllaçar mitjançant el servei.",
         "data": {
-          "kid_name": "Nom del nen/a",
+          "name": "Nom del nen/a",
           "ha_user": "Usuari de l'Assistent de la Llar",
           "mobile_notify_service": "Notificacions",
           "dashboard_language": "Llengua",
           "internal_id": "ID intern"
         },
         "data_description": {
-          "kid_name": "⚠️ Aquest fill de l'ombra està vinculat a un pare o mare. Canviar aquest nom trencarà la funció de desvinculació del servei, que requereix noms coincidents.",
+          "name": "⚠️ Aquest fill de l'ombra està vinculat a un pare o mare. Canviar aquest nom trencarà la funció de desvinculació del servei, que requereix noms coincidents.",
+          "ha_user": "Opcional: Enllaça aquest nen a un usuari de Home Assistant per al control d'accés al tauler de control.",
           "mobile_notify_service": "⚠️ Notificacions del nen supervisat: El pare o la mare vinculat ja rep notificacions de les tasques supervisades. Si s'activa aquesta opció, es crearan notificacions duplicades. Útil per a recordatoris de dates de venciment de 30 minuts o si s'utilitzen serveis de notificacions diferents.",
           "dashboard_language": "Idioma utilitzat per al tauler de control i les notificacions de les tasques."
         }
@@ -798,7 +853,7 @@
         "title": "Edita el pare",
         "description": "Modifiqueu les dades del pare seleccionat.",
         "data": {
-          "parent_name": "Nom del pare/mare",
+          "name": "Nom del pare/mare",
           "ha_user_id": "Usuari de l'Assistent de la Llar",
           "associated_kids": "Nens associats",
           "mobile_notify_service": "Notificacions",
@@ -809,6 +864,9 @@
           "internal_id": "ID intern"
         },
         "data_description": {
+          "name": "Nom únic per a aquest pare, utilitzat a tot el sistema.",
+          "ha_user_id": "Opcional: Enllaça aquest pare o mare a un usuari de Home Assistant per a notificacions i accés al tauler de control.",
+          "associated_kids": "Selecciona quins nens aquest pare supervisa per a notificacions i accions d'aprovació.",
           "mobile_notify_service": "Seleccioneu un servei de notificacions per activar les notificacions per a aquest pare o deixeu-ho en blanc per desactivar-les.",
           "allow_chore_assignment": "Crea un perfil perquè se us puguin assignar tasques. Per defecte, només es mostra un botó Aprova per completar-les amb un sol clic. Nota: Si desmarqueu aquesta opció, es conserva el perfil infantil amb el sufix \"_unlinked\" per a la neteja manual.",
           "enable_chore_workflow": "Afegeix els botons Reclama i Rebutja per al flux de treball complet (reclama → aprova/rebutja).",
@@ -820,7 +878,7 @@
         "title": "Edita la tasca",
         "description": "Modifiqueu els detalls de la tasca seleccionada.",
         "data": {
-          "chore_name": "📋 Nom de la tasca",
+          "name": "📋 Nom de la tasca",
           "chore_description": "📋 Descripció (opcional)",
           "icon": "📋 Icona (mdi:xxx)",
           "chore_labels": "📋 Etiquetes (opcional)",
@@ -838,11 +896,13 @@
           "applicable_days": "📅 Horari: Dies aplicables (opcional)",
           "due_date": "📅 Horari: Data de venciment (opcional)",
           "clear_due_date": "🗑️ Data de venciment clara",
+          "chore_due_window_offset": "⏱️ Finestra de venciment: Compensació abans de la data de venciment",
+          "chore_due_reminder_offset": "🔔 Recordatori de venciment: Compensació abans de la data de venciment",
           "show_on_calendar": "📅 Mostrar al calendari?",
           "chore_notifications": "🔔 Esdeveniments de notificació (opcional)"
         },
         "data_description": {
-          "chore_name": "Nom únic que es mostra a tot el sistema.",
+          "name": "Nom únic que es mostra a tot el sistema.",
           "chore_description": "Instruccions o detalls opcionals sobre com completar aquesta tasca.",
           "icon": "Icona de disseny de materials (per exemple, mdi:broom, mdi:dishwasher).",
           "chore_labels": "Etiquetes per organitzar les tasques (per exemple, \"cuina\", \"exterior\"). Deixeu-ho en blanc si no és necessari.",
@@ -859,6 +919,8 @@
           "applicable_days": "Deixeu-ho en blanc per a tots els dies. NOMÉS Seleccioneu els dies específics per restringir.",
           "due_date": "Data límit opcional. Es pot combinar amb horaris recurrents. Per a tasques INDEPENDENTS, això serveix com a plantilla: apareixerà una pantalla addicional que permetrà dates individuals per nen.",
           "clear_due_date": "Marqueu aquesta casella per eliminar la data de venciment d'aquesta tasca.",
+          "chore_due_window_offset": "Quan l'estat de la tasca canvia de Pendent a Vençuda. Format: '1d 6h 30m' o simplement '30' per a minuts. Introduïu '0' per desactivar-ho. Exemple: '1d' significa que la tasca es mostra com a 'Vençuda' 1 dia abans de la data límit.",
+          "chore_due_reminder_offset": "Quan s'ha d'enviar la notificació de recordatori de venciment. Format: \"1d 6h 30m\" o simplement \"30\" per a minuts. Per defecte: 30m (30 minuts abans del venciment). Introduïu \"0\" per desactivar-ho.",
           "show_on_calendar": "Mostra aquesta tasca a la vista de calendari.",
           "chore_notifications": "Quan enviar notificacions: En cas de reclamació, aprovació, rebuig o qualsevol combinació."
         }
@@ -1109,10 +1171,10 @@
         "title": "Edita la recompensa",
         "description": "Modifiqueu els detalls de la recompensa seleccionada.",
         "data": {
-          "reward_name": "Nom de la recompensa",
+          "name": "Nom de la recompensa",
           "internal_id": "ID intern",
-          "reward_cost": "Cost de la recompensa",
-          "reward_description": "Descripció (opcional)",
+          "cost": "Cost de la recompensa",
+          "description": "Descripció (opcional)",
           "reward_labels": "Etiquetes de recompensa",
           "icon": "Icona (mdi:xxx)"
         }
@@ -1121,7 +1183,7 @@
         "title": "Edita la penalització",
         "description": "Modifiqueu els detalls de la penalització seleccionada.",
         "data": {
-          "penalty_name": "Nom de la penalització",
+          "name": "Nom de la penalització",
           "penalty_description": "Descripció (opcional)",
           "penalty_labels": "Etiquetes de penalització",
           "internal_id": "ID intern",
@@ -1133,7 +1195,7 @@
         "title": "Edita la bonificació",
         "description": "Modifiqueu els detalls del bonus seleccionat.",
         "data": {
-          "bonus_name": "Nom de la bonificació",
+          "name": "Nom de la bonificació",
           "bonus_description": "Descripció (opcional)",
           "bonus_labels": "Etiquetes de bonificació",
           "internal_id": "ID intern",
@@ -1222,6 +1284,61 @@
         "description": "Esteu segur que voleu suprimir el repte {challenge_name}?",
         "data": {}
       },
+      "dashboard_generator": {
+        "title": "Gestiona el tauler de control",
+        "description": "Crea, actualitza o suprimeix els taulers de control de KidsChores Lovelace.\n\n⚠️ **Targetes personalitzades necessàries** (instal·la-les mitjançant HACS → Frontend):\n- [**Targetes de bolet**](https://github.com/piitaya/lovelace-mushroom) (`custom:mushroom-template-card`)\n- [**Auto-Entities**](https://github.com/thomasloven/lovelace-auto-entities) (`custom:auto-entities`)\n- [**Targeta minigràfica**](https://github.com/kalkih/mini-graph-card) (`custom:mini-graph-card`)\n\nSense aquestes targetes, els taulers de control mostraran errors. Instal·la-les primer des de HACS abans de generar taulers de control.",
+        "data": {
+          "dashboard_action": "Acció",
+          "dashboard_check_cards": "Comprovar la instal·lació de la targeta"
+        },
+        "data_description": {
+          "dashboard_action": "Trieu si voleu crear nous quadres de comandament o suprimir els existents.",
+          "dashboard_check_cards": "Habilita aquesta opció per verificar que les targetes personalitzades necessàries estiguin instal·lades abans de continuar."
+        }
+      },
+      "dashboard_create": {
+        "title": "Crear/Actualitzar el tauler de control",
+        "description": "Genera un tauler de control de KidsChores amb pestanyes per a cada nen.\n\nTria un nom per al tauler de control, selecciona els nens que vulguis incloure i, opcionalment, afegeix una pestanya Administrador per a la gestió dels pares.",
+        "data": {
+          "dashboard_name": "Nom del tauler de control",
+          "dashboard_style": "Estil del tauler de control",
+          "dashboard_kid_selection": "Nens (una pestanya per nen)",
+          "dashboard_include_admin": "Inclou la pestanya Administrador",
+          "dashboard_force_rebuild": "Reconstrucció forçada (sobreescriure l'existent)"
+        },
+        "data_description": {
+          "dashboard_name": "Nom del tauler de control (apareix a la barra lateral). Suggerit: Tasques",
+          "dashboard_style": "Trieu el disseny del tauler de control: Complet (totes les funcions), Minimal (només les essencials) o Compacte (disseny dens).",
+          "dashboard_kid_selection": "Seleccioneu per a quins nens voleu crear pestanyes. Cada nen té la seva pròpia vista/pestanya.",
+          "dashboard_include_admin": "Afegeix una pestanya d'administració amb controls parentals per a aprovacions i gestió.",
+          "dashboard_force_rebuild": "Si està habilitat, el tauler de control existent se sobreescriurà. En cas contrari, la generació fallarà si el tauler de control existeix."
+        }
+      },
+      "dashboard_delete": {
+        "title": "Suprimeix el tauler de control",
+        "description": "Seleccioneu els taulers de control de KidsChores per suprimir-los.\n\n⚠️ Aquesta acció no es pot desfer.",
+        "data": {
+          "dashboard_delete_selection": "Taulers de control per suprimir"
+        },
+        "data_description": {
+          "dashboard_delete_selection": "Seleccioneu un o més taulers de control per eliminar-los permanentment."
+        }
+      },
+      "dashboard_delete_confirm": {
+        "title": "Confirma l'eliminació",
+        "description": "⚠️ **Avís:** Els següents quadres de comandament s'eliminaran permanentment:\n\n**{dashboards}**\n\nAixò eliminarà el quadre de comandament de la barra lateral i eliminarà tota la configuració.\n\nFeu clic a Envia per confirmar l'eliminació.",
+        "data": {}
+      },
+      "dashboard_generator_confirm": {
+        "title": "Confirma la generació del tauler de control",
+        "description": "Es crearan els quadres de comandament següents:\n\n**Estil:** {style}\n**Força la reconstrucció:** {force_rebuild}\n\n**Taulers de comandament:**\n{dashboards}\n\nFeu clic a Envia per generar els quadres de comandament.",
+        "data": {}
+      },
+      "dashboard_generator_result": {
+        "title": "Resultats de la generació del tauler de control",
+        "description": "**Resultats:** {success_count} correctament, {failure_count} fallit\n\n{results}\n\nFeu clic a Envia per tornar al menú principal.",
+        "data": {}
+      },
       "manage_general_options": {
         "title": "Opcions generals",
         "description": "Gestiona la configuració general de la integració de KidsChores.",
@@ -1248,7 +1365,7 @@
           "retention_monthly": "Nombre de mesos de dades històriques mensuals que cal conservar abans de la neteja. Mínim 1, màxim 24.",
           "retention_yearly": "Nombre d'anys de dades històriques anuals que cal conservar abans de la neteja. Mínim 1, màxim 10.",
           "show_legacy_entities": "Mostra entitats addicionals com ara sensor i seleccions que ara estan consolidades al sensor auxiliar del tauler de control. Aquestes entitats són opcionals per a la compatibilitat amb versions anteriors de les automatitzacions existents.",
-          "backups_max_retained": "Nombre màxim de fitxers de còpia de seguretat per conservar. Les còpies de seguretat més antigues s'eliminaran automàticament. Establiu-ho a 0 per desactivar les còpies de seguretat automàtiques.",
+          "backups_max_retained": "Nombre màxim de fitxers de còpia de seguretat per conservar per etiqueta (per exemple, 5 còpies de seguretat manuals, 5 còpies de seguretat de data_reset). Les còpies de seguretat més antigues s'eliminen automàticament després de crear cada còpia de seguretat nova. Establiu-ho a 0 per desactivar completament les còpies de seguretat automàtiques.",
           "backup_action_selection": "Trieu una acció de gestió de còpies de seguretat: creeu una còpia de seguretat manual, suprimiu una còpia de seguretat o restaureu des d'una còpia de seguretat."
         }
       },
@@ -1281,11 +1398,34 @@
       },
       "select_backup_to_delete": {
         "title": "Seleccioneu Còpia de seguretat per suprimir",
-        "description": "Trieu un fitxer de còpia de seguretat per suprimir.\n\nCòpies de seguretat disponibles: {backup_count}\n\n⚠️ Les còpies de seguretat protegides (premigració, manuals) no es poden suprimir."
+        "description": "Trieu un fitxer de còpia de seguretat per suprimir.\n\nCòpies de seguretat disponibles: {backup_count}"
       },
       "select_backup_to_restore": {
         "title": "Seleccioneu Còpia de seguretat per restaurar",
-        "description": "Trieu un fitxer de còpia de seguretat per restaurar-lo.\n\nCòpies de seguretat disponibles: {backup_count}\n\n⚠️ Això substituirà les vostres dades actuals!"
+        "description": "Trieu un fitxer de còpia de seguretat per restaurar-lo.\n\nCòpies de seguretat disponibles: {backup_count}\n\n⚠️ Això substituirà les vostres dades actuals!",
+        "data": {
+          "backup_selection": "Selecciona una còpia de seguretat"
+        },
+        "data_description": {
+          "backup_selection": "Seleccioneu el fitxer de còpia de seguretat que voleu restaurar."
+        }
+      },
+      "restore_backup": {
+        "title": "Opcions de recuperació de dades",
+        "description": "Dades de KidsChores existents trobades a:\n{storage_path}\n\nS'han trobat {backup_count} fitxers de còpia de seguretat.\n\nQuè vols fer?",
+        "data": {
+          "backup_selection": "Selecciona l'opció"
+        }
+      },
+      "paste_json_restore": {
+        "title": "Importa dades JSON",
+        "description": "Enganxa el contingut JSON complet des de:\n\n• Un fitxer de dades de KidsChores (kidschores_data)\n• Una descàrrega de diagnòstics\n\nEl sistema detectarà i desembolicarà automàticament el format segons calgui. S'admeten tant els formats d'emmagatzematge en brut com els d'exportació de diagnòstics.",
+        "data": {
+          "json_data": "Dades JSON"
+        },
+        "data_description": {
+          "json_data": "Enganxa aquí tot el contingut JSON. Accepta dades del fitxer kidschores_data o de l'exportació de diagnòstics (desembolica automàticament l'estructura addicional)."
+        }
       },
       "create_backup_confirm": {
         "title": "Crea una còpia de seguretat manual",
@@ -1331,6 +1471,8 @@
       "due_date_in_past": "La data de venciment ha de ser en el futur.",
       "end_date_in_past": "La data de finalització ha de ser en el futur.",
       "end_date_not_after_start_date": "La data de finalització ha de ser posterior a la data d'inici",
+      "err_end_before_start": "La data de finalització ha de ser posterior a la data d'inici",
+      "err_name_duplicate": "Ja existeix un repte amb aquest nom",
       "invalid_badge": "Insígnia no vàlida",
       "invalid_badge_count": "Recompte de distintius no vàlid",
       "invalid_chore": "Tasca no vàlida",
@@ -1341,6 +1483,8 @@
       "invalid_kid_count": "Recompte de nens no vàlid",
       "invalid_kid_name": "Nom de nen no vàlid",
       "no_kids_assigned": "Com a mínim un nen ha de tenir assignat la tasca",
+      "achievement_no_kids_assigned": "Com a mínim un nen ha d'estar assignat a l'assoliment.",
+      "challenge_no_kids_assigned": "Com a mínim un nen ha d'estar assignat al repte",
       "invalid_penalty": "Penalització no vàlida",
       "invalid_penalty_count": "Recompte de penalitzacions no vàlid",
       "invalid_bonus": "Bonificació no vàlida",
@@ -1363,7 +1507,14 @@
       "error_daily_multi_due_date_required": "La freqüència de \"Diverses vegades al dia\" requereix que s'estableixi una data de venciment. La data determina quan comença la programació i els horaris determinen les finestres de disponibilitat cada dia.",
       "error_at_due_date_reset_requires_due_date": "Els tipus de restabliment d'aprovació \"A la data de venciment\" (Una o Múltiple) requereixen que s'estableixi una data de venciment. Sense una data de venciment, el restabliment d'aprovació no s'activarà mai i la tasca romandrà aprovada indefinidament.",
       "error_per_kid_applicable_days_invalid": "Format de dies aplicable no vàlid per a un o més fills. Els dies han de ser nombres enters del 0 al 6 (de dilluns a diumenge) sense duplicats.",
-      "error_per_kid_daily_multi_times_invalid": "Format d'hora diària no vàlid per a un o més nens. Utilitzeu el format de 24 hores separat per | (p. ex., 08:00|17:00)."
+      "error_per_kid_daily_multi_times_invalid": "Format d'hora diària no vàlid per a un o més nens. Utilitzeu el format de 24 hores separat per | (p. ex., 08:00|17:00).",
+      "dashboard_exists": "Ja existeix un tauler de control amb aquesta ruta d'URL. Activeu \"Força la reconstrucció\" per sobreescriure-ho.",
+      "dashboard_template_error": "No s'ha pogut obtenir la plantilla del tauler de control. Comproveu la connexió de xarxa o torneu-ho a provar més tard.",
+      "dashboard_render_error": "No s'ha pogut renderitzar la plantilla del tauler de control. Això pot indicar un error de plantilla.",
+      "dashboard_save_error": "No s'ha pogut desar el tauler de control a Home Assistant. Consulta els registres del sistema per obtenir més informació.",
+      "dashboard_no_name": "Si us plau, introduïu un nom per al tauler de control.",
+      "dashboard_no_kids": "Seleccioneu com a mínim un nen o activeu \"Inclou la pestanya d'administració\".",
+      "dashboard_no_dashboards": "Seleccioneu com a mínim un tauler de control per suprimir."
     },
     "abort": {
       "invalid_action": "Acció no vàlida",
@@ -1387,7 +1538,8 @@
       "no_achievement": "No hi ha cap assoliment configurat per editar. Primer cal afegir una entrada.",
       "no_challenge": "No hi ha cap repte configurat per editar. Primer cal afegir una entrada.",
       "setup_complete": "Configuració completada",
-      "backup_restored": "Còpia de seguretat restaurada correctament. La integració s'ha tornat a carregar amb les dades restaurades."
+      "backup_restored": "Còpia de seguretat restaurada correctament. La integració s'ha tornat a carregar amb les dades restaurades.",
+      "no_dashboards_to_delete": "No s'han trobat taulers de control de KidsChores. Primer creeu-ne un amb Gestiona el tauler de control."
     }
   },
   "selector": {
@@ -1403,9 +1555,30 @@
         "manage_bonus": "Gestiona la bonificació",
         "manage_achievement": "Gestiona els assoliments",
         "manage_challenge": "Gestiona el repte",
+        "dashboard_generator": "Gestiona el tauler de control",
         "general_options": "Opcions generals",
         "done": "Finalitza la configuració"
       }
+    },
+    "dashboard_action": {
+      "options": {
+        "create": "Crear/Actualitzar el tauler de control",
+        "delete": "Suprimeix el tauler de control"
+      }
+    },
+    "dashboard_style": {
+      "options": {
+        "dashboard_style_full": "Complet (totes les funcions)",
+        "dashboard_style_minimal": "Mínim (només essencials)",
+        "dashboard_style_compact": "Compacte (disseny dens)",
+        "dashboard_style_admin": "Administrador (tauler de control principal)"
+      }
+    },
+    "dashboard_kid_selection": {
+      "options": {}
+    },
+    "dashboard_delete_selection": {
+      "options": {}
     },
     "manage_actions": {
       "options": {
@@ -1524,7 +1697,9 @@
         "notify_on_claim": "Notificar sobre la reclamació",
         "notify_on_approval": "Notificar en cas d'aprovació",
         "notify_on_disapproval": "Notificar en cas de desaprovació",
-        "notify_on_reminder": "Avisar 30 minuts abans de la data límit"
+        "notify_on_reminder": "Notificar 30 minuts abans de la data de venciment (antic)",
+        "notify_on_due_window": "Notifica quan comenci el període de venciment",
+        "notify_due_reminder": "Notificar a l'hora deguda del recordatori"
       }
     },
     "recurring_frequency": {
@@ -1542,7 +1717,11 @@
         "custom_1_week": "Personalitzat: 1 setmana",
         "custom_1_month": "Personalitzat: 1 mes",
         "custom_1_quarter": "Personalitzat: 1 Quart",
-        "custom_1_year": "Personalitzat: 1 any"
+        "custom_1_year": "Personalitzat: 1 any",
+        "week_end": "Cap de setmana",
+        "month_end": "Final de mes",
+        "quarter_end": "Final de trimestre",
+        "year_end": "Final d'any"
       }
     },
     "occasion_type": {
@@ -1709,6 +1888,10 @@
           "name": "Nom de la recompensa",
           "description": "El nom de la recompensa que s'està aprovant.",
           "example": "Temps de pantalla addicional"
+        },
+        "cost_override": {
+          "name": "Substitució de costos",
+          "description": "Substitució opcional del cost. Si s'omet, utilitza el cost emmagatzemat de la recompensa. Estableix-ho a 0 per a una concessió gratuïta (com ara les recompenses de les insígnies). Útil per a la fixació de preus en funció del context (caps de setmana, ocasions especials, etc.)."
         }
       }
     },
@@ -1775,13 +1958,306 @@
         }
       }
     },
-    "reset_all_data": {
-      "name": "Restableix totes les dades",
-      "description": "Esborra completament les dades de KidsChores de l'emmagatzematge."
+    "create_reward": {
+      "name": "Crea una recompensa",
+      "description": "Crea una nova recompensa mitjançant la programació.",
+      "fields": {
+        "name": {
+          "name": "Nom",
+          "description": "El nom de la recompensa.",
+          "example": "Temps de pantalla addicional"
+        },
+        "cost": {
+          "name": "Cost",
+          "description": "Punts necessaris per reclamar la recompensa.",
+          "example": "10"
+        },
+        "description": {
+          "name": "Descripció",
+          "description": "Descripció opcional de la recompensa.",
+          "example": "30 minuts addicionals de temps per prendre la tauleta"
+        },
+        "icon": {
+          "name": "Icona",
+          "description": "Icona per representar la recompensa.",
+          "example": "mdi:regal"
+        },
+        "labels": {
+          "name": "Etiquetes",
+          "description": "Etiquetes per agrupar recompenses.",
+          "example": "['cap de setmana', 'especial']"
+        }
+      }
     },
-    "reset_all_chores": {
-      "name": "Restableix totes les tasques",
-      "description": "Restableix manualment les tasques a l'estat pendent, eliminant reclamacions i aprovacions."
+    "update_reward": {
+      "name": "Actualitza la recompensa",
+      "description": "Actualitza una recompensa existent (s'admeten actualitzacions parcials).",
+      "fields": {
+        "id": {
+          "name": "ID de recompensa",
+          "description": "ID intern de la recompensa que s'ha d'actualitzar. Feu servir ID O nom.",
+          "example": "abc123-def456-789..."
+        },
+        "name": {
+          "name": "Nom",
+          "description": "Nom de la recompensa que s'ha d'actualitzar o nom nou per a la recompensa.",
+          "example": "Temps de pantalla addicional"
+        },
+        "cost": {
+          "name": "Cost",
+          "description": "Valor de cost actualitzat.",
+          "example": "15"
+        },
+        "description": {
+          "name": "Descripció",
+          "description": "Descripció actualitzada.",
+          "example": "45 minuts addicionals de temps de presa de comprimits"
+        },
+        "icon": {
+          "name": "Icona",
+          "description": "Icona actualitzada.",
+          "example": "mdi:estrella"
+        },
+        "labels": {
+          "name": "Etiquetes",
+          "description": "Etiquetes actualitzades.",
+          "example": "['premium', 'especial']"
+        }
+      }
+    },
+    "delete_reward": {
+      "name": "Suprimeix la recompensa",
+      "description": "Suprimeix una recompensa per ID o nom.",
+      "fields": {
+        "id": {
+          "name": "ID de recompensa",
+          "description": "ID intern de la recompensa que voleu suprimir. Feu servir ID O nom.",
+          "example": "abc123-def456-789..."
+        },
+        "name": {
+          "name": "Nom",
+          "description": "Nom de la recompensa que es vol suprimir.",
+          "example": "Temps de pantalla addicional"
+        }
+      }
+    },
+    "create_chore": {
+      "name": "Crea una tasca",
+      "description": "Crea una nova tasca que els nens puguin completar per guanyar punts.",
+      "fields": {
+        "name": {
+          "name": "Nom de la tasca",
+          "description": "El nom de la tasca que es vol crear.",
+          "example": "Sala blanca"
+        },
+        "assigned_kids": {
+          "name": "Nens assignats",
+          "description": "Llista de noms de nens per assignar a aquesta tasca.",
+          "example": "['Emma', 'Jack']"
+        },
+        "points": {
+          "name": "Punts",
+          "description": "Punts atorgats quan la tasca s'ha completat.",
+          "example": "10"
+        },
+        "description": {
+          "name": "Descripció",
+          "description": "Descripció opcional de la tasca.",
+          "example": "Fer el llit, guardar les joguines, aspirar el terra"
+        },
+        "icon": {
+          "name": "Icona",
+          "description": "Icona de disseny de materials per a la tasca.",
+          "example": "mdi: escombra"
+        },
+        "labels": {
+          "name": "Etiquetes",
+          "description": "Etiquetes opcionals per categoritzar la tasca.",
+          "example": "['diàriament', 'dormitori']"
+        },
+        "frequency": {
+          "name": "Freqüència",
+          "description": "Freqüència amb què es repeteix la tasca: cap, diària, diàriament_múltiple, setmanal, quinzenal, mensual, trimestral, anual, personalitzada, personalitzada_des de_completar o final de període (final_de_cap_de_setmana, final_de_mes, final_de_trimestre, final_d'any).",
+          "example": "diàriament"
+        },
+        "applicable_days": {
+          "name": "Dies aplicables",
+          "description": "Dies de la setmana en què la tasca és aplicable.",
+          "example": "['dl', 'dc', 'dv']"
+        },
+        "completion_criteria": {
+          "name": "Criteris de finalització",
+          "description": "Com es completa la tasca quan s'assignen diversos nens: independent (cada nen la completa per separat), shared_first (el primer nen que la completa guanya punts) o shared_all (tots els nens han de completar-la). No es pot canviar després de la creació.",
+          "example": "independent"
+        },
+        "approval_reset_type": {
+          "name": "Tipus de restabliment d'aprovació",
+          "description": "Quan la tasca es reinicia per tornar-la a completar.",
+          "example": "a mitjanit_una vegada"
+        },
+        "pending_claims": {
+          "name": "Acció de reclamacions pendents",
+          "description": "Què passa amb les reclamacions pendents quan la tasca es reinicia: hold_pending (conserva les reclamacions), clear_pending (elimina les reclamacions) o auto_approve_pending (aprova totes les pendents).",
+          "example": "espera_pendent"
+        },
+        "overdue_handling": {
+          "name": "Gestió de venciments",
+          "description": "Com gestionar la tasca quan es fa endarrerida.",
+          "example": "data_de_venciment"
+        },
+        "auto_approve": {
+          "name": "Aprovació automàtica",
+          "description": "Si és cert, la tasca s'aprova automàticament quan es reclama.",
+          "example": "fals"
+        },
+        "due_date": {
+          "name": "Data de venciment",
+          "description": "Data de venciment opcional per a la tasca. Utilitzeu el selector de data/hora per triar una data i hora vàlides.",
+          "example": "2025-03-01T23:59:00Z"
+        },
+        "due_window_offset": {
+          "name": "Desplaçament de la finestra de venciment",
+          "description": "Durada abans de la data de venciment quan la tasca entra en l'estat \"venciment\". Format: \"30m\", \"1h\", \"1d 6h 30m\", etc. Utilitzeu \"0\" per desactivar la funció de finestra de venciment.",
+          "example": "30 m"
+        },
+        "due_reminder_offset": {
+          "name": "Compensació de recordatori de venciment",
+          "description": "Durada abans de la data de venciment per enviar la notificació de recordatori. Format: '30m', '1h', '1d 6h 30m', etc. Utilitzeu '0' per desactivar els recordatoris.",
+          "example": "30 m"
+        }
+      }
+    },
+    "update_chore": {
+      "name": "Actualitzar la tasca",
+      "description": "Actualitza les propietats d'una tasca existent. Proporciona l'identificador O el nom per identificar la tasca. Només s'actualitzaran els camps proporcionats. Nota: els criteris de completion no es poden canviar després de la creació.",
+      "fields": {
+        "id": {
+          "name": "ID de la tasca",
+          "description": "L'ID intern de la tasca que s'ha d'actualitzar (alternativa al nom).",
+          "example": "abc-123-def-456"
+        },
+        "name": {
+          "name": "Nom de la tasca (identificador)",
+          "description": "El nom de la tasca que s'ha d'actualitzar (alternativa a id). Més fàcil d'usar que id.",
+          "example": "Sala blanca"
+        },
+        "assigned_kids": {
+          "name": "Nens assignats",
+          "description": "Nova llista de noms de nens per assignar a aquesta tasca.",
+          "example": "['Emma', 'Jack']"
+        },
+        "points": {
+          "name": "Punts",
+          "description": "Nou valor en punts per la tasca.",
+          "example": "15"
+        },
+        "description": {
+          "name": "Descripció",
+          "description": "Nova descripció de la tasca.",
+          "example": "Fer el llit, organitzar l'escriptori, aspirar el terra"
+        },
+        "icon": {
+          "name": "Icona",
+          "description": "Nova icona de Material Design per a la tasca.",
+          "example": "mdi:buit"
+        },
+        "labels": {
+          "name": "Etiquetes",
+          "description": "Noves etiquetes per a la tasca.",
+          "example": "['setmanal', 'neteja']"
+        },
+        "frequency": {
+          "name": "Freqüència",
+          "description": "Nova freqüència recurrent: cap, diària, diàriament_múltiple, setmanal, quinzenal, mensual, trimestral, anual, personalitzada, personalitzada_des de_completar o final de període (final_de_cap_de_setmana, final_de_mes, final_de_trimestre, final_d'any).",
+          "example": "setmanal"
+        },
+        "applicable_days": {
+          "name": "Dies aplicables",
+          "description": "Nous dies de la setmana en què la tasca és aplicable.",
+          "example": "['ds.', 'dg.']"
+        },
+        "approval_reset_type": {
+          "name": "Tipus de restabliment d'aprovació",
+          "description": "Nou tipus de restabliment per quan la tasca es restableix.",
+          "example": "a_la_data_de_venciment_un cop"
+        },
+        "pending_claims": {
+          "name": "Acció de reclamacions pendents",
+          "description": "Nova acció per a reclamacions pendents quan la tasca es reinicia.",
+          "example": "pendent_clar"
+        },
+        "overdue_handling": {
+          "name": "Gestió de venciments",
+          "description": "Nou comportament de gestió de venciments.",
+          "example": "mai_endarrerit"
+        },
+        "auto_approve": {
+          "name": "Aprovació automàtica",
+          "description": "Nova configuració d'aprovació automàtica.",
+          "example": "cert"
+        },
+        "due_date": {
+          "name": "Data de venciment",
+          "description": "Nova data de venciment per a la tasca. Utilitzeu el selector de data/hora per triar una data i hora vàlides.",
+          "example": "2025-04-01T18:00:00Z"
+        },
+        "due_window_offset": {
+          "name": "Desplaçament de la finestra de venciment",
+          "description": "Desplaçament del nou període de venciment. Durada abans de la data de venciment quan la tasca entra en l'estat \"venciment\". Format: '30m', '1h', '1d 6h 30m', etc. Utilitzeu '0' per desactivar-lo.",
+          "example": "1 h"
+        },
+        "due_reminder_offset": {
+          "name": "Compensació de recordatori de venciment",
+          "description": "Nou desplaçament del recordatori de venciment. Durada abans de la data de venciment per enviar la notificació de recordatori. Format: '30m', '1h', '1d 6h 30m', etc. Utilitzeu '0' per desactivar-lo.",
+          "example": "30 m"
+        }
+      }
+    },
+    "delete_chore": {
+      "name": "Suprimeix la tasca",
+      "description": "Suprimeix una tasca per ID o nom. S'eliminaran tots els estats i l'historial específics del nen.",
+      "fields": {
+        "id": {
+          "name": "ID de la tasca",
+          "description": "ID intern de la tasca que s'ha de suprimir. Utilitzeu ID O name.",
+          "example": "abc123-def456-789..."
+        },
+        "name": {
+          "name": "Nom",
+          "description": "Nom de la tasca que s'ha d'eliminar.",
+          "example": "Sala blanca"
+        }
+      }
+    },
+    "reset_chores_to_pending_state": {
+      "name": "Restableix les tasques a l'estat pendent",
+      "description": "Restableix manualment totes les tasques a l'estat pendent, eliminant reclamacions i aprovacions."
+    },
+    "reset_transactional_data": {
+      "name": "Restableix les dades transaccionals",
+      "description": "Restableix les dades de transacció/en temps d'execució tot conservant la configuració (fills, tasques, recompenses, etc.). Es crea una còpia de seguretat automàtica abans del restabliment com a kidschores_data_<timestamp>_reset al directori .storage. Utilitza l'abast per orientar-te a nens o dominis específics. IMPORTANT: Requereix confirm_destructive: true com a mecanisme de seguretat.",
+      "fields": {
+        "confirm_destructive": {
+          "name": "Confirmar destructiu",
+          "description": "Ha d'estar definit com a cert per confirmar que voleu continuar amb el reinici. Aquest és un mecanisme de seguretat."
+        },
+        "scope": {
+          "name": "Àmbit",
+          "description": "Restableix l'abast: 'global' restableix totes les dades, 'kid' restableix les dades només per a un nen específic."
+        },
+        "kid_name": {
+          "name": "Nom del nen/a",
+          "description": "Obligatori si l'àmbit és 'kid'. El nom del nen les dades del qual s'han de restablir."
+        },
+        "item_type": {
+          "name": "Tipus d'element",
+          "description": "Filtre opcional per restablir només un domini específic (per exemple, només punts o només tasques domèstiques)."
+        },
+        "item_name": {
+          "name": "Nom de l'element",
+          "description": "Filtre opcional per restablir un element específic dins del domini item_type."
+        }
+      }
     },
     "reset_overdue_chores": {
       "name": "Restableix tasques endarrerides",
@@ -1856,54 +2332,6 @@
         }
       }
     },
-    "reset_penalties": {
-      "name": "Restablir penalitzacions",
-      "description": "Restableix totes les penalitzacions aplicades per a tots els nens. Opcionalment, proporciona el nom de la penalització per restablir una penalització específica per a tots els nens. Fes servir el nom del nen per restablir totes les penalitzacions per a un nen específic. Combina tots dos per restablir una penalització específica per a un nen específic.",
-      "fields": {
-        "kid_name": {
-          "name": "Nom del nen/a",
-          "description": "El nen per al qual es reiniciaran les penalitzacions.",
-          "example": "Alícia"
-        },
-        "penalty_name": {
-          "name": "Nom de la penalització",
-          "description": "El nom de la penalització que es reiniciarà.",
-          "example": "Cridant"
-        }
-      }
-    },
-    "reset_bonuses": {
-      "name": "Restablir bonificacions",
-      "description": "Restableix totes les bonificacions aplicades per a tots els nens. Opcionalment, proporciona un nom de bonificació per restablir una bonificació específica per a tots els nens. Fes servir el nom del nen per restablir totes les bonificacions per a un nen específic. Combina tots dos per restablir una bonificació específica per a un nen específic.",
-      "fields": {
-        "kid_name": {
-          "name": "Nom del nen/a",
-          "description": "El nen per al qual es reiniciaran les bonificacions.",
-          "example": "Alícia"
-        },
-        "bonus_name": {
-          "name": "Nom de la bonificació",
-          "description": "El nom de la bonificació que es reiniciarà.",
-          "example": "Ajudant"
-        }
-      }
-    },
-    "reset_rewards": {
-      "name": "Restableix les recompenses",
-      "description": "Restableix tots els recomptes de reclamacions i aprovacions de recompenses per a tots els nens. Opcionalment, proporciona el nom de la recompensa per restablir un recompte de recompenses específic per a tots els nens. Utilitza el nom del nen per restablir tots els recomptes de recompenses per a un nen específic. Combina tots dos per restablir una recompensa específica per a un nen específic.",
-      "fields": {
-        "kid_name": {
-          "name": "Nom del nen/a",
-          "description": "El nen per al qual compta la recompensa es reiniciarà.",
-          "example": "Alícia"
-        },
-        "reward_name": {
-          "name": "Nom de la recompensa",
-          "description": "El nom de la recompensa que es restablirà.",
-          "example": "Gelat"
-        }
-      }
-    },
     "remove_awarded_badges": {
       "name": "Eliminar les insígnies atorgades",
       "description": "Elimina totes les insígnies atorgades per a tots els nens. Opcionalment, proporciona el nom de la insígnia per restablir una insígnia específica per a tots els nens. Fes servir el nom del nen per restablir totes les insígnies per a un nen específic. Combina tots dos per restablir una insígnia específica per a un nen específic.",
@@ -1929,6 +2357,7 @@
           "pending": "Pendent",
           "approved": "Aprovat",
           "claimed": "Reclamat",
+          "due": "Venciment",
           "overdue": "Endarrerit",
           "unknown": "Desconegut",
           "none": "Cap",
@@ -1968,8 +2397,8 @@
             "name": "Criteris de finalització",
             "state": {
               "independent": "Independent",
-              "shared_first_only": "Compartit (Primer)",
-              "shared_all_required": "Compartit (Tot)"
+              "shared_first": "Compartit (Primer)",
+              "shared_all": "Compartit (Tot)"
             }
           },
           "approval_reset_type": {
@@ -2028,13 +2457,16 @@
             }
           },
           "chore_points_earned": {
-            "name": "Punts guanyats"
+            "name": "Punts guanyats (totalment)"
           },
           "chore_approvals_count": {
             "name": "Aprovacions (de tots els temps)"
           },
           "chore_claims_count": {
             "name": "Reclamacions (de tots els temps)"
+          },
+          "chore_completed_count": {
+            "name": "Completat (de tots els temps)"
           },
           "chore_disapproved_count": {
             "name": "Rebuigs (de tots els temps)"
@@ -2048,8 +2480,8 @@
           "chore_current_streak": {
             "name": "Ratxa actual"
           },
-          "chore_highest_streak": {
-            "name": "Ratxa més alta"
+          "chore_longest_streak": {
+            "name": "Ratxa més llarga"
           },
           "chore_last_longest_streak_date": {
             "name": "Última cita de la ratxa més llarga"
@@ -2059,6 +2491,9 @@
           },
           "last_approved": {
             "name": "Última aprovació"
+          },
+          "last_completed": {
+            "name": "Últim completat"
           },
           "last_disapproved": {
             "name": "Últim rebutjat"
@@ -2102,6 +2537,15 @@
           },
           "claim_button_eid": {
             "name": "ID d'entitat del botó de reclamació"
+          },
+          "due_window_start": {
+            "name": "Inici de la finestra de venciment"
+          },
+          "time_until_due": {
+            "name": "Temps fins a la data de venciment"
+          },
+          "time_until_overdue": {
+            "name": "Temps fins al venciment"
           }
         }
       },
@@ -2312,6 +2756,57 @@
           "chore_stat_disapproved_all_time": {
             "name": "Rebutjat de sempre"
           },
+          "chore_stat_completed_today": {
+            "name": "Completat avui"
+          },
+          "chore_stat_completed_week": {
+            "name": "Completat aquesta setmana"
+          },
+          "chore_stat_completed_month": {
+            "name": "Completat aquest mes"
+          },
+          "chore_stat_completed_year": {
+            "name": "Completat aquest any"
+          },
+          "chore_stat_completed_all_time": {
+            "name": "Completat de tots els temps"
+          },
+          "chore_stat_points_today": {
+            "name": "Punts d'avui"
+          },
+          "chore_stat_points_week": {
+            "name": "Punts aquesta setmana"
+          },
+          "chore_stat_points_month": {
+            "name": "Punts d'aquest mes"
+          },
+          "chore_stat_points_year": {
+            "name": "Punts d'aquest any"
+          },
+          "chore_stat_points_all_time": {
+            "name": "Punts de tots els temps"
+          },
+          "chore_stat_top_chores_week": {
+            "name": "Tasca principal (setmana)"
+          },
+          "chore_stat_top_chores_month": {
+            "name": "Tasca principal (mes)"
+          },
+          "chore_stat_top_chores_year": {
+            "name": "Tasca principal (any)"
+          },
+          "chore_stat_chores_completed_today": {
+            "name": "Completat avui"
+          },
+          "chore_stat_chores_completed_week": {
+            "name": "Completat aquesta setmana"
+          },
+          "chore_stat_chores_completed_month": {
+            "name": "Completat aquest mes"
+          },
+          "chore_stat_chores_completed_year": {
+            "name": "Completat aquest any"
+          },
           "chore_stat_current_due_today": {
             "name": "Venciment corrent avui"
           },
@@ -2336,11 +2831,17 @@
           "chore_stat_longest_streak_all_time": {
             "name": "Ratxa més llarga (de tots els temps)"
           },
+          "chore_stat_longest_streak": {
+            "name": "Ratxa més llarga"
+          },
           "chore_stat_avg_per_day_week": {
             "name": "Mitjana per dia (setmana)"
           },
           "chore_stat_avg_per_day_month": {
             "name": "Mitjana per dia (mes)"
+          },
+          "chore_stat_avg_per_day_year": {
+            "name": "Mitjana per dia (any)"
           }
         }
       },
@@ -2593,6 +3094,7 @@
           "pending": "Pendent",
           "approved": "Aprovat",
           "claimed": "Reclamat",
+          "due": "Venciment",
           "overdue": "Endarrerit",
           "unknown": "Desconegut",
           "none": "Cap",
@@ -2629,8 +3131,8 @@
             "name": "Criteris de finalització",
             "state": {
               "independent": "Independent",
-              "shared_first_only": "Compartit (només el primer)",
-              "shared_all_required": "Compartit (tot obligatori)"
+              "shared_first": "Compartit (només el primer)",
+              "shared_all": "Compartit (tot obligatori)"
             }
           },
           "approval_reset_type": {
@@ -2689,20 +3191,33 @@
           "last_approved": {
             "name": "Última aprovació"
           },
+          "last_completed": {
+            "name": "Últim completat"
+          },
           "chore_claimed_by": {
             "name": "Reclamat per"
           },
           "chore_completed_by": {
             "name": "Completat per"
+          },
+          "due_window_start": {
+            "name": "Inici de la finestra de venciment"
+          },
+          "time_until_due": {
+            "name": "Temps fins a la data de venciment"
+          },
+          "time_until_overdue": {
+            "name": "Temps fins al venciment"
           }
         }
       },
       "kid_reward_status_sensor": {
         "name": "Estat de la recompensa - {reward_name}",
         "state": {
-          "not_claimed": "No reclamat",
+          "locked": "Bloquejat",
+          "available": "Disponible",
+          "requested": "Sol·licitat",
           "approved": "Aprovat",
-          "claimed": "Reclamat",
           "unknown": "Desconegut",
           "none": "Cap"
         },
@@ -2733,6 +3248,9 @@
           },
           "last_approved": {
             "name": "Última aprovació"
+          },
+          "last_completed": {
+            "name": "Últim completat"
           },
           "last_disapproved": {
             "name": "Últim rebutjat"
@@ -3184,6 +3702,26 @@
       "system_bonuses_select": {
         "name": "Selecciona el bonus"
       },
+      "system_dashboard_admin_kid_select": {
+        "name": "Selector infantil del tauler d'administració",
+        "state_attributes": {
+          "purpose": {
+            "name": "Propòsit",
+            "state": {
+              "purpose_system_dashboard_admin_kid": "Selector de fill a nivell de sistema per a targetes de tauler de control d'administració"
+            }
+          },
+          "dashboard_helper_eid": {
+            "name": "ID d'entitat d'ajuda del tauler de control"
+          },
+          "selected_kid_slug": {
+            "name": "Llimac infantil seleccionat"
+          },
+          "selected_kid_name": {
+            "name": "Nom del nen seleccionat"
+          }
+        }
+      },
       "kid_dashboard_helper_chores_select": {
         "name": "Ajudant de llista de tasques del tauler de control de la interfície d'usuari",
         "state_attributes": {
@@ -3394,6 +3932,10 @@
       },
       "parent_points_adjust_button": {
         "name": "{sign_label} {points_label}",
+        "sign_label": {
+          "increment": "Increment",
+          "decrement": "Disminuir"
+        },
         "state_attributes": {
           "purpose": {
             "name": "Propòsit",
@@ -3484,6 +4026,9 @@
     "shared_chore_cannot_have_kid": {
       "message": "No es pot especificar un nen per a la tasca compartida {chore_name}. Les tasques compartides tenen una data de venciment per a tots els nens."
     },
+    "reward_not_found": {
+      "message": "No s'ha trobat la recompensa amb l'ID '{reward_id}'"
+    },
     "required_field": {
       "message": "Cal proporcionar {field}"
     },
@@ -3495,6 +4040,18 @@
     },
     "missing_chore": {
       "message": "Heu de proporcionar l'identificador o el nom de la tasca."
+    },
+    "missing_chore_identifier": {
+      "message": "Cal proporcionar chore_id o chore_name per identificar la tasca."
+    },
+    "chore_not_found": {
+      "message": "No s'ha trobat la tasca amb l'ID '{chore_id}'."
+    },
+    "completion_criteria_immutable": {
+      "message": "Els criteris de finalització no es poden canviar després de la creació de la tasca. Suprimeix i recrea la tasca si necessites uns criteris de finalització diferents."
+    },
+    "missing_reward_identifier": {
+      "message": "Cal proporcionar reward_id o reward_name per identificar la recompensa que s'ha d'actualitzar."
     },
     "missing_field": {
       "message": "Falta el camp obligatori {field} a {entity}"
@@ -3510,6 +4067,36 @@
     },
     "configuration_error": {
       "message": "Error de configuració: {detail}"
+    },
+    "data_reset_confirmation_required": {
+      "message": "Heu de definir confirm_destructive: true per continuar amb el restabliment de dades."
+    },
+    "data_reset_kid_not_found": {
+      "message": "No s'ha trobat el nen '{kid_name}'"
+    },
+    "data_reset_item_not_found": {
+      "message": "No s'ha trobat {item_type} '{item_name}'"
+    },
+    "data_reset_invalid_scope": {
+      "message": "Àmbit no vàlid '{scope}'. Ha de ser: global, kid, item_type o item"
+    },
+    "data_reset_invalid_item_type": {
+      "message": "Tipus d'element no vàlid '{item_type}'. Ha de ser: nens, tasques, recompenses, insígnies, assoliments, reptes, penalitzacions o bonificacions."
+    },
+    "notif_title_data_reset": {
+      "message": "Restabliment de dades transaccionals"
+    },
+    "notif_message_data_reset_global": {
+      "message": "S'han reiniciat totes les dades d'execució. S'ha conservat la configuració."
+    },
+    "notif_message_data_reset_kid": {
+      "message": "Restabliment de dades complet per a {kid_name}. Punts, estadístiques i progrés esborrats."
+    },
+    "notif_message_data_reset_item_type": {
+      "message": "Restabliment de dades complet per a tots els {item_type}. Dades d'execució esborrades."
+    },
+    "notif_message_data_reset_item": {
+      "message": "Restabliment de dades complet per a {item_name}. Dades d'execució esborrades."
     }
   }
 }

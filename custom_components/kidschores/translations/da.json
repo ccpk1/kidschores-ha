@@ -13,6 +13,16 @@
           "backup_selection": "Vælg mulighed"
         }
       },
+      "paste_json_input": {
+        "title": "Importér JSON-data",
+        "description": "Indsæt det komplette JSON-indhold fra enten:\n\n• En KidsChores-datafil (kidschores_data)\n• En download af diagnosticering\n\nSystemet registrerer og udpakker automatisk formatet efter behov. Både rå lagerdata og eksportformater for diagnosticering understøttes.",
+        "data": {
+          "json_data": "JSON-data"
+        },
+        "data_description": {
+          "json_data": "Indsæt hele JSON-indholdet her. Accepterer data fra kidchores_data-filen eller diagnostikeksporten (udpakker automatisk ekstra struktur)."
+        }
+      },
       "points_label": {
         "title": "Pointmærke",
         "description": "Vælg en etiket og et ikon for punkter.",
@@ -26,7 +36,25 @@
         "description": "Opdater systemindstillinger som punktmærke og ikon.",
         "data": {
           "points_label": "Pointmærke",
-          "points_icon": "Pointikon"
+          "points_icon": "Pointikon",
+          "update_interval": "Opdateringsinterval (minutter)",
+          "calendar_show_period": "Kalendervisningsperiode (dage)",
+          "retention_daily": "Daglig opbevaring (dage)",
+          "retention_weekly": "Ugentlig opbevaring (uger)",
+          "retention_monthly": "Månedlig tilbageholdelse (måneder)",
+          "retention_yearly": "Årlig opbevaring (år)",
+          "points_adjust_values": "Punktjusteringsværdier (rørsepareret)"
+        },
+        "data_description": {
+          "points_label": "Etiket vist for point (f.eks. 'Point', 'Stjerner', 'Mønter')",
+          "points_icon": "MDI-ikon for point (f.eks. 'mdi:star', 'mdi:coin', 'mdi:trophy')",
+          "update_interval": "Hvor ofte data skal opdateres (minimum 1 minut)",
+          "calendar_show_period": "Historiske dage, der skal vises i kalenderen (minimum 1)",
+          "retention_daily": "Dage til at gemme daglige aggregater",
+          "retention_weekly": "Uger til at gemme ugentlige aggregater",
+          "retention_monthly": "Måneder til at gemme månedlige aggregater",
+          "retention_yearly": "År for at opbevare årlige aggregater",
+          "points_adjust_values": "Rørseparerede punktværdier for manuelle justeringsknapper (f.eks. +1,0|-1,0|+10,0|-10,0)"
         }
       },
       "kid_count": {
@@ -40,7 +68,7 @@
         "title": "Definer barn",
         "description": "Indtast navnet på hvert barn.",
         "data": {
-          "kid_name": "Barnets navn",
+          "name": "Barnets navn",
           "ha_user": "Hjemmeassistent-bruger",
           "mobile_notify_service": "Notifikationer",
           "dashboard_language": "Sprog"
@@ -61,13 +89,16 @@
         "title": "Definer forælder",
         "description": "Indtast oplysninger for hver forælder.",
         "data": {
-          "parent_name": "Forældernavn",
+          "name": "Forældernavn",
           "ha_user_id": "Hjemmeassistent-bruger",
           "associated_kids": "Tilknyttede børn",
           "mobile_notify_service": "Notifikationer",
           "dashboard_language": "Sprog"
         },
         "data_description": {
+          "name": "Unikt navn for denne forælder, brugt i hele systemet.",
+          "ha_user_id": "Valgfrit: Knyt denne forælder til en Home Assistant-bruger for at få notifikationer og adgang til dashboardet.",
+          "associated_kids": "Vælg hvilke børn denne forælder overvåger i forbindelse med notifikationer og godkendelseshandlinger.",
           "mobile_notify_service": "Vælg en notifikationstjeneste for at aktivere notifikationer for denne forælder, eller lad feltet stå tomt for at deaktivere.",
           "dashboard_language": "Sprog, der bruges til dit jobdashboard og dine notifikationer."
         }
@@ -83,7 +114,7 @@
         "title": "Tilføj pligt",
         "description": "Opret en ny pligt med point, opgaver og en tilbagevendende tidsplan.",
         "data": {
-          "chore_name": "📋 Navn på huslige pligter",
+          "name": "📋 Navn på huslige pligter",
           "chore_description": "📋 Beskrivelse (valgfrit)",
           "icon": "📋 Ikon (mdi:xxx)",
           "chore_labels": "📋 Etiketter (valgfrit)",
@@ -99,11 +130,13 @@
           "custom_interval_unit": "🔄 Tidsplan: Brugerdefineret intervalenhed",
           "applicable_days": "📅 Tidsplan: Gældende dage (valgfrit)",
           "due_date": "📅 Tidsplan: Forfaldsdato (valgfrit)",
+          "chore_due_window_offset": "⏱️ Forfaldsfrist: Forskydning før forfaldsdato",
+          "chore_due_reminder_offset": "🔔 Forfaldspåmindelse: Forskydning før forfaldsdato",
           "show_on_calendar": "📅 Vis i kalenderen?",
           "chore_notifications": "🔔 Notifikationsbegivenheder (valgfrit)"
         },
         "data_description": {
-          "chore_name": "Unikt navn vist i hele systemet.",
+          "name": "Unikt navn vist i hele systemet.",
           "chore_description": "Valgfrie instruktioner eller detaljer om, hvordan du udfører denne opgave.",
           "icon": "Ikon for materialedesign (f.eks. mdi:kost, mdi:opvaskemaskine).",
           "chore_labels": "Tags til at organisere pligter (f.eks. 'køkken', 'udendørs'). Lad være med at skrive et tomt felt, hvis det ikke er nødvendigt.",
@@ -119,6 +152,8 @@
           "custom_interval_unit": "Tidsenhed for brugerdefineret interval (dage, uger, måneder). Bruges kun med brugerdefineret frekvens.",
           "applicable_days": "Lad feltet stå tomt for alle dage. Vælg KUN specifikke dage, der skal begrænses.",
           "due_date": "Valgfri deadline. Kan kombineres med tilbagevendende tidsplaner.",
+          "chore_due_window_offset": "Når opgavens status ændres fra Afventer til Forfalden. Format: '1d 6t 30m' eller blot '30' for minutter. Indtast '0' for at deaktivere. Eksempel: '1d' betyder, at opgaven vises som 'Forfalden' 1 dag før deadline.",
+          "chore_due_reminder_offset": "Hvornår påmindelsen om forfald skal sendes. Format: '1d 6t 30m' eller blot '30' for minutter. Standard: 30m (30 minutter før forfald). Indtast '0' for at deaktivere.",
           "show_on_calendar": "Vis denne opgave i kalendervisningen.",
           "chore_notifications": "Hvornår skal notifikationer sendes: Ved krav, ved godkendelse, ved afvisning eller enhver kombination."
         }
@@ -191,10 +226,10 @@
         "title": "Definer belønning",
         "description": "Indtast oplysninger for hver belønning.",
         "data": {
-          "reward_name": "Belønningsnavn",
+          "name": "Belønningsnavn",
           "internal_id": "Internt ID",
-          "reward_cost": "Belønningsomkostninger",
-          "reward_description": "Beskrivelse (valgfrit)",
+          "cost": "Belønningsomkostninger",
+          "description": "Beskrivelse (valgfrit)",
           "reward_labels": "Belønningsetiketter",
           "icon": "Ikon (mdi:xxx)"
         }
@@ -210,7 +245,7 @@
         "title": "Definer straf",
         "description": "Indtast detaljer for hver straf.",
         "data": {
-          "penalty_name": "Strafnavn",
+          "name": "Strafnavn",
           "penalty_description": "Beskrivelse (valgfrit)",
           "penalty_labels": "Strafmærkater",
           "internal_id": "Internt ID",
@@ -229,7 +264,7 @@
         "title": "Definer bonus",
         "description": "Indtast oplysninger for hver bonus.",
         "data": {
-          "bonus_name": "Bonusnavn",
+          "name": "Bonusnavn",
           "bonus_description": "Beskrivelse (valgfrit)",
           "bonus_labels": "Bonusetiketter",
           "internal_id": "Internt ID",
@@ -308,6 +343,10 @@
       "due_date_in_past": "Forfaldsdatoen skal være i fremtiden.",
       "end_date_in_past": "Slutdatoen skal være i fremtiden.",
       "end_date_not_after_start_date": "Slutdatoen skal være senere end startdatoen",
+      "err_end_before_start": "Slutdatoen skal være efter startdatoen",
+      "err_name_duplicate": "Der findes allerede en udfordring med dette navn",
+      "achievement_no_kids_assigned": "Mindst ét barn skal være tildelt præstationen",
+      "challenge_no_kids_assigned": "Mindst ét barn skal tildeles udfordringen",
       "invalid_achievement_count": "Ugyldigt antal præstationer",
       "invalid_achievement_name": "Ugyldigt præstationsnavn",
       "invalid_badge": "Ugyldigt badge",
@@ -318,6 +357,7 @@
       "invalid_chore": "Ugyldig opgave",
       "invalid_chore_count": "Ugyldigt antal opgaver",
       "invalid_chore_name": "Ugyldigt navn på opgave",
+      "invalid_points": "Point skal være nul eller større",
       "invalid_overdue_reset_combination": "Håndtering af forsinkede transaktioner 'Nulstil derefter ved forfaldsdato' fungerer kun med nulstillingstyper ved midnat. Vælg venligst 'Ved midnat (én gang)' eller 'Ved midnat (gentagende)' for nulstillingstypen for godkendelse.",
       "invalid_due_date": "Ugyldig forfaldsdato",
       "date_required_for_frequency": "En forfaldsdato er påkrævet for denne tilbagevendende frekvens. Rydning af datoer fungerer kun med Ingen, Daglig eller Ugentlig frekvens.",
@@ -333,6 +373,7 @@
       "invalid_reward": "Ugyldig belønning",
       "invalid_reward_count": "Ugyldigt antal belønninger",
       "invalid_reward_name": "Ugyldigt belønningsnavn",
+      "invalid_reward_cost": "Belønningsomkostningerne skal være nul eller større",
       "invalid_bonus": "Ugyldig bonus",
       "invalid_bonus_count": "Ugyldigt bonusantal",
       "invalid_bonus_name": "Ugyldigt bonusnavn",
@@ -399,13 +440,15 @@
         "title": "Tilføj barn",
         "description": "Angiv detaljerne for det nye barn.",
         "data": {
-          "kid_name": "Barnets navn",
+          "name": "Barnets navn",
           "ha_user": "Hjemmeassistent-bruger",
           "mobile_notify_service": "Notifikationer",
           "dashboard_language": "Sprog",
           "internal_id": "Internt ID"
         },
         "data_description": {
+          "name": "Unikt navn for dette barn, brugt i hele systemet.",
+          "ha_user": "Valgfrit: Knyt dette barn til en Home Assistant-bruger for at få adgangskontrol til dashboardet.",
           "mobile_notify_service": "Vælg en notifikationstjeneste for at aktivere notifikationer for dette barn, eller lad feltet stå tomt for at deaktivere.",
           "dashboard_language": "Sprog, der bruges til dit jobdashboard og dine notifikationer."
         }
@@ -414,7 +457,7 @@
         "title": "Tilføj forælder",
         "description": "Angiv oplysningerne for den nye forælder.",
         "data": {
-          "parent_name": "Forældernavn",
+          "name": "Forældernavn",
           "ha_user_id": "Hjemmeassistent-bruger",
           "associated_kids": "Tilknyttede børn",
           "mobile_notify_service": "Notifikationer",
@@ -425,6 +468,9 @@
           "internal_id": "Internt ID"
         },
         "data_description": {
+          "name": "Unikt navn for denne forælder, brugt i hele systemet.",
+          "ha_user_id": "Valgfrit: Knyt denne forælder til en Home Assistant-bruger for at få notifikationer og adgang til dashboardet.",
+          "associated_kids": "Vælg hvilke børn denne forælder overvåger i forbindelse med notifikationer og godkendelseshandlinger.",
           "mobile_notify_service": "Vælg en notifikationstjeneste for at aktivere notifikationer for denne forælder, eller lad feltet stå tomt for at deaktivere.",
           "allow_chore_assignment": "Opretter en profil, så du kan få tildelt opgaver. Som standard vises kun en Godkend-knap, der kan fuldføres med et enkelt klik. Bemærk: Hvis du fjerner markeringen, bevares børneprofilen med suffikset '_unlinked' til manuel oprydning.",
           "enable_chore_workflow": "Tilføjer knapperne Gør krav og Afvis til den fulde arbejdsgang (gør krav → godkend/afvis).",
@@ -436,7 +482,7 @@
         "title": "Tilføj pligt",
         "description": "Opret en ny pligt med point, opgaver og en tilbagevendende tidsplan.",
         "data": {
-          "chore_name": "📋 Navn på huslige pligter",
+          "name": "📋 Navn på huslige pligter",
           "chore_description": "📋 Beskrivelse (valgfrit)",
           "icon": "📋 Ikon (mdi:xxx)",
           "chore_labels": "📋 Etiketter (valgfrit)",
@@ -452,11 +498,14 @@
           "custom_interval_unit": "🔄 Tidsplan: Brugerdefineret intervalenhed",
           "applicable_days": "📅 Tidsplan: Gældende dage (valgfrit)",
           "due_date": "📅 Tidsplan: Forfaldsdato (valgfrit)",
+          "clear_due_date": "🗑️ Ryd forfaldsdato",
+          "chore_due_window_offset": "⏱️ Forfaldsfrist: Forskydning før forfaldsdato",
+          "chore_due_reminder_offset": "🔔 Forfaldspåmindelse: Forskydning før forfaldsdato",
           "show_on_calendar": "📅 Vis i kalenderen?",
           "chore_notifications": "🔔 Notifikationsbegivenheder (valgfrit)"
         },
         "data_description": {
-          "chore_name": "Unikt navn vist i hele systemet.",
+          "name": "Unikt navn vist i hele systemet.",
           "chore_description": "Valgfrie instruktioner eller detaljer om, hvordan du udfører denne opgave.",
           "icon": "Ikon for materialedesign (f.eks. mdi:kost, mdi:opvaskemaskine).",
           "chore_labels": "Tags til at organisere pligter (f.eks. 'køkken', 'udendørs'). Lad være med at skrive et tomt felt, hvis det ikke er nødvendigt.",
@@ -472,6 +521,9 @@
           "custom_interval_unit": "Tidsenhed for brugerdefineret interval (dage, uger, måneder). Bruges kun med brugerdefineret frekvens.",
           "applicable_days": "Lad feltet stå tomt for alle dage. Vælg KUN specifikke dage, der skal begrænses.",
           "due_date": "Valgfri deadline. Kan kombineres med tilbagevendende skemaer. For SELVSTÆNDIGE pligter fungerer dette som en skabelon - en ekstra skærm vises, der tillader individuelle datoer pr. barn.",
+          "clear_due_date": "Markér dette felt for at fjerne forfaldsdatoen fra denne opgave.",
+          "chore_due_window_offset": "Når opgavens status ændres fra Afventer til Forfalden. Format: '1d 6t 30m' eller blot '30' for minutter. Indtast '0' for at deaktivere. Eksempel: '1d' betyder, at opgaven vises som 'Forfalden' 1 dag før deadline.",
+          "chore_due_reminder_offset": "Hvornår påmindelsen om forfald skal sendes. Format: '1d 6t 30m' eller blot '30' for minutter. Standard: 30m (30 minutter før forfald). Indtast '0' for at deaktivere.",
           "show_on_calendar": "Vis denne opgave i kalendervisningen.",
           "chore_notifications": "Hvornår skal notifikationer sendes: Ved krav, ved godkendelse, ved afvisning eller enhver kombination."
         }
@@ -695,10 +747,10 @@
         "title": "Tilføj belønning",
         "description": "Angiv detaljerne for den nye belønning.",
         "data": {
-          "reward_name": "Belønningsnavn",
+          "name": "Belønningsnavn",
           "internal_id": "Internt ID",
-          "reward_cost": "Belønningsomkostninger",
-          "reward_description": "Beskrivelse (valgfrit)",
+          "cost": "Belønningsomkostninger",
+          "description": "Beskrivelse (valgfrit)",
           "reward_labels": "Belønningsetiketter",
           "icon": "Ikon (mdi:xxx)"
         }
@@ -707,7 +759,7 @@
         "title": "Tilføj straf",
         "description": "Angiv detaljerne for den nye straf.",
         "data": {
-          "penalty_name": "Strafnavn",
+          "name": "Strafnavn",
           "penalty_description": "Beskrivelse (valgfrit)",
           "penalty_labels": "Strafmærkater",
           "internal_id": "Internt ID",
@@ -719,7 +771,7 @@
         "title": "Tilføj bonus",
         "description": "Angiv detaljerne for den nye bonus.",
         "data": {
-          "bonus_name": "Bonusnavn",
+          "name": "Bonusnavn",
           "bonus_description": "Beskrivelse (valgfrit)",
           "bonus_labels": "Bonusetiketter",
           "internal_id": "Internt ID",
@@ -767,13 +819,15 @@
         "title": "Rediger barn",
         "description": "Rediger oplysningerne for det valgte barn.",
         "data": {
-          "kid_name": "Barnets navn",
+          "name": "Barnets navn",
           "ha_user": "Hjemmeassistent-bruger",
           "mobile_notify_service": "Notifikationer",
           "dashboard_language": "Sprog",
           "internal_id": "Internt ID"
         },
         "data_description": {
+          "name": "Unikt navn for dette barn, brugt i hele systemet.",
+          "ha_user": "Valgfrit: Knyt dette barn til en Home Assistant-bruger for at få adgangskontrol til dashboardet.",
           "mobile_notify_service": "Vælg en notifikationstjeneste for at aktivere notifikationer for dette barn.",
           "dashboard_language": "Sprog, der bruges til dit jobdashboard og dine notifikationer."
         }
@@ -782,14 +836,15 @@
         "title": "Rediger skyggebarn",
         "description": "Rediger oplysningerne for det valgte skyggebarn. ⚠️ Dette barn er knyttet til en forælder. Ændring af navnet vil bryde kravet om navnematchning for at fjerne tilknytningen via tjenesten.",
         "data": {
-          "kid_name": "Barnets navn",
+          "name": "Barnets navn",
           "ha_user": "Hjemmeassistent-bruger",
           "mobile_notify_service": "Notifikationer",
           "dashboard_language": "Sprog",
           "internal_id": "Internt ID"
         },
         "data_description": {
-          "kid_name": "⚠️ Dette skyggebarn er knyttet til en forælder. Ændring af dette navn vil afbryde funktionen til at fjerne tilknytning til tjenesten, som kræver matchende navne.",
+          "name": "⚠️ Dette skyggebarn er knyttet til en forælder. Ændring af dette navn vil afbryde funktionen til at fjerne tilknytning til tjenesten, som kræver matchende navne.",
+          "ha_user": "Valgfrit: Knyt dette barn til en Home Assistant-bruger for at få adgangskontrol til dashboardet.",
           "mobile_notify_service": "⚠️ Skyggenotifikationer for børn: Den tilknyttede forælder modtager allerede notifikationer om overvågede pligter. Aktivering her vil oprette dubletter af notifikationer. Nyttigt til påmindelser om forfaldsdatoer inden for 30 minutter eller hvis du bruger forskellige notifikationstjenester.",
           "dashboard_language": "Sprog, der bruges til dit jobdashboard og dine notifikationer."
         }
@@ -798,7 +853,7 @@
         "title": "Rediger overordnet",
         "description": "Rediger oplysningerne for den valgte forælder.",
         "data": {
-          "parent_name": "Forældernavn",
+          "name": "Forældernavn",
           "ha_user_id": "Hjemmeassistent-bruger",
           "associated_kids": "Tilknyttede børn",
           "mobile_notify_service": "Notifikationer",
@@ -809,6 +864,9 @@
           "internal_id": "Internt ID"
         },
         "data_description": {
+          "name": "Unikt navn for denne forælder, brugt i hele systemet.",
+          "ha_user_id": "Valgfrit: Knyt denne forælder til en Home Assistant-bruger for at få notifikationer og adgang til dashboardet.",
+          "associated_kids": "Vælg hvilke børn denne forælder overvåger i forbindelse med notifikationer og godkendelseshandlinger.",
           "mobile_notify_service": "Vælg en notifikationstjeneste for at aktivere notifikationer for denne forælder, eller lad feltet stå tomt for at deaktivere.",
           "allow_chore_assignment": "Opretter en profil, så du kan få tildelt opgaver. Som standard vises kun en Godkend-knap, der kan fuldføres med et enkelt klik. Bemærk: Hvis du fjerner markeringen, bevares børneprofilen med suffikset '_unlinked' til manuel oprydning.",
           "enable_chore_workflow": "Tilføjer knapperne Gør krav og Afvis til den fulde arbejdsgang (gør krav → godkend/afvis).",
@@ -820,7 +878,7 @@
         "title": "Rediger opgave",
         "description": "Rediger detaljerne for den valgte opgave.",
         "data": {
-          "chore_name": "📋 Navn på huslige pligter",
+          "name": "📋 Navn på huslige pligter",
           "chore_description": "📋 Beskrivelse (valgfrit)",
           "icon": "📋 Ikon (mdi:xxx)",
           "chore_labels": "📋 Etiketter (valgfrit)",
@@ -838,11 +896,13 @@
           "applicable_days": "📅 Tidsplan: Gældende dage (valgfrit)",
           "due_date": "📅 Tidsplan: Forfaldsdato (valgfrit)",
           "clear_due_date": "🗑️ Ryd forfaldsdato",
+          "chore_due_window_offset": "⏱️ Forfaldsfrist: Forskydning før forfaldsdato",
+          "chore_due_reminder_offset": "🔔 Forfaldspåmindelse: Forskydning før forfaldsdato",
           "show_on_calendar": "📅 Vis i kalenderen?",
           "chore_notifications": "🔔 Notifikationsbegivenheder (valgfrit)"
         },
         "data_description": {
-          "chore_name": "Unikt navn vist i hele systemet.",
+          "name": "Unikt navn vist i hele systemet.",
           "chore_description": "Valgfrie instruktioner eller detaljer om, hvordan du udfører denne opgave.",
           "icon": "Ikon for materialedesign (f.eks. mdi:kost, mdi:opvaskemaskine).",
           "chore_labels": "Tags til at organisere pligter (f.eks. 'køkken', 'udendørs'). Lad være med at skrive et tomt felt, hvis det ikke er nødvendigt.",
@@ -859,6 +919,8 @@
           "applicable_days": "Lad feltet stå tomt for alle dage. Vælg KUN specifikke dage, der skal begrænses.",
           "due_date": "Valgfri deadline. Kan kombineres med tilbagevendende skemaer. For SELVSTÆNDIGE pligter fungerer dette som en skabelon - en ekstra skærm vises, der tillader individuelle datoer pr. barn.",
           "clear_due_date": "Markér dette felt for at fjerne forfaldsdatoen fra denne opgave.",
+          "chore_due_window_offset": "Når opgavens status ændres fra Afventer til Forfalden. Format: '1d 6t 30m' eller blot '30' for minutter. Indtast '0' for at deaktivere. Eksempel: '1d' betyder, at opgaven vises som 'Forfalden' 1 dag før deadline.",
+          "chore_due_reminder_offset": "Hvornår påmindelsen om forfald skal sendes. Format: '1d 6t 30m' eller blot '30' for minutter. Standard: 30m (30 minutter før forfald). Indtast '0' for at deaktivere.",
           "show_on_calendar": "Vis denne opgave i kalendervisningen.",
           "chore_notifications": "Hvornår skal notifikationer sendes: Ved krav, ved godkendelse, ved afvisning eller enhver kombination."
         }
@@ -1109,10 +1171,10 @@
         "title": "Rediger belønning",
         "description": "Rediger detaljerne for den valgte belønning.",
         "data": {
-          "reward_name": "Belønningsnavn",
+          "name": "Belønningsnavn",
           "internal_id": "Internt ID",
-          "reward_cost": "Belønningsomkostninger",
-          "reward_description": "Beskrivelse (valgfrit)",
+          "cost": "Belønningsomkostninger",
+          "description": "Beskrivelse (valgfrit)",
           "reward_labels": "Belønningsetiketter",
           "icon": "Ikon (mdi:xxx)"
         }
@@ -1121,7 +1183,7 @@
         "title": "Rediger straf",
         "description": "Rediger detaljerne for den valgte straf.",
         "data": {
-          "penalty_name": "Strafnavn",
+          "name": "Strafnavn",
           "penalty_description": "Beskrivelse (valgfrit)",
           "penalty_labels": "Strafmærkater",
           "internal_id": "Internt ID",
@@ -1133,7 +1195,7 @@
         "title": "Rediger bonus",
         "description": "Rediger detaljerne for den valgte bonus.",
         "data": {
-          "bonus_name": "Bonusnavn",
+          "name": "Bonusnavn",
           "bonus_description": "Beskrivelse (valgfrit)",
           "bonus_labels": "Bonusetiketter",
           "internal_id": "Internt ID",
@@ -1222,6 +1284,61 @@
         "description": "Er du sikker på, at du vil slette udfordringen {challenge_name}?",
         "data": {}
       },
+      "dashboard_generator": {
+        "title": "Administrer dashboard",
+        "description": "Opret, opdater eller slet KidsChores Lovelace dashboards.\n\n⚠️ **Påkrævede brugerdefinerede kort** (installer via HACS → Frontend):\n- [**Svampekort**](https://github.com/piitaya/lovelace-mushroom) (`custom:svampe-template-card`)\n- [**Auto-Entities**](https://github.com/thomasloven/lovelace-auto-entities) (`custom:auto-entities`)\n- [**Mini Graph Card**](https://github.com/kalkih/mini-graph-card) (`custom:mini-graph-card`)\n\nUden disse kort vil dashboards vise fejl. Installer dem først fra HACS, før du genererer dashboards.",
+        "data": {
+          "dashboard_action": "Handling",
+          "dashboard_check_cards": "Installation af kontrolkort"
+        },
+        "data_description": {
+          "dashboard_action": "Vælg, om du vil oprette nye dashboards eller slette eksisterende.",
+          "dashboard_check_cards": "Aktivér for at bekræfte, at de nødvendige brugerdefinerede kort er installeret, før du fortsætter."
+        }
+      },
+      "dashboard_create": {
+        "title": "Opret/opdater dashboard",
+        "description": "Generer et KidsChores-dashboard med faner for hvert barn.\n\nVælg et navn til dashboardet, vælg de børn, der skal inkluderes, og tilføj eventuelt en administratorfane til forældreadministration.",
+        "data": {
+          "dashboard_name": "Navn på dashboard",
+          "dashboard_style": "Dashboard-stil",
+          "dashboard_kid_selection": "Børn (én fane pr. barn)",
+          "dashboard_include_admin": "Inkluder administratorfanen",
+          "dashboard_force_rebuild": "Tving genopbygning (overskriv eksisterende)"
+        },
+        "data_description": {
+          "dashboard_name": "Navn på dashboard (vises i sidebjælken). Foreslået: Huslige pligter",
+          "dashboard_style": "Vælg dashboardlayoutet: Fuld (alle funktioner), Minimal (kun det væsentlige) eller Kompakt (tæt layout).",
+          "dashboard_kid_selection": "Vælg hvilke børn der skal oprettes faner for. Hvert barn får sin egen visning/fane.",
+          "dashboard_include_admin": "Tilføj en Admin-fane med overordnede kontroller til godkendelser og administration.",
+          "dashboard_force_rebuild": "Hvis aktiveret, overskrives det eksisterende dashboard. Ellers mislykkes genereringen, hvis dashboardet findes."
+        }
+      },
+      "dashboard_delete": {
+        "title": "Slet dashboard",
+        "description": "Vælg de KidsChores-dashboards, der skal slettes.\n\n⚠️ Denne handling kan ikke fortrydes.",
+        "data": {
+          "dashboard_delete_selection": "Dashboards, der skal slettes"
+        },
+        "data_description": {
+          "dashboard_delete_selection": "Vælg et eller flere dashboards, der skal fjernes permanent."
+        }
+      },
+      "dashboard_delete_confirm": {
+        "title": "Bekræft sletning",
+        "description": "⚠️ **Advarsel:** Følgende dashboards slettes permanent:\n\n**{dashboards}**\n\nDette fjerner dashboardet fra sidebjælken og sletter al konfiguration.\n\nKlik på Send for at bekræfte sletningen.",
+        "data": {}
+      },
+      "dashboard_generator_confirm": {
+        "title": "Bekræft generering af dashboard",
+        "description": "Følgende dashboards oprettes:\n\n**Stil:** {style}\n**Tving genopbygning:** {force_rebuild}\n\n**Dashboards:**\n{dashboards}\n\nKlik på Send for at generere dashboardsene.",
+        "data": {}
+      },
+      "dashboard_generator_result": {
+        "title": "Resultater af dashboardgenerering",
+        "description": "**Resultater:** {success_count} lykkedes, {failure_count} mislykkedes\n\n{results}\n\nKlik på Send for at vende tilbage til hovedmenuen.",
+        "data": {}
+      },
       "manage_general_options": {
         "title": "Generelle muligheder",
         "description": "Administrer generelle indstillinger for KidsChores-integrationen.",
@@ -1248,7 +1365,7 @@
           "retention_monthly": "Antal måneder med månedlige historiske data, der skal opbevares før oprydning. Minimum 1, maksimum 24.",
           "retention_yearly": "Antal år med årlige historiske data, der skal opbevares før oprydning. Minimum 1, maksimum 10.",
           "show_legacy_entities": "Vis ekstra enheder som sensor og selects, der nu er konsolideret i dashboardhjælpersensoren. Disse enheder er valgfrie for bagudkompatibilitet med eksisterende automatiseringer.",
-          "backups_max_retained": "Maksimalt antal backupfiler, der skal gemmes. Ældre backups slettes automatisk. Indstil til 0 for at deaktivere automatiske backups.",
+          "backups_max_retained": "Maksimalt antal backupfiler, der skal gemmes pr. tag (f.eks. 5 manuelle backups, 5 data_reset backups). Ældre backups slettes automatisk, efter hver ny backup oprettes. Indstil til 0 for at deaktivere automatiske backups helt.",
           "backup_action_selection": "Vælg en handling til administration af sikkerhedskopier: opret en manuel sikkerhedskopi, slet en sikkerhedskopi eller gendan fra en sikkerhedskopi."
         }
       },
@@ -1281,11 +1398,34 @@
       },
       "select_backup_to_delete": {
         "title": "Vælg Sikkerhedskopiering for at slette",
-        "description": "Vælg en backupfil, der skal slettes.\n\nTilgængelige backups: {backup_count}\n\n⚠️ Beskyttede backups (før migrering, manuelle) kan ikke slettes."
+        "description": "Vælg en backupfil, der skal slettes.\n\nTilgængelige backups: {backup_count}"
       },
       "select_backup_to_restore": {
         "title": "Vælg Sikkerhedskopiering for at gendanne",
-        "description": "Vælg en backupfil, der skal gendannes.\n\nTilgængelige backups: {backup_count}\n\n⚠️ Dette erstatter dine nuværende data!"
+        "description": "Vælg en backupfil, der skal gendannes.\n\nTilgængelige backups: {backup_count}\n\n⚠️ Dette erstatter dine nuværende data!",
+        "data": {
+          "backup_selection": "Vælg en sikkerhedskopi"
+        },
+        "data_description": {
+          "backup_selection": "Vælg den backupfil, du vil gendanne."
+        }
+      },
+      "restore_backup": {
+        "title": "Muligheder for datagendannelse",
+        "description": "Eksisterende KidsChores-data fundet i:\n{storage_path}\n\nFundet {backup_count} backupfiler.\n\nHvad vil du gerne gøre?",
+        "data": {
+          "backup_selection": "Vælg mulighed"
+        }
+      },
+      "paste_json_restore": {
+        "title": "Importér JSON-data",
+        "description": "Indsæt det komplette JSON-indhold fra enten:\n\n• En KidsChores-datafil (kidschores_data)\n• En download af diagnosticering\n\nSystemet registrerer og udpakker automatisk formatet efter behov. Både rå lagerdata og eksportformater for diagnosticering understøttes.",
+        "data": {
+          "json_data": "JSON-data"
+        },
+        "data_description": {
+          "json_data": "Indsæt hele JSON-indholdet her. Accepterer data fra kidschores_data-filen eller diagnostikeksporten (udpakker automatisk ekstra struktur)."
+        }
       },
       "create_backup_confirm": {
         "title": "Opret manuel sikkerhedskopi",
@@ -1331,6 +1471,8 @@
       "due_date_in_past": "Forfaldsdatoen skal være i fremtiden.",
       "end_date_in_past": "Slutdatoen skal være i fremtiden.",
       "end_date_not_after_start_date": "Slutdatoen skal være senere end startdatoen",
+      "err_end_before_start": "Slutdatoen skal være efter startdatoen",
+      "err_name_duplicate": "Der findes allerede en udfordring med dette navn",
       "invalid_badge": "Ugyldigt badge",
       "invalid_badge_count": "Ugyldigt antal badges",
       "invalid_chore": "Ugyldig opgave",
@@ -1341,6 +1483,8 @@
       "invalid_kid_count": "Ugyldigt antal børn",
       "invalid_kid_name": "Ugyldigt børnenavn",
       "no_kids_assigned": "Mindst ét barn skal tildeles opgaven",
+      "achievement_no_kids_assigned": "Mindst ét barn skal være tildelt præstationen",
+      "challenge_no_kids_assigned": "Mindst ét barn skal tildeles udfordringen",
       "invalid_penalty": "Ugyldig straf",
       "invalid_penalty_count": "Ugyldigt antal straffe",
       "invalid_bonus": "Ugyldig bonus",
@@ -1363,7 +1507,14 @@
       "error_daily_multi_due_date_required": "Hyppigheden 'Flere gange om dagen' kræver, at der angives en forfaldsdato. Datoen bestemmer, hvornår planlægningen starter, og tidspunkterne bestemmer tilgængelighedsvinduerne hver dag.",
       "error_at_due_date_reset_requires_due_date": "Godkendelsesnulstillingstyperne 'Ved forfaldsdato' (Én gang eller Flere gange) kræver, at der angives en forfaldsdato. Uden en forfaldsdato udløses nulstillingen af godkendelsen aldrig, og opgaven forbliver godkendt på ubestemt tid.",
       "error_per_kid_applicable_days_invalid": "Ugyldigt gældende dagsformat for et eller flere børn. Dage skal være heltal 0-6 (mandag-søndag) uden dubletter.",
-      "error_per_kid_daily_multi_times_invalid": "Ugyldigt dagligt tidsformat for et eller flere børn. Brug 24-timers format adskilt af | (f.eks. 08:00|17:00)."
+      "error_per_kid_daily_multi_times_invalid": "Ugyldigt dagligt tidsformat for et eller flere børn. Brug 24-timers format adskilt af | (f.eks. 08:00|17:00).",
+      "dashboard_exists": "Et dashboard med denne URL-sti findes allerede. Aktivér 'Tving gendannelse' for at overskrive.",
+      "dashboard_template_error": "Dashboardskabelonen kunne ikke hentes. Kontroller netværksforbindelsen, eller prøv igen senere.",
+      "dashboard_render_error": "Dashboardskabelonen kunne ikke gengives. Dette kan indikere en skabelonfejl.",
+      "dashboard_save_error": "Dashboardet kunne ikke gemmes i Home Assistant. Tjek systemlogfilerne for at få flere oplysninger.",
+      "dashboard_no_name": "Indtast venligst et navn til dashboardet.",
+      "dashboard_no_kids": "Vælg mindst ét barn, eller aktiver 'Inkluder administratorfaneblad'.",
+      "dashboard_no_dashboards": "Vælg mindst ét dashboard, der skal slettes."
     },
     "abort": {
       "invalid_action": "Ugyldig handling",
@@ -1387,7 +1538,8 @@
       "no_achievement": "Ingen præstationer er konfigureret til redigering. Tilføj én post først.",
       "no_challenge": "Ingen udfordringer er konfigureret til redigering. Tilføj én post først.",
       "setup_complete": "Opsætning fuldført",
-      "backup_restored": "Sikkerhedskopien er gendannet. Integrationen er blevet genindlæst med de gendannede data."
+      "backup_restored": "Sikkerhedskopien er gendannet. Integrationen er blevet genindlæst med de gendannede data.",
+      "no_dashboards_to_delete": "Ingen KidsChores-dashboards fundet. Opret først et ved hjælp af Administrer dashboard."
     }
   },
   "selector": {
@@ -1403,9 +1555,30 @@
         "manage_bonus": "Administrer bonus",
         "manage_achievement": "Administrer præstation",
         "manage_challenge": "Administrer udfordring",
+        "dashboard_generator": "Administrer dashboard",
         "general_options": "Generelle muligheder",
         "done": "Afslut opsætning"
       }
+    },
+    "dashboard_action": {
+      "options": {
+        "create": "Opret/opdater dashboard",
+        "delete": "Slet dashboard"
+      }
+    },
+    "dashboard_style": {
+      "options": {
+        "dashboard_style_full": "Fuld (alle funktioner)",
+        "dashboard_style_minimal": "Minimal (kun det essentielle)",
+        "dashboard_style_compact": "Kompakt (tæt layout)",
+        "dashboard_style_admin": "Admin (forældredashboard)"
+      }
+    },
+    "dashboard_kid_selection": {
+      "options": {}
+    },
+    "dashboard_delete_selection": {
+      "options": {}
     },
     "manage_actions": {
       "options": {
@@ -1524,7 +1697,9 @@
         "notify_on_claim": "Giv besked om krav",
         "notify_on_approval": "Giv besked ved godkendelse",
         "notify_on_disapproval": "Giv besked ved afvisning",
-        "notify_on_reminder": "Giv besked 30 minutter før forfaldsdato"
+        "notify_on_reminder": "Giv besked 30 minutter før forfald (ældre version)",
+        "notify_on_due_window": "Giv besked, når forfaldsfristen starter",
+        "notify_due_reminder": "Giv besked ved påmindelsestidspunktet"
       }
     },
     "recurring_frequency": {
@@ -1542,7 +1717,11 @@
         "custom_1_week": "Tilpasset: 1 uge",
         "custom_1_month": "Tilpasset: 1 måned",
         "custom_1_quarter": "Brugerdefineret: 1 kvarter",
-        "custom_1_year": "Tilpasset: 1 år"
+        "custom_1_year": "Tilpasset: 1 år",
+        "week_end": "Weekend",
+        "month_end": "Månedsafslutning",
+        "quarter_end": "Kvartalsafslutning",
+        "year_end": "Årsafslutning"
       }
     },
     "occasion_type": {
@@ -1709,6 +1888,10 @@
           "name": "Belønningsnavn",
           "description": "Navnet på den belønning, der godkendes.",
           "example": "Ekstra skærmtid"
+        },
+        "cost_override": {
+          "name": "Omkostningstilsidesættelse",
+          "description": "Valgfri omkostningstilsidesættelse. Hvis udeladt, bruges belønningens gemte pris. Indstil til 0 for en gratis belønning (som badge-belønninger). Nyttig til kontekstbevidst prisfastsættelse (weekender, særlige lejligheder osv.)."
         }
       }
     },
@@ -1775,13 +1958,306 @@
         }
       }
     },
-    "reset_all_data": {
-      "name": "Nulstil alle data",
-      "description": "Rydder KidsChores-dataene fuldstændigt fra lageret."
+    "create_reward": {
+      "name": "Opret belønning",
+      "description": "Opret en ny belønning programmatisk.",
+      "fields": {
+        "name": {
+          "name": "Navn",
+          "description": "Navnet på belønningen.",
+          "example": "Ekstra skærmtid"
+        },
+        "cost": {
+          "name": "Koste",
+          "description": "Point kræves for at gøre krav på belønningen.",
+          "example": "10"
+        },
+        "description": {
+          "name": "Beskrivelse",
+          "description": "Valgfri beskrivelse af belønningen.",
+          "example": "30 minutters ekstra tablettid"
+        },
+        "icon": {
+          "name": "Ikon",
+          "description": "Ikon til at repræsentere belønningen.",
+          "example": "mdi:gave"
+        },
+        "labels": {
+          "name": "Etiketter",
+          "description": "Etiketter til gruppering af belønninger.",
+          "example": "['weekend', 'speciel']"
+        }
+      }
     },
-    "reset_all_chores": {
-      "name": "Nulstil alle pligter",
-      "description": "Nulstil manuelt opgaver til afventende tilstand, fjern krav og godkendelser."
+    "update_reward": {
+      "name": "Opdater belønning",
+      "description": "Opdater en eksisterende belønning (delvise opdateringer understøttes).",
+      "fields": {
+        "id": {
+          "name": "Belønnings-ID",
+          "description": "Internt ID for den belønning, der skal opdateres. Brug enten id ELLER navn.",
+          "example": "abc123-def456-789..."
+        },
+        "name": {
+          "name": "Navn",
+          "description": "Navn på den belønning, der skal opdateres, eller nyt navn til belønningen.",
+          "example": "Ekstra skærmtid"
+        },
+        "cost": {
+          "name": "Koste",
+          "description": "Opdateret kostværdi.",
+          "example": "15"
+        },
+        "description": {
+          "name": "Beskrivelse",
+          "description": "Opdateret beskrivelse.",
+          "example": "45 minutters ekstra tablettid"
+        },
+        "icon": {
+          "name": "Ikon",
+          "description": "Opdateret ikon.",
+          "example": "mdi:stjerne"
+        },
+        "labels": {
+          "name": "Etiketter",
+          "description": "Opdaterede etiketter.",
+          "example": "['præmie', 'special']"
+        }
+      }
+    },
+    "delete_reward": {
+      "name": "Slet belønning",
+      "description": "Slet en belønning efter ID eller navn.",
+      "fields": {
+        "id": {
+          "name": "Belønnings-ID",
+          "description": "Internt ID for den belønning, der skal slettes. Brug enten id ELLER navn.",
+          "example": "abc123-def456-789..."
+        },
+        "name": {
+          "name": "Navn",
+          "description": "Navn på den belønning, der skal slettes.",
+          "example": "Ekstra skærmtid"
+        }
+      }
+    },
+    "create_chore": {
+      "name": "Opret en opgave",
+      "description": "Lav en ny opgave, som børnene kan udføre for at optjene point.",
+      "fields": {
+        "name": {
+          "name": "Navn på opgave",
+          "description": "Navnet på den opgave, der skal oprettes.",
+          "example": "Rent værelse"
+        },
+        "assigned_kids": {
+          "name": "Tildelte børn",
+          "description": "Liste over børnenavne, der skal tildeles denne opgave.",
+          "example": "['Emma', 'Jack']"
+        },
+        "points": {
+          "name": "Point",
+          "description": "Point gives, når opgaven er udført.",
+          "example": "10"
+        },
+        "description": {
+          "name": "Beskrivelse",
+          "description": "Valgfri beskrivelse af opgaven.",
+          "example": "Red seng, læg legetøj væk, støvsug gulvet"
+        },
+        "icon": {
+          "name": "Ikon",
+          "description": "Material Design-ikon til opgaven.",
+          "example": "mdi:kost"
+        },
+        "labels": {
+          "name": "Etiketter",
+          "description": "Valgfrie etiketter til at kategorisere opgaven.",
+          "example": "['daglig', 'soveværelse']"
+        },
+        "frequency": {
+          "name": "Frekvens",
+          "description": "Hvor ofte opgaven gentages: ingen, dagligt, daglig_multi, ugentligt, hver anden uge, månedligt, kvartalsvis, årligt, brugerdefineret, brugerdefineret_fra_fuldført eller periodeslutning (week_end, month_end, quarter_end, year_end).",
+          "example": "daglig"
+        },
+        "applicable_days": {
+          "name": "Gældende dage",
+          "description": "Ugendage, hvor opgaven er relevant.",
+          "example": "['man', 'ons', 'fre']"
+        },
+        "completion_criteria": {
+          "name": "Færdiggørelseskriterier",
+          "description": "Sådan udføres opgaven, når flere børn er tildelt: uafhængig (hvert barn udfører opgaven separat), delt_først (det første barn, der udfører opgaven, optjener point) eller delt_alle (alle børn skal udføre opgaven). Kan ikke ændres efter oprettelse.",
+          "example": "uafhængig"
+        },
+        "approval_reset_type": {
+          "name": "Godkendelsesnulstillingstype",
+          "description": "Når opgaven nulstilles for at blive færdiggjort igen.",
+          "example": "ved_midnat_én_gang"
+        },
+        "pending_claims": {
+          "name": "Afventende kravhandling",
+          "description": "Hvad sker der med ventende krav, når opgaven nulstilles: hold_pending (behold krav), clear_pending (fjern krav) eller auto_approve_pending (godkend alle ventende).",
+          "example": "ventende_hold"
+        },
+        "overdue_handling": {
+          "name": "Forsinket håndtering",
+          "description": "Hvordan man håndterer en pligt, når den bliver forsinket.",
+          "example": "forfaldsdato"
+        },
+        "auto_approve": {
+          "name": "Automatisk godkendelse",
+          "description": "Hvis det er sandt, godkendes opgaven automatisk, når den gøres krav på.",
+          "example": "falsk"
+        },
+        "due_date": {
+          "name": "Forfaldsdato",
+          "description": "Valgfri forfaldsdato for opgaven. Brug dato/tidsvælgeren til at vælge en gyldig dato og et gyldigt tidspunkt.",
+          "example": "2025-03-01T23:59:00Z"
+        },
+        "due_window_offset": {
+          "name": "Forskydning af forfaldent vindue",
+          "description": "Varighed før forfaldsdato, når opgaven går i 'forfald'-tilstand. Format: '30m', '1t', '1d 6t 30m' osv. Brug '0' for at deaktivere funktionen for forfaldsvindue.",
+          "example": "30m"
+        },
+        "due_reminder_offset": {
+          "name": "Forskydning af påmindelse",
+          "description": "Varighed før forfaldsdato for afsendelse af påmindelsesbesked. Format: '30m', '1t', '1d 6t 30m' osv. Brug '0' for at deaktivere påmindelser.",
+          "example": "30m"
+        }
+      }
+    },
+    "update_chore": {
+      "name": "Opdater opgave",
+      "description": "Opdater egenskaberne for en eksisterende opgave. Angiv enten id ELLER navn for at identificere opgaven. Kun de angivne felter opdateres. Bemærk: completion_criteria kan ikke ændres efter oprettelse.",
+      "fields": {
+        "id": {
+          "name": "Huslige pligter-ID",
+          "description": "Det interne ID for den opgave, der skal opdateres (alternativt til navn).",
+          "example": "abc-123-def-456"
+        },
+        "name": {
+          "name": "Navn på opgave (identifikator)",
+          "description": "Navnet på den opgave, der skal opdateres (alternativ til id). Mere brugervenlig end id.",
+          "example": "Rent værelse"
+        },
+        "assigned_kids": {
+          "name": "Tildelte børn",
+          "description": "Ny liste over børnenavne, der skal tildeles denne opgave.",
+          "example": "['Emma', 'Jack']"
+        },
+        "points": {
+          "name": "Point",
+          "description": "Ny pointværdi for opgaven.",
+          "example": "15"
+        },
+        "description": {
+          "name": "Beskrivelse",
+          "description": "Ny beskrivelse af opgaven.",
+          "example": "Red seng, organiser skrivebord, støvsug gulv"
+        },
+        "icon": {
+          "name": "Ikon",
+          "description": "Nyt Material Design-ikon til opgaven.",
+          "example": "mdi:vakuum"
+        },
+        "labels": {
+          "name": "Etiketter",
+          "description": "Nye etiketter til opgaven.",
+          "example": "['ugentligt', 'rengøring']"
+        },
+        "frequency": {
+          "name": "Frekvens",
+          "description": "Ny tilbagevendende hyppighed: ingen, daglig, daily_multi, ugentlig, hver anden uge, månedlig, kvartalsvis, årlig, brugerdefineret, custom_from_complete eller period_end (week_end, month_end, quarter_end, year_end).",
+          "example": "ugentlig"
+        },
+        "applicable_days": {
+          "name": "Gældende dage",
+          "description": "Nye ugedage, hvor opgaven er relevant.",
+          "example": "['lør', 'sol']"
+        },
+        "approval_reset_type": {
+          "name": "Godkendelsesnulstillingstype",
+          "description": "Ny nulstillingstype for, hvornår opgaven nulstilles.",
+          "example": "at_dead_once"
+        },
+        "pending_claims": {
+          "name": "Afventende kravhandling",
+          "description": "Ny handling for ventende krav, når opgaven nulstilles.",
+          "example": "clear_venter"
+        },
+        "overdue_handling": {
+          "name": "Forsinket håndtering",
+          "description": "Ny adfærd ved håndtering af forsinket levering.",
+          "example": "aldrig_forfalden"
+        },
+        "auto_approve": {
+          "name": "Automatisk godkendelse",
+          "description": "Ny indstilling for automatisk godkendelse.",
+          "example": "ægte"
+        },
+        "due_date": {
+          "name": "Forfaldsdato",
+          "description": "Ny deadline for opgaven. Brug dato/tidsvælgeren til at vælge en gyldig dato og et gyldigt tidspunkt.",
+          "example": "2025-04-01T18:00:00Z"
+        },
+        "due_window_offset": {
+          "name": "Forskydning af forfaldent vindue",
+          "description": "Ny forskydning af forfaldsvindue. Varighed før forfaldsdato, når opgaven går i 'forfald'-tilstand. Format: '30m', '1t', '1d 6t 30m' osv. Brug '0' for at deaktivere.",
+          "example": "1 time"
+        },
+        "due_reminder_offset": {
+          "name": "Forskydning af påmindelse",
+          "description": "Ny forskydning af påmindelse om forfald. Varighed før forfaldsdato for afsendelse af påmindelsesbesked. Format: '30m', '1t', '1d 6t 30m' osv. Brug '0' for at deaktivere.",
+          "example": "30m"
+        }
+      }
+    },
+    "delete_chore": {
+      "name": "Slet opgave",
+      "description": "Slet en opgave efter ID eller navn. Alle børnespecifikke statusser og historik vil blive fjernet.",
+      "fields": {
+        "id": {
+          "name": "Huslige pligter-ID",
+          "description": "Internt ID for den opgave, der skal slettes. Brug enten id ELLER navn.",
+          "example": "abc123-def456-789..."
+        },
+        "name": {
+          "name": "Navn",
+          "description": "Navn på den opgave, der skal slettes.",
+          "example": "Rent værelse"
+        }
+      }
+    },
+    "reset_chores_to_pending_state": {
+      "name": "Nulstil pligter til ventende tilstand",
+      "description": "Nulstil manuelt alle opgaver til afventende tilstand, fjern krav og godkendelser."
+    },
+    "reset_transactional_data": {
+      "name": "Nulstil transaktionsdata",
+      "description": "Nulstil runtime-/transaktionsdata, mens konfigurationen bevares (børn, pligter, belønninger osv.). Der oprettes en automatisk sikkerhedskopi før nulstilling som kidschores_data_<timestamp>_reset i .storage-mappen. Brug scope til at målrette mod specifikke børn eller domæner. VIGTIGT: Kræver confirm_destructive: true som en sikkerhedsmekanisme.",
+      "fields": {
+        "confirm_destructive": {
+          "name": "Bekræft destruktiv",
+          "description": "Skal sættes til sand for at bekræfte, at du vil fortsætte med nulstillingen. Dette er en sikkerhedsmekanisme."
+        },
+        "scope": {
+          "name": "Omfang",
+          "description": "Nulstil omfang: 'global' nulstiller alle data, 'kid' nulstiller kun data for et specifikt barn."
+        },
+        "kid_name": {
+          "name": "Barnets navn",
+          "description": "Påkrævet, hvis omfanget er 'barn'. Navnet på det barn, hvis data skal nulstilles."
+        },
+        "item_type": {
+          "name": "Varetype",
+          "description": "Valgfrit filter til kun at nulstille et specifikt domæne (f.eks. kun point eller kun pligter)."
+        },
+        "item_name": {
+          "name": "Varenavn",
+          "description": "Valgfrit filter til at nulstille et specifikt element inden for domænet item_type."
+        }
+      }
     },
     "reset_overdue_chores": {
       "name": "Nulstil forsinkede pligter",
@@ -1856,54 +2332,6 @@
         }
       }
     },
-    "reset_penalties": {
-      "name": "Nulstil straffe",
-      "description": "Nulstil alle anvendte straffe for alle børn. Angiv eventuelt straffenavn for at nulstille en specifik straf på tværs af alle børn. Brug barnets navn til at nulstille alle straffe for et specifikt barn. Kombiner begge for at nulstille en specifik straf for et specifikt barn.",
-      "fields": {
-        "kid_name": {
-          "name": "Barnets navn",
-          "description": "Det barn, hvis straffe vil blive nulstillet.",
-          "example": "Alice"
-        },
-        "penalty_name": {
-          "name": "Strafnavn",
-          "description": "Navnet på den straf, der skal nulstilles.",
-          "example": "Råben"
-        }
-      }
-    },
-    "reset_bonuses": {
-      "name": "Nulstil bonusser",
-      "description": "Nulstil alle anvendte bonusser for alle børn. Angiv eventuelt bonusnavn for at nulstille en specifik bonus på tværs af alle børn. Brug barnets navn til at nulstille alle bonusser for et specifikt barn. Kombiner begge for at nulstille en specifik bonus for et specifikt barn.",
-      "fields": {
-        "kid_name": {
-          "name": "Barnets navn",
-          "description": "Det barn, hvis bonusser nulstilles.",
-          "example": "Alice"
-        },
-        "bonus_name": {
-          "name": "Bonusnavn",
-          "description": "Navnet på den bonus, der skal nulstilles.",
-          "example": "Hjælper"
-        }
-      }
-    },
-    "reset_rewards": {
-      "name": "Nulstil belønninger",
-      "description": "Nulstil alle antallet af belønningskrav og godkendelser for alle børn. Angiv eventuelt et navn for at nulstille et bestemt belønningsantal på tværs af alle børn. Brug barnets navn til at nulstille alle belønningsantal for et bestemt barn. Kombiner begge dele for at nulstille en specifik belønning for et bestemt barn.",
-      "fields": {
-        "kid_name": {
-          "name": "Barnets navn",
-          "description": "Det barn, som belønningen tæller for, nulstilles.",
-          "example": "Alice"
-        },
-        "reward_name": {
-          "name": "Belønningsnavn",
-          "description": "Navnet på den belønning, der skal nulstilles.",
-          "example": "Flødeis"
-        }
-      }
-    },
     "remove_awarded_badges": {
       "name": "Fjern tildelte badges",
       "description": "Fjern alle tildelte badges for alle børn. Angiv eventuelt badgenavnet for at nulstille et specifikt badge på tværs af alle børn. Brug barnets navn til at nulstille alle badges for et specifikt barn. Kombiner begge for at nulstille et specifikt badge for et specifikt barn.",
@@ -1929,6 +2357,7 @@
           "pending": "Indtil",
           "approved": "Godkendt",
           "claimed": "Gjorde krav",
+          "due": "Forfalden",
           "overdue": "Forsinket",
           "unknown": "Ukendt",
           "none": "Ingen",
@@ -1968,8 +2397,8 @@
             "name": "Færdiggørelseskriterier",
             "state": {
               "independent": "Uafhængig",
-              "shared_first_only": "Delt (først)",
-              "shared_all_required": "Delt (alle)"
+              "shared_first": "Delt (først)",
+              "shared_all": "Delt (alle)"
             }
           },
           "approval_reset_type": {
@@ -2028,13 +2457,16 @@
             }
           },
           "chore_points_earned": {
-            "name": "Optjente point"
+            "name": "Optjente point (hele tiden)"
           },
           "chore_approvals_count": {
             "name": "Godkendelser (alle tider)"
           },
           "chore_claims_count": {
             "name": "Krav (hele tiden)"
+          },
+          "chore_completed_count": {
+            "name": "Færdiggjort (hele tiden)"
           },
           "chore_disapproved_count": {
             "name": "Afvisninger (alle tider)"
@@ -2048,8 +2480,8 @@
           "chore_current_streak": {
             "name": "Nuværende række"
           },
-          "chore_highest_streak": {
-            "name": "Højeste række"
+          "chore_longest_streak": {
+            "name": "Længste række"
           },
           "chore_last_longest_streak_date": {
             "name": "Dato for sidste længste serie"
@@ -2059,6 +2491,9 @@
           },
           "last_approved": {
             "name": "Sidst godkendt"
+          },
+          "last_completed": {
+            "name": "Sidst afsluttet"
           },
           "last_disapproved": {
             "name": "Sidst afvist"
@@ -2102,6 +2537,15 @@
           },
           "claim_button_eid": {
             "name": "Enheds-ID for knappen \"Krav\""
+          },
+          "due_window_start": {
+            "name": "Forfalden start af vindue"
+          },
+          "time_until_due": {
+            "name": "Tid indtil forfald"
+          },
+          "time_until_overdue": {
+            "name": "Tid indtil forfald"
           }
         }
       },
@@ -2312,6 +2756,57 @@
           "chore_stat_disapproved_all_time": {
             "name": "Afvist hele tiden"
           },
+          "chore_stat_completed_today": {
+            "name": "Færdiggjort i dag"
+          },
+          "chore_stat_completed_week": {
+            "name": "Færdiggjort i denne uge"
+          },
+          "chore_stat_completed_month": {
+            "name": "Færdiggjort denne måned"
+          },
+          "chore_stat_completed_year": {
+            "name": "Færdiggjort i år"
+          },
+          "chore_stat_completed_all_time": {
+            "name": "Færdiggjort hele tiden"
+          },
+          "chore_stat_points_today": {
+            "name": "Point i dag"
+          },
+          "chore_stat_points_week": {
+            "name": "Point denne uge"
+          },
+          "chore_stat_points_month": {
+            "name": "Point denne måned"
+          },
+          "chore_stat_points_year": {
+            "name": "Point i år"
+          },
+          "chore_stat_points_all_time": {
+            "name": "Point hele tiden"
+          },
+          "chore_stat_top_chores_week": {
+            "name": "Højeste opgave (uge)"
+          },
+          "chore_stat_top_chores_month": {
+            "name": "Højeste opgave (måned)"
+          },
+          "chore_stat_top_chores_year": {
+            "name": "Højeste opgave (år)"
+          },
+          "chore_stat_chores_completed_today": {
+            "name": "Færdiggjort i dag"
+          },
+          "chore_stat_chores_completed_week": {
+            "name": "Færdiggjort i denne uge"
+          },
+          "chore_stat_chores_completed_month": {
+            "name": "Færdiggjort denne måned"
+          },
+          "chore_stat_chores_completed_year": {
+            "name": "Færdiggjort i år"
+          },
           "chore_stat_current_due_today": {
             "name": "Forfaldsdato i dag"
           },
@@ -2336,11 +2831,17 @@
           "chore_stat_longest_streak_all_time": {
             "name": "Længste serie (hele tiden)"
           },
+          "chore_stat_longest_streak": {
+            "name": "Længste række"
+          },
           "chore_stat_avg_per_day_week": {
             "name": "Gennemsnit pr. dag (uge)"
           },
           "chore_stat_avg_per_day_month": {
             "name": "Gennemsnit pr. dag (måned)"
+          },
+          "chore_stat_avg_per_day_year": {
+            "name": "Gennemsnit pr. dag (år)"
           }
         }
       },
@@ -2593,6 +3094,7 @@
           "pending": "Indtil",
           "approved": "Godkendt",
           "claimed": "Gjorde krav",
+          "due": "Forfalden",
           "overdue": "Forsinket",
           "unknown": "Ukendt",
           "none": "Ingen",
@@ -2629,8 +3131,8 @@
             "name": "Færdiggørelseskriterier",
             "state": {
               "independent": "Uafhængig",
-              "shared_first_only": "Delt (kun førstegangsbrugere)",
-              "shared_all_required": "Delt (alle obligatoriske)"
+              "shared_first": "Delt (kun førstegangsbrugere)",
+              "shared_all": "Delt (alle obligatoriske)"
             }
           },
           "approval_reset_type": {
@@ -2689,20 +3191,33 @@
           "last_approved": {
             "name": "Sidst godkendt"
           },
+          "last_completed": {
+            "name": "Sidst afsluttet"
+          },
           "chore_claimed_by": {
             "name": "Gør krav på af"
           },
           "chore_completed_by": {
             "name": "Færdiggjort af"
+          },
+          "due_window_start": {
+            "name": "Forfalden start af vindue"
+          },
+          "time_until_due": {
+            "name": "Tid indtil forfald"
+          },
+          "time_until_overdue": {
+            "name": "Tid indtil forfald"
           }
         }
       },
       "kid_reward_status_sensor": {
         "name": "Belønningsstatus - {reward_name}",
         "state": {
-          "not_claimed": "Ikke gjort krav på",
+          "locked": "Låst",
+          "available": "Tilgængelig",
+          "requested": "Anmodet",
           "approved": "Godkendt",
-          "claimed": "Gjorde krav",
           "unknown": "Ukendt",
           "none": "Ingen"
         },
@@ -2733,6 +3248,9 @@
           },
           "last_approved": {
             "name": "Sidst godkendt"
+          },
+          "last_completed": {
+            "name": "Sidst afsluttet"
           },
           "last_disapproved": {
             "name": "Sidst afvist"
@@ -3184,6 +3702,26 @@
       "system_bonuses_select": {
         "name": "Vælg bonus"
       },
+      "system_dashboard_admin_kid_select": {
+        "name": "Admin Dashboard Børnevælger",
+        "state_attributes": {
+          "purpose": {
+            "name": "Formål",
+            "state": {
+              "purpose_system_dashboard_admin_kid": "Systemniveau børnevælger til administratordashboardkort"
+            }
+          },
+          "dashboard_helper_eid": {
+            "name": "Enheds-ID for dashboardhjælper"
+          },
+          "selected_kid_slug": {
+            "name": "Udvalgt barnesnegl"
+          },
+          "selected_kid_name": {
+            "name": "Valgt barns navn"
+          }
+        }
+      },
       "kid_dashboard_helper_chores_select": {
         "name": "Hjælper til opgaver i brugergrænsefladen",
         "state_attributes": {
@@ -3394,6 +3932,10 @@
       },
       "parent_points_adjust_button": {
         "name": "{sign_label} {points_label}",
+        "sign_label": {
+          "increment": "Forøgelse",
+          "decrement": "Reduktion"
+        },
         "state_attributes": {
           "purpose": {
             "name": "Formål",
@@ -3484,6 +4026,9 @@
     "shared_chore_cannot_have_kid": {
       "message": "Kan ikke angive et barn til delt opgave {chore_name}. Delte opgaver har én deadline for alle børn."
     },
+    "reward_not_found": {
+      "message": "Belønning med ID'et '{reward_id}' blev ikke fundet"
+    },
     "required_field": {
       "message": "Skal angive {field}"
     },
@@ -3495,6 +4040,18 @@
     },
     "missing_chore": {
       "message": "Skal angive enten opgave-ID eller opgavenavn."
+    },
+    "missing_chore_identifier": {
+      "message": "Skal angive enten chore_id eller chore_name for at identificere opgaven."
+    },
+    "chore_not_found": {
+      "message": "Opgave med ID'et '{chore_id}' blev ikke fundet."
+    },
+    "completion_criteria_immutable": {
+      "message": "Fuldførelseskriterier kan ikke ændres efter oprettelse af opgaven. Slet og genskab opgaven, hvis du har brug for andre fuldførelseskriterier."
+    },
+    "missing_reward_identifier": {
+      "message": "Du skal angive enten reward_id eller reward_name for at identificere den belønning, der skal opdateres."
     },
     "missing_field": {
       "message": "Det obligatoriske felt {field} mangler i {entity}"
@@ -3510,6 +4067,36 @@
     },
     "configuration_error": {
       "message": "Konfigurationsfejl: {detail}"
+    },
+    "data_reset_confirmation_required": {
+      "message": "Du skal indstille confirm_destructive: true for at fortsætte med datanulstilling"
+    },
+    "data_reset_kid_not_found": {
+      "message": "Barnet '{kid_name}' blev ikke fundet"
+    },
+    "data_reset_item_not_found": {
+      "message": "{item_type} '{item_name}' ikke fundet"
+    },
+    "data_reset_invalid_scope": {
+      "message": "Ugyldigt omfang '{scope}'. Skal være: global, kid, item_type eller item"
+    },
+    "data_reset_invalid_item_type": {
+      "message": "Ugyldig varetype '{item_type}'. Skal være: børn, pligter, belønninger, badges, præstationer, udfordringer, straffe eller bonusser"
+    },
+    "notif_title_data_reset": {
+      "message": "Nulstilling af transaktionsdata"
+    },
+    "notif_message_data_reset_global": {
+      "message": "Alle runtime-data er blevet nulstillet. Konfigurationen er bevaret."
+    },
+    "notif_message_data_reset_kid": {
+      "message": "Data nulstilling fuldført for {kid_name}. Point, statistikker og fremskridt er ryddet."
+    },
+    "notif_message_data_reset_item_type": {
+      "message": "Data nulstilling fuldført for alle {item_type}. Runtime-data ryddet."
+    },
+    "notif_message_data_reset_item": {
+      "message": "Data nulstilling fuldført for {item_name}. Runtime-data ryddet."
     }
   }
 }

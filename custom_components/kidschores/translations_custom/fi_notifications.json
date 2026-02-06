@@ -23,6 +23,14 @@
     "title": "⏰ Pian erääntyy kotityö!",
     "message": "{chore_name} erääntyy {minutes} minuutin kuluttua (+{points}pistettä)"
   },
+  "chore_due_reminder": {
+    "title": "⏰ Pian erääntyy kotityö!",
+    "message": "{chore_name} erääntyy {minutes} minuutin kuluttua (+{points}pistettä)"
+  },
+  "chore_due_window": {
+    "title": "🔔 Kotityöt erääntyvät",
+    "message": "{chore_name} erääntyy! Suorita se {hours} tunnin sisällä ansaitaksesi {points} pistettä"
+  },
   "chore_reminder": {
     "title": "KidsChores: Muistutus odottavista kotitöistä",
     "message": "Muistutus: Työ {chore_name} , jonka {kid_name} on lunastanut, odottaa hyväksyntää."
@@ -101,10 +109,12 @@
   },
   "actions": {
     "approve": "Hyväksyä",
+    "claim": "✋ Lunasta nyt",
+    "complete": "Täydellinen",
     "disapprove": "Hylkää",
     "remind_30": "Muistutus 30 minuutin kuluttua",
+    "skip": "Ohita",
     "approve_latest": "✅ Hyväksy viimeisimmät",
-    "review_all": "👀 Arvostele kaikki",
-    "claim": "✋ Lunasta nyt"
+    "review_all": "👀 Arvostele kaikki"
   }
 }

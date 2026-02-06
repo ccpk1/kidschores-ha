@@ -13,6 +13,16 @@
           "backup_selection": "Option auswählen"
         }
       },
+      "paste_json_input": {
+        "title": "JSON-Daten importieren",
+        "description": "Fügen Sie den vollständigen JSON-Inhalt aus einer der folgenden Quellen ein:\n\n• Eine KidsChores-Datendatei (kidschores_data)\n• Einen Diagnose-Download\n\nDas System erkennt das Format automatisch und entpackt es bei Bedarf. Sowohl Rohdaten aus dem Speicher als auch Diagnose-Exportformate werden unterstützt.",
+        "data": {
+          "json_data": "JSON-Daten"
+        },
+        "data_description": {
+          "json_data": "Fügen Sie hier den vollständigen JSON-Inhalt ein. Akzeptiert Daten aus der Datei kidschores_data oder aus dem Diagnoseexport (zusätzliche Strukturen werden automatisch entpackt)."
+        }
+      },
       "points_label": {
         "title": "Punktebezeichnung",
         "description": "Wählen Sie eine Bezeichnung und ein Symbol für die Punkte.",
@@ -26,7 +36,25 @@
         "description": "Aktualisieren Sie die Systemeinstellungen wie Punktebezeichnung und Symbol.",
         "data": {
           "points_label": "Punktebezeichnung",
-          "points_icon": "Punkte-Symbol"
+          "points_icon": "Punkte-Symbol",
+          "update_interval": "Aktualisierungsintervall (Minuten)",
+          "calendar_show_period": "Kalenderanzeigezeitraum (Tage)",
+          "retention_daily": "Tägliche Retention (Tage)",
+          "retention_weekly": "Wöchentliche Kundenbindung (Wochen)",
+          "retention_monthly": "Monatliche Kundenbindung (Monate)",
+          "retention_yearly": "Jährliche Kundenbindung (Jahre)",
+          "points_adjust_values": "Punktkorrekturwerte (durch Rohrleitungen getrennt)"
+        },
+        "data_description": {
+          "points_label": "Angezeigte Bezeichnung für Punkte (z. B. „Punkte“, „Sterne“, „Münzen“)",
+          "points_icon": "MDI-Symbol für Punkte (z. B. 'mdi:star', 'mdi:coin', 'mdi:trophy')",
+          "update_interval": "Wie oft sollen die Daten aktualisiert werden (mindestens 1 Minute)?",
+          "calendar_show_period": "Historische Tage, die im Kalender angezeigt werden sollen (mindestens 1)",
+          "retention_daily": "Tage, um die täglichen Aggregate zu erfassen",
+          "retention_weekly": "Wochen, um wöchentliche Aggregate zu erfassen",
+          "retention_monthly": "Monate, um monatliche Aggregate zu erfassen",
+          "retention_yearly": "Jahre, um die jährlichen Aggregate zu erfassen",
+          "points_adjust_values": "Durch Pipes getrennte Punktwerte für manuelle Einstellknöpfe (z. B. +1,0|-1,0|+10,0|-10,0)"
         }
       },
       "kid_count": {
@@ -40,7 +68,7 @@
         "title": "Kind definieren",
         "description": "Geben Sie für jedes Kind den Namen ein.",
         "data": {
-          "kid_name": "Kindername",
+          "name": "Kindername",
           "ha_user": "Home Assistant-Nutzer",
           "mobile_notify_service": "Benachrichtigungen",
           "dashboard_language": "Sprache"
@@ -61,13 +89,16 @@
         "title": "Übergeordnetes Element definieren",
         "description": "Geben Sie die Daten für jeden Elternteil ein.",
         "data": {
-          "parent_name": "Name des Elternteils",
+          "name": "Name des Elternteils",
           "ha_user_id": "Home Assistant-Nutzer",
           "associated_kids": "Zugehörige Kinder",
           "mobile_notify_service": "Benachrichtigungen",
           "dashboard_language": "Sprache"
         },
         "data_description": {
+          "name": "Eindeutiger Name für dieses übergeordnete Element, der im gesamten System verwendet wird.",
+          "ha_user_id": "Optional: Verknüpfen Sie dieses übergeordnete Element mit einem Home Assistant-Benutzer, um Benachrichtigungen und Zugriff auf das Dashboard zu erhalten.",
+          "associated_kids": "Wählen Sie aus, für welche Kinder dieser Elternteil Benachrichtigungen und Genehmigungsaktionen beaufsichtigt.",
           "mobile_notify_service": "Wählen Sie einen Benachrichtigungsdienst aus, um Benachrichtigungen für dieses übergeordnete Element zu aktivieren, oder lassen Sie das Feld leer, um Benachrichtigungen zu deaktivieren.",
           "dashboard_language": "Sprache, die für Ihr Aufgaben-Dashboard und Ihre Benachrichtigungen verwendet wird."
         }
@@ -83,7 +114,7 @@
         "title": "Aufgabe hinzufügen",
         "description": "Erstellen Sie eine neue Aufgabe mit Punkten, Aufgaben und einem wiederkehrenden Zeitplan.",
         "data": {
-          "chore_name": "📋 Name der Aufgabe",
+          "name": "📋 Name der Aufgabe",
           "chore_description": "📋 Beschreibung (optional)",
           "icon": "📋 Symbol (mdi:xxx)",
           "chore_labels": "📋 Etiketten (optional)",
@@ -99,11 +130,13 @@
           "custom_interval_unit": "🔄 Zeitplan: Benutzerdefinierte Intervalleinheit",
           "applicable_days": "📅 Zeitplan: Anwendbare Tage (optional)",
           "due_date": "📅 Zeitplan: Fälligkeitsdatum (optional)",
+          "chore_due_window_offset": "⏱️ Fälligkeitszeitraum: Versatz vor dem Fälligkeitsdatum",
+          "chore_due_reminder_offset": "🔔 Fälligkeitserinnerung: Verrechnung vor dem Fälligkeitsdatum",
           "show_on_calendar": "📅 Im Kalender anzeigen?",
           "chore_notifications": "🔔 Benachrichtigungsereignisse (optional)"
         },
         "data_description": {
-          "chore_name": "Eindeutiger Name, der im gesamten System angezeigt wird.",
+          "name": "Eindeutiger Name, der im gesamten System angezeigt wird.",
           "chore_description": "Optionale Anweisungen oder Details zur Erledigung dieser Aufgabe.",
           "icon": "Material Design Icon (z. B. mdi:broom, mdi:dishwasher).",
           "chore_labels": "Schlagwörter zur Organisation von Aufgaben (z. B. „Küche“, „Garten“). Felder leer lassen, falls nicht benötigt.",
@@ -119,6 +152,8 @@
           "custom_interval_unit": "Zeiteinheit für benutzerdefinierte Intervalle (Tage, Wochen, Monate). Nur bei benutzerdefinierter Frequenz verwendbar.",
           "applicable_days": "Lassen Sie alle Felder leer. Wählen Sie NUR die gewünschten Tage aus, um die Einschränkung zu aktivieren.",
           "due_date": "Optionale Frist. Kann mit wiederkehrenden Terminen kombiniert werden.",
+          "chore_due_window_offset": "Wenn sich der Status der Aufgabe von „Ausstehend“ auf „Fällig“ ändert. Format: „1d 6h 30m“ oder einfach „30“ für Minuten. Geben Sie „0“ ein, um die Funktion zu deaktivieren. Beispiel: „1d“ bedeutet, dass die Aufgabe einen Tag vor dem Fälligkeitstermin als „Fällig“ angezeigt wird.",
+          "chore_due_reminder_offset": "Wann soll die Erinnerungsbenachrichtigung versendet werden? Format: „1d 6h 30m“ oder einfach „30“ für Minuten. Standard: 30m (30 Minuten vor Fälligkeit). Geben Sie „0“ ein, um die Benachrichtigung zu deaktivieren.",
           "show_on_calendar": "Diese Aufgabe in der Kalenderansicht anzeigen.",
           "chore_notifications": "Wann Benachrichtigungen versendet werden sollen: Bei Antragstellung, bei Genehmigung, bei Ablehnung oder in beliebiger Kombination."
         }
@@ -191,10 +226,10 @@
         "title": "Belohnung definieren",
         "description": "Geben Sie die Details für jede Belohnung ein.",
         "data": {
-          "reward_name": "Name der Belohnung",
+          "name": "Name der Belohnung",
           "internal_id": "Interne ID",
-          "reward_cost": "Belohnungskosten",
-          "reward_description": "Beschreibung (optional)",
+          "cost": "Belohnungskosten",
+          "description": "Beschreibung (optional)",
           "reward_labels": "Belohnungsetiketten",
           "icon": "Symbol (mdi:xxx)"
         }
@@ -210,7 +245,7 @@
         "title": "Strafe definieren",
         "description": "Geben Sie Einzelheiten zu jeder Strafe an.",
         "data": {
-          "penalty_name": "Strafbezeichnung",
+          "name": "Strafbezeichnung",
           "penalty_description": "Beschreibung (optional)",
           "penalty_labels": "Strafbezeichnungen",
           "internal_id": "Interne ID",
@@ -229,7 +264,7 @@
         "title": "Bonus definieren",
         "description": "Geben Sie die Details für jeden Bonus an.",
         "data": {
-          "bonus_name": "Bonusname",
+          "name": "Bonusname",
           "bonus_description": "Beschreibung (optional)",
           "bonus_labels": "Bonus-Etiketten",
           "internal_id": "Interne ID",
@@ -308,6 +343,10 @@
       "due_date_in_past": "Der Fälligkeitstermin muss in der Zukunft liegen.",
       "end_date_in_past": "Das Enddatum muss in der Zukunft liegen.",
       "end_date_not_after_start_date": "Das Enddatum muss nach dem Startdatum liegen.",
+      "err_end_before_start": "Das Enddatum muss nach dem Startdatum liegen.",
+      "err_name_duplicate": "Eine Herausforderung mit diesem Namen existiert bereits.",
+      "achievement_no_kids_assigned": "Mindestens einem Kind muss diese Aufgabe zugewiesen werden.",
+      "challenge_no_kids_assigned": "Mindestens ein Kind muss für die Herausforderung ausgewählt werden.",
       "invalid_achievement_count": "Ungültige Erfolgsanzahl",
       "invalid_achievement_name": "Ungültiger Errungenschaftsname",
       "invalid_badge": "Ungültiges Abzeichen",
@@ -318,6 +357,7 @@
       "invalid_chore": "Ungültige Aufgabe",
       "invalid_chore_count": "Ungültige Aufgabenanzahl",
       "invalid_chore_name": "Ungültiger Aufgabenname",
+      "invalid_points": "Die Punktzahl muss null oder größer sein.",
       "invalid_overdue_reset_combination": "Die Funktion „Zum Fälligkeitsdatum zurücksetzen“ funktioniert nur bei Zurücksetzungstypen um Mitternacht. Bitte wählen Sie für den Genehmigungs-Zurücksetzungstyp „Um Mitternacht (einmalig)“ oder „Um Mitternacht (wiederkehrend)“.",
       "invalid_due_date": "Ungültiges Fälligkeitsdatum",
       "date_required_for_frequency": "Für diese wiederkehrende Häufigkeit ist ein Fälligkeitsdatum erforderlich. Die Option „Datum löschen“ funktioniert nur bei den Häufigkeiten „Keine“, „Täglich“ oder „Wöchentlich“.",
@@ -333,6 +373,7 @@
       "invalid_reward": "Ungültige Belohnung",
       "invalid_reward_count": "Ungültige Belohnungsanzahl",
       "invalid_reward_name": "Ungültiger Belohnungsname",
+      "invalid_reward_cost": "Die Kosten der Belohnung müssen null oder größer sein.",
       "invalid_bonus": "Ungültiger Bonus",
       "invalid_bonus_count": "Ungültige Bonuszählung",
       "invalid_bonus_name": "Ungültiger Bonusname",
@@ -399,13 +440,15 @@
         "title": "Kind hinzufügen",
         "description": "Geben Sie die Daten für das neue Kind an.",
         "data": {
-          "kid_name": "Kindername",
+          "name": "Kindername",
           "ha_user": "Home Assistant-Nutzer",
           "mobile_notify_service": "Benachrichtigungen",
           "dashboard_language": "Sprache",
           "internal_id": "Interne ID"
         },
         "data_description": {
+          "name": "Einzigartiger Name für dieses Kind, der im gesamten System verwendet wird.",
+          "ha_user": "Optional: Verknüpfen Sie dieses Kind mit einem Home Assistant-Benutzer für die Zugriffskontrolle über das Dashboard.",
           "mobile_notify_service": "Wählen Sie einen Benachrichtigungsdienst aus, um Benachrichtigungen für dieses Kind zu aktivieren, oder lassen Sie das Feld leer, um Benachrichtigungen zu deaktivieren.",
           "dashboard_language": "Sprache, die für Ihr Aufgaben-Dashboard und Ihre Benachrichtigungen verwendet wird."
         }
@@ -414,7 +457,7 @@
         "title": "Übergeordnetes Element hinzufügen",
         "description": "Geben Sie die Daten des neuen Elternteils an.",
         "data": {
-          "parent_name": "Name des Elternteils",
+          "name": "Name des Elternteils",
           "ha_user_id": "Home Assistant-Nutzer",
           "associated_kids": "Zugehörige Kinder",
           "mobile_notify_service": "Benachrichtigungen",
@@ -425,6 +468,9 @@
           "internal_id": "Interne ID"
         },
         "data_description": {
+          "name": "Eindeutiger Name für dieses übergeordnete Element, der im gesamten System verwendet wird.",
+          "ha_user_id": "Optional: Verknüpfen Sie dieses übergeordnete Element mit einem Home Assistant-Benutzer, um Benachrichtigungen und Zugriff auf das Dashboard zu erhalten.",
+          "associated_kids": "Wählen Sie aus, für welche Kinder dieser Elternteil Benachrichtigungen und Genehmigungsaktionen beaufsichtigt.",
           "mobile_notify_service": "Wählen Sie einen Benachrichtigungsdienst aus, um Benachrichtigungen für dieses übergeordnete Element zu aktivieren, oder lassen Sie das Feld leer, um Benachrichtigungen zu deaktivieren.",
           "allow_chore_assignment": "Erstellt ein Profil, damit Ihnen Aufgaben zugewiesen werden können. Standardmäßig wird nur eine Schaltfläche „Genehmigen“ für die Ein-Klick-Erledigung angezeigt. Hinweis: Wenn Sie diese Option deaktivieren, bleibt das Kinderprofil mit dem Suffix „_unlinked“ für die manuelle Bereinigung erhalten.",
           "enable_chore_workflow": "Fügt Schaltflächen zum Beantragen und Ablehnen für den vollständigen Workflow hinzu (Anspruch → genehmigen/ablehnen).",
@@ -436,7 +482,7 @@
         "title": "Aufgabe hinzufügen",
         "description": "Erstellen Sie eine neue Aufgabe mit Punkten, Aufgaben und einem wiederkehrenden Zeitplan.",
         "data": {
-          "chore_name": "📋 Name der Aufgabe",
+          "name": "📋 Name der Aufgabe",
           "chore_description": "📋 Beschreibung (optional)",
           "icon": "📋 Symbol (mdi:xxx)",
           "chore_labels": "📋 Etiketten (optional)",
@@ -452,11 +498,14 @@
           "custom_interval_unit": "🔄 Zeitplan: Benutzerdefinierte Intervalleinheit",
           "applicable_days": "📅 Zeitplan: Anwendbare Tage (optional)",
           "due_date": "📅 Zeitplan: Fälligkeitsdatum (optional)",
+          "clear_due_date": "🗑️ Fälligkeitsdatum klären",
+          "chore_due_window_offset": "⏱️ Fälligkeitszeitraum: Versatz vor dem Fälligkeitsdatum",
+          "chore_due_reminder_offset": "🔔 Fälligkeitserinnerung: Verrechnung vor dem Fälligkeitsdatum",
           "show_on_calendar": "📅 Im Kalender anzeigen?",
           "chore_notifications": "🔔 Benachrichtigungsereignisse (optional)"
         },
         "data_description": {
-          "chore_name": "Eindeutiger Name, der im gesamten System angezeigt wird.",
+          "name": "Eindeutiger Name, der im gesamten System angezeigt wird.",
           "chore_description": "Optionale Anweisungen oder Details zur Erledigung dieser Aufgabe.",
           "icon": "Material Design Icon (z. B. mdi:broom, mdi:dishwasher).",
           "chore_labels": "Schlagwörter zur Organisation von Aufgaben (z. B. „Küche“, „Garten“). Felder leer lassen, falls nicht benötigt.",
@@ -472,6 +521,9 @@
           "custom_interval_unit": "Zeiteinheit für benutzerdefinierte Intervalle (Tage, Wochen, Monate). Nur bei benutzerdefinierter Frequenz verwendbar.",
           "applicable_days": "Lassen Sie alle Felder leer. Wählen Sie NUR die gewünschten Tage aus, um die Einschränkung zu aktivieren.",
           "due_date": "Optionale Frist. Kann mit wiederkehrenden Aufgaben kombiniert werden. Für individuelle Aufgaben dient dies als Vorlage – ein zusätzliches Fenster öffnet sich, in dem für jedes Kind ein individuelles Datum festgelegt werden kann.",
+          "clear_due_date": "Markieren Sie dieses Kästchen, um das Fälligkeitsdatum für diese Aufgabe zu entfernen.",
+          "chore_due_window_offset": "Wenn sich der Status der Aufgabe von „Ausstehend“ auf „Fällig“ ändert. Format: „1d 6h 30m“ oder einfach „30“ für Minuten. Geben Sie „0“ ein, um die Funktion zu deaktivieren. Beispiel: „1d“ bedeutet, dass die Aufgabe einen Tag vor dem Fälligkeitstermin als „Fällig“ angezeigt wird.",
+          "chore_due_reminder_offset": "Wann soll die Erinnerungsbenachrichtigung versendet werden? Format: „1d 6h 30m“ oder einfach „30“ für Minuten. Standard: 30m (30 Minuten vor Fälligkeit). Geben Sie „0“ ein, um die Benachrichtigung zu deaktivieren.",
           "show_on_calendar": "Diese Aufgabe in der Kalenderansicht anzeigen.",
           "chore_notifications": "Wann Benachrichtigungen versendet werden sollen: Bei Antragstellung, bei Genehmigung, bei Ablehnung oder in beliebiger Kombination."
         }
@@ -695,10 +747,10 @@
         "title": "Belohnung hinzufügen",
         "description": "Bitte geben Sie die Details zur neuen Belohnung an.",
         "data": {
-          "reward_name": "Name der Belohnung",
+          "name": "Name der Belohnung",
           "internal_id": "Interne ID",
-          "reward_cost": "Belohnungskosten",
-          "reward_description": "Beschreibung (optional)",
+          "cost": "Belohnungskosten",
+          "description": "Beschreibung (optional)",
           "reward_labels": "Belohnungsetiketten",
           "icon": "Symbol (mdi:xxx)"
         }
@@ -707,7 +759,7 @@
         "title": "Strafe hinzufügen",
         "description": "Bitte geben Sie die Einzelheiten zur neuen Strafe an.",
         "data": {
-          "penalty_name": "Strafbezeichnung",
+          "name": "Strafbezeichnung",
           "penalty_description": "Beschreibung (optional)",
           "penalty_labels": "Strafbezeichnungen",
           "internal_id": "Interne ID",
@@ -719,7 +771,7 @@
         "title": "Bonus hinzufügen",
         "description": "Bitte geben Sie die Details zum neuen Bonus an.",
         "data": {
-          "bonus_name": "Bonusname",
+          "name": "Bonusname",
           "bonus_description": "Beschreibung (optional)",
           "bonus_labels": "Bonus-Etiketten",
           "internal_id": "Interne ID",
@@ -767,13 +819,15 @@
         "title": "Edit Kid",
         "description": "Ändern Sie die Details des ausgewählten Kindes.",
         "data": {
-          "kid_name": "Kindername",
+          "name": "Kindername",
           "ha_user": "Home Assistant-Nutzer",
           "mobile_notify_service": "Benachrichtigungen",
           "dashboard_language": "Sprache",
           "internal_id": "Interne ID"
         },
         "data_description": {
+          "name": "Einzigartiger Name für dieses Kind, der im gesamten System verwendet wird.",
+          "ha_user": "Optional: Verknüpfen Sie dieses Kind mit einem Home Assistant-Benutzer für die Zugriffskontrolle über das Dashboard.",
           "mobile_notify_service": "Wählen Sie einen Benachrichtigungsdienst aus, um Benachrichtigungen für dieses Kind zu aktivieren.",
           "dashboard_language": "Sprache, die für Ihr Aufgaben-Dashboard und Ihre Benachrichtigungen verwendet wird."
         }
@@ -782,14 +836,15 @@
         "title": "Edit Shadow Kid",
         "description": "Ändern Sie die Details des ausgewählten Schattenkindes. ⚠️ Dieses Kind ist mit einem Elternteil verknüpft. Durch die Namensänderung wird die Namensübereinstimmungsanforderung für die Aufhebung der Verknüpfung über den Dienst nicht mehr erfüllt.",
         "data": {
-          "kid_name": "Kindername",
+          "name": "Kindername",
           "ha_user": "Home Assistant-Nutzer",
           "mobile_notify_service": "Benachrichtigungen",
           "dashboard_language": "Sprache",
           "internal_id": "Interne ID"
         },
         "data_description": {
-          "kid_name": "⚠️ Dieses Schattenkind ist mit einem Elternteil verknüpft. Eine Namensänderung führt dazu, dass die Funktion zum Aufheben der Verknüpfung nicht mehr funktioniert, da hierfür übereinstimmende Namen erforderlich sind.",
+          "name": "⚠️ Dieses Schattenkind ist mit einem Elternteil verknüpft. Eine Namensänderung führt dazu, dass die Funktion zum Aufheben der Verknüpfung nicht mehr funktioniert, da hierfür übereinstimmende Namen erforderlich sind.",
+          "ha_user": "Optional: Verknüpfen Sie dieses Kind mit einem Home Assistant-Benutzer für die Zugriffskontrolle über das Dashboard.",
           "mobile_notify_service": "⚠️ Benachrichtigungen für beaufsichtigte Kinder: Der verknüpfte Elternteil erhält bereits Benachrichtigungen für beaufsichtigte Aufgaben. Durch Aktivieren dieser Option werden doppelte Benachrichtigungen erzeugt. Nützlich für 30-Minuten-Erinnerungen an Abgabetermine oder bei Verwendung verschiedener Benachrichtigungsdienste.",
           "dashboard_language": "Sprache, die für Ihr Aufgaben-Dashboard und Ihre Benachrichtigungen verwendet wird."
         }
@@ -798,7 +853,7 @@
         "title": "Übergeordneten Artikel bearbeiten",
         "description": "Ändern Sie die Details des ausgewählten übergeordneten Elements.",
         "data": {
-          "parent_name": "Name des Elternteils",
+          "name": "Name des Elternteils",
           "ha_user_id": "Home Assistant-Nutzer",
           "associated_kids": "Zugehörige Kinder",
           "mobile_notify_service": "Benachrichtigungen",
@@ -809,6 +864,9 @@
           "internal_id": "Interne ID"
         },
         "data_description": {
+          "name": "Eindeutiger Name für dieses übergeordnete Element, der im gesamten System verwendet wird.",
+          "ha_user_id": "Optional: Verknüpfen Sie dieses übergeordnete Element mit einem Home Assistant-Benutzer, um Benachrichtigungen und Zugriff auf das Dashboard zu erhalten.",
+          "associated_kids": "Wählen Sie aus, für welche Kinder dieser Elternteil Benachrichtigungen und Genehmigungsaktionen beaufsichtigt.",
           "mobile_notify_service": "Wählen Sie einen Benachrichtigungsdienst aus, um Benachrichtigungen für dieses übergeordnete Element zu aktivieren, oder lassen Sie das Feld leer, um Benachrichtigungen zu deaktivieren.",
           "allow_chore_assignment": "Erstellt ein Profil, damit Ihnen Aufgaben zugewiesen werden können. Standardmäßig wird nur eine Schaltfläche „Genehmigen“ für die Ein-Klick-Erledigung angezeigt. Hinweis: Wenn Sie diese Option deaktivieren, bleibt das Kinderprofil mit dem Suffix „_unlinked“ für die manuelle Bereinigung erhalten.",
           "enable_chore_workflow": "Fügt Schaltflächen zum Beantragen und Ablehnen für den vollständigen Workflow hinzu (Anspruch → genehmigen/ablehnen).",
@@ -820,7 +878,7 @@
         "title": "Bearbeitungsaufgabe",
         "description": "Ändern Sie die Details der ausgewählten Aufgabe.",
         "data": {
-          "chore_name": "📋 Name der Aufgabe",
+          "name": "📋 Name der Aufgabe",
           "chore_description": "📋 Beschreibung (optional)",
           "icon": "📋 Symbol (mdi:xxx)",
           "chore_labels": "📋 Etiketten (optional)",
@@ -838,11 +896,13 @@
           "applicable_days": "📅 Zeitplan: Anwendbare Tage (optional)",
           "due_date": "📅 Zeitplan: Fälligkeitsdatum (optional)",
           "clear_due_date": "🗑️ Fälligkeitsdatum klären",
+          "chore_due_window_offset": "⏱️ Fälligkeitszeitraum: Versatz vor dem Fälligkeitsdatum",
+          "chore_due_reminder_offset": "🔔 Fälligkeitserinnerung: Verrechnung vor dem Fälligkeitsdatum",
           "show_on_calendar": "📅 Im Kalender anzeigen?",
           "chore_notifications": "🔔 Benachrichtigungsereignisse (optional)"
         },
         "data_description": {
-          "chore_name": "Eindeutiger Name, der im gesamten System angezeigt wird.",
+          "name": "Eindeutiger Name, der im gesamten System angezeigt wird.",
           "chore_description": "Optionale Anweisungen oder Details zur Erledigung dieser Aufgabe.",
           "icon": "Material Design Icon (z. B. mdi:broom, mdi:dishwasher).",
           "chore_labels": "Schlagwörter zur Organisation von Aufgaben (z. B. „Küche“, „Garten“). Felder leer lassen, falls nicht benötigt.",
@@ -859,6 +919,8 @@
           "applicable_days": "Lassen Sie alle Felder leer. Wählen Sie NUR die gewünschten Tage aus, um die Einschränkung zu aktivieren.",
           "due_date": "Optionale Frist. Kann mit wiederkehrenden Aufgaben kombiniert werden. Für individuelle Aufgaben dient dies als Vorlage – ein zusätzliches Fenster öffnet sich, in dem für jedes Kind ein individuelles Datum festgelegt werden kann.",
           "clear_due_date": "Markieren Sie dieses Kästchen, um das Fälligkeitsdatum für diese Aufgabe zu entfernen.",
+          "chore_due_window_offset": "Wenn sich der Status der Aufgabe von „Ausstehend“ auf „Fällig“ ändert. Format: „1d 6h 30m“ oder einfach „30“ für Minuten. Geben Sie „0“ ein, um die Funktion zu deaktivieren. Beispiel: „1d“ bedeutet, dass die Aufgabe einen Tag vor dem Fälligkeitstermin als „Fällig“ angezeigt wird.",
+          "chore_due_reminder_offset": "Wann soll die Erinnerungsbenachrichtigung versendet werden? Format: „1d 6h 30m“ oder einfach „30“ für Minuten. Standard: 30m (30 Minuten vor Fälligkeit). Geben Sie „0“ ein, um die Benachrichtigung zu deaktivieren.",
           "show_on_calendar": "Diese Aufgabe in der Kalenderansicht anzeigen.",
           "chore_notifications": "Wann Benachrichtigungen versendet werden sollen: Bei Antragstellung, bei Genehmigung, bei Ablehnung oder in beliebiger Kombination."
         }
@@ -1109,10 +1171,10 @@
         "title": "Bearbeitungsbelohnung",
         "description": "Ändern Sie die Details der ausgewählten Belohnung.",
         "data": {
-          "reward_name": "Name der Belohnung",
+          "name": "Name der Belohnung",
           "internal_id": "Interne ID",
-          "reward_cost": "Belohnungskosten",
-          "reward_description": "Beschreibung (optional)",
+          "cost": "Belohnungskosten",
+          "description": "Beschreibung (optional)",
           "reward_labels": "Belohnungsetiketten",
           "icon": "Symbol (mdi:xxx)"
         }
@@ -1121,7 +1183,7 @@
         "title": "Bearbeitungsstrafe",
         "description": "Ändern Sie die Details der ausgewählten Strafe.",
         "data": {
-          "penalty_name": "Strafbezeichnung",
+          "name": "Strafbezeichnung",
           "penalty_description": "Beschreibung (optional)",
           "penalty_labels": "Strafbezeichnungen",
           "internal_id": "Interne ID",
@@ -1133,7 +1195,7 @@
         "title": "Bonusmaterial bearbeiten",
         "description": "Ändern Sie die Details des ausgewählten Bonus.",
         "data": {
-          "bonus_name": "Bonusname",
+          "name": "Bonusname",
           "bonus_description": "Beschreibung (optional)",
           "bonus_labels": "Bonus-Etiketten",
           "internal_id": "Interne ID",
@@ -1222,6 +1284,61 @@
         "description": "Möchtest du die Herausforderung wirklich löschen? {challenge_name}?",
         "data": {}
       },
+      "dashboard_generator": {
+        "title": "Dashboard verwalten",
+        "description": "KidsChores Lovelace-Dashboards erstellen, aktualisieren oder löschen.\n\n⚠️ **Erforderliche benutzerdefinierte Karten** (Installation über HACS → Frontend):\n- [**Pilzkarten**](https://github.com/piitaya/lovelace-mushroom) (`custom:mushroom-template-card`)\n- [**Auto-Entitäten**](https://github.com/thomasloven/lovelace-auto-entities) (`custom:auto-entities`)\n- [**Mini-Graph-Karte**](https://github.com/kalkih/mini-graph-card) (`custom:mini-graph-card`)\n\nOhne diese Karten werden Dashboards Fehler anzeigen. Installieren Sie sie zuerst über HACS, bevor Sie Dashboards generieren.",
+        "data": {
+          "dashboard_action": "Aktion",
+          "dashboard_check_cards": "Installation der Scheckkarte"
+        },
+        "data_description": {
+          "dashboard_action": "Wählen Sie aus, ob Sie neue Dashboards erstellen oder bestehende löschen möchten.",
+          "dashboard_check_cards": "Aktivieren Sie diese Option, um vor dem Fortfahren zu überprüfen, ob die erforderlichen benutzerdefinierten Karten installiert sind."
+        }
+      },
+      "dashboard_create": {
+        "title": "Dashboard erstellen/aktualisieren",
+        "description": "Erstelle ein KidsChores-Dashboard mit Registerkarten für jedes Kind.\n\nWähle einen Namen für das Dashboard, die hinzuzufügenden Kinder aus und füge optional eine Admin-Registerkarte für die Elternverwaltung hinzu.",
+        "data": {
+          "dashboard_name": "Dashboard-Name",
+          "dashboard_style": "Dashboard-Stil",
+          "dashboard_kid_selection": "Kinder (eine Tablette pro Kind)",
+          "dashboard_include_admin": "Admin-Registerkarte einbinden",
+          "dashboard_force_rebuild": "Neuerstellung erzwingen (vorhandene Daten überschreiben)"
+        },
+        "data_description": {
+          "dashboard_name": "Name für das Dashboard (erscheint in der Seitenleiste). Vorschlag: Aufgaben",
+          "dashboard_style": "Wählen Sie das Dashboard-Layout: Vollständig (alle Funktionen), Minimal (nur das Wesentliche) oder Kompakt (dichtes Layout).",
+          "dashboard_kid_selection": "Wählen Sie aus, für welche Kinder Registerkarten erstellt werden sollen. Jedes Kind erhält seine eigene Ansicht/Registerkarte.",
+          "dashboard_include_admin": "Fügen Sie eine Registerkarte „Admin“ mit übergeordneten Steuerelementen für Genehmigungen und Verwaltung hinzu.",
+          "dashboard_force_rebuild": "Ist diese Option aktiviert, wird das bestehende Dashboard überschrieben. Andernfalls schlägt die Generierung fehl, falls bereits ein Dashboard existiert."
+        }
+      },
+      "dashboard_delete": {
+        "title": "Dashboard löschen",
+        "description": "Wählen Sie die zu löschenden KidsChores-Dashboards aus.\n\n⚠️ Diese Aktion kann nicht rückgängig gemacht werden.",
+        "data": {
+          "dashboard_delete_selection": "Zu löschende Dashboards"
+        },
+        "data_description": {
+          "dashboard_delete_selection": "Wählen Sie ein oder mehrere Dashboards aus, die dauerhaft entfernt werden sollen."
+        }
+      },
+      "dashboard_delete_confirm": {
+        "title": "Löschung bestätigen",
+        "description": "⚠️ **Warnung:** Die folgenden Dashboards werden dauerhaft gelöscht:\n\n**{dashboards}**\n\nDadurch wird das Dashboard aus der Seitenleiste entfernt und alle Einstellungen werden gelöscht.\n\nKlicken Sie auf „Senden“, um die Löschung zu bestätigen.",
+        "data": {}
+      },
+      "dashboard_generator_confirm": {
+        "title": "Dashboard-Generierung bestätigen",
+        "description": "Folgende Dashboards werden erstellt:\n\n**Stil:** {style}\n**Neuaufbau erzwingen:** {force_rebuild}\n\n**Dashboards:**\n{dashboards}\n\nKlicken Sie auf „Senden“, um die Dashboards zu generieren.",
+        "data": {}
+      },
+      "dashboard_generator_result": {
+        "title": "Ergebnisse der Dashboard-Generierung",
+        "description": "**Ergebnisse:** {success_count} erfolgreich, {failure_count} fehlgeschlagen\n\n{results}\n\nKlicken Sie auf Absenden, um zum Hauptmenü zurückzukehren.",
+        "data": {}
+      },
       "manage_general_options": {
         "title": "Allgemeine Optionen",
         "description": "Verwalten Sie die allgemeinen Einstellungen für die KidsChore-Integration.",
@@ -1248,7 +1365,7 @@
           "retention_monthly": "Anzahl der Monate an monatlichen historischen Daten, die vor der Bereinigung aufbewahrt werden sollen. Minimum 1, Maximum 24.",
           "retention_yearly": "Anzahl der Jahre an jährlichen historischen Daten, die vor der Bereinigung aufbewahrt werden sollen. Minimum 1, Maximum 10.",
           "show_legacy_entities": "Es werden zusätzliche Entitäten wie Sensoren und Auswahllisten angezeigt, die nun im Dashboard-Hilfssensor zusammengefasst sind. Diese Entitäten sind optional, um die Abwärtskompatibilität mit bestehenden Automatisierungen zu gewährleisten.",
-          "backups_max_retained": "Maximale Anzahl der aufzubewahrenden Sicherungsdateien. Ältere Sicherungen werden automatisch gelöscht. Setzen Sie den Wert auf 0, um automatische Sicherungen zu deaktivieren.",
+          "backups_max_retained": "Maximale Anzahl der pro Tag aufzubewahrenden Sicherungsdateien (z. B. 5 manuelle Sicherungen, 5 data_reset-Sicherungen). Ältere Sicherungen werden nach jeder neuen Sicherung automatisch gelöscht. Setzen Sie den Wert auf 0, um automatische Sicherungen vollständig zu deaktivieren.",
           "backup_action_selection": "Wählen Sie eine Backup-Verwaltungsaktion: Manuelles Backup erstellen, Backup löschen oder aus einem Backup wiederherstellen."
         }
       },
@@ -1281,11 +1398,34 @@
       },
       "select_backup_to_delete": {
         "title": "Wählen Sie „Sicherung zum Löschen“ aus.",
-        "description": "Wählen Sie eine zu löschende Sicherungsdatei aus.\n\nVerfügbare Sicherungen: {backup_count}\n\n⚠️ Geschützte Sicherungen (vor der Migration, manuell) können nicht gelöscht werden."
+        "description": "Wählen Sie eine zu löschende Sicherungsdatei aus.\n\nVerfügbare Sicherungen: {backup_count}"
       },
       "select_backup_to_restore": {
         "title": "Wählen Sie die zur Wiederherstellung vorgesehene Sicherung aus.",
-        "description": "Wählen Sie eine Sicherungsdatei zum Wiederherstellen aus.\n\nVerfügbare Sicherungen: {backup_count}\n\n⚠️ Ihre aktuellen Daten werden dadurch ersetzt!"
+        "description": "Wählen Sie eine Sicherungsdatei zum Wiederherstellen aus.\n\nVerfügbare Sicherungen: {backup_count}\n\n⚠️ Ihre aktuellen Daten werden dadurch ersetzt!",
+        "data": {
+          "backup_selection": "Wählen Sie eine Sicherung aus."
+        },
+        "data_description": {
+          "backup_selection": "Wählen Sie die Sicherungsdatei aus, die Sie wiederherstellen möchten."
+        }
+      },
+      "restore_backup": {
+        "title": "Optionen zur Datenwiederherstellung",
+        "description": "Vorhandene KidsChores-Daten gefunden in:\n{storage_path}\n\n {backup_count} Sicherungsdateien gefunden.\n\nWas möchten Sie tun?",
+        "data": {
+          "backup_selection": "Option auswählen"
+        }
+      },
+      "paste_json_restore": {
+        "title": "JSON-Daten importieren",
+        "description": "Fügen Sie den vollständigen JSON-Inhalt aus einer der folgenden Quellen ein:\n\n• Eine KidsChores-Datendatei (kidschores_data)\n• Einen Diagnose-Download\n\nDas System erkennt das Format automatisch und entpackt es bei Bedarf. Sowohl Rohdaten aus dem Speicher als auch Diagnose-Exportformate werden unterstützt.",
+        "data": {
+          "json_data": "JSON-Daten"
+        },
+        "data_description": {
+          "json_data": "Fügen Sie hier den vollständigen JSON-Inhalt ein. Akzeptiert Daten aus der Datei kidschores_data oder aus dem Diagnoseexport (zusätzliche Strukturen werden automatisch entpackt)."
+        }
       },
       "create_backup_confirm": {
         "title": "Manuelle Sicherung erstellen",
@@ -1331,6 +1471,8 @@
       "due_date_in_past": "Der Fälligkeitstermin muss in der Zukunft liegen.",
       "end_date_in_past": "Das Enddatum muss in der Zukunft liegen.",
       "end_date_not_after_start_date": "Das Enddatum muss nach dem Startdatum liegen.",
+      "err_end_before_start": "Das Enddatum muss nach dem Startdatum liegen.",
+      "err_name_duplicate": "Eine Herausforderung mit diesem Namen existiert bereits.",
       "invalid_badge": "Ungültiges Abzeichen",
       "invalid_badge_count": "Ungültige Abzeichenanzahl",
       "invalid_chore": "Ungültige Aufgabe",
@@ -1341,6 +1483,8 @@
       "invalid_kid_count": "Ungültige Kinderanzahl",
       "invalid_kid_name": "Ungültiger Kindername",
       "no_kids_assigned": "Mindestens einem Kind muss diese Aufgabe zugeteilt werden.",
+      "achievement_no_kids_assigned": "Mindestens einem Kind muss diese Aufgabe zugewiesen werden.",
+      "challenge_no_kids_assigned": "Mindestens ein Kind muss für die Herausforderung ausgewählt werden.",
       "invalid_penalty": "Ungültige Strafe",
       "invalid_penalty_count": "Ungültige Strafenanzahl",
       "invalid_bonus": "Ungültiger Bonus",
@@ -1363,7 +1507,14 @@
       "error_daily_multi_due_date_required": "Die Frequenz „Mehrmals täglich“ erfordert die Festlegung eines Fälligkeitsdatums. Das Datum bestimmt den Beginn der Planung, und die Uhrzeiten legen die täglichen Verfügbarkeitsfenster fest.",
       "error_at_due_date_reset_requires_due_date": "Genehmigungszurücksetzungen vom Typ „Zum Fälligkeitsdatum“ (einmalig oder mehrfach) erfordern die Festlegung eines Fälligkeitsdatums. Ohne ein Fälligkeitsdatum wird die Genehmigungszurücksetzung nicht ausgelöst und die Aufgabe bleibt unbegrenzt genehmigt.",
       "error_per_kid_applicable_days_invalid": "Ungültiges Format für die Wochentage eines oder mehrerer Kinder. Die Wochentage müssen ganze Zahlen von 0 bis 6 (Montag bis Sonntag) sein und dürfen keine Duplikate enthalten.",
-      "error_per_kid_daily_multi_times_invalid": "Ungültiges Format für die Tageszeiten eines oder mehrerer Kinder. Bitte verwenden Sie das 24-Stunden-Format, getrennt durch | (z. B. 08:00|17:00)."
+      "error_per_kid_daily_multi_times_invalid": "Ungültiges Format für die Tageszeiten eines oder mehrerer Kinder. Bitte verwenden Sie das 24-Stunden-Format, getrennt durch | (z. B. 08:00|17:00).",
+      "dashboard_exists": "Für diesen URL-Pfad existiert bereits ein Dashboard. Aktivieren Sie „Neu erstellen erzwingen“, um es zu überschreiben.",
+      "dashboard_template_error": "Das Dashboard-Template konnte nicht abgerufen werden. Überprüfen Sie Ihre Netzwerkverbindung oder versuchen Sie es später erneut.",
+      "dashboard_render_error": "Das Dashboard-Template konnte nicht gerendert werden. Dies deutet möglicherweise auf einen Template-Fehler hin.",
+      "dashboard_save_error": "Das Dashboard konnte nicht in Home Assistant gespeichert werden. Weitere Informationen finden Sie in den Systemprotokollen.",
+      "dashboard_no_name": "Bitte geben Sie einen Namen für das Dashboard ein.",
+      "dashboard_no_kids": "Bitte wählen Sie mindestens ein Kind aus oder aktivieren Sie die Option „Admin-Registerkarte einbeziehen“.",
+      "dashboard_no_dashboards": "Bitte wählen Sie mindestens ein Dashboard zum Löschen aus."
     },
     "abort": {
       "invalid_action": "Ungültige Aktion",
@@ -1387,7 +1538,8 @@
       "no_achievement": "Es sind noch keine Erfolge zur Bearbeitung eingerichtet. Füge zuerst einen Eintrag hinzu.",
       "no_challenge": "Es sind noch keine Herausforderungen zur Bearbeitung eingerichtet. Füge zuerst einen Eintrag hinzu.",
       "setup_complete": "Einrichtung abgeschlossen",
-      "backup_restored": "Die Sicherung wurde erfolgreich wiederhergestellt. Die Integration wurde mit den wiederhergestellten Daten neu geladen."
+      "backup_restored": "Die Sicherung wurde erfolgreich wiederhergestellt. Die Integration wurde mit den wiederhergestellten Daten neu geladen.",
+      "no_dashboards_to_delete": "Es wurden keine KidsChore-Dashboards gefunden. Erstellen Sie zuerst eines über „Dashboard verwalten“."
     }
   },
   "selector": {
@@ -1403,9 +1555,30 @@
         "manage_bonus": "Bonus verwalten",
         "manage_achievement": "Leistungsmanagement",
         "manage_challenge": "Herausforderung meistern",
+        "dashboard_generator": "Dashboard verwalten",
         "general_options": "Allgemeine Optionen",
         "done": "Einrichtung abschließen"
       }
+    },
+    "dashboard_action": {
+      "options": {
+        "create": "Dashboard erstellen/aktualisieren",
+        "delete": "Dashboard löschen"
+      }
+    },
+    "dashboard_style": {
+      "options": {
+        "dashboard_style_full": "Vollversion (Alle Funktionen)",
+        "dashboard_style_minimal": "Minimal (nur das Nötigste)",
+        "dashboard_style_compact": "Kompakt (dichte Anordnung)",
+        "dashboard_style_admin": "Admin (Übergeordnetes Dashboard)"
+      }
+    },
+    "dashboard_kid_selection": {
+      "options": {}
+    },
+    "dashboard_delete_selection": {
+      "options": {}
     },
     "manage_actions": {
       "options": {
@@ -1524,7 +1697,9 @@
         "notify_on_claim": "Benachrichtigung über den Anspruch",
         "notify_on_approval": "Benachrichtigung bei Genehmigung",
         "notify_on_disapproval": "Bei Ablehnung benachrichtigen",
-        "notify_on_reminder": "Benachrichtigen Sie 30 Minuten vor Fälligkeit"
+        "notify_on_reminder": "Benachrichtigung 30 Minuten vor Fälligkeit (Legacy)",
+        "notify_on_due_window": "Benachrichtigen, wenn das Fälligkeitsfenster beginnt",
+        "notify_due_reminder": "Benachrichtigung zum Fälligkeitstermin"
       }
     },
     "recurring_frequency": {
@@ -1542,7 +1717,11 @@
         "custom_1_week": "Individuell: 1 Woche",
         "custom_1_month": "Individuell: 1 Monat",
         "custom_1_quarter": "Benutzerdefiniert: 1 Viertel",
-        "custom_1_year": "Kundenspezifisch: 1 Jahr"
+        "custom_1_year": "Kundenspezifisch: 1 Jahr",
+        "week_end": "Wochenende",
+        "month_end": "Monatsende",
+        "quarter_end": "Quartalsende",
+        "year_end": "Jahresende"
       }
     },
     "occasion_type": {
@@ -1709,6 +1888,10 @@
           "name": "Name der Belohnung",
           "description": "Der Name der genehmigten Belohnung.",
           "example": "Zusätzliche Bildschirmzeit"
+        },
+        "cost_override": {
+          "name": "Kostenüberschreibung",
+          "description": "Optionale Kostenüberschreibung. Wird diese Option weggelassen, werden die gespeicherten Kosten der Prämie verwendet. Setzen Sie den Wert auf 0 für eine kostenlose Prämie (z. B. Abzeichen). Nützlich für kontextbezogene Preisgestaltung (Wochenenden, besondere Anlässe usw.)."
         }
       }
     },
@@ -1775,13 +1958,306 @@
         }
       }
     },
-    "reset_all_data": {
-      "name": "Alle Daten zurücksetzen",
-      "description": "Löscht die KidsChores-Daten vollständig aus dem Speicher."
+    "create_reward": {
+      "name": "Belohnung erstellen",
+      "description": "Erstellen Sie programmatisch eine neue Belohnung.",
+      "fields": {
+        "name": {
+          "name": "Name",
+          "description": "Der Name der Belohnung.",
+          "example": "Zusätzliche Bildschirmzeit"
+        },
+        "cost": {
+          "name": "Kosten",
+          "description": "Zur Inanspruchnahme der Prämie werden Punkte benötigt.",
+          "example": "10"
+        },
+        "description": {
+          "name": "Beschreibung",
+          "description": "Optionale Beschreibung der Belohnung.",
+          "example": "30 Minuten zusätzliche Tablet-Zeit"
+        },
+        "icon": {
+          "name": "Symbol",
+          "description": "Symbol zur Darstellung der Belohnung.",
+          "example": "mdi:gift"
+        },
+        "labels": {
+          "name": "Etiketten",
+          "description": "Etiketten zur Gruppierung von Belohnungen.",
+          "example": "['Wochenende', 'Spezial']"
+        }
+      }
     },
-    "reset_all_chores": {
-      "name": "Alle Aufgaben zurücksetzen",
-      "description": "Aufgaben manuell auf den Status „Ausstehend“ zurücksetzen, Ansprüche und Genehmigungen entfernen."
+    "update_reward": {
+      "name": "Update-Belohnung",
+      "description": "Eine bestehende Belohnung aktualisieren (Teilaktualisierungen werden unterstützt).",
+      "fields": {
+        "id": {
+          "name": "Prämien-ID",
+          "description": "Interne ID der zu aktualisierenden Prämie. Verwenden Sie entweder die ID ODER den Namen.",
+          "example": "abc123-def456-789..."
+        },
+        "name": {
+          "name": "Name",
+          "description": "Name der zu aktualisierenden Belohnung oder neuer Name für die Belohnung.",
+          "example": "Zusätzliche Bildschirmzeit"
+        },
+        "cost": {
+          "name": "Kosten",
+          "description": "Aktualisierter Kostenwert.",
+          "example": "15"
+        },
+        "description": {
+          "name": "Beschreibung",
+          "description": "Aktualisierte Beschreibung.",
+          "example": "45 Minuten zusätzliche Tablet-Zeit"
+        },
+        "icon": {
+          "name": "Symbol",
+          "description": "Aktualisiertes Symbol.",
+          "example": "mdi:star"
+        },
+        "labels": {
+          "name": "Etiketten",
+          "description": "Aktualisierte Etiketten.",
+          "example": "['Premium', 'Spezial']"
+        }
+      }
+    },
+    "delete_reward": {
+      "name": "Belohnung löschen",
+      "description": "Eine Belohnung anhand der ID oder des Namens löschen.",
+      "fields": {
+        "id": {
+          "name": "Prämien-ID",
+          "description": "Interne ID der zu löschenden Prämie. Verwenden Sie entweder die ID ODER den Namen.",
+          "example": "abc123-def456-789..."
+        },
+        "name": {
+          "name": "Name",
+          "description": "Name der zu löschenden Belohnung.",
+          "example": "Zusätzliche Bildschirmzeit"
+        }
+      }
+    },
+    "create_chore": {
+      "name": "Aufgabe erstellen",
+      "description": "Erfindet eine neue Aufgabe, die Kinder erledigen können, um Punkte zu sammeln.",
+      "fields": {
+        "name": {
+          "name": "Aufgabenname",
+          "description": "Der Name der zu erstellenden Aufgabe.",
+          "example": "Reinraum"
+        },
+        "assigned_kids": {
+          "name": "Zugewiesene Kinder",
+          "description": "Liste der Kindernamen, die dieser Aufgabe zugewiesen werden sollen.",
+          "example": "['Emma', 'Jack']"
+        },
+        "points": {
+          "name": "Punkte",
+          "description": "Punkte werden vergeben, wenn die Aufgabe erledigt ist.",
+          "example": "10"
+        },
+        "description": {
+          "name": "Beschreibung",
+          "description": "Optionale Beschreibung der Aufgabe.",
+          "example": "Bett machen, Spielzeug wegräumen, Boden saugen"
+        },
+        "icon": {
+          "name": "Symbol",
+          "description": "Material-Design-Symbol für die Aufgabe.",
+          "example": "mdi:besen"
+        },
+        "labels": {
+          "name": "Etiketten",
+          "description": "Optionale Bezeichnungen zur Kategorisierung der Aufgabe.",
+          "example": "['täglich', 'Schlafzimmer']"
+        },
+        "frequency": {
+          "name": "Frequenz",
+          "description": "Wie oft die Aufgabe wiederholt wird: keine, täglich, täglich_mehrfach, wöchentlich, zweiwöchentlich, monatlich, vierteljährlich, jährlich, benutzerdefiniert, benutzerdefiniert_ab_Abschluss oder Periodenende (Wochenende, Monatsende, Quartalsende, Jahresende).",
+          "example": "täglich"
+        },
+        "applicable_days": {
+          "name": "Anwendbare Tage",
+          "description": "Wochentage, an denen die Aufgabe anfällt.",
+          "example": "['mon', 'wed', 'fri']"
+        },
+        "completion_criteria": {
+          "name": "Abschlusskriterien",
+          "description": "So wird die Aufgabe erledigt, wenn mehrere Kinder ihr zugewiesen wurden: unabhängig (jedes Kind erledigt sie separat), gemeinsam_zuerst (das erste Kind, das die Aufgabe erledigt, erhält Punkte) oder gemeinsam_alle (alle Kinder müssen die Aufgabe erledigen). Kann nach der Erstellung nicht mehr geändert werden.",
+          "example": "unabhängig"
+        },
+        "approval_reset_type": {
+          "name": "Genehmigungs-Reset-Typ",
+          "description": "Wenn die Aufgabe zur erneuten Ausführung zurückgesetzt wird.",
+          "example": "um Mitternacht"
+        },
+        "pending_claims": {
+          "name": "Anhängige Schadensregulierung",
+          "description": "Was passiert mit ausstehenden Ansprüchen, wenn die Aufgabe zurückgesetzt wird: hold_pending (Ansprüche behalten), clear_pending (Ansprüche entfernen) oder auto_approve_pending (alle ausstehenden Ansprüche genehmigen).",
+          "example": "hold_pending"
+        },
+        "overdue_handling": {
+          "name": "Überfällige Bearbeitung",
+          "description": "Wie man mit der Aufgabe umgeht, wenn sie überfällig ist.",
+          "example": "at_due_date"
+        },
+        "auto_approve": {
+          "name": "Automatische Genehmigung",
+          "description": "Wenn dies zutrifft, wird die Aufgabe bei der Anmeldung automatisch genehmigt.",
+          "example": "FALSCH"
+        },
+        "due_date": {
+          "name": "Fälligkeitsdatum",
+          "description": "Optionales Fälligkeitsdatum für die Aufgabe. Verwenden Sie die Datums-/Zeitauswahl, um ein gültiges Datum und eine gültige Uhrzeit auszuwählen.",
+          "example": "2025-03-01T23:59:00Z"
+        },
+        "due_window_offset": {
+          "name": "Aufgrund des Fensterversatzes",
+          "description": "Dauer bis zum Fälligkeitsdatum, wenn die Aufgabe den Status „Fällig“ erreicht. Format: „30m“, „1h“, „1d 6h 30m“ usw. Verwenden Sie „0“, um die Funktion „Fälligkeitsfenster“ zu deaktivieren.",
+          "example": "30 m"
+        },
+        "due_reminder_offset": {
+          "name": "Fälligkeitserinnerung Verrechnung",
+          "description": "Zeitraum vor dem Fälligkeitstermin, in dem eine Erinnerungsbenachrichtigung versendet werden soll. Format: '30m', '1h', '1d 6h 30m' usw. Verwenden Sie '0', um Erinnerungen zu deaktivieren.",
+          "example": "30 m"
+        }
+      }
+    },
+    "update_chore": {
+      "name": "Aktualisierungsaufgabe",
+      "description": "Aktualisieren Sie die Eigenschaften einer bestehenden Aufgabe. Geben Sie entweder die ID ODER den Namen zur Identifizierung der Aufgabe an. Nur die angegebenen Felder werden aktualisiert. Hinweis: Die Abschlusskriterien können nach der Erstellung nicht mehr geändert werden.",
+      "fields": {
+        "id": {
+          "name": "Aufgaben-ID",
+          "description": "Die interne ID der zu aktualisierenden Aufgabe (alternativ zum Namen).",
+          "example": "abc-123-def-456"
+        },
+        "name": {
+          "name": "Aufgabenname (Kennung)",
+          "description": "Der Name der zu aktualisierenden Aufgabe (Alternative zur ID). Benutzerfreundlicher als die ID.",
+          "example": "Reinraum"
+        },
+        "assigned_kids": {
+          "name": "Zugewiesene Kinder",
+          "description": "Neue Liste mit Kindernamen, die dieser Aufgabe zugewiesen werden sollen.",
+          "example": "['Emma', 'Jack']"
+        },
+        "points": {
+          "name": "Punkte",
+          "description": "Neuer Punktewert für die Aufgabe.",
+          "example": "15"
+        },
+        "description": {
+          "name": "Beschreibung",
+          "description": "Neue Beschreibung der Aufgabe.",
+          "example": "Bett machen, Schreibtisch aufräumen, Boden staubsaugen"
+        },
+        "icon": {
+          "name": "Symbol",
+          "description": "Neues Material-Design-Symbol für die lästige Aufgabe.",
+          "example": "mdi:Vakuum"
+        },
+        "labels": {
+          "name": "Etiketten",
+          "description": "Neue Etiketten für die Aufgabe.",
+          "example": "['wöchentlich', 'Reinigung']"
+        },
+        "frequency": {
+          "name": "Frequenz",
+          "description": "Neue Wiederholungshäufigkeit: keine, täglich, täglich_mehrfach, wöchentlich, zweiwöchentlich, monatlich, vierteljährlich, jährlich, benutzerdefiniert, benutzerdefiniert_ab_abgeschlossen oder Periodenende (Wochenende, Monatsende, Quartalsende, Jahresende).",
+          "example": "wöchentlich"
+        },
+        "applicable_days": {
+          "name": "Anwendbare Tage",
+          "description": "Neue Wochentage, an denen die Aufgabe anfällt.",
+          "example": "['sat', 'sun']"
+        },
+        "approval_reset_type": {
+          "name": "Genehmigungs-Reset-Typ",
+          "description": "Neuer Reset-Typ für den Fall, dass die Aufgabe zurückgesetzt wird.",
+          "example": "at_due_date_once"
+        },
+        "pending_claims": {
+          "name": "Anhängige Schadensregulierung",
+          "description": "Neue Maßnahmen für anhängige Ansprüche, wenn die Aufgabe zurückgesetzt wird.",
+          "example": "clear_pending"
+        },
+        "overdue_handling": {
+          "name": "Überfällige Bearbeitung",
+          "description": "Neues Verhalten bei der Bearbeitung überfälliger Fälligkeiten.",
+          "example": "nie überfällig"
+        },
+        "auto_approve": {
+          "name": "Automatische Genehmigung",
+          "description": "Neue Einstellung für automatische Genehmigung.",
+          "example": "WAHR"
+        },
+        "due_date": {
+          "name": "Fälligkeitsdatum",
+          "description": "Neuer Fälligkeitstermin für die Aufgabe. Verwenden Sie die Datums-/Zeitauswahl, um ein gültiges Datum und eine gültige Uhrzeit auszuwählen.",
+          "example": "2025-04-01T18:00:00Z"
+        },
+        "due_window_offset": {
+          "name": "Aufgrund des Fensterversatzes",
+          "description": "Neuer Fälligkeits-Offset. Dauer vor dem Fälligkeitsdatum, bis die Aufgabe den Status „Fällig“ erreicht. Format: „30m“, „1h“, „1d 6h 30m“ usw. „0“ zum Deaktivieren verwenden.",
+          "example": "1 Stunde"
+        },
+        "due_reminder_offset": {
+          "name": "Fälligkeitserinnerung Verrechnung",
+          "description": "Neuer Erinnerungs-Offset. Dauer vor dem Fälligkeitsdatum, bis eine Erinnerung versendet wird. Format: '30m', '1h', '1d 6h 30m' usw. '0' zum Deaktivieren verwenden.",
+          "example": "30 m"
+        }
+      }
+    },
+    "delete_chore": {
+      "name": "Aufgabe löschen",
+      "description": "Eine Aufgabe kann anhand ihrer ID oder ihres Namens gelöscht werden. Alle kinderbezogenen Status und der Verlauf werden entfernt.",
+      "fields": {
+        "id": {
+          "name": "Aufgaben-ID",
+          "description": "Interne ID des zu löschenden Vorgangs. Verwenden Sie entweder die ID ODER den Namen.",
+          "example": "abc123-def456-789..."
+        },
+        "name": {
+          "name": "Name",
+          "description": "Name der zu löschenden Aufgabe.",
+          "example": "Reinraum"
+        }
+      }
+    },
+    "reset_chores_to_pending_state": {
+      "name": "Aufgaben auf den Status „Ausstehend“ zurücksetzen",
+      "description": "Alle Aufgaben wurden manuell auf den Status „Ausstehend“ zurückgesetzt, wodurch Ansprüche und Genehmigungen entfernt wurden."
+    },
+    "reset_transactional_data": {
+      "name": "Transaktionsdaten zurücksetzen",
+      "description": "Setzt Laufzeit-/Transaktionsdaten zurück, wobei die Konfiguration (Kinder, Aufgaben, Belohnungen usw.) erhalten bleibt. Vor dem Zurücksetzen wird automatisch eine Sicherungskopie unter dem Namen kidschores_data_<timestamp>_reset im Verzeichnis .storage erstellt. Verwenden Sie den Bereich, um bestimmte Kinder oder Domänen auszuwählen. WICHTIG: Erfordert confirm_destructive: true als Sicherheitsmechanismus.",
+      "fields": {
+        "confirm_destructive": {
+          "name": "Destruktiv bestätigen",
+          "description": "Diese Option muss auf „true“ gesetzt werden, um den Reset zu bestätigen. Dies ist ein Sicherheitsmechanismus."
+        },
+        "scope": {
+          "name": "Umfang",
+          "description": "Bereich zurücksetzen: 'global' setzt alle Daten zurück, 'kid' setzt nur die Daten für ein bestimmtes Kind zurück."
+        },
+        "kid_name": {
+          "name": "Kindername",
+          "description": "Erforderlich, wenn der Gültigkeitsbereich „Kind“ ist. Der Name des Kindes, dessen Daten zurückgesetzt werden sollen."
+        },
+        "item_type": {
+          "name": "Artikeltyp",
+          "description": "Optionaler Filter zum Zurücksetzen nur eines bestimmten Bereichs (z. B. nur Punkte oder nur Aufgaben)."
+        },
+        "item_name": {
+          "name": "Artikelname",
+          "description": "Optionaler Filter zum Zurücksetzen eines bestimmten Elements innerhalb der Domäne item_type."
+        }
+      }
     },
     "reset_overdue_chores": {
       "name": "Überfällige Aufgaben zurücksetzen",
@@ -1856,54 +2332,6 @@
         }
       }
     },
-    "reset_penalties": {
-      "name": "Strafen zurücksetzen",
-      "description": "Alle verhängten Strafen für alle Kinder zurücksetzen. Optional kann der Name einer Strafe angegeben werden, um eine bestimmte Strafe für alle Kinder zurückzusetzen. Mit dem Namen eines Kindes können alle Strafen für dieses Kind zurückgesetzt werden. Durch die Kombination beider Optionen lässt sich eine bestimmte Strafe für ein bestimmtes Kind zurücksetzen.",
-      "fields": {
-        "kid_name": {
-          "name": "Kindername",
-          "description": "Der Junge, für den die Strafen zurückgesetzt werden.",
-          "example": "Alice"
-        },
-        "penalty_name": {
-          "name": "Strafbezeichnung",
-          "description": "Der Name der zurückzusetzenden Strafe.",
-          "example": "Geschrei"
-        }
-      }
-    },
-    "reset_bonuses": {
-      "name": "Boni zurücksetzen",
-      "description": "Setze alle Boni für alle Kinder zurück. Optional kannst du den Namen eines Bonus angeben, um einen bestimmten Bonus für alle Kinder zurückzusetzen. Verwende den Namen eines Kindes, um alle Boni für dieses Kind zurückzusetzen. Kombiniere beides, um einen bestimmten Bonus für ein bestimmtes Kind zurückzusetzen.",
-      "fields": {
-        "kid_name": {
-          "name": "Kindername",
-          "description": "Das Kind, für das die Boni zurückgesetzt werden.",
-          "example": "Alice"
-        },
-        "bonus_name": {
-          "name": "Bonusname",
-          "description": "Der Name des zurückzusetzenden Bonus.",
-          "example": "Portion"
-        }
-      }
-    },
-    "reset_rewards": {
-      "name": "Belohnungen zurücksetzen",
-      "description": "Alle Prämienanträge und Genehmigungszähler für alle Kinder zurücksetzen. Optional kann der Name einer bestimmten Prämie angegeben werden, um die Zähler für diese Prämie für alle Kinder zurückzusetzen. Mit dem Namen eines Kindes können alle Prämienzähler für dieses Kind zurückgesetzt werden. Durch die Kombination beider Optionen lässt sich eine bestimmte Prämie für ein bestimmtes Kind zurücksetzen.",
-      "fields": {
-        "kid_name": {
-          "name": "Kindername",
-          "description": "Der Wert des Kindes, für das die Belohnung zählt, wird zurückgesetzt.",
-          "example": "Alice"
-        },
-        "reward_name": {
-          "name": "Name der Belohnung",
-          "description": "Der Name der zurückzusetzenden Belohnung.",
-          "example": "Eiscreme"
-        }
-      }
-    },
     "remove_awarded_badges": {
       "name": "Verliehene Abzeichen entfernen",
       "description": "Entferne alle verliehenen Abzeichen für alle Kinder. Optional kannst du den Namen eines Abzeichens angeben, um ein bestimmtes Abzeichen für alle Kinder zurückzusetzen. Verwende den Namen eines Kindes, um alle Abzeichen für dieses Kind zurückzusetzen. Kombiniere beides, um ein bestimmtes Abzeichen für ein bestimmtes Kind zurückzusetzen.",
@@ -1929,6 +2357,7 @@
           "pending": "Ausstehend",
           "approved": "Genehmigt",
           "claimed": "Behauptet",
+          "due": "Fällig",
           "overdue": "Überfällig",
           "unknown": "Unbekannt",
           "none": "Keiner",
@@ -1968,8 +2397,8 @@
             "name": "Abschlusskriterien",
             "state": {
               "independent": "Unabhängig",
-              "shared_first_only": "Gemeinsam (Erste)",
-              "shared_all_required": "Gemeinsam (Alle)"
+              "shared_first": "Gemeinsam (Erste)",
+              "shared_all": "Gemeinsam (Alle)"
             }
           },
           "approval_reset_type": {
@@ -2028,13 +2457,16 @@
             }
           },
           "chore_points_earned": {
-            "name": "Erhaltene Punkte"
+            "name": "Erreichte Punkte (gesamt)"
           },
           "chore_approvals_count": {
             "name": "Genehmigungen (Gesamt)"
           },
           "chore_claims_count": {
             "name": "Ansprüche (gesamt)"
+          },
+          "chore_completed_count": {
+            "name": "Abgeschlossen (Gesamtzeit)"
           },
           "chore_disapproved_count": {
             "name": "Missbilligungen (Gesamt)"
@@ -2048,8 +2480,8 @@
           "chore_current_streak": {
             "name": "Aktuelle Serie"
           },
-          "chore_highest_streak": {
-            "name": "Höchste Serie"
+          "chore_longest_streak": {
+            "name": "Längste Serie"
           },
           "chore_last_longest_streak_date": {
             "name": "Datum der letzten längsten Serie"
@@ -2059,6 +2491,9 @@
           },
           "last_approved": {
             "name": "Zuletzt genehmigt"
+          },
+          "last_completed": {
+            "name": "Zuletzt abgeschlossen"
           },
           "last_disapproved": {
             "name": "Zuletzt abgelehnt"
@@ -2102,6 +2537,15 @@
           },
           "claim_button_eid": {
             "name": "Entitäts-ID der Schaltfläche „Anspruch erheben“"
+          },
+          "due_window_start": {
+            "name": "Fälligkeitsfenster Start"
+          },
+          "time_until_due": {
+            "name": "Fälligkeitstermin"
+          },
+          "time_until_overdue": {
+            "name": "Zeit bis zur Überfälligkeit"
           }
         }
       },
@@ -2312,6 +2756,57 @@
           "chore_stat_disapproved_all_time": {
             "name": "Durchweg abgelehnt"
           },
+          "chore_stat_completed_today": {
+            "name": "Heute abgeschlossen"
+          },
+          "chore_stat_completed_week": {
+            "name": "Diese Woche abgeschlossen"
+          },
+          "chore_stat_completed_month": {
+            "name": "Diesen Monat abgeschlossen"
+          },
+          "chore_stat_completed_year": {
+            "name": "In diesem Jahr abgeschlossen"
+          },
+          "chore_stat_completed_all_time": {
+            "name": "Alle Zeiten abgeschlossen"
+          },
+          "chore_stat_points_today": {
+            "name": "Punkte heute"
+          },
+          "chore_stat_points_week": {
+            "name": "Punkte diese Woche"
+          },
+          "chore_stat_points_month": {
+            "name": "Punkte diesen Monat"
+          },
+          "chore_stat_points_year": {
+            "name": "Punkte in diesem Jahr"
+          },
+          "chore_stat_points_all_time": {
+            "name": "Punkte aller Zeiten"
+          },
+          "chore_stat_top_chores_week": {
+            "name": "Wichtigste Aufgabe (Woche)"
+          },
+          "chore_stat_top_chores_month": {
+            "name": "Wichtigste Aufgabe (Monat)"
+          },
+          "chore_stat_top_chores_year": {
+            "name": "Wichtigste Aufgabe (Jahr)"
+          },
+          "chore_stat_chores_completed_today": {
+            "name": "Heute abgeschlossen"
+          },
+          "chore_stat_chores_completed_week": {
+            "name": "Diese Woche abgeschlossen"
+          },
+          "chore_stat_chores_completed_month": {
+            "name": "Diesen Monat abgeschlossen"
+          },
+          "chore_stat_chores_completed_year": {
+            "name": "In diesem Jahr abgeschlossen"
+          },
           "chore_stat_current_due_today": {
             "name": "Aktuell fällig heute"
           },
@@ -2336,11 +2831,17 @@
           "chore_stat_longest_streak_all_time": {
             "name": "Längste Siegesserie (aller Zeiten)"
           },
+          "chore_stat_longest_streak": {
+            "name": "Längste Serie"
+          },
           "chore_stat_avg_per_day_week": {
             "name": "Durchschnitt pro Tag (Woche)"
           },
           "chore_stat_avg_per_day_month": {
             "name": "Durchschnitt pro Tag (Monat)"
+          },
+          "chore_stat_avg_per_day_year": {
+            "name": "Durchschnitt pro Tag (Jahr)"
           }
         }
       },
@@ -2593,6 +3094,7 @@
           "pending": "Ausstehend",
           "approved": "Genehmigt",
           "claimed": "Behauptet",
+          "due": "Fällig",
           "overdue": "Überfällig",
           "unknown": "Unbekannt",
           "none": "Keiner",
@@ -2629,8 +3131,8 @@
             "name": "Abschlusskriterien",
             "state": {
               "independent": "Unabhängig",
-              "shared_first_only": "Gemeinsam (nur beim ersten Mal)",
-              "shared_all_required": "Gemeinsam (Alle erforderlich)"
+              "shared_first": "Gemeinsam (nur beim ersten Mal)",
+              "shared_all": "Gemeinsam (Alle erforderlich)"
             }
           },
           "approval_reset_type": {
@@ -2689,20 +3191,33 @@
           "last_approved": {
             "name": "Zuletzt genehmigt"
           },
+          "last_completed": {
+            "name": "Zuletzt abgeschlossen"
+          },
           "chore_claimed_by": {
             "name": "Beansprucht von"
           },
           "chore_completed_by": {
             "name": "Abgeschlossen von"
+          },
+          "due_window_start": {
+            "name": "Fälligkeitsfenster Start"
+          },
+          "time_until_due": {
+            "name": "Fälligkeitstermin"
+          },
+          "time_until_overdue": {
+            "name": "Zeit bis zur Überfälligkeit"
           }
         }
       },
       "kid_reward_status_sensor": {
         "name": "Belohnungsstatus - {reward_name}",
         "state": {
-          "not_claimed": "Nicht beansprucht",
+          "locked": "Gesperrt",
+          "available": "Verfügbar",
+          "requested": "Angefordert",
           "approved": "Genehmigt",
-          "claimed": "Behauptet",
           "unknown": "Unbekannt",
           "none": "Keiner"
         },
@@ -2733,6 +3248,9 @@
           },
           "last_approved": {
             "name": "Zuletzt genehmigt"
+          },
+          "last_completed": {
+            "name": "Zuletzt abgeschlossen"
           },
           "last_disapproved": {
             "name": "Zuletzt abgelehnt"
@@ -3184,6 +3702,26 @@
       "system_bonuses_select": {
         "name": "Bonus auswählen"
       },
+      "system_dashboard_admin_kid_select": {
+        "name": "Admin-Dashboard Kinderauswahl",
+        "state_attributes": {
+          "purpose": {
+            "name": "Zweck",
+            "state": {
+              "purpose_system_dashboard_admin_kid": "Systemweite Kinderauswahl für Admin-Dashboard-Karten"
+            }
+          },
+          "dashboard_helper_eid": {
+            "name": "Dashboard-Hilfsentitäts-ID"
+          },
+          "selected_kid_slug": {
+            "name": "Ausgewählte Kid Slug"
+          },
+          "selected_kid_name": {
+            "name": "Name des ausgewählten Kindes"
+          }
+        }
+      },
       "kid_dashboard_helper_chores_select": {
         "name": "UI-Dashboard-Aufgabenlisten-Assistent",
         "state_attributes": {
@@ -3394,6 +3932,10 @@
       },
       "parent_points_adjust_button": {
         "name": "{sign_label} {points_label}",
+        "sign_label": {
+          "increment": "Inkrement",
+          "decrement": "Verringern"
+        },
         "state_attributes": {
           "purpose": {
             "name": "Zweck",
@@ -3484,6 +4026,9 @@
     "shared_chore_cannot_have_kid": {
       "message": "Kind für gemeinsame Aufgaben kann nicht angegeben werden {chore_name}. Gemeinsame Aufgaben haben für alle Kinder ein Fälligkeitsdatum."
     },
+    "reward_not_found": {
+      "message": "Belohnung mit der ID '{reward_id}' nicht gefunden"
+    },
     "required_field": {
       "message": "Muss {field}bereitstellen"
     },
@@ -3495,6 +4040,18 @@
     },
     "missing_chore": {
       "message": "Es muss entweder die Aufgaben-ID oder der Aufgabenname angegeben werden."
+    },
+    "missing_chore_identifier": {
+      "message": "Es muss entweder chore_id oder chore_name angegeben werden, um die Aufgabe zu identifizieren."
+    },
+    "chore_not_found": {
+      "message": "Aufgabe mit der ID '{chore_id}' nicht gefunden."
+    },
+    "completion_criteria_immutable": {
+      "message": "Die Abschlusskriterien können nach der Erstellung einer Aufgabe nicht mehr geändert werden. Löschen Sie die Aufgabe und erstellen Sie sie neu, wenn Sie andere Abschlusskriterien benötigen."
+    },
+    "missing_reward_identifier": {
+      "message": "Es muss entweder reward_id oder reward_name angegeben werden, um die zu aktualisierende Prämie zu identifizieren."
     },
     "missing_field": {
       "message": "Das Pflichtfeld {field} fehlt in {entity}"
@@ -3510,6 +4067,36 @@
     },
     "configuration_error": {
       "message": "Konfigurationsfehler: {detail}"
+    },
+    "data_reset_confirmation_required": {
+      "message": "Sie müssen confirm_destructive auf true setzen, um mit dem Zurücksetzen der Daten fortzufahren."
+    },
+    "data_reset_kid_not_found": {
+      "message": "Kind '{kid_name}' nicht gefunden"
+    },
+    "data_reset_item_not_found": {
+      "message": "{item_type} '{item_name}' nicht gefunden"
+    },
+    "data_reset_invalid_scope": {
+      "message": "Ungültiger Gültigkeitsbereich '{scope}'. Er muss global, kid, item_type oder item sein."
+    },
+    "data_reset_invalid_item_type": {
+      "message": "Ungültiger Artikeltyp '{item_type}'. Erforderliche Werte: Kinder, Aufgaben, Belohnungen, Abzeichen, Erfolge, Herausforderungen, Strafen oder Boni."
+    },
+    "notif_title_data_reset": {
+      "message": "Transaktionsdaten zurücksetzen"
+    },
+    "notif_message_data_reset_global": {
+      "message": "Alle Laufzeitdaten wurden zurückgesetzt. Konfiguration beibehalten."
+    },
+    "notif_message_data_reset_kid": {
+      "message": "Datenreset für {kid_name}abgeschlossen. Punkte, Statistiken und Fortschritt gelöscht."
+    },
+    "notif_message_data_reset_item_type": {
+      "message": "Datenreset für alle {item_type}abgeschlossen. Laufzeitdaten gelöscht."
+    },
+    "notif_message_data_reset_item": {
+      "message": "Datenreset für {item_name}abgeschlossen. Laufzeitdaten gelöscht."
     }
   }
 }

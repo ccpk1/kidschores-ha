@@ -23,6 +23,14 @@
     "title": "⏰ Syssla snart!",
     "message": "{chore_name} ska vara inlämnad om {minutes} minuter (+{points}poäng)"
   },
+  "chore_due_reminder": {
+    "title": "⏰ Syssla snart!",
+    "message": "{chore_name} ska vara inlämnad om {minutes} minuter (+{points}poäng)"
+  },
+  "chore_due_window": {
+    "title": "🔔 Syssla ska vara klar nu",
+    "message": "{chore_name} är nu inlämnad! Slutför det inom {hours} timme(r) för att tjäna {points} poäng"
+  },
   "chore_reminder": {
     "title": "Barnsysslor: Påminnelse för väntande syssla",
     "message": "Påminnelse: Syssla {chore_name} som tagits an av {kid_name} väntar på godkännande"
@@ -101,10 +109,12 @@
   },
   "actions": {
     "approve": "Godkänna",
+    "claim": "✋ Ansök nu",
+    "complete": "Komplett",
     "disapprove": "Ogilla",
     "remind_30": "Påminn om 30 min",
+    "skip": "Hoppa",
     "approve_latest": "✅ Godkänn senaste",
-    "review_all": "👀 Recensera alla",
-    "claim": "✋ Ansök nu"
+    "review_all": "👀 Recensera alla"
   }
 }

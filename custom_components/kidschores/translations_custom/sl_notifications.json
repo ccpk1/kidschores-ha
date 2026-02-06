@@ -23,6 +23,14 @@
     "title": "⏰ Kmalu za oddajo!",
     "message": "{chore_name} je predviden čez {minutes} minut (+{points}točk)"
   },
+  "chore_due_reminder": {
+    "title": "⏰ Kmalu za oddajo!",
+    "message": "{chore_name} je predviden čez {minutes} minut (+{points}točk)"
+  },
+  "chore_due_window": {
+    "title": "🔔 Rok za opravilo",
+    "message": "Rok za oddajo {chore_name} je zdaj! Izpolnite jo v {hours} urah in si prislužite {points} točk"
+  },
   "chore_reminder": {
     "title": "Otroška opravila: Opomnik za čakajoča opravila",
     "message": "Opomnik: Naloga {chore_name} , ki jo je zahteval uporabnik {kid_name} , čaka na odobritev"
@@ -101,10 +109,12 @@
   },
   "actions": {
     "approve": "Odobritev",
+    "claim": "✋ Zahtevajte zdaj",
+    "complete": "Dokončano",
     "disapprove": "Ne odobri",
     "remind_30": "Opomni čez 30 minut",
+    "skip": "Preskoči",
     "approve_latest": "✅ Odobri najnovejše",
-    "review_all": "👀 Preglej vse",
-    "claim": "✋ Zahtevajte zdaj"
+    "review_all": "👀 Preglej vse"
   }
 }
