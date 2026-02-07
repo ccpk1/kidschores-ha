@@ -3240,7 +3240,7 @@ TRANS_KEY_CFOF_INVALID_PENALTY_COUNT: Final = "invalid_penalty_count"
 TRANS_KEY_CFOF_INVALID_PENALTY_NAME: Final = "invalid_penalty_name"
 TRANS_KEY_CFOF_INVALID_REWARD: Final = "invalid_reward"
 TRANS_KEY_CFOF_INVALID_REWARD_COUNT: Final = "invalid_reward_count"
-TRANS_KEY_CFOF_INVALID_REWARD_NAME: Final = "invalird_reward_name"
+TRANS_KEY_CFOF_INVALID_REWARD_NAME: Final = "invalid_reward_name"
 TRANS_KEY_CFOF_INVALID_REWARD_COST: Final = (
     "invalid_reward_cost"  # Reward cost must be >= 0
 )
