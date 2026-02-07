@@ -1516,7 +1516,7 @@ class ParentPointsAdjustButton(KidsChoresCoordinatorEntity, ButtonEntity):
     """
 
     _attr_has_entity_name = True
-    _attr_translation_key = const.TRANS_KEY_BUTTON_MANUAL_ADJUSTMENT_BUTTON
+    # Note: translation_key set dynamically in __init__ based on delta sign
 
     def __init__(
         self,
@@ -1544,24 +1544,33 @@ class ParentPointsAdjustButton(KidsChoresCoordinatorEntity, ButtonEntity):
         self._delta = delta
         self._points_label = str(points_label)
 
-        # Use translation keys for "Increment" / "Decrement" labels since HA auto-generates entity_id
-        # from name and strips special characters like "+" and "-".
-        # The delta value is included in the sign label for display.
-        # Examples: "Increment 1.0", "Decrement 2.0"
-        sign_label = (
-            f"Increment {abs(delta)}" if delta >= 0 else f"Decrement {abs(delta)}"
-        )
         # Slugify delta for unique_id (replace decimal point and negative sign)
         # Examples: 1.0 -> 1p0, -1.0 -> neg1p0, 10.0 -> 10p0
         delta_slug = str(abs(delta)).replace(".", "p")
         if delta < 0:
             delta_slug = f"neg{delta_slug}"
         self._attr_unique_id = f"{entry.entry_id}_{kid_id}_{delta_slug}{const.BUTTON_KC_UID_SUFFIX_PARENT_POINTS_ADJUST}"
+
+        # Pass numeric delta to translation - template handles increment/decrement text
+        # This allows proper localization of "Increment" vs "Decrement" in each language
         self._attr_translation_placeholders = {
             const.TRANS_KEY_BUTTON_ATTR_KID_NAME: kid_name,
-            const.TRANS_KEY_BUTTON_ATTR_SIGN_LABEL: sign_label,
+            const.TRANS_KEY_BUTTON_ATTR_DELTA: str(
+                abs(delta)
+            ),  # Absolute value for display
             const.TRANS_KEY_BUTTON_ATTR_POINTS_LABEL: points_label,
         }
+
+        # Use different translation key based on delta sign for proper localization
+        if delta >= 0:
+            self._attr_translation_key = (
+                f"{const.TRANS_KEY_BUTTON_MANUAL_ADJUSTMENT_BUTTON}_positive"
+            )
+        else:
+            self._attr_translation_key = (
+                f"{const.TRANS_KEY_BUTTON_MANUAL_ADJUSTMENT_BUTTON}_negative"
+            )
+
         # Moving to HA native best practice: auto-generate entity_id from unique_id + has_entity_name
         # rather than manually constructing to support HA core change 01309191283 (Jan 14, 2026)
         # self.entity_id = f"{const.BUTTON_KC_PREFIX}{kid_name}{const.BUTTON_KC_EID_SUFFIX_POINTS}_{sign_text}"
@@ -1660,8 +1669,14 @@ class ParentPointsAdjustButton(KidsChoresCoordinatorEntity, ButtonEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        """Return extra state attributes."""
+        """Return extra state attributes.
+
+        Exposes delta value for dashboard templates and automations to access
+        the adjustment amount without parsing the button name.
+        """
         return {
             const.ATTR_PURPOSE: const.TRANS_KEY_PURPOSE_BUTTON_POINTS_ADJUST,
             const.ATTR_KID_NAME: self._kid_name,
+            "delta": self._delta,
+            "kid_id": self._kid_id,
         }

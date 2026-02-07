@@ -21,9 +21,9 @@ on:
   workflow_dispatch:
     inputs:
       branch:
-        description: "Branch to sync translations for (leave empty for current branch)"
-        required: false
-        default: ""
+        description: "Branch to sync translations for"
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -37,6 +37,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch || github.ref_name }}
 
       # STEP 1: Upload Sources
       - name: Upload Sources
@@ -74,7 +76,7 @@ jobs:
           create_pull_request: true
           pull_request_title: "chore(l10n): sync translations from Crowdin"
           commit_message: "chore(l10n): sync translations from Crowdin"
-          pull_request_base_branch_name: ${{ github.ref_name }}
+          pull_request_base_branch_name: ${{ inputs.branch || github.ref_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_PROJECT_ID }}

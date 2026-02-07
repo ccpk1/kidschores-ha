@@ -3931,7 +3931,7 @@
         }
       },
       "parent_points_adjust_button": {
-        "name": "Säädä {points_label}",
+        "name": "Säädä {delta} {points_label}",
         "state_attributes": {
           "purpose": {
             "name": "Tarkoitus",
@@ -3941,8 +3941,20 @@
           },
           "kid_name": {
             "name": "Lapsen nimi"
+          },
+          "delta": {
+            "name": "Säätömäärä"
+          },
+          "points_label": {
+            "name": "Pistetyyppi"
           }
         }
+      },
+      "parent_points_adjust_button_positive": {
+        "name": "Lisää {delta} {points_label}"
+      },
+      "parent_points_adjust_button_negative": {
+        "name": "Vähennä {delta} {points_label}"
       }
     }
   },
