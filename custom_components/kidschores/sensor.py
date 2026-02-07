@@ -4578,51 +4578,16 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
         challenges_attr.sort(key=lambda c: (c.get(const.ATTR_NAME) or "").lower())
 
         # Point adjustment buttons for this kid
-        # NOTE: This section MUST iterate entity_registry because we need to find ALL buttons
-        # matching a prefix pattern (not a single unique_id). This is acceptable O(n)
-        # because it only runs once per dashboard refresh, not per-entity.
         points_buttons_attr = []
         if entity_registry:
-            # Find all point adjustment buttons for this kid
-            # New format: {entry_id}_{kid_id}_{slugified_delta}_parent_points_adjust_button
-            button_suffix = const.BUTTON_KC_UID_SUFFIX_PARENT_POINTS_ADJUST
-            temp_buttons = []
-            for entity in entity_registry.entities.values():
-                if (
-                    button_suffix in entity.unique_id
-                    and entity.unique_id.startswith(
-                        f"{self._entry.entry_id}_{self._kid_id}_"
-                    )
-                    and entity.domain == "button"
-                ):
-                    # Extract delta from unique_id
-                    # Format: {entry_id}_{kid_id}_{slugified_delta}_parent_points_adjust_button
-                    try:
-                        prefix_part = entity.unique_id.split(button_suffix)[0]
-                        delta_slug = prefix_part.split("_")[-1]
-                        # Convert slugified delta back to float
-                        delta_str = delta_slug.replace("neg", "-").replace("p", ".")
-                        delta_value = float(delta_str)
-                        # Format display name (keep + for positive, - for negative)
-                        if delta_value >= 0:
-                            display_name = f"Points +{delta_str}"
-                        else:
-                            display_name = f"Points {delta_str}"
-                    except (ValueError, IndexError):
-                        delta_value = 0
-                        display_name = "Points +0"
-                    temp_buttons.append(
-                        {
-                            "eid": entity.entity_id,
-                            "name": display_name,
-                            "delta": delta_value,
-                        }
-                    )
-            # Sort by delta value (negatives first, then positives, all ascending)
-            temp_buttons.sort(key=lambda x: cast("int", x["delta"]))
-            # Remove the delta key used for sorting
+            from .helpers.entity_helpers import get_points_adjustment_buttons
+
+            buttons = get_points_adjustment_buttons(
+                self.hass, self._entry.entry_id, self._kid_id
+            )
+            # Remove delta key used internally for sorting
             points_buttons_attr = [
-                {"eid": btn["eid"], "name": btn["name"]} for btn in temp_buttons
+                {"eid": b["eid"], "name": b["name"]} for b in buttons
             ]
 
         # Get kid's preferred dashboard language (default to English)

@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, Any, cast
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_registry import (
     RegistryEntry,
+    async_entries_for_config_entry,
     async_get as async_get_entity_registry,
 )
 from homeassistant.helpers.label_registry import async_get as async_get_label_registry
@@ -99,16 +100,103 @@ def get_integration_entities(
         all_entities = get_integration_entities(hass, entry.entry_id)
     """
     entity_registry = async_get_entity_registry(hass)
-    entities = [
-        entry
-        for entry in entity_registry.entities.values()
-        if entry.config_entry_id == entry_id
-    ]
+
+    # Get only entities from THIS config entry (not all system entities)
+    entities = async_entries_for_config_entry(entity_registry, entry_id)
 
     if platform:
         entities = [e for e in entities if e.domain == platform]
 
     return entities
+
+
+def get_points_adjustment_buttons(
+    hass: HomeAssistant,
+    entry_id: str,
+    kid_id: str,
+) -> list[dict[str, Any]]:
+    """Get all point adjustment buttons for a kid with parsed display info.
+
+    Searches for buttons matching the pattern:
+    {entry_id}_{kid_id}_{slugified_delta}_parent_points_adjust_button
+
+    Uses config entry filtering for performance (O(n) where n = our entities only).
+    Returns sorted list by delta value (negatives first, then positives).
+
+    Args:
+        hass: HomeAssistant instance.
+        entry_id: Config entry ID.
+        kid_id: Kid's internal_id (UUID).
+
+    Returns:
+        List of dicts sorted by delta value:
+        [
+            {"eid": "button.xyz", "name": "Points +5", "delta": 5.0},
+            {"eid": "button.abc", "name": "Points -2", "delta": -2.0},
+        ]
+
+    Example:
+        buttons = get_points_adjustment_buttons(hass, entry.entry_id, kid_id)
+        button_eids = [b["eid"] for b in buttons]
+
+    Note:
+        Consolidates button parsing logic previously duplicated in sensor.py
+        and button.py. No type guards needed - we control all our unique_ids.
+    """
+    from homeassistant.helpers import entity_registry as er
+
+    entity_registry = er.async_get(hass)
+
+    # Get only entities from THIS config entry (not all system entities)
+    entities = er.async_entries_for_config_entry(entity_registry, entry_id)
+
+    button_suffix = const.BUTTON_KC_UID_SUFFIX_PARENT_POINTS_ADJUST
+    prefix_pattern = f"{entry_id}_{kid_id}_"
+    temp_buttons = []
+
+    for entity in entities:
+        # Filter to buttons with the parent points adjust suffix
+        if (
+            entity.domain != "button"
+            or button_suffix not in entity.unique_id
+            or not entity.unique_id.startswith(prefix_pattern)
+        ):
+            continue
+
+        # Extract delta from unique_id
+        # Format: {entry_id}_{kid_id}_{slugified_delta}_parent_points_adjust_button
+        try:
+            prefix_part = entity.unique_id.split(button_suffix)[0]
+            delta_slug = prefix_part.split("_")[-1]
+            # Convert slugified delta back to float (replace 'neg' prefix and 'p' decimal)
+            delta_str = delta_slug.replace("neg", "-").replace("p", ".")
+            delta_value = float(delta_str)
+
+            # Format display name (keep + for positive, - for negative)
+            if delta_value >= 0:
+                display_name = f"Points +{delta_str}"
+            else:
+                display_name = f"Points {delta_str}"
+
+        except (ValueError, IndexError):
+            # Fallback for malformed unique_ids
+            delta_value = 0
+            display_name = "Points +0"
+
+        temp_buttons.append(
+            {
+                "eid": entity.entity_id,
+                "name": display_name,
+                "delta": delta_value,
+            }
+        )
+
+    # Sort by delta value (negatives first, then positives, all ascending)
+    from typing import cast
+
+    temp_buttons.sort(key=lambda x: cast("float", x["delta"]))
+
+    return temp_buttons
 
 
 def parse_entity_reference(
@@ -216,10 +304,10 @@ def remove_entities_by_item_id(
     item_id_str = str(item_id)
     removed_count = 0
 
-    for entity_entry in list(ent_reg.entities.values()):
-        if entity_entry.config_entry_id != entry_id:
-            continue
+    # Get only entities from THIS config entry (not all system entities)
+    entities = async_entries_for_config_entry(ent_reg, entry_id)
 
+    for entity_entry in entities:
         unique_id = str(entity_entry.unique_id)
 
         # Safety: verify our entry prefix
@@ -270,20 +358,49 @@ def get_first_kidschores_entry(hass: HomeAssistant) -> str | None:
     return None
 
 
-def get_entity_id_from_unique_id(hass: HomeAssistant, unique_id: str) -> str | None:
-    """Get entity_id from a unique_id.
+def get_entity_id_from_unique_id(
+    hass: HomeAssistant,
+    unique_id: str,
+    domain: str | None = None,
+) -> str | None:
+    """Get entity_id from a unique_id using registry lookup.
+
+    Uses Home Assistant's built-in entity registry lookup for O(1) performance
+    when domain is known, or searches all common domains as fallback.
 
     Args:
         hass: HomeAssistant instance
         unique_id: The unique_id to look up
+        domain: Optional entity domain (sensor, button, etc.) for faster lookup.
+            If None, searches all common KidsChores domains.
 
     Returns:
         entity_id string, or None if not found
+
+    Example:
+        # Fast path with known domain
+        eid = get_entity_id_from_unique_id(hass, "abc-123", "sensor")
+
+        # Slower fallback without domain
+        eid = get_entity_id_from_unique_id(hass, "abc-123")
+
+    Note:
+        Optimized from O(n) iteration to O(1) registry lookup when domain known.
+        For unknown domains, searches common KidsChores entity types.
     """
     entity_registry = async_get_entity_registry(hass)
-    for entry in entity_registry.entities.values():
-        if entry.unique_id == unique_id:
-            return entry.entity_id
+
+    if domain:
+        # Fast path: O(1) direct lookup if domain known
+        return entity_registry.async_get_entity_id(domain, const.DOMAIN, unique_id)
+
+    # Fallback: search all common KidsChores domains (rare case)
+    # Only searches domains we actually use in this integration
+    for domain_type in ["sensor", "button", "select", "datetime", "calendar"]:
+        eid = entity_registry.async_get_entity_id(domain_type, const.DOMAIN, unique_id)
+        if eid:
+            return eid
+
     return None
 
 
@@ -497,9 +614,7 @@ async def remove_entities_by_validator(
         for platform in platforms:
             entities_to_scan.extend(get_integration_entities(hass, entry_id, platform))
     else:
-        entities_to_scan = [
-            e for e in ent_reg.entities.values() if e.config_entry_id == entry_id
-        ]
+        entities_to_scan = get_integration_entities(hass, entry_id)
 
     for entity_entry in list(entities_to_scan):
         unique_id = str(entity_entry.unique_id)
