@@ -3417,6 +3417,7 @@ TRANS_KEY_BUTTON_PENALTY_BUTTON: Final = "parent_penalty_apply_button"
 # Button Attributes Translation Keys
 TRANS_KEY_BUTTON_ATTR_BONUS_NAME: Final = "bonus_name"
 TRANS_KEY_BUTTON_ATTR_CHORE_NAME: Final = "chore_name"
+TRANS_KEY_BUTTON_ATTR_DELTA: Final = "delta"
 TRANS_KEY_BUTTON_ATTR_KID_NAME: Final = "kid_name"
 TRANS_KEY_BUTTON_ATTR_PENALTY_NAME: Final = "penalty_name"
 TRANS_KEY_BUTTON_ATTR_POINTS_LABEL: Final = "points_label"
