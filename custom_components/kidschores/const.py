@@ -2600,7 +2600,7 @@ SERVICE_FIELD_CHORE_CRUD_DUE_REMINDER_OFFSET: Final = "due_reminder_offset"
 
 # Reward service fields (CRUD + workflow)
 SERVICE_FIELD_REWARD_ID: Final = "id"
-SERVICE_FIELD_REWARD_NAME: Final = "name"
+SERVICE_FIELD_REWARD_NAME: Final = "reward_name"
 SERVICE_FIELD_REWARD_COST: Final = "cost"
 SERVICE_FIELD_REWARD_COST_OVERRIDE: Final = "cost_override"
 SERVICE_FIELD_REWARD_DESCRIPTION: Final = "description"
