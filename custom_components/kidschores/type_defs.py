@@ -884,6 +884,7 @@ class ChoreClaimedEvent(TypedDict, total=False):
 
     kid_id: str  # Required
     chore_id: str  # Required
+    kid_name: str  # Required: For notification display
     chore_name: str  # Required
     user_name: str  # Required (who initiated claim)
     chore_labels: list[str]  # For badge criteria filtering (e.g., "kitchen", "daily")
@@ -966,6 +967,7 @@ class ChoreOverdueEvent(TypedDict, total=False):
 
     kid_id: str  # Required
     chore_id: str  # Required
+    kid_name: str  # Required: For notification display
     chore_name: str  # Required
     days_overdue: int  # Required
     due_date: str  # Required: ISO format
@@ -985,6 +987,22 @@ class ChoreRescheduledEvent(TypedDict, total=False):
     old_due_date: str  # Required: ISO format
     new_due_date: str  # Required: ISO format
     rescheduled_by: str  # Required: parent_name or "system"
+
+
+class RewardClaimedEvent(TypedDict, total=False):
+    """Event payload for SIGNAL_SUFFIX_REWARD_CLAIMED.
+
+    Emitted by: RewardManager.claim()
+    Consumed by: NotificationManager (parent notification)
+    """
+
+    kid_id: str  # Required
+    reward_id: str  # Required
+    kid_name: str  # Required: For notification display
+    reward_name: str  # Required
+    points: float  # Required: Cost of reward
+    actions: list[dict[str, str]]  # Notification action buttons
+    extra_data: dict[str, str]  # Notification extra data
 
 
 class RewardApprovedEvent(TypedDict, total=False):
@@ -1031,6 +1049,7 @@ class BadgeEarnedEvent(TypedDict, total=False):
     # Required fields
     kid_id: str
     badge_id: str
+    kid_name: str  # For notification display
     badge_name: str
 
     # The Award Manifest (all handled by listeners, not GamificationManager)
@@ -1063,6 +1082,7 @@ class AchievementUnlockedEvent(TypedDict, total=False):
 
     kid_id: str  # Required
     achievement_id: str  # Required
+    kid_name: str  # Required: For notification display
     achievement_name: str  # Required
     milestone_reached: str  # Required: Description of what was achieved
 
@@ -1076,6 +1096,7 @@ class ChallengeCompletedEvent(TypedDict, total=False):
 
     kid_id: str  # Required
     challenge_id: str  # Required
+    kid_name: str  # Required: For notification display
     challenge_name: str  # Required
     points_awarded: float  # Required
     completion_date: str  # Required: ISO format

@@ -26,6 +26,7 @@ from homeassistant.exceptions import HomeAssistantError
 
 from .. import const, data_builders as db
 from ..engines.gamification_engine import GamificationEngine
+from ..helpers import entity_helpers as eh
 from ..helpers.entity_helpers import get_item_id_by_name, remove_entities_by_item_id
 from ..utils.dt_utils import dt_add_interval, dt_next_schedule, dt_today_iso
 from .base_manager import BaseManager
@@ -396,6 +397,7 @@ class GamificationManager(BaseManager):
             const.SIGNAL_SUFFIX_ACHIEVEMENT_EARNED,
             kid_id=kid_id,
             achievement_id=achievement_id,
+            kid_name=eh.get_kid_name_by_id(self.coordinator, kid_id) or "",
             achievement_name=achievement_info.get(const.DATA_ACHIEVEMENT_NAME, ""),
             achievement_points=extra_points,
         )
@@ -455,6 +457,7 @@ class GamificationManager(BaseManager):
             const.SIGNAL_SUFFIX_CHALLENGE_COMPLETED,
             kid_id=kid_id,
             challenge_id=challenge_id,
+            kid_name=eh.get_kid_name_by_id(self.coordinator, kid_id) or "",
             challenge_name=challenge_info.get(const.DATA_CHALLENGE_NAME, ""),
             challenge_points=extra_points,
         )
@@ -853,6 +856,7 @@ class GamificationManager(BaseManager):
                 const.SIGNAL_SUFFIX_BADGE_EARNED,
                 kid_id=kid_id,
                 badge_id=badge_id,
+                kid_name=eh.get_kid_name_by_id(self.coordinator, kid_id) or "",
                 badge_name=badge_data.get(const.DATA_BADGE_NAME, "Unknown"),
                 points=points,
                 multiplier=multiplier,
