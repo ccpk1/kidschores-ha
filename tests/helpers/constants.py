@@ -555,11 +555,13 @@ from custom_components.kidschores.const import (
     SERVICE_FIELD_PARENT_NAME,
     SERVICE_FIELD_REWARD_ID,
     SERVICE_FIELD_REWARD_NAME,
-    SERVICE_FIELD_REWARD_COST,
     SERVICE_FIELD_REWARD_COST_OVERRIDE,
-    SERVICE_FIELD_REWARD_DESCRIPTION,
-    SERVICE_FIELD_REWARD_ICON,
-    SERVICE_FIELD_REWARD_LABELS,
+    SERVICE_FIELD_REWARD_CRUD_ID,
+    SERVICE_FIELD_REWARD_CRUD_NAME,
+    SERVICE_FIELD_REWARD_CRUD_COST,
+    SERVICE_FIELD_REWARD_CRUD_DESCRIPTION,
+    SERVICE_FIELD_REWARD_CRUD_ICON,
+    SERVICE_FIELD_REWARD_CRUD_LABELS,
     # =========================================================================
     # LEGACY CONF KEYS (for migration tests)
     # =========================================================================

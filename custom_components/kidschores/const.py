@@ -2598,14 +2598,18 @@ SERVICE_FIELD_CHORE_CRUD_DUE_DATE: Final = "due_date"
 SERVICE_FIELD_CHORE_CRUD_DUE_WINDOW_OFFSET: Final = "due_window_offset"
 SERVICE_FIELD_CHORE_CRUD_DUE_REMINDER_OFFSET: Final = "due_reminder_offset"
 
-# Reward service fields (CRUD + workflow)
+# Reward service fields (workflow) - used by redeem_reward, approve_reward, disapprove_reward
 SERVICE_FIELD_REWARD_ID: Final = "id"
 SERVICE_FIELD_REWARD_NAME: Final = "reward_name"
-SERVICE_FIELD_REWARD_COST: Final = "cost"
 SERVICE_FIELD_REWARD_COST_OVERRIDE: Final = "cost_override"
-SERVICE_FIELD_REWARD_DESCRIPTION: Final = "description"
-SERVICE_FIELD_REWARD_ICON: Final = "icon"
-SERVICE_FIELD_REWARD_LABELS: Final = "labels"
+
+# Reward service fields (CRUD) - user-friendly names for service calls
+SERVICE_FIELD_REWARD_CRUD_ID: Final = "id"
+SERVICE_FIELD_REWARD_CRUD_NAME: Final = "name"
+SERVICE_FIELD_REWARD_CRUD_COST: Final = "cost"
+SERVICE_FIELD_REWARD_CRUD_DESCRIPTION: Final = "description"
+SERVICE_FIELD_REWARD_CRUD_ICON: Final = "icon"
+SERVICE_FIELD_REWARD_CRUD_LABELS: Final = "labels"
 
 # Penalty service fields
 SERVICE_FIELD_PENALTY_NAME: Final = "penalty_name"

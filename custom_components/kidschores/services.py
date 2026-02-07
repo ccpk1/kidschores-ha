@@ -210,38 +210,39 @@ MANAGE_SHADOW_LINK_SCHEMA = vol.Schema(
 # NOTE: cost is REQUIRED for create_reward - no invisible defaults for automations
 CREATE_REWARD_SCHEMA = vol.Schema(
     {
-        vol.Required(const.SERVICE_FIELD_REWARD_NAME): cv.string,
-        vol.Required(const.SERVICE_FIELD_REWARD_COST): vol.Coerce(float),
-        vol.Optional(const.SERVICE_FIELD_REWARD_DESCRIPTION, default=""): cv.string,
+        vol.Required(const.SERVICE_FIELD_REWARD_CRUD_NAME): cv.string,
+        vol.Required(const.SERVICE_FIELD_REWARD_CRUD_COST): vol.Coerce(float),
         vol.Optional(
-            const.SERVICE_FIELD_REWARD_ICON, default=const.SENTINEL_EMPTY
+            const.SERVICE_FIELD_REWARD_CRUD_DESCRIPTION, default=""
+        ): cv.string,
+        vol.Optional(
+            const.SERVICE_FIELD_REWARD_CRUD_ICON, default=const.SENTINEL_EMPTY
         ): vol.Any(None, "", cv.icon),
-        vol.Optional(const.SERVICE_FIELD_REWARD_LABELS, default=[]): vol.All(
+        vol.Optional(const.SERVICE_FIELD_REWARD_CRUD_LABELS, default=[]): vol.All(
             cv.ensure_list, [cv.string]
         ),
     }
 )
 
-# NOTE: Either reward_id OR reward_name must be provided (resolved in handler)
-# reward_name is user-friendly; reward_id is for advanced automation use
+# NOTE: Either reward_id OR name must be provided (resolved in handler)
 UPDATE_REWARD_SCHEMA = vol.Schema(
     {
-        vol.Optional(const.SERVICE_FIELD_REWARD_ID): cv.string,
-        vol.Optional(const.SERVICE_FIELD_REWARD_NAME): cv.string,
-        vol.Optional(const.SERVICE_FIELD_REWARD_COST): vol.Coerce(float),
-        vol.Optional(const.SERVICE_FIELD_REWARD_DESCRIPTION): cv.string,
-        vol.Optional(const.SERVICE_FIELD_REWARD_ICON): cv.icon,
-        vol.Optional(const.SERVICE_FIELD_REWARD_LABELS): vol.All(
+        vol.Optional(const.SERVICE_FIELD_REWARD_CRUD_ID): cv.string,
+        vol.Optional(const.SERVICE_FIELD_REWARD_CRUD_NAME): cv.string,
+        vol.Optional(const.SERVICE_FIELD_REWARD_CRUD_COST): vol.Coerce(float),
+        vol.Optional(const.SERVICE_FIELD_REWARD_CRUD_DESCRIPTION): cv.string,
+        vol.Optional(const.SERVICE_FIELD_REWARD_CRUD_ICON): vol.Any(None, "", cv.icon),
+        vol.Optional(const.SERVICE_FIELD_REWARD_CRUD_LABELS): vol.All(
             cv.ensure_list, [cv.string]
         ),
     }
 )
 
-# NOTE: Either reward_id OR reward_name must be provided (resolved in handler)
+# NOTE: Either reward_id OR name must be provided (resolved in handler)
 DELETE_REWARD_SCHEMA = vol.Schema(
     {
-        vol.Optional(const.SERVICE_FIELD_REWARD_ID): cv.string,
-        vol.Optional(const.SERVICE_FIELD_REWARD_NAME): cv.string,
+        vol.Optional(const.SERVICE_FIELD_REWARD_CRUD_ID): cv.string,
+        vol.Optional(const.SERVICE_FIELD_REWARD_CRUD_NAME): cv.string,
     }
 )
 
@@ -423,11 +424,11 @@ _SERVICE_TO_CHORE_DATA_MAPPING: dict[str, str] = {
 # This bridges user-friendly service API → internal storage keys
 # NOTE: Now matches chore pattern (DATA_* keys directly)
 _SERVICE_TO_REWARD_DATA_MAPPING: dict[str, str] = {
-    const.SERVICE_FIELD_REWARD_NAME: const.DATA_REWARD_NAME,
-    const.SERVICE_FIELD_REWARD_COST: const.DATA_REWARD_COST,
-    const.SERVICE_FIELD_REWARD_DESCRIPTION: const.DATA_REWARD_DESCRIPTION,
-    const.SERVICE_FIELD_REWARD_ICON: const.DATA_REWARD_ICON,
-    const.SERVICE_FIELD_REWARD_LABELS: const.DATA_REWARD_LABELS,
+    const.SERVICE_FIELD_REWARD_CRUD_NAME: const.DATA_REWARD_NAME,
+    const.SERVICE_FIELD_REWARD_CRUD_COST: const.DATA_REWARD_COST,
+    const.SERVICE_FIELD_REWARD_CRUD_DESCRIPTION: const.DATA_REWARD_DESCRIPTION,
+    const.SERVICE_FIELD_REWARD_CRUD_ICON: const.DATA_REWARD_ICON,
+    const.SERVICE_FIELD_REWARD_CRUD_LABELS: const.DATA_REWARD_LABELS,
 }
 
 
@@ -1458,9 +1459,9 @@ def async_setup_services(hass: HomeAssistant):
         Updates an existing reward using data_builders.build_reward() for consistent
         field handling with the Options Flow UI. Only provided fields are updated.
 
-        Accepts either reward_id OR reward_name to identify the reward:
-        - reward_name: User-friendly, looks up ID by name (recommended)
-        - reward_id: Direct UUID for advanced automation use
+        Accepts either id OR name to identify the reward:
+        - name: User-friendly, looks up ID by name (recommended)
+        - id: Direct UUID for advanced automation use
 
         Args:
             call: Service call with reward identifier and optional update fields
@@ -1470,7 +1471,7 @@ def async_setup_services(hass: HomeAssistant):
 
         Raises:
             HomeAssistantError: If reward not found, validation fails, or neither
-                reward_id nor reward_name provided
+                id nor name provided
         """
         from . import data_builders as db
         from .data_builders import EntityValidationError
@@ -1484,11 +1485,11 @@ def async_setup_services(hass: HomeAssistant):
 
         coordinator = _get_coordinator_by_entry_id(hass, entry_id)
 
-        # Resolve reward: either reward_id or reward_name must be provided
-        reward_id = call.data.get(const.SERVICE_FIELD_REWARD_ID)
-        reward_name = call.data.get(const.SERVICE_FIELD_REWARD_NAME)
+        # Resolve reward: either id or name must be provided
+        reward_id = call.data.get(const.SERVICE_FIELD_REWARD_CRUD_ID)
+        reward_name = call.data.get(const.SERVICE_FIELD_REWARD_CRUD_NAME)
 
-        # If reward_name provided without reward_id, look up the ID
+        # If name provided without id, look up the ID
         if not reward_id and reward_name:
             try:
                 reward_id = get_item_id_or_raise(
@@ -1572,9 +1573,9 @@ def async_setup_services(hass: HomeAssistant):
 
         Deletes a reward and cleans up all references.
 
-        Accepts either reward_id OR reward_name to identify the reward:
-        - reward_name: User-friendly, looks up ID by name (recommended)
-        - reward_id: Direct UUID for advanced automation use
+        Accepts either id OR name to identify the reward:
+        - name: User-friendly, looks up ID by name (recommended)
+        - id: Direct UUID for advanced automation use
 
         Args:
             call: Service call with reward identifier
@@ -1584,7 +1585,7 @@ def async_setup_services(hass: HomeAssistant):
 
         Raises:
             HomeAssistantError: If reward not found or neither
-                reward_id nor reward_name provided
+                id nor name provided
         """
         entry_id = get_first_kidschores_entry(hass)
         if not entry_id:
@@ -1595,11 +1596,11 @@ def async_setup_services(hass: HomeAssistant):
 
         coordinator = _get_coordinator_by_entry_id(hass, entry_id)
 
-        # Resolve reward: either reward_id or reward_name must be provided
-        reward_id = call.data.get(const.SERVICE_FIELD_REWARD_ID)
-        reward_name = call.data.get(const.SERVICE_FIELD_REWARD_NAME)
+        # Resolve reward: either id or name must be provided
+        reward_id = call.data.get(const.SERVICE_FIELD_REWARD_CRUD_ID)
+        reward_name = call.data.get(const.SERVICE_FIELD_REWARD_CRUD_NAME)
 
-        # If reward_name provided without reward_id, look up the ID
+        # If name provided without id, look up the ID
         if not reward_id and reward_name:
             try:
                 reward_id = get_item_id_or_raise(

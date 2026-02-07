@@ -177,6 +177,12 @@ async def init_integration(
     """
     mock_config_entry.add_to_hass(hass)
 
+    # Set up lovelace before our integration (it's a dependency)
+    from homeassistant.setup import async_setup_component
+
+    assert await async_setup_component(hass, "lovelace", {})
+    await hass.async_block_till_done()
+
     # Patch storage to avoid filesystem access (using HA's Store directly)
     with patch(
         "homeassistant.helpers.storage.Store.async_load",

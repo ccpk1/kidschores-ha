@@ -642,7 +642,7 @@ class TestDueDateReminders:
             chore_info["per_kid_due_dates"] = {}
         chore_info["per_kid_due_dates"][kid_id] = due_in_25_min.isoformat()
         # Enable reminders for this chore (per-chore control v0.5.0+)
-        chore_info["notify_on_reminder"] = True
+        chore_info["notify_due_reminder"] = True
         coordinator._persist()
 
         # Track notifications to kid
@@ -699,7 +699,7 @@ class TestDueDateReminders:
             chore_info["per_kid_due_dates"] = {}
         chore_info["per_kid_due_dates"][kid_id] = due_in_25_min.isoformat()
         # Enable reminders for this chore (per-chore control v0.5.0+)
-        chore_info["notify_on_reminder"] = True
+        chore_info["notify_due_reminder"] = True
         coordinator._persist()
 
         notifications_count = 0
@@ -868,7 +868,7 @@ class TestDueDateReminders:
         chore_info["per_kid_due_dates"][kid_id] = due_in_50_min.isoformat()
 
         # Set custom reminder offset (1 hour before due)
-        chore_info["notify_on_reminder"] = True
+        chore_info["notify_due_reminder"] = True
         chore_info["chore_due_reminder_offset"] = "1h"
         coordinator._persist()
 

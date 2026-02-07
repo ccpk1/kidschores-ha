@@ -1399,12 +1399,18 @@ class ChoreManager(BaseManager):
             time_until_due = entry["time_until_due"]
             hours_remaining = max(0, int(time_until_due.total_seconds() / 3600))
 
+            kid_id = entry["kid_id"]
             chore_name = chore_info.get(const.DATA_CHORE_NAME, "Unknown Chore")
             points = chore_info.get(const.DATA_CHORE_DEFAULT_POINTS, 0)
+            
+            # Get kid name for signal emission
+            kid_info = self._coordinator.kids_data.get(kid_id, {})
+            kid_name = kid_info.get(const.DATA_KID_NAME, "Unknown")
 
             self.emit(
                 const.SIGNAL_SUFFIX_CHORE_DUE_WINDOW,
-                kid_id=entry["kid_id"],
+                kid_id=kid_id,
+                kid_name=kid_name,
                 chore_id=entry["chore_id"],
                 chore_name=chore_name,
                 hours=hours_remaining,
@@ -1431,12 +1437,18 @@ class ChoreManager(BaseManager):
             time_until_due = entry["time_until_due"]
             minutes_remaining = max(0, int(time_until_due.total_seconds() / 60))
 
+            kid_id = entry["kid_id"]
             chore_name = chore_info.get(const.DATA_CHORE_NAME, "Unknown Chore")
             points = chore_info.get(const.DATA_CHORE_DEFAULT_POINTS, 0)
+            
+            # Get kid name for signal emission
+            kid_info = self._coordinator.kids_data.get(kid_id, {})
+            kid_name = kid_info.get(const.DATA_KID_NAME, "Unknown")
 
             self.emit(
                 const.SIGNAL_SUFFIX_CHORE_DUE_REMINDER,
-                kid_id=entry["kid_id"],
+                kid_id=kid_id,
+                kid_name=kid_name,
                 chore_id=entry["chore_id"],
                 chore_name=chore_name,
                 minutes=minutes_remaining,
