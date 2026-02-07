@@ -30,6 +30,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.util import dt as dt_util
 
 from .. import const, data_builders as db
+from ..helpers import entity_helpers as eh
 from ..helpers.entity_helpers import remove_entities_by_item_id
 from .base_manager import BaseManager
 from .notification_manager import NotificationManager
@@ -357,6 +358,7 @@ class RewardManager(BaseManager):
             const.SIGNAL_SUFFIX_REWARD_CLAIMED,
             kid_id=kid_id,
             reward_id=reward_id,
+            kid_name=eh.get_kid_name_by_id(self.coordinator, kid_id) or "",
             reward_name=reward_info[const.DATA_REWARD_NAME],
             points=reward_info[const.DATA_REWARD_COST],
             actions=actions,

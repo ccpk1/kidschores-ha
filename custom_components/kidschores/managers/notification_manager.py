@@ -1525,15 +1525,22 @@ class NotificationManager(BaseManager):
         kid_id = payload.get("kid_id", "")
         badge_id = payload.get("badge_id", "")
         badge_name = payload.get("badge_name", "Unknown Badge")
+        kid_name = payload.get("kid_name", "")
 
         if not kid_id:
             return
 
-        kid_info = self.coordinator.kids_data.get(kid_id)
-        if not kid_info:
-            return
-
-        kid_name = kid_info.get(const.DATA_KID_NAME, "")
+        if not kid_name:
+            const.LOGGER.warning(
+                "BADGE_EARNED notification missing kid_name in payload for kid_id=%s",
+                kid_id,
+            )
+            # Fallback to lookup
+            kid_info = self.coordinator.kids_data.get(kid_id)
+            if kid_info:
+                kid_name = kid_info.get(const.DATA_KID_NAME, "")
+            if not kid_name:
+                return
         extra_data = {const.DATA_KID_ID: kid_id, const.DATA_BADGE_ID: badge_id}
 
         # Notify kid
@@ -1574,15 +1581,22 @@ class NotificationManager(BaseManager):
         kid_id = payload.get("kid_id", "")
         achievement_id = payload.get("achievement_id", "")
         achievement_name = payload.get("achievement_name", "Unknown Achievement")
+        kid_name = payload.get("kid_name", "")
 
         if not kid_id:
             return
 
-        kid_info = self.coordinator.kids_data.get(kid_id)
-        if not kid_info:
-            return
-
-        kid_name = kid_info.get(const.DATA_KID_NAME, "")
+        if not kid_name:
+            const.LOGGER.warning(
+                "ACHIEVEMENT_EARNED notification missing kid_name in payload for kid_id=%s",
+                kid_id,
+            )
+            # Fallback to lookup
+            kid_info = self.coordinator.kids_data.get(kid_id)
+            if kid_info:
+                kid_name = kid_info.get(const.DATA_KID_NAME, "")
+            if not kid_name:
+                return
         extra_data = {
             const.DATA_KID_ID: kid_id,
             const.DATA_ACHIEVEMENT_ID: achievement_id,
@@ -1629,15 +1643,22 @@ class NotificationManager(BaseManager):
         kid_id = payload.get("kid_id", "")
         challenge_id = payload.get("challenge_id", "")
         challenge_name = payload.get("challenge_name", "Unknown Challenge")
+        kid_name = payload.get("kid_name", "")
 
         if not kid_id:
             return
 
-        kid_info = self.coordinator.kids_data.get(kid_id)
-        if not kid_info:
-            return
-
-        kid_name = kid_info.get(const.DATA_KID_NAME, "")
+        if not kid_name:
+            const.LOGGER.warning(
+                "CHALLENGE_COMPLETED notification missing kid_name in payload for kid_id=%s",
+                kid_id,
+            )
+            # Fallback to lookup
+            kid_info = self.coordinator.kids_data.get(kid_id)
+            if kid_info:
+                kid_name = kid_info.get(const.DATA_KID_NAME, "")
+            if not kid_name:
+                return
         extra_data = {const.DATA_KID_ID: kid_id, const.DATA_CHALLENGE_ID: challenge_id}
 
         # Notify kid
@@ -1703,14 +1724,21 @@ class NotificationManager(BaseManager):
         ):
             return
 
-        kid_info = self.coordinator.kids_data.get(kid_id)
-        if not kid_info:
-            return
-
         chore_name = payload.get("chore_name") or chore_info.get(
             const.DATA_CHORE_NAME, ""
         )
-        kid_name = kid_info.get(const.DATA_KID_NAME, "")
+        kid_name = payload.get("kid_name", "")
+        if not kid_name:
+            const.LOGGER.warning(
+                "CHORE_CLAIMED notification missing kid_name in payload for kid_id=%s",
+                kid_id,
+            )
+            # Fallback to lookup
+            kid_info = self.coordinator.kids_data.get(kid_id)
+            if kid_info:
+                kid_name = kid_info.get(const.DATA_KID_NAME, "")
+            if not kid_name:
+                return
         chore_points = chore_info.get(
             const.DATA_CHORE_DEFAULT_POINTS, const.DEFAULT_ZERO
         )
@@ -1782,15 +1810,22 @@ class NotificationManager(BaseManager):
         reward_name = payload.get("reward_name", "Unknown Reward")
         points = payload.get("points", 0)
         notif_id = payload.get("notif_id", "")
+        kid_name = payload.get("kid_name", "")
 
         if not kid_id:
             return
 
-        kid_info = self.coordinator.kids_data.get(kid_id)
-        if not kid_info:
-            return
-
-        kid_name = kid_info.get(const.DATA_KID_NAME, "")
+        if not kid_name:
+            const.LOGGER.warning(
+                "REWARD_CLAIMED notification missing kid_name in payload for kid_id=%s",
+                kid_id,
+            )
+            # Fallback to lookup
+            kid_info = self.coordinator.kids_data.get(kid_id)
+            if kid_info:
+                kid_name = kid_info.get(const.DATA_KID_NAME, "")
+            if not kid_name:
+                return
 
         # Build actions for parents
         actions = self.build_reward_actions(kid_id, reward_id, notif_id)
@@ -2128,8 +2163,15 @@ class NotificationManager(BaseManager):
         parent_actions.extend(self.build_skip_action(kid_id, chore_id))
         parent_actions.extend(self.build_remind_action(kid_id, chore_id))
 
-        # Get kid name from payload (ChoreManager includes it)
-        kid_name = payload.get("kid_name", "Unknown")
+        # Get kid name from payload (ChoreManager always provides it)
+        kid_name = payload.get("kid_name", "")
+        if not kid_name:
+            const.LOGGER.error(
+                "CHORE_OVERDUE notification missing kid_name in payload for kid_id=%s, chore_id=%s",
+                kid_id,
+                chore_id,
+            )
+            return
 
         # Format due date for parents (using parent language)
         # Note: due_date is pre-formatted by ChoreManager for kid language,

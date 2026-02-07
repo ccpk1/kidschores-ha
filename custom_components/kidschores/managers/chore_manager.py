@@ -408,6 +408,7 @@ class ChoreManager(BaseManager):
             const.SIGNAL_SUFFIX_CHORE_CLAIMED,
             kid_id=kid_id,
             chore_id=chore_id,
+            kid_name=kid_name,
             chore_name=chore_data.get(const.DATA_CHORE_NAME, ""),
             user_name=user_name,
             chore_labels=chore_data.get(const.DATA_CHORE_LABELS, []),
