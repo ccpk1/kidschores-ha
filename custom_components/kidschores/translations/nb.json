@@ -1286,7 +1286,7 @@
       },
       "dashboard_generator": {
         "title": "Administrer dashbord",
-        "description": "Opprett, oppdater eller slett KidsChores Lovelace-dashbord.\n\n⚠️ **Nødvendige tilpassede kort** (installer via HACS → Frontend):\n- [**Soppkort**](https://github.com/piitaya/lovelace-mushroom) (`custom:soppmal-kort`)\n- [**Auto-entiteter**](https://github.com/thomasloven/lovelace-auto-entities) (`custom:auto-entities`)\n- [**Mini-grafkort**](https://github.com/kalkih/mini-graph-card) (`custom:mini-grafkort`)\n\nUten disse kortene vil dashbord vise feil. Installer dem først fra HACS før du genererer dashbord.",
+        "description": "Opprett, oppdater eller slett KidsChores Lovelace-dashbord.\n\n**Nødvendige tilpassede kort** (installer via HACS Frontend):\n- Soppkort (custom:mushroom-template-card)\n- Auto-Entities (custom:auto-entities)\n- Minigrafkort (custom:mini-graph-card)\n\nUten disse kortene vil dashbord vise feil. Installer dem først fra HACS før du genererer dashbord.",
         "data": {
           "dashboard_action": "Handling",
           "dashboard_check_cards": "Sjekk kortinstallasjonen"
@@ -2235,7 +2235,7 @@
     },
     "reset_transactional_data": {
       "name": "Tilbakestill transaksjonsdata",
-      "description": "Tilbakestill kjøretids-/transaksjonsdata samtidig som konfigurasjonen (barn, gjøremål, belønninger osv.) bevares. En automatisk sikkerhetskopi opprettes før tilbakestilling som kidschores_data_<timestamp>_reset i .storage-katalogen. Bruk omfanget til å målrette spesifikke barn eller domener. VIKTIG: Krever confirm_destructive: true som en sikkerhetsmekanisme.",
+      "description": "Tilbakestill kjøretids-/transaksjonsdata samtidig som konfigurasjonen (barn, gjøremål, belønninger osv.) bevares. En automatisk sikkerhetskopi opprettes før tilbakestilling som kidschores_data_timestamp_reset i .storage-katalogen. Bruk omfanget til å målrette spesifikke barn eller domener. Krever at confirm_destructive-parameteren settes til true som en sikkerhetsmekanisme.",
       "fields": {
         "confirm_destructive": {
           "name": "Bekreft destruktiv",
@@ -3931,11 +3931,7 @@
         }
       },
       "parent_points_adjust_button": {
-        "name": "{sign_label} {points_label}",
-        "sign_label": {
-          "increment": "Økning",
-          "decrement": "Reduksjon"
-        },
+        "name": "Juster {points_label}",
         "state_attributes": {
           "purpose": {
             "name": "Hensikt",
@@ -4027,7 +4023,7 @@
       "message": "Kan ikke spesifisere barn for delt gjøremål {chore_name}. Delte gjøremål har én forfallsdato for alle barn."
     },
     "reward_not_found": {
-      "message": "Belønning med ID-en '{reward_id}' ikke funnet"
+      "message": "Belønning med ID {reward_id} ikke funnet"
     },
     "required_field": {
       "message": "Må oppgi {field}"
@@ -4045,7 +4041,7 @@
       "message": "Må oppgi enten chore_id eller chore_name for å identifisere gjøremålet."
     },
     "chore_not_found": {
-      "message": "Gjøremål med ID '{chore_id}' ikke funnet."
+      "message": "Gjøremål med ID {chore_id} ikke funnet."
     },
     "completion_criteria_immutable": {
       "message": "Fullføringskriteriene kan ikke endres etter at gjøremålet er opprettet. Slett og opprett gjøremålet på nytt hvis du trenger et annet fullføringskriterium."
@@ -4072,16 +4068,16 @@
       "message": "Du må sette confirm_destructive: true for å fortsette med datatilbakestillingen"
     },
     "data_reset_kid_not_found": {
-      "message": "Barnet '{kid_name}' ble ikke funnet"
+      "message": "Barn {kid_name} ikke funnet"
     },
     "data_reset_item_not_found": {
-      "message": "{item_type} '{item_name}' ikke funnet"
+      "message": "{item_type} {item_name} ikke funnet"
     },
     "data_reset_invalid_scope": {
-      "message": "Ugyldig omfang '{scope}'. Må være: global, kid, item_type eller item"
+      "message": "Ugyldig omfang {scope}. Må være: global, kid, item_type eller item"
     },
     "data_reset_invalid_item_type": {
-      "message": "Ugyldig varetype '{item_type}'. Må være: barn, gjøremål, belønninger, merker, prestasjoner, utfordringer, straffer eller bonuser"
+      "message": "Ugyldig varetype {item_type}. Må være: barn, gjøremål, belønninger, merker, prestasjoner, utfordringer, straffer eller bonuser"
     },
     "notif_title_data_reset": {
       "message": "Tilbakestilling av transaksjonsdata"
