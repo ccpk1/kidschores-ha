@@ -3931,7 +3931,7 @@
         }
       },
       "parent_points_adjust_button": {
-        "name": "Juster {points_label}",
+        "name": "Juster {delta} {points_label}",
         "state_attributes": {
           "purpose": {
             "name": "Hensikt",
@@ -3941,8 +3941,20 @@
           },
           "kid_name": {
             "name": "Barnenavn"
+          },
+          "delta": {
+            "name": "Justeringsbeløp"
+          },
+          "points_label": {
+            "name": "Poengtype"
           }
         }
+      },
+      "parent_points_adjust_button_positive": {
+        "name": "Økning {delta} {points_label}"
+      },
+      "parent_points_adjust_button_negative": {
+        "name": "Reduksjon {delta} {points_label}"
       }
     }
   },

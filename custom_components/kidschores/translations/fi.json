@@ -3951,10 +3951,10 @@
         }
       },
       "parent_points_adjust_button_positive": {
-        "name": "Lisää {delta} {points_label}"
+        "name": "Lisäys {delta} {points_label}"
       },
       "parent_points_adjust_button_negative": {
-        "name": "Vähennä {delta} {points_label}"
+        "name": "Vähennys {delta} {points_label}"
       }
     }
   },

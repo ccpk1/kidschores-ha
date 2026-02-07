@@ -3931,7 +3931,7 @@
         }
       },
       "parent_points_adjust_button": {
-        "name": "Ajustar {points_label}",
+        "name": "Ajustar {delta} {points_label}",
         "state_attributes": {
           "purpose": {
             "name": "Objetivo",
@@ -3941,8 +3941,20 @@
           },
           "kid_name": {
             "name": "Nombre del niño"
+          },
+          "delta": {
+            "name": "Monto del ajuste"
+          },
+          "points_label": {
+            "name": "Tipo de puntos"
           }
         }
+      },
+      "parent_points_adjust_button_positive": {
+        "name": "Incremento {delta} {points_label}"
+      },
+      "parent_points_adjust_button_negative": {
+        "name": "Decremento {delta} {points_label}"
       }
     }
   },

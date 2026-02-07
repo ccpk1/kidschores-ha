@@ -3931,7 +3931,7 @@
         }
       },
       "parent_points_adjust_button": {
-        "name": "Aanpassen {points_label}",
+        "name": "Aanpassen {delta} {points_label}",
         "state_attributes": {
           "purpose": {
             "name": "Doel",
@@ -3941,8 +3941,20 @@
           },
           "kid_name": {
             "name": "Naam van het kind"
+          },
+          "delta": {
+            "name": "Aanpassingsbedrag"
+          },
+          "points_label": {
+            "name": "Puntentype"
           }
         }
+      },
+      "parent_points_adjust_button_positive": {
+        "name": "Toename {delta} {points_label}"
+      },
+      "parent_points_adjust_button_negative": {
+        "name": "Verlaging {delta} {points_label}"
       }
     }
   },
