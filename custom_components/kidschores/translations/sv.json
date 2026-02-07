@@ -1286,7 +1286,7 @@
       },
       "dashboard_generator": {
         "title": "Hantera instrumentpanelen",
-        "description": "Skapa, uppdatera eller ta bort KidsChores Lovelace-instrumentpaneler.\n\n⚠️ **Obligatoriska anpassade kort** (installera via HACS → Frontend):\n- [**Svampkort**](https://github.com/piitaya/lovelace-mushroom) (`custom:svampmall-kort`)\n- [**Auto-entiteter**](https://github.com/thomasloven/lovelace-auto-entities) (`custom:auto-entities`)\n- [**Mini-grafkort**](https://github.com/kalkih/mini-graph-card) (`custom:mini-grafkort`)\n\nUtan dessa kort kommer instrumentpaneler att visa fel. Installera dem först från HACS innan du genererar instrumentpaneler.",
+        "description": "Skapa, uppdatera eller ta bort KidsChores Lovelace-instrumentpaneler.\n\n**Obligatoriska anpassade kort** (installera via HACS Frontend):\n- Svampkort (custom:mushroom-template-card)\n- Auto-Entities (custom:auto-entities)\n- Minigrafkort (custom:mini-graph-card)\n\nUtan dessa kort kommer instrumentpaneler att visa fel. Installera dem först från HACS innan du genererar instrumentpaneler.",
         "data": {
           "dashboard_action": "Handling",
           "dashboard_check_cards": "Kontrollera kortinstallationen"
@@ -2235,7 +2235,7 @@
     },
     "reset_transactional_data": {
       "name": "Återställ transaktionsdata",
-      "description": "Återställ runtime-/transaktionsdata samtidigt som konfigurationen (barn, sysslor, belöningar etc.) bevaras. En automatisk säkerhetskopia skapas före återställning som kidschores_data_<timestamp>_reset i .storage-katalogen. Använd scope för att rikta in sig på specifika barn eller domäner. VIKTIGT: Kräver confirm_destructive: true som en säkerhetsmekanism.",
+      "description": "Återställ runtime-/transaktionsdata samtidigt som konfigurationen (barn, sysslor, belöningar etc.) bevaras. En automatisk säkerhetskopia skapas före återställning som kidschores_data_timestamp_reset i .storage-katalogen. Använd scope för att rikta in sig på specifika barn eller domäner. Kräver att parametern confirm_destructive är satt till true som en säkerhetsmekanism.",
       "fields": {
         "confirm_destructive": {
           "name": "Bekräfta destruktiv",
@@ -3931,11 +3931,7 @@
         }
       },
       "parent_points_adjust_button": {
-        "name": "{sign_label} {points_label}",
-        "sign_label": {
-          "increment": "Ökning",
-          "decrement": "Minskning"
-        },
+        "name": "Justera {points_label}",
         "state_attributes": {
           "purpose": {
             "name": "Ändamål",
@@ -4027,7 +4023,7 @@
       "message": "Kan inte ange barn för delad syssla {chore_name}. Delade sysslor har ett förfallodatum för alla barn."
     },
     "reward_not_found": {
-      "message": "Belöning med ID '{reward_id}' hittades inte"
+      "message": "Belöning med ID {reward_id} hittades inte"
     },
     "required_field": {
       "message": "Måste ange {field}"
@@ -4045,7 +4041,7 @@
       "message": "Måste ange antingen chore_id eller chore_name för att identifiera sysslan."
     },
     "chore_not_found": {
-      "message": "Syssla med ID '{chore_id}' hittades inte."
+      "message": "Syssla med ID {chore_id} hittades inte."
     },
     "completion_criteria_immutable": {
       "message": "Slutförandekriterier kan inte ändras efter att rutin har skapats. Ta bort och återskapa rutin om du behöver ett annat slutförandekriterium."
@@ -4072,16 +4068,16 @@
       "message": "Du måste ange confirm_destructive: true för att fortsätta med dataåterställningen"
     },
     "data_reset_kid_not_found": {
-      "message": "Barnet '{kid_name}' hittades inte"
+      "message": "Barn {kid_name} hittades inte"
     },
     "data_reset_item_not_found": {
-      "message": "{item_type} '{item_name}' hittades inte"
+      "message": "{item_type} {item_name} hittades inte"
     },
     "data_reset_invalid_scope": {
-      "message": "Ogiltigt omfång '{scope}'. Måste vara: global, kid, item_type eller item"
+      "message": "Ogiltigt omfång {scope}. Måste vara: global, kid, item_type eller item"
     },
     "data_reset_invalid_item_type": {
-      "message": "Ogiltig objekttyp '{item_type}'. Måste vara: barn, sysslor, belöningar, märken, prestationer, utmaningar, straff eller bonusar"
+      "message": "Ogiltig objekttyp {item_type}. Måste vara: barn, sysslor, belöningar, märken, prestationer, utmaningar, straff eller bonusar"
     },
     "notif_title_data_reset": {
       "message": "Återställning av transaktionsdata"

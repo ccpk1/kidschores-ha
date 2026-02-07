@@ -1286,7 +1286,7 @@
       },
       "dashboard_generator": {
         "title": "Gestiona el tauler de control",
-        "description": "Crea, actualitza o suprimeix els taulers de control de KidsChores Lovelace.\n\n⚠️ **Targetes personalitzades necessàries** (instal·la-les mitjançant HACS → Frontend):\n- [**Targetes de bolet**](https://github.com/piitaya/lovelace-mushroom) (`custom:mushroom-template-card`)\n- [**Auto-Entities**](https://github.com/thomasloven/lovelace-auto-entities) (`custom:auto-entities`)\n- [**Targeta minigràfica**](https://github.com/kalkih/mini-graph-card) (`custom:mini-graph-card`)\n\nSense aquestes targetes, els taulers de control mostraran errors. Instal·la-les primer des de HACS abans de generar taulers de control.",
+        "description": "Creeu, actualitzeu o suprimiu els quadres de comandament de KidsChores Lovelace.\n\n**Targetes personalitzades necessàries** (instal·lades mitjançant el frontend de HACS):\n- Targetes de bolets (custom:mushroom-template-card)\n- Auto-Entities (custom:auto-entities)\n- Mini Graph Card (custom:mini-graph-card)\n\nSense aquestes targetes, els quadres de comandament mostraran errors. Instal·leu-los primer des de HACS abans de generar els quadres de comandament.",
         "data": {
           "dashboard_action": "Acció",
           "dashboard_check_cards": "Comprovar la instal·lació de la targeta"
@@ -2235,7 +2235,7 @@
     },
     "reset_transactional_data": {
       "name": "Restableix les dades transaccionals",
-      "description": "Restableix les dades de transacció/en temps d'execució tot conservant la configuració (fills, tasques, recompenses, etc.). Es crea una còpia de seguretat automàtica abans del restabliment com a kidschores_data_<timestamp>_reset al directori .storage. Utilitza l'abast per orientar-te a nens o dominis específics. IMPORTANT: Requereix confirm_destructive: true com a mecanisme de seguretat.",
+      "description": "Restableix les dades de temps d'execució/transaccionals tot conservant la configuració (fills, tasques, recompenses, etc.). Es crea una còpia de seguretat automàtica abans del restabliment com a kidschores_data_timestamp_reset al directori .storage. Utilitza l'abast per orientar-te a nens o dominis específics. Requereix el paràmetre confirm_destructive definit com a true com a mecanisme de seguretat.",
       "fields": {
         "confirm_destructive": {
           "name": "Confirmar destructiu",
@@ -3931,11 +3931,7 @@
         }
       },
       "parent_points_adjust_button": {
-        "name": "{sign_label} {points_label}",
-        "sign_label": {
-          "increment": "Increment",
-          "decrement": "Disminuir"
-        },
+        "name": "Ajusta {points_label}",
         "state_attributes": {
           "purpose": {
             "name": "Propòsit",
@@ -4027,7 +4023,7 @@
       "message": "No es pot especificar un nen per a la tasca compartida {chore_name}. Les tasques compartides tenen una data de venciment per a tots els nens."
     },
     "reward_not_found": {
-      "message": "No s'ha trobat la recompensa amb l'ID '{reward_id}'"
+      "message": "No s'ha trobat la recompensa amb l'ID {reward_id}"
     },
     "required_field": {
       "message": "Cal proporcionar {field}"
@@ -4045,7 +4041,7 @@
       "message": "Cal proporcionar chore_id o chore_name per identificar la tasca."
     },
     "chore_not_found": {
-      "message": "No s'ha trobat la tasca amb l'ID '{chore_id}'."
+      "message": "No s'ha trobat la tasca amb l'ID {chore_id} ."
     },
     "completion_criteria_immutable": {
       "message": "Els criteris de finalització no es poden canviar després de la creació de la tasca. Suprimeix i recrea la tasca si necessites uns criteris de finalització diferents."
@@ -4072,16 +4068,16 @@
       "message": "Heu de definir confirm_destructive: true per continuar amb el restabliment de dades."
     },
     "data_reset_kid_not_found": {
-      "message": "No s'ha trobat el nen '{kid_name}'"
+      "message": "No s'ha trobat el nen {kid_name}"
     },
     "data_reset_item_not_found": {
-      "message": "No s'ha trobat {item_type} '{item_name}'"
+      "message": "{item_type} {item_name} no s'ha trobat"
     },
     "data_reset_invalid_scope": {
-      "message": "Àmbit no vàlid '{scope}'. Ha de ser: global, kid, item_type o item"
+      "message": "Àmbit no vàlid {scope}. Ha de ser: global, kid, item_type o item."
     },
     "data_reset_invalid_item_type": {
-      "message": "Tipus d'element no vàlid '{item_type}'. Ha de ser: nens, tasques, recompenses, insígnies, assoliments, reptes, penalitzacions o bonificacions."
+      "message": "Tipus d'element {item_type}no vàlid. Ha de ser: nens, tasques, recompenses, insígnies, assoliments, reptes, penalitzacions o bonificacions."
     },
     "notif_title_data_reset": {
       "message": "Restabliment de dades transaccionals"

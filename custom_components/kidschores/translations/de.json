@@ -1286,7 +1286,7 @@
       },
       "dashboard_generator": {
         "title": "Dashboard verwalten",
-        "description": "KidsChores Lovelace-Dashboards erstellen, aktualisieren oder löschen.\n\n⚠️ **Erforderliche benutzerdefinierte Karten** (Installation über HACS → Frontend):\n- [**Pilzkarten**](https://github.com/piitaya/lovelace-mushroom) (`custom:mushroom-template-card`)\n- [**Auto-Entitäten**](https://github.com/thomasloven/lovelace-auto-entities) (`custom:auto-entities`)\n- [**Mini-Graph-Karte**](https://github.com/kalkih/mini-graph-card) (`custom:mini-graph-card`)\n\nOhne diese Karten werden Dashboards Fehler anzeigen. Installieren Sie sie zuerst über HACS, bevor Sie Dashboards generieren.",
+        "description": "KidsChores Lovelace-Dashboards erstellen, aktualisieren oder löschen.\n\n**Erforderliche benutzerdefinierte Karten** (Installation über das HACS-Frontend):\n- Pilzkarten (custom:mushroom-template-card)\n- Automatische Entitäten (custom:auto-entities)\n- Mini-Graphkarte (custom:mini-graph-card)\n\nOhne diese Karten werden Dashboards Fehler anzeigen. Installieren Sie sie zuerst über HACS, bevor Sie Dashboards generieren.",
         "data": {
           "dashboard_action": "Aktion",
           "dashboard_check_cards": "Installation der Scheckkarte"
@@ -2235,7 +2235,7 @@
     },
     "reset_transactional_data": {
       "name": "Transaktionsdaten zurücksetzen",
-      "description": "Setzt Laufzeit-/Transaktionsdaten zurück, wobei die Konfiguration (Kinder, Aufgaben, Belohnungen usw.) erhalten bleibt. Vor dem Zurücksetzen wird automatisch eine Sicherungskopie unter dem Namen kidschores_data_<timestamp>_reset im Verzeichnis .storage erstellt. Verwenden Sie den Bereich, um bestimmte Kinder oder Domänen auszuwählen. WICHTIG: Erfordert confirm_destructive: true als Sicherheitsmechanismus.",
+      "description": "Setzt Laufzeit-/Transaktionsdaten zurück, wobei die Konfiguration (Kinder, Aufgaben, Belohnungen usw.) erhalten bleibt. Vor dem Zurücksetzen wird automatisch eine Sicherungskopie als `kidschores_data_timestamp_reset` im Verzeichnis `.storage` erstellt. Verwenden Sie den Bereich, um bestimmte Kinder oder Domänen auszuwählen. Aus Sicherheitsgründen muss der Parameter `confirm_destructive` auf `true` gesetzt werden.",
       "fields": {
         "confirm_destructive": {
           "name": "Destruktiv bestätigen",
@@ -3931,11 +3931,7 @@
         }
       },
       "parent_points_adjust_button": {
-        "name": "{sign_label} {points_label}",
-        "sign_label": {
-          "increment": "Inkrement",
-          "decrement": "Verringern"
-        },
+        "name": "Anpassen {points_label}",
         "state_attributes": {
           "purpose": {
             "name": "Zweck",
@@ -4027,7 +4023,7 @@
       "message": "Kind für gemeinsame Aufgaben kann nicht angegeben werden {chore_name}. Gemeinsame Aufgaben haben für alle Kinder ein Fälligkeitsdatum."
     },
     "reward_not_found": {
-      "message": "Belohnung mit der ID '{reward_id}' nicht gefunden"
+      "message": "Belohnung mit der ID {reward_id} nicht gefunden"
     },
     "required_field": {
       "message": "Muss {field}bereitstellen"
@@ -4045,7 +4041,7 @@
       "message": "Es muss entweder chore_id oder chore_name angegeben werden, um die Aufgabe zu identifizieren."
     },
     "chore_not_found": {
-      "message": "Aufgabe mit der ID '{chore_id}' nicht gefunden."
+      "message": "Aufgabe mit der ID {chore_id} nicht gefunden."
     },
     "completion_criteria_immutable": {
       "message": "Die Abschlusskriterien können nach der Erstellung einer Aufgabe nicht mehr geändert werden. Löschen Sie die Aufgabe und erstellen Sie sie neu, wenn Sie andere Abschlusskriterien benötigen."
@@ -4072,16 +4068,16 @@
       "message": "Sie müssen confirm_destructive auf true setzen, um mit dem Zurücksetzen der Daten fortzufahren."
     },
     "data_reset_kid_not_found": {
-      "message": "Kind '{kid_name}' nicht gefunden"
+      "message": "Kind {kid_name} nicht gefunden"
     },
     "data_reset_item_not_found": {
-      "message": "{item_type} '{item_name}' nicht gefunden"
+      "message": "{item_type} {item_name} nicht gefunden"
     },
     "data_reset_invalid_scope": {
-      "message": "Ungültiger Gültigkeitsbereich '{scope}'. Er muss global, kid, item_type oder item sein."
+      "message": "Ungültiger Gültigkeitsbereich {scope}. Er muss sein: global, kid, item_type oder item."
     },
     "data_reset_invalid_item_type": {
-      "message": "Ungültiger Artikeltyp '{item_type}'. Erforderliche Werte: Kinder, Aufgaben, Belohnungen, Abzeichen, Erfolge, Herausforderungen, Strafen oder Boni."
+      "message": "Ungültiger Artikeltyp {item_type}. Erforderliche Werte: Kinder, Aufgaben, Belohnungen, Abzeichen, Erfolge, Herausforderungen, Strafen oder Boni"
     },
     "notif_title_data_reset": {
       "message": "Transaktionsdaten zurücksetzen"
