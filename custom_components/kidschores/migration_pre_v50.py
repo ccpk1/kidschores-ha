@@ -3895,17 +3895,19 @@ class PreV50Migrator:
 
         ent_reg = er.async_get(hass)
 
-        for entity_id, entity_entry in list(ent_reg.entities.items()):
-            if not entity_entry.unique_id.startswith(f"{entry.entry_id}_"):
-                continue
+        # Get only entities from this config entry (not all system entities)
+        entities = er.async_entries_for_config_entry(ent_reg, entry.entry_id)
+
+        for entity_entry in entities:
+            # No type guard needed - we control all our unique_ids (all strings)
             if any(
                 entity_entry.unique_id.endswith(suffix)
                 for suffix in const.ENTITY_SUFFIXES_LEGACY
             ):
-                ent_reg.async_remove(entity_id)
+                ent_reg.async_remove(entity_entry.entity_id)
                 const.LOGGER.debug(
                     "DEBUG: Removed deprecated Entity '%s', UID '%s'",
-                    entity_id,
+                    entity_entry.entity_id,
                     entity_entry.unique_id,
                 )
 

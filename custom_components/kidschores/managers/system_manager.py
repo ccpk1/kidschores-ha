@@ -463,10 +463,12 @@ class SystemManager(BaseManager):
         # Build kid filter set (None = check all)
         target_kids = set(kid_ids) if kid_ids else None
 
-        for entity_entry in list(ent_reg.entities.values()):
-            if entity_entry.config_entry_id != self.coordinator.config_entry.entry_id:
-                continue
+        # Get only entities from THIS config entry (not all system entities)
+        entities = er.async_entries_for_config_entry(
+            ent_reg, self.coordinator.config_entry.entry_id
+        )
 
+        for entity_entry in entities:
             unique_id = str(entity_entry.unique_id)
             if not unique_id.startswith(prefix):
                 continue
