@@ -1286,7 +1286,7 @@
       },
       "dashboard_generator": {
         "title": "Manage Dashboard",
-        "description": "Create, update, or delete KidsChores Lovelace dashboards. Required Custom Cards (install via HACS Frontend): Mushroom Cards (custom:mushroom-template-card), Auto-Entities (custom:auto-entities), Mini Graph Card (custom:mini-graph-card). Without these cards, dashboards will show errors. Install them first from HACS before generating dashboards.",
+        "description": "Create, update, or delete KidsChores Lovelace dashboards.\n\n**Required Custom Cards** (install via HACS Frontend):\n- Mushroom Cards (custom:mushroom-template-card)\n- Auto-Entities (custom:auto-entities)\n- Mini Graph Card (custom:mini-graph-card)\n\nWithout these cards, dashboards will show errors. Install them first from HACS before generating dashboards.",
         "data": {
           "dashboard_action": "Action",
           "dashboard_check_cards": "Check Card Installation"

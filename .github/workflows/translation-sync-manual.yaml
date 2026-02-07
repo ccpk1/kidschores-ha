@@ -14,7 +14,7 @@ on:
   push:
     branches:
       - main
-      - release/v0.5.0-beta3
+      - release/v0.5.0-beta4
     paths:
       - "custom_components/kidschores/translations/en.json"
       - "custom_components/kidschores/translations_custom/en_*.json"

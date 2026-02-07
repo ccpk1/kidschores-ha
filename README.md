@@ -1,5 +1,5 @@
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/custom-components/hacs)
-[![Quality Scale: Silver](https://img.shields.io/badge/Quality%20Scale-Silver-silver.svg)](https://github.com/ad-ha/kidschores-ha)
+[![Quality Scale: Silver](https://img.shields.io/badge/Quality%20Scale-Platinum-platinum.svg)](https://github.com/ad-ha/kidschores-ha)
 ![GitHub Release](https://img.shields.io/github/v/release/ad-ha/kidschores-ha?include_prereleases&label=v0.5.0)
 ![GitHub Downloads (all assets, latest release)](https://img.shields.io/github/downloads/ad-ha/kidschores-ha/latest/total)
 
