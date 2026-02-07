@@ -1492,6 +1492,19 @@ def build_chore(
                     const.DEFAULT_NOTIFY_ON_REMINDER,
                 )
             ),
+            # Due window notifications (Phase 2)
+            const.DATA_CHORE_NOTIFY_ON_DUE_WINDOW: bool(
+                get_field(
+                    const.DATA_CHORE_NOTIFY_ON_DUE_WINDOW,
+                    const.DEFAULT_NOTIFY_ON_DUE_WINDOW,
+                )
+            ),
+            const.DATA_CHORE_NOTIFY_DUE_REMINDER: bool(
+                get_field(
+                    const.DATA_CHORE_NOTIFY_DUE_REMINDER,
+                    const.DEFAULT_NOTIFY_DUE_REMINDER,
+                )
+            ),
             # Calendar and features
             const.DATA_CHORE_SHOW_ON_CALENDAR: bool(
                 get_field(

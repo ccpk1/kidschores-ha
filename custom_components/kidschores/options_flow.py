@@ -1371,7 +1371,51 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             const.CFOF_CHORES_INPUT_DUE_REMINDER_OFFSET: chore_data.get(
                 const.DATA_CHORE_DUE_REMINDER_OFFSET, const.DEFAULT_DUE_REMINDER_OFFSET
             ),
+            # Calendar and features
+            const.CFOF_CHORES_INPUT_SHOW_ON_CALENDAR: chore_data.get(
+                const.DATA_CHORE_SHOW_ON_CALENDAR, const.DEFAULT_CHORE_SHOW_ON_CALENDAR
+            ),
+            # Notification settings (map DATA_CHORE_* to CFOF_CHORES_INPUT_* for form)
+            const.CFOF_CHORES_INPUT_NOTIFY_ON_CLAIM: chore_data.get(
+                const.DATA_CHORE_NOTIFY_ON_CLAIM, const.DEFAULT_NOTIFY_ON_CLAIM
+            ),
+            const.CFOF_CHORES_INPUT_NOTIFY_ON_APPROVAL: chore_data.get(
+                const.DATA_CHORE_NOTIFY_ON_APPROVAL, const.DEFAULT_NOTIFY_ON_APPROVAL
+            ),
+            const.CFOF_CHORES_INPUT_NOTIFY_ON_DISAPPROVAL: chore_data.get(
+                const.DATA_CHORE_NOTIFY_ON_DISAPPROVAL,
+                const.DEFAULT_NOTIFY_ON_DISAPPROVAL,
+            ),
+            const.CFOF_CHORES_INPUT_NOTIFY_ON_REMINDER: chore_data.get(
+                const.DATA_CHORE_NOTIFY_ON_REMINDER, const.DEFAULT_NOTIFY_ON_REMINDER
+            ),
+            const.CFOF_CHORES_INPUT_NOTIFY_ON_DUE_WINDOW: chore_data.get(
+                const.DATA_CHORE_NOTIFY_ON_DUE_WINDOW,
+                const.DEFAULT_NOTIFY_ON_DUE_WINDOW,
+            ),
+            const.CFOF_CHORES_INPUT_NOTIFY_DUE_REMINDER: chore_data.get(
+                const.DATA_CHORE_NOTIFY_DUE_REMINDER, const.DEFAULT_NOTIFY_DUE_REMINDER
+            ),
         }
+
+        # Build consolidated notifications list from individual boolean fields
+        # This ensures the multi-select field shows the correct checkboxes
+        # NOTE: Don't use fallback defaults here - use actual values from suggested_values
+        # which already contain the correct stored values with their proper defaults applied
+        notifications_list = []
+        if suggested_values.get(const.CFOF_CHORES_INPUT_NOTIFY_ON_CLAIM):
+            notifications_list.append(const.DATA_CHORE_NOTIFY_ON_CLAIM)
+        if suggested_values.get(const.CFOF_CHORES_INPUT_NOTIFY_ON_APPROVAL):
+            notifications_list.append(const.DATA_CHORE_NOTIFY_ON_APPROVAL)
+        if suggested_values.get(const.CFOF_CHORES_INPUT_NOTIFY_ON_DISAPPROVAL):
+            notifications_list.append(const.DATA_CHORE_NOTIFY_ON_DISAPPROVAL)
+        if suggested_values.get(const.CFOF_CHORES_INPUT_NOTIFY_ON_REMINDER):
+            notifications_list.append(const.DATA_CHORE_NOTIFY_ON_REMINDER)
+        if suggested_values.get(const.CFOF_CHORES_INPUT_NOTIFY_ON_DUE_WINDOW):
+            notifications_list.append(const.DATA_CHORE_NOTIFY_ON_DUE_WINDOW)
+        if suggested_values.get(const.CFOF_CHORES_INPUT_NOTIFY_DUE_REMINDER):
+            notifications_list.append(const.DATA_CHORE_NOTIFY_DUE_REMINDER)
+        suggested_values[const.CFOF_CHORES_INPUT_NOTIFICATIONS] = notifications_list
 
         # Build schema with suggested values as defaults
         # (this enables "clear due date" checkbox when existing_due_date is set)
