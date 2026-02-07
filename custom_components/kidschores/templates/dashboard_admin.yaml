@@ -27,10 +27,10 @@
             template: >-
               {#-- ===== ADMIN HEADER ===== --#}
 
-              {%- set admin_select = integration_entities('kidschores')
-                  | select('search', 'select')
-                  | select('search', 'dashboard')
-                  | select('search', 'kid')
+              {#-- 1. Find Admin Kid Selector (dynamic lookup) --#}
+
+              {%- set admin_selector_eid = integration_entities('kidschores')
+                  | select('match', '^select\\.')
                   | list
                   | expand
                   | selectattr('attributes.purpose', 'defined')
@@ -46,13 +46,13 @@
                 }
               }},
 
-              {%- if admin_select -%}
+              {%- if admin_selector_eid -%}
                 {{
                   {
                     'type': 'custom:mushroom-template-card',
-                    'entity': admin_select,
-                    'primary': 'Manage: ' ~ states(admin_select),
-                    'secondary': state_attr(admin_select, 'dashboard_helper_eid') | default('Select a child'),
+                    'entity': admin_selector_eid,
+                    'primary': 'Manage: ' ~ states(admin_selector_eid),
+                    'secondary': state_attr(admin_selector_eid, 'dashboard_helper_eid') | default('Select a child'),
                     'icon': 'mdi:account-child',
                     'icon_color': 'blue',
                     'tap_action': {'action': 'more-info'}
@@ -77,7 +77,7 @@
                   {#-- 1. Find Admin Kid Selector (dynamic lookup) --#}
 
                   {%- set admin_selector_eid = integration_entities('kidschores')
-                      | select('match', '^select\.')
+                      | select('match', '^select\\.')
                       | list
                       | expand
                       | selectattr('attributes.purpose', 'defined')
@@ -119,10 +119,12 @@
                       {%- set name = selected_kid_name -%}
 
                       {#-- 4. Initialize Variables --#}
+
                       {%- set dashboard_helper = integration_entities('kidschores')
-                          | select('search', 'ui_dashboard_helper')
+                          | select('search', '^sensor\\.')
                           | list
                           | expand
+                          | selectattr('attributes.purpose', 'defined')
                           | selectattr('attributes.purpose', 'eq', 'purpose_dashboard_helper')
                           | selectattr('attributes.kid_name', 'eq', name)
                           | map(attribute='entity_id')
@@ -303,14 +305,15 @@
                     {%- set skip_render = false -%}
                   {%- endif -%}
 
-
-                  {#-- 3. Get Dashboard Helper for Selected Kid --#}
-
                   {%- if not skip_render -%}
+
+                    {#-- 3. Get Dashboard Helper for Selected Kid --#}
+
                     {%- set dashboard_helper = integration_entities('kidschores')
-                        | select('search', 'ui_dashboard_helper')
+                        | select('search', '^sensor\\.')
                         | list
                         | expand
+                        | selectattr('attributes.purpose', 'defined')
                         | selectattr('attributes.purpose', 'eq', 'purpose_dashboard_helper')
                         | selectattr('attributes.kid_name', 'eq', name)
                         | map(attribute='entity_id')
@@ -486,7 +489,7 @@
                   {#-- 1. Find Admin Kid Selector (dynamic lookup) --#}
 
                   {%- set admin_selector_eid = integration_entities('kidschores')
-                      | select('match', '^select\.')
+                      | select('match', '^select\\.')
                       | list
                       | expand
                       | selectattr('attributes.purpose', 'defined')
@@ -510,10 +513,12 @@
 
 
                   {#-- 3. Initialize Variables --#}
+
                   {%- set dashboard_helper = integration_entities('kidschores')
-                      | select('search', 'ui_dashboard_helper')
+                      | select('search', '^sensor\\.')
                       | list
                       | expand
+                      | selectattr('attributes.purpose', 'defined')
                       | selectattr('attributes.purpose', 'eq', 'purpose_dashboard_helper')
                       | selectattr('attributes.kid_name', 'eq', name)
                       | map(attribute='entity_id')
@@ -952,9 +957,10 @@
                 template: |-
                   {#-- ===== PLUSES AND MINUSES - POINTS ===== --#}
 
-                  {#-- *** Section 1: Find Admin Kid Selector (dynamic lookup) *** --#}
+                  {#-- 1. Find Admin Kid Selector (dynamic lookup) --#}
+
                   {%- set admin_selector_eid = integration_entities('kidschores')
-                      | select('match', '^select\.')
+                      | select('match', '^select\\.')
                       | list
                       | expand
                       | selectattr('attributes.purpose', 'defined')
@@ -975,10 +981,12 @@
                   {%- endif -%}
 
                   {#-- *** Section 2: Initialize Variables *** --#}
+
                   {%- set dashboard_helper = integration_entities('kidschores')
-                      | select('search', 'ui_dashboard_helper')
+                      | select('search', '^sensor\\.')
                       | list
                       | expand
+                      | selectattr('attributes.purpose', 'defined')
                       | selectattr('attributes.purpose', 'eq', 'purpose_dashboard_helper')
                       | selectattr('attributes.kid_name', 'eq', name)
                       | map(attribute='entity_id')
@@ -1043,9 +1051,10 @@
                 template: >-
                   {#-- ===== PLUSES AND MINUSES - BONUS ===== --#}
 
-                  {#-- *** Section 1: Find Admin Kid Selector (dynamic lookup) *** --#}
+                  {#-- 1. Find Admin Kid Selector (dynamic lookup) --#}
+
                   {%- set admin_selector_eid = integration_entities('kidschores')
-                      | select('match', '^select\.')
+                      | select('match', '^select\\.')
                       | list
                       | expand
                       | selectattr('attributes.purpose', 'defined')
@@ -1066,10 +1075,12 @@
                   {%- endif -%}
 
                   {#-- *** Section 2: Initialize Variables *** --#}
+
                   {%- set dashboard_helper = integration_entities('kidschores')
-                      | select('search', 'ui_dashboard_helper')
+                      | select('search', '^sensor\\.')
                       | list
                       | expand
+                      | selectattr('attributes.purpose', 'defined')
                       | selectattr('attributes.purpose', 'eq', 'purpose_dashboard_helper')
                       | selectattr('attributes.kid_name', 'eq', name)
                       | map(attribute='entity_id')
@@ -1143,9 +1154,10 @@
                 template: >-
                   {#-- ===== PLUSES AND MINUSES - POINTS BUTTONS ===== --#}
 
-                  {#-- *** Section 1: Find Admin Kid Selector (dynamic lookup) *** --#}
+                  {#-- 1. Find Admin Kid Selector (dynamic lookup) --#}
+
                   {%- set admin_selector_eid = integration_entities('kidschores')
-                      | select('match', '^select\.')
+                      | select('match', '^select\\.')
                       | list
                       | expand
                       | selectattr('attributes.purpose', 'defined')
@@ -1166,10 +1178,12 @@
                   {%- endif -%}
 
                   {#-- *** Section 2: Initialize Variables *** --#}
+
                   {%- set dashboard_helper = integration_entities('kidschores')
-                      | select('search', 'ui_dashboard_helper')
+                      | select('search', '^sensor\\.')
                       | list
                       | expand
+                      | selectattr('attributes.purpose', 'defined')
                       | selectattr('attributes.purpose', 'eq', 'purpose_dashboard_helper')
                       | selectattr('attributes.kid_name', 'eq', name)
                       | map(attribute='entity_id')
@@ -1232,9 +1246,10 @@
                 template: >-
                   {#-- ===== PLUSES AND MINUSES - PENALTY ===== --#}
 
-                  {#-- *** Section 1: Find Admin Kid Selector (dynamic lookup) *** --#}
+                  {#-- 1. Find Admin Kid Selector (dynamic lookup) --#}
+
                   {%- set admin_selector_eid = integration_entities('kidschores')
-                      | select('match', '^select\.')
+                      | select('match', '^select\\.')
                       | list
                       | expand
                       | selectattr('attributes.purpose', 'defined')
@@ -1255,10 +1270,12 @@
                   {%- endif -%}
 
                   {#-- *** Section 2: Initialize Variables *** --#}
+
                   {%- set dashboard_helper = integration_entities('kidschores')
-                      | select('search', 'ui_dashboard_helper')
+                      | select('search', '^sensor\\.')
                       | list
                       | expand
+                      | selectattr('attributes.purpose', 'defined')
                       | selectattr('attributes.purpose', 'eq', 'purpose_dashboard_helper')
                       | selectattr('attributes.kid_name', 'eq', name)
                       | map(attribute='entity_id')
@@ -1339,9 +1356,10 @@
                 template: |-
                   {#-- ===== 7 DAY ACTIVITY LOG ===== --#}
 
-                  {#-- *** Section 1: Find Admin Kid Selector (dynamic lookup) *** --#}
+                  {#-- 1. Find Admin Kid Selector (dynamic lookup) --#}
+
                   {%- set admin_selector_eid = integration_entities('kidschores')
-                      | select('match', '^select\.')
+                      | select('match', '^select\\.')
                       | list
                       | expand
                       | selectattr('attributes.purpose', 'defined')
@@ -1362,10 +1380,12 @@
                   {%- endif -%}
 
                   {#-- *** Section 2: Initialize Variables *** --#}
+
                   {%- set dashboard_helper = integration_entities('kidschores')
-                      | select('search', 'ui_dashboard_helper')
+                      | select('search', '^sensor\\.')
                       | list
                       | expand
+                      | selectattr('attributes.purpose', 'defined')
                       | selectattr('attributes.purpose', 'eq', 'purpose_dashboard_helper')
                       | selectattr('attributes.kid_name', 'eq', name)
                       | map(attribute='entity_id')

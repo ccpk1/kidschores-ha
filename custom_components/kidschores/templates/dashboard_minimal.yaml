@@ -57,10 +57,12 @@
 
 
                   {#-- 2. Initialize Variables --#}
+
                   {%- set dashboard_helper = integration_entities('kidschores')
-                      | select('search', 'ui_dashboard_helper')
+                      | select('search', '^sensor\\.')
                       | list
                       | expand
+                      | selectattr('attributes.purpose', 'defined')
                       | selectattr('attributes.purpose', 'eq', 'purpose_dashboard_helper')
                       | selectattr('attributes.kid_name', 'eq', name)
                       | map(attribute='entity_id')
@@ -190,10 +192,12 @@
                   {%- set pref_label_display_order = pref_label_display_order if pref_label_display_order is iterable and pref_label_display_order is not string else [] -%}
 
                   {#-- 2. Initialize Variables --#}
+
                   {%- set dashboard_helper = integration_entities('kidschores')
-                      | select('search', 'ui_dashboard_helper')
+                      | select('search', '^sensor\\.')
                       | list
                       | expand
+                      | selectattr('attributes.purpose', 'defined')
                       | selectattr('attributes.purpose', 'eq', 'purpose_dashboard_helper')
                       | selectattr('attributes.kid_name', 'eq', name)
                       | map(attribute='entity_id')
