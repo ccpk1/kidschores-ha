@@ -29,7 +29,7 @@ from homeassistant.core import callback
 from .. import const
 from ..engines.chore_engine import ChoreEngine
 from ..helpers import translation_helpers as th
-from ..utils.dt_utils import dt_now_iso, dt_to_utc
+from ..utils.dt_utils import dt_format_short, dt_now_iso, dt_to_utc
 from .base_manager import BaseManager
 
 if TYPE_CHECKING:
@@ -937,16 +937,24 @@ class NotificationManager(BaseManager):
             language,
         )
 
-        # Convert const key to JSON key and look up translations
-        json_key = self._convert_notification_key(title_key)
-        notification = translations.get(json_key, {})
+        # Convert const keys to JSON keys and look up translations
+        title_json_key = self._convert_notification_key(title_key)
+        message_json_key = self._convert_notification_key(message_key)
+        title_notification = translations.get(title_json_key, {})
+        message_notification = translations.get(message_json_key, {})
 
         # Format title and message with placeholders
         title = self._format_notification_text(
-            notification.get("title", title_key), message_data, json_key, "title"
+            title_notification.get("title", title_key),
+            message_data,
+            title_json_key,
+            "title",
         )
         message = self._format_notification_text(
-            notification.get("message", message_key), message_data, json_key, "message"
+            message_notification.get("message", message_key),
+            message_data,
+            message_json_key,
+            "message",
         )
 
         # Translate action button titles
@@ -1086,18 +1094,23 @@ class NotificationManager(BaseManager):
                 self.hass, parent_language
             )
 
-            # Convert const key to JSON key and look up translations
-            json_key = self._convert_notification_key(title_key)
-            notification = translations.get(json_key, {})
+            # Convert const keys to JSON keys and look up translations
+            title_json_key = self._convert_notification_key(title_key)
+            message_json_key = self._convert_notification_key(message_key)
+            title_notification = translations.get(title_json_key, {})
+            message_notification = translations.get(message_json_key, {})
 
             # Format both title and message with placeholders
             title = self._format_notification_text(
-                notification.get("title", title_key), message_data, json_key, "title"
+                title_notification.get("title", title_key),
+                message_data,
+                title_json_key,
+                "title",
             )
             message = self._format_notification_text(
-                notification.get("message", message_key),
+                message_notification.get("message", message_key),
                 message_data,
-                json_key,
+                message_json_key,
                 "message",
             )
 
@@ -2146,13 +2159,23 @@ class NotificationManager(BaseManager):
             )
             return
 
+        # Get kid's language for datetime formatting
+        kid_info: KidData = cast("KidData", self.coordinator.kids_data.get(kid_id, {}))
+        kid_language = kid_info.get(
+            const.DATA_KID_DASHBOARD_LANGUAGE, self.hass.config.language
+        )
+
+        # Convert UTC ISO string to local datetime for display
+        due_dt = dt_to_utc(due_date) if due_date else None
+        formatted_due_date = dt_format_short(due_dt, language=kid_language)
+
         # Notify kid with claim action
         self.hass.async_create_task(
             self.notify_kid_translated(
                 kid_id,
                 title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_OVERDUE,
                 message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_OVERDUE,
-                message_data={"chore_name": chore_name, "due_date": due_date},
+                message_data={"chore_name": chore_name, "due_date": formatted_due_date},
                 actions=self.build_claim_action(kid_id, chore_id),
             )
         )
@@ -2173,9 +2196,12 @@ class NotificationManager(BaseManager):
             )
             return
 
-        # Format due date for parents (using parent language)
-        # Note: due_date is pre-formatted by ChoreManager for kid language,
-        # so we pass through for parents (could refactor to pass raw datetime)
+        # Get parent's language for datetime formatting
+        # Note: notify_parents_translated handles per-parent language internally,
+        # but we format with system default here since the message_data is shared
+        parent_language = self.hass.config.language
+        formatted_due_date_parent = dt_format_short(due_dt, language=parent_language)
+
         self.hass.async_create_task(
             self.notify_parents_translated(
                 kid_id,
@@ -2184,7 +2210,7 @@ class NotificationManager(BaseManager):
                 message_data={
                     "kid_name": kid_name,
                     "chore_name": chore_name,
-                    "due_date": due_date,
+                    "due_date": formatted_due_date_parent,
                 },
                 actions=parent_actions,
                 tag_type=const.NOTIFY_TAG_TYPE_STATUS,

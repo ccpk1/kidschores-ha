@@ -1404,7 +1404,9 @@ class ChoreManager(BaseManager):
             points = chore_info.get(const.DATA_CHORE_DEFAULT_POINTS, 0)
 
             # Get kid name for signal emission
-            kid_info = self._coordinator.kids_data.get(kid_id, {})
+            kid_info: KidData = cast(
+                "KidData", self._coordinator.kids_data.get(kid_id, {})
+            )
             kid_name = kid_info.get(const.DATA_KID_NAME, "Unknown")
 
             self.emit(
@@ -1442,7 +1444,9 @@ class ChoreManager(BaseManager):
             points = chore_info.get(const.DATA_CHORE_DEFAULT_POINTS, 0)
 
             # Get kid name for signal emission
-            kid_info = self._coordinator.kids_data.get(kid_id, {})
+            kid_info: KidData = cast(
+                "KidData", self._coordinator.kids_data.get(kid_id, {})
+            )
             kid_name = kid_info.get(const.DATA_KID_NAME, "Unknown")
 
             self.emit(
