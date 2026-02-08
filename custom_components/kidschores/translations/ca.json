@@ -4,11 +4,11 @@
     "step": {
       "intro": {
         "title": "Benvinguts a KidsChores",
-        "description": "Aquest assistent us guiarà a través de la configuració de KidsChores."
+        "description": "Aquest assistent us guiarà a través de la configuració de KidsChores.\n\n[📖 Guia d'inici ràpid](https://github.com/ad-ha/kidschores-ha/wiki/Getting-Started:-Quick-Start)"
       },
       "data_recovery": {
         "title": "Opcions de recuperació de dades",
-        "description": "Dades de KidsChores existents trobades a:\n{storage_path}\n\nS'han trobat {backup_count} fitxers de còpia de seguretat.\n\nQuè vols fer?",
+        "description": "Dades de KidsChores existents trobades a:\n{storage_path}\n\nS'han trobat {backup_count} fitxers de còpia de seguretat.\n\nQuè vols fer?\n\n[📖 Més informació sobre Còpia de seguretat i restauració](https://github.com/ad-ha/kidschores-ha/wiki/Getting-Started:-Backup-Restore)",
         "data": {
           "backup_selection": "Selecciona l'opció"
         }
@@ -409,7 +409,7 @@
     "step": {
       "init": {
         "title": "Opcions de tasques infantils",
-        "description": "Gestiona els nens, les tasques, les insígnies, les recompenses, les penalitzacions, les bonificacions o els finals.",
+        "description": "Gestiona els nens, les tasques, les insígnies, les recompenses, les penalitzacions, les bonificacions o els acabats.\n\n📖 [Veure la documentació](https://github.com/ad-ha/kidschores-ha/wiki)",
         "data": {
           "menu_selection": "Selecciona una opció"
         }
@@ -430,7 +430,7 @@
       },
       "manage_points": {
         "title": "Edita l'etiqueta i la icona dels punts",
-        "description": "Canvieu l'etiqueta i la icona que s'utilitzen per representar punts.",
+        "description": "Canvia l'etiqueta i la icona que s'utilitzen per representar punts.\n\n📖 [Guia de configuració](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Points)",
         "data": {
           "points_label": "Etiqueta de punts",
           "points_icon": "Icona de punts"
@@ -438,7 +438,7 @@
       },
       "add_kid": {
         "title": "Afegeix un nen/a",
-        "description": "Proporciona els detalls del nen nouvingut.",
+        "description": "Proporcioneu els detalls per al nouvingut.\n\n📖 [Guia de configuració](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Kids-Parents)",
         "data": {
           "name": "Nom del nen/a",
           "ha_user": "Usuari de l'Assistent de la Llar",
@@ -455,7 +455,7 @@
       },
       "add_parent": {
         "title": "Afegeix un pare",
-        "description": "Proporcioneu les dades del nou progenitor.",
+        "description": "Proporcioneu els detalls del nou pare.\n\n📖 [Guia de configuració](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Kids-Parents)",
         "data": {
           "name": "Nom del pare/mare",
           "ha_user_id": "Usuari de l'Assistent de la Llar",
@@ -480,7 +480,7 @@
       },
       "add_chore": {
         "title": "Afegeix una tasca",
-        "description": "Crea una nova tasca amb punts, tasques i un horari recurrent.",
+        "description": "Crea una nova tasca amb punts, assignacions i un horari recurrent.\n\n📖 [Guia de configuració](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Chores)",
         "data": {
           "name": "📋 Nom de la tasca",
           "chore_description": "📋 Descripció (opcional)",
@@ -537,7 +537,7 @@
       },
       "add_badge_cumulative": {
         "title": "Afegeix una insígnia acumulativa",
-        "description": "Configura els detalls d'una insígnia acumulativa. Aquestes insígnies recompensen els nens per assolir els llindars de punts de per vida i donen suport als cicles de manteniment per fomentar el rendiment continu.",
+        "description": "Configura els detalls d'una insígnia acumulativa. Aquestes insígnies recompensen els nens per assolir els llindars de punts de per vida i donen suport als cicles de manteniment per fomentar el rendiment continu.\n\n📖 [Guia de configuració](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Badges-Cumulative)",
         "data": {
           "badge_name": "Nom de la insígnia",
           "badge_description": "Descripció de la insígnia (opcional)",
@@ -587,7 +587,7 @@
       },
       "add_badge_daily": {
         "title": "Afegeix una insígnia diària",
-        "description": "Configura els detalls d'una insígnia diària. Aquestes insígnies recompensen els nens per completar les tasques diàries o assolir els llindars diaris.",
+        "description": "Configura els detalls d'una insígnia diària. Aquestes insígnies recompensen els nens per completar les tasques diàries o assolir els llindars diaris.\n\n📖 [Visió general de les insígnies](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
         "data": {
           "badge_name": "Nom de la insígnia",
           "badge_description": "Descripció de la insígnia (opcional)",
@@ -615,7 +615,7 @@
       },
       "add_badge_periodic": {
         "title": "Afegeix una insígnia periòdica",
-        "description": "Configureu els detalls d'una insígnia periòdica. Aquestes insígnies recompensen els nens per assolir els llindars dins d'un període de temps definit i admeten cicles de reinici per al rendiment continu.",
+        "description": "Configureu els detalls d'una insígnia periòdica. Aquestes insígnies recompensen els nens per assolir els llindars dins d'un període de temps definit i admeten cicles de reinici per a un rendiment continu.\n\n📖 [Guia de configuració](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Badges-Periodic)",
         "data": {
           "badge_name": "Nom de la insígnia",
           "badge_description": "Descripció de la insígnia (opcional)",
@@ -661,7 +661,7 @@
       },
       "add_badge_achievement": {
         "title": "Afegeix una insígnia vinculada a un assoliment",
-        "description": "Configura els detalls d'una insígnia vinculada a un assoliment. Aquestes insígnies recompensen els nens per completar assoliments específics.",
+        "description": "Configura els detalls d'una insígnia vinculada a un assoliment. Aquestes insígnies recompensen els nens per completar assoliments específics.\n\n📖 [Visió general de les insígnies](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
         "data": {
           "badge_name": "Nom de la insígnia",
           "badge_description": "Descripció de la insígnia (opcional)",
@@ -685,7 +685,7 @@
       },
       "add_badge_challenge": {
         "title": "Afegeix una insígnia vinculada al repte",
-        "description": "Configura els detalls d'una insígnia vinculada a un repte. Aquestes insígnies recompensen els nens per completar reptes específics.",
+        "description": "Configura els detalls d'una insígnia vinculada a un repte. Aquestes insígnies recompensen els nens per completar reptes específics.\n\n📖 [Visió general de les insígnies](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
         "data": {
           "badge_name": "Nom de la insígnia",
           "badge_description": "Descripció de la insígnia (opcional)",
@@ -709,7 +709,7 @@
       },
       "add_badge_special": {
         "title": "Afegeix una insígnia per a ocasions especials",
-        "description": "Configura els detalls d'una insígnia creada per a ocasions especials. Aquestes insígnies recompensen els nens per esdeveniments com ara aniversaris o vacances.",
+        "description": "Configura els detalls d'una insígnia creada per a ocasions especials. Aquestes insígnies recompensen els nens per esdeveniments com ara aniversaris o festius.\n\n📖 [Visió general de les insígnies](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
         "data": {
           "badge_name": "Nom de la insígnia",
           "badge_description": "Descripció de la insígnia (opcional)",
@@ -745,7 +745,7 @@
       },
       "add_reward": {
         "title": "Afegeix una recompensa",
-        "description": "Proporcioneu els detalls de la nova recompensa.",
+        "description": "Proporcioneu els detalls de la nova recompensa.\n\n📖 [Guia de configuració](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Rewards)",
         "data": {
           "name": "Nom de la recompensa",
           "internal_id": "ID intern",
@@ -757,7 +757,7 @@
       },
       "add_penalty": {
         "title": "Afegeix penalització",
-        "description": "Proporcioneu els detalls de la nova sanció.",
+        "description": "Proporcioneu els detalls de la nova penalització.\n\n📖 [Visió general i exemples](https://github.com/ad-ha/kidschores-ha/wiki/Bonuses-&-Penalties%3A-Overview-&-Examples)",
         "data": {
           "name": "Nom de la penalització",
           "penalty_description": "Descripció (opcional)",
@@ -769,7 +769,7 @@
       },
       "add_bonus": {
         "title": "Afegeix una bonificació",
-        "description": "Proporcioneu els detalls de la nova bonificació.",
+        "description": "Proporcioneu els detalls de la nova bonificació.\n\n📖 [Visió general i exemples](https://github.com/ad-ha/kidschores-ha/wiki/Bonuses-&-Penalties%3A-Overview-&-Examples)",
         "data": {
           "name": "Nom de la bonificació",
           "bonus_description": "Descripció (opcional)",
@@ -781,7 +781,7 @@
       },
       "add_achievement": {
         "title": "Definir assoliment",
-        "description": "Introdueix els detalls de cada assoliment.",
+        "description": "Introdueix els detalls de cada assoliment.\n\n📖 [Visió general i funcionalitat](https://github.com/ad-ha/kidschores-ha/wiki/Challenges-&-Achievements%3A-Overview-&-Functionality)",
         "data": {
           "name": "Nom de l'assoliment",
           "description": "Descripció (opcional)",
@@ -798,7 +798,7 @@
       },
       "add_challenge": {
         "title": "Defineix el repte",
-        "description": "Introdueix els detalls de cada repte.",
+        "description": "Introdueix els detalls de cada repte.\n\n📖 [Visió general i funcionalitat](https://github.com/ad-ha/kidschores-ha/wiki/Challenges-&-Achievements%3A-Overview-&-Functionality)",
         "data": {
           "name": "Nom del repte",
           "description": "Descripció (opcional)",
@@ -817,7 +817,7 @@
       },
       "edit_kid": {
         "title": "Edita el nen/a",
-        "description": "Modifiqueu les dades del nen/a seleccionat/da.",
+        "description": "Modifiqueu els detalls del nen seleccionat.\n\n📖 [Guia de configuració](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Kids-Parents)",
         "data": {
           "name": "Nom del nen/a",
           "ha_user": "Usuari de l'Assistent de la Llar",
@@ -851,7 +851,7 @@
       },
       "edit_parent": {
         "title": "Edita el pare",
-        "description": "Modifiqueu les dades del pare seleccionat.",
+        "description": "Modifiqueu els detalls del pare seleccionat.\n\n📖 [Guia de configuració](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Kids-Parents)",
         "data": {
           "name": "Nom del pare/mare",
           "ha_user_id": "Usuari de l'Assistent de la Llar",
@@ -876,7 +876,7 @@
       },
       "edit_chore": {
         "title": "Edita la tasca",
-        "description": "Modifiqueu els detalls de la tasca seleccionada.",
+        "description": "Modifiqueu els detalls de la tasca seleccionada.\n\n📖 [Guia de configuració](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Chores)",
         "data": {
           "name": "📋 Nom de la tasca",
           "chore_description": "📋 Descripció (opcional)",
@@ -927,7 +927,7 @@
       },
       "edit_chore_per_kid_dates": {
         "title": "Edita les dates de venciment per nen/a: {chore_name}",
-        "description": "Establiu dates de venciment individuals per a cada nen assignat. El camp de data del formulari d'edició principal actua com a **plantilla** per comoditat: utilitzeu-lo per aplicar ràpidament la mateixa data a tots els nens mitjançant la casella de selecció següent o deixeu-lo en blanc i definiu les dates individualment aquí.\n\nEs mostren camps per a: {kid_names}. Deixeu-ho en blanc si no hi ha data límit.{template_date}",
+        "description": "Establiu dates de venciment individuals per a cada nen assignat. El camp de data del formulari d'edició principal actua com a **plantilla** per comoditat: utilitzeu-lo per aplicar ràpidament la mateixa data a tots els nens mitjançant la casella de selecció següent o deixeu-lo en blanc i definiu les dates individualment aquí.\n\nEs mostren camps per a: {kid_names}. Deixeu-ho en blanc si no hi ha data límit.{template_date}\n\n📖 [Guia avançada](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Chores-Advanced)",
         "data": {
           "apply_template_to_all": "Aplica la data de la plantilla a tots els nens"
         },
@@ -947,7 +947,7 @@
       },
       "edit_chore_per_kid_details": {
         "title": "Horari per nen: {chore_name}",
-        "description": "Configureu la configuració de la programació individual per a cada nen assignat a aquesta tasca. Els valors principals del formulari actuen com a **plantilles**: utilitzeu les caselles de selecció per aplicar-los a tots els nens o personalitzeu la configuració de cada nen individualment.\n\n**Nota:** No tots els camps següents s'apliquen a totes les tasques. El formulari mostra dinàmicament les opcions rellevants en funció del mode de finalització, la freqüència i si hi ha dates de venciment definides.\n\n**Format d'hores diàries (múltiples):** Si es mostra, introduïu de 2 a 6 hores en format de 24 hores separades per | (barra vertical). Exemple: 08:00|17:00\n\nNens: {kid_names}{template_info}",
+        "description": "Configureu la configuració de la programació individual per a cada nen assignat a aquesta tasca. Els valors principals del formulari actuen com a **plantilles**: utilitzeu les caselles de selecció per aplicar-los a tots els nens o personalitzeu la configuració de cada nen individualment.\n\n**Nota:** No tots els camps següents s'apliquen a totes les tasques. El formulari mostra dinàmicament les opcions rellevants en funció del mode de finalització, la freqüència i si hi ha dates de venciment definides.\n\n**Format d'hores diàries (múltiples):** Si es mostra, introduïu de 2 a 6 hores en format de 24 hores separades per | (barra vertical). Exemple: 08:00|17:00\n\nNens: {kid_names}{template_info}\n\n📖 [Guia avançada](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Chores-Advanced)",
         "data": {
           "apply_days_to_all": "Aplica els dies de plantilla a tots els nens",
           "apply_times_to_all": "Aplica els horaris de plantilla a tots els nens",
@@ -961,7 +961,7 @@
       },
       "edit_badge_cumulative": {
         "title": "Edita la insígnia acumulativa",
-        "description": "Configura els detalls d'una insígnia acumulativa. Aquestes insígnies recompensen els nens per assolir els llindars de punts de per vida i donen suport als cicles de manteniment per fomentar el rendiment continu.",
+        "description": "Configura els detalls d'una insígnia acumulativa. Aquestes insígnies recompensen els nens per assolir els llindars de punts de per vida i donen suport als cicles de manteniment per fomentar el rendiment continu.\n\n📖 [Guia de configuració](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Badges-Cumulative)",
         "data": {
           "badge_name": "Nom de la insígnia",
           "badge_description": "Descripció de la insígnia (opcional)",
@@ -1011,7 +1011,7 @@
       },
       "edit_badge_daily": {
         "title": "Edita la insígnia diària",
-        "description": "Configura els detalls d'una insígnia diària. Aquestes insígnies recompensen els nens per completar les tasques diàries o assolir els llindars diaris.",
+        "description": "Configura els detalls d'una insígnia diària. Aquestes insígnies recompensen els nens per completar les tasques diàries o assolir els llindars diaris.\n\n📖 [Visió general de les insígnies](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
         "data": {
           "badge_name": "Nom de la insígnia",
           "badge_description": "Descripció de la insígnia (opcional)",
@@ -1039,7 +1039,7 @@
       },
       "edit_badge_periodic": {
         "title": "Edita la insígnia periòdica",
-        "description": "Configureu els detalls d'una insígnia periòdica. Aquestes insígnies recompensen els nens per assolir els llindars dins d'un període de temps definit i admeten cicles de reinici per al rendiment continu.",
+        "description": "Configureu els detalls d'una insígnia periòdica. Aquestes insígnies recompensen els nens per assolir els llindars dins d'un període de temps definit i admeten cicles de reinici per a un rendiment continu.\n\n📖 [Guia de configuració](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Badges-Periodic)",
         "data": {
           "badge_name": "Nom de la insígnia",
           "badge_description": "Descripció de la insígnia (opcional)",
@@ -1085,7 +1085,7 @@
       },
       "edit_badge_achievement": {
         "title": "Edita la insígnia vinculada a l'assoliment",
-        "description": "Configura els detalls d'una insígnia vinculada a un assoliment. Aquestes insígnies recompensen els nens per completar assoliments específics.",
+        "description": "Configura els detalls d'una insígnia vinculada a un assoliment. Aquestes insígnies recompensen els nens per completar assoliments específics.\n\n📖 [Visió general de les insígnies](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
         "data": {
           "badge_name": "Nom de la insígnia",
           "badge_description": "Descripció de la insígnia (opcional)",
@@ -1109,7 +1109,7 @@
       },
       "edit_badge_challenge": {
         "title": "Edita la insígnia vinculada al repte",
-        "description": "Configura els detalls d'una insígnia vinculada a un repte. Aquestes insígnies recompensen els nens per completar reptes específics.",
+        "description": "Configura els detalls d'una insígnia vinculada a un repte. Aquestes insígnies recompensen els nens per completar reptes específics.\n\n📖 [Visió general de les insígnies](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
         "data": {
           "badge_name": "Nom de la insígnia",
           "badge_description": "Descripció de la insígnia (opcional)",
@@ -1133,7 +1133,7 @@
       },
       "edit_badge_special": {
         "title": "Edita la insígnia per a ocasions especials",
-        "description": "Configura els detalls d'una insígnia creada per a ocasions especials. Aquestes insígnies recompensen els nens per esdeveniments com ara aniversaris o vacances.",
+        "description": "Configura els detalls d'una insígnia creada per a ocasions especials. Aquestes insígnies recompensen els nens per esdeveniments com ara aniversaris o festius.\n\n📖 [Visió general de les insígnies](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
         "data": {
           "badge_name": "Nom de la insígnia",
           "badge_description": "Descripció de la insígnia (opcional)",
@@ -1169,7 +1169,7 @@
       },
       "edit_reward": {
         "title": "Edita la recompensa",
-        "description": "Modifiqueu els detalls de la recompensa seleccionada.",
+        "description": "Modifiqueu els detalls de la recompensa seleccionada.\n\n📖 [Guia de configuració](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Rewards)",
         "data": {
           "name": "Nom de la recompensa",
           "internal_id": "ID intern",
@@ -1181,7 +1181,7 @@
       },
       "edit_penalty": {
         "title": "Edita la penalització",
-        "description": "Modifiqueu els detalls de la penalització seleccionada.",
+        "description": "Modifiqueu els detalls de la penalització seleccionada.\n\n📖 [Visió general i exemples](https://github.com/ad-ha/kidschores-ha/wiki/Bonuses-&-Penalties%3A-Overview-&-Examples)",
         "data": {
           "name": "Nom de la penalització",
           "penalty_description": "Descripció (opcional)",
@@ -1193,7 +1193,7 @@
       },
       "edit_bonus": {
         "title": "Edita la bonificació",
-        "description": "Modifiqueu els detalls del bonus seleccionat.",
+        "description": "Modifiqueu els detalls del bonus seleccionat.\n\n📖 [Visió general i exemples](https://github.com/ad-ha/kidschores-ha/wiki/Bonuses-&-Penalties%3A-Overview-&-Examples)",
         "data": {
           "name": "Nom de la bonificació",
           "bonus_description": "Descripció (opcional)",
@@ -1205,7 +1205,7 @@
       },
       "edit_achievement": {
         "title": "Definir assoliment",
-        "description": "Introdueix els detalls de cada assoliment.",
+        "description": "Introdueix els detalls de cada assoliment.\n\n📖 [Visió general i funcionalitat](https://github.com/ad-ha/kidschores-ha/wiki/Challenges-&-Achievements%3A-Overview-&-Functionality)",
         "data": {
           "name": "Nom de l'assoliment",
           "description": "Descripció (opcional)",
@@ -1222,7 +1222,7 @@
       },
       "edit_challenge": {
         "title": "Defineix el repte",
-        "description": "Introdueix els detalls de cada repte.",
+        "description": "Introdueix els detalls de cada repte.\n\n📖 [Visió general i funcionalitat](https://github.com/ad-ha/kidschores-ha/wiki/Challenges-&-Achievements%3A-Overview-&-Functionality)",
         "data": {
           "name": "Nom del repte",
           "description": "Descripció (opcional)",
@@ -1298,7 +1298,7 @@
       },
       "dashboard_create": {
         "title": "Crear/Actualitzar el tauler de control",
-        "description": "Genera un tauler de control de KidsChores amb pestanyes per a cada nen.\n\nTria un nom per al tauler de control, selecciona els nens que vulguis incloure i, opcionalment, afegeix una pestanya Administrador per a la gestió dels pares.",
+        "description": "Genera un tauler de control de KidsChores amb pestanyes per a cada nen.\n\nTria un nom per al tauler de control, selecciona els nens que vulguis incloure i, opcionalment, afegeix una pestanya d'administració per a la gestió dels pares.\n\n[📖 Guia de generació de taulers de control](https://github.com/ad-ha/kidschores-ha/wiki/Getting-Started:-Dashboard-Generation)",
         "data": {
           "dashboard_name": "Nom del tauler de control",
           "dashboard_style": "Estil del tauler de control",
@@ -1341,7 +1341,7 @@
       },
       "manage_general_options": {
         "title": "Opcions generals",
-        "description": "Gestiona la configuració general de la integració de KidsChores.",
+        "description": "Gestiona la configuració general per a la integració de KidsChores.\n\n[📖 Més informació sobre Còpia de seguretat i restauració](https://github.com/ad-ha/kidschores-ha/wiki/Getting-Started:-Backup-Restore)",
         "data": {
           "points_adjust_values": "Valors del botó d'ajust manual de punts",
           "update_interval": "Interval d'actualització",
@@ -1697,9 +1697,9 @@
         "notify_on_claim": "Notificar sobre la reclamació",
         "notify_on_approval": "Notificar en cas d'aprovació",
         "notify_on_disapproval": "Notificar en cas de desaprovació",
-        "notify_on_reminder": "Notificar 30 minuts abans de la data de venciment (antic)",
         "notify_on_due_window": "Notifica quan comenci el període de venciment",
-        "notify_due_reminder": "Notificar a l'hora deguda del recordatori"
+        "notify_due_reminder": "Notificar a l'hora deguda del recordatori",
+        "notify_on_overdue": "Notifica quan venç"
       }
     },
     "recurring_frequency": {
