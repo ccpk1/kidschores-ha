@@ -4,11 +4,11 @@
     "step": {
       "intro": {
         "title": "Velkommen til KidsChores",
-        "description": "Denne guide vil guide dig gennem opsætning af KidsChores."
+        "description": "Denne guide vil guide dig gennem opsætningen af KidsChores.\n\n[📖 Lynstartguide](https://github.com/ad-ha/kidschores-ha/wiki/Getting-Started:-Quick-Start)"
       },
       "data_recovery": {
         "title": "Muligheder for datagendannelse",
-        "description": "Eksisterende KidsChores-data fundet i:\n{storage_path}\n\nFundet {backup_count} backupfiler.\n\nHvad vil du gerne gøre?",
+        "description": "Eksisterende KidsChores-data fundet i:\n{storage_path}\n\nFundet {backup_count} backupfiler.\n\nHvad vil du gerne gøre?\n\n[📖 Få mere at vide om Backup og gendannelse](https://github.com/ad-ha/kidschores-ha/wiki/Getting-Started:-Backup-Restore)",
         "data": {
           "backup_selection": "Vælg mulighed"
         }
@@ -409,7 +409,7 @@
     "step": {
       "init": {
         "title": "Børneopgaver Muligheder",
-        "description": "Administrer børn, pligter, badges, belønninger, straffe, bonusser eller afslut.",
+        "description": "Administrer børn, pligter, badges, belønninger, straffe, bonusser eller afslut.\n\n📖 [Se dokumentation](https://github.com/ad-ha/kidschores-ha/wiki)",
         "data": {
           "menu_selection": "Vælg en mulighed"
         }
@@ -430,7 +430,7 @@
       },
       "manage_points": {
         "title": "Rediger punkters etiket og ikon",
-        "description": "Skift den etiket og det ikon, der bruges til at repræsentere punkter.",
+        "description": "Skift den etiket og det ikon, der bruges til at repræsentere punkter.\n\n📖 [Konfigurationsvejledning](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Points)",
         "data": {
           "points_label": "Pointmærke",
           "points_icon": "Pointikon"
@@ -438,7 +438,7 @@
       },
       "add_kid": {
         "title": "Tilføj barn",
-        "description": "Angiv detaljerne for det nye barn.",
+        "description": "Angiv oplysningerne om det nye barn.\n\n📖 [Konfigurationsvejledning](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Kids-Parents)",
         "data": {
           "name": "Barnets navn",
           "ha_user": "Hjemmeassistent-bruger",
@@ -455,7 +455,7 @@
       },
       "add_parent": {
         "title": "Tilføj forælder",
-        "description": "Angiv oplysningerne for den nye forælder.",
+        "description": "Angiv oplysningerne for den nye forælder.\n\n📖 [Konfigurationsvejledning](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Kids-Parents)",
         "data": {
           "name": "Forældernavn",
           "ha_user_id": "Hjemmeassistent-bruger",
@@ -480,7 +480,7 @@
       },
       "add_chore": {
         "title": "Tilføj pligt",
-        "description": "Opret en ny pligt med point, opgaver og en tilbagevendende tidsplan.",
+        "description": "Opret en ny opgave med point, opgaver og en tilbagevendende tidsplan.\n\n📖 [Konfigurationsvejledning](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Chores)",
         "data": {
           "name": "📋 Navn på huslige pligter",
           "chore_description": "📋 Beskrivelse (valgfrit)",
@@ -537,7 +537,7 @@
       },
       "add_badge_cumulative": {
         "title": "Tilføj kumulativt badge",
-        "description": "Konfigurer detaljerne for et kumulativt badge. Disse badges belønner børn for at nå livstidspointgrænser og understøtter vedligeholdelsescyklusser for at fremme løbende præstation.",
+        "description": "Konfigurer detaljerne for et kumulativt badge. Disse badges belønner børn for at nå livstidspointgrænser og understøtter vedligeholdelsescyklusser for at fremme løbende ydeevne.\n\n📖 [Konfigurationsvejledning](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Badges-Cumulative)",
         "data": {
           "badge_name": "Badgenavn",
           "badge_description": "Badgebeskrivelse (valgfrit)",
@@ -587,7 +587,7 @@
       },
       "add_badge_daily": {
         "title": "Tilføj daglig badge",
-        "description": "Konfigurer detaljerne for et dagligt badge. Disse badges belønner børn for at fuldføre daglige opgaver eller nå daglige grænser.",
+        "description": "Konfigurer detaljerne for et dagligt badge. Disse badges belønner børn for at fuldføre daglige opgaver eller nå daglige tærskler.\n\n📖 [Oversigt over badges](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
         "data": {
           "badge_name": "Badgenavn",
           "badge_description": "Badgebeskrivelse (valgfrit)",
@@ -615,7 +615,7 @@
       },
       "add_badge_periodic": {
         "title": "Tilføj periodisk badge",
-        "description": "Konfigurer detaljerne for et periodisk badge. Disse badges belønner børn for at nå tærskler inden for en defineret tidsperiode og understøtter nulstillingscyklusser for løbende præstation.",
+        "description": "Konfigurer detaljerne for et periodisk badge. Disse badges belønner børn for at nå tærskler inden for en defineret tidsperiode og understøtter nulstillingscyklusser for løbende præstation.\n\n📖 [Konfigurationsvejledning](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Badges-Periodic)",
         "data": {
           "badge_name": "Badgenavn",
           "badge_description": "Badgebeskrivelse (valgfrit)",
@@ -661,7 +661,7 @@
       },
       "add_badge_achievement": {
         "title": "Tilføj præstationsrelateret badge",
-        "description": "Konfigurer detaljerne for et badge, der er knyttet til en præstation. Disse badges belønner børn for at fuldføre specifikke præstationer.",
+        "description": "Konfigurer detaljerne for et badge, der er knyttet til en præstation. Disse badges belønner børn for at fuldføre specifikke præstationer.\n\n📖 [Oversigt over badges](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
         "data": {
           "badge_name": "Badgenavn",
           "badge_description": "Badgebeskrivelse (valgfrit)",
@@ -685,7 +685,7 @@
       },
       "add_badge_challenge": {
         "title": "Tilføj badge relateret til udfordring",
-        "description": "Konfigurer detaljerne for et badge, der er knyttet til en udfordring. Disse badges belønner børn for at gennemføre specifikke udfordringer.",
+        "description": "Konfigurer detaljerne for et badge, der er knyttet til en udfordring. Disse badges belønner børn for at gennemføre specifikke udfordringer.\n\n📖 [Oversigt over badges](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
         "data": {
           "badge_name": "Badgenavn",
           "badge_description": "Badgebeskrivelse (valgfrit)",
@@ -709,7 +709,7 @@
       },
       "add_badge_special": {
         "title": "Tilføj badge til særlige lejligheder",
-        "description": "Konfigurer detaljerne for et badge, der er oprettet til særlige lejligheder. Disse badges belønner børn for begivenheder som fødselsdage eller helligdage.",
+        "description": "Konfigurer detaljerne for et badge, der er oprettet til særlige lejligheder. Disse badges belønner børn for begivenheder som fødselsdage eller helligdage.\n\n📖 [Oversigt over badges](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
         "data": {
           "badge_name": "Badgenavn",
           "badge_description": "Badgebeskrivelse (valgfrit)",
@@ -745,7 +745,7 @@
       },
       "add_reward": {
         "title": "Tilføj belønning",
-        "description": "Angiv detaljerne for den nye belønning.",
+        "description": "Angiv detaljerne for den nye belønning.\n\n📖 [Konfigurationsvejledning](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Rewards)",
         "data": {
           "name": "Belønningsnavn",
           "internal_id": "Internt ID",
@@ -757,7 +757,7 @@
       },
       "add_penalty": {
         "title": "Tilføj straf",
-        "description": "Angiv detaljerne for den nye straf.",
+        "description": "Angiv detaljerne for den nye straf.\n\n📖 [Oversigt og eksempler](https://github.com/ad-ha/kidschores-ha/wiki/Bonuses-&-Penalties%3A-Overview-&-Examples)",
         "data": {
           "name": "Strafnavn",
           "penalty_description": "Beskrivelse (valgfrit)",
@@ -769,7 +769,7 @@
       },
       "add_bonus": {
         "title": "Tilføj bonus",
-        "description": "Angiv detaljerne for den nye bonus.",
+        "description": "Angiv detaljerne for den nye bonus.\n\n📖 [Oversigt og eksempler](https://github.com/ad-ha/kidschores-ha/wiki/Bonuses-&-Penalties%3A-Overview-&-Examples)",
         "data": {
           "name": "Bonusnavn",
           "bonus_description": "Beskrivelse (valgfrit)",
@@ -781,7 +781,7 @@
       },
       "add_achievement": {
         "title": "Definer præstation",
-        "description": "Indtast detaljer for hver præstation.",
+        "description": "Indtast detaljer for hver præstation.\n\n📖 [Oversigt og funktionalitet](https://github.com/ad-ha/kidschores-ha/wiki/Challenges-&-Achievements%3A-Overview-&-Functionality)",
         "data": {
           "name": "Præstationsnavn",
           "description": "Beskrivelse (valgfrit)",
@@ -798,7 +798,7 @@
       },
       "add_challenge": {
         "title": "Definer udfordring",
-        "description": "Indtast detaljer for hver udfordring.",
+        "description": "Indtast detaljer for hver udfordring.\n\n📖 [Oversigt og funktionalitet](https://github.com/ad-ha/kidschores-ha/wiki/Challenges-&-Achievements%3A-Overview-&-Functionality)",
         "data": {
           "name": "Udfordringsnavn",
           "description": "Beskrivelse (valgfrit)",
@@ -817,7 +817,7 @@
       },
       "edit_kid": {
         "title": "Rediger barn",
-        "description": "Rediger oplysningerne for det valgte barn.",
+        "description": "Rediger oplysningerne for det valgte barn.\n\n📖 [Konfigurationsvejledning](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Kids-Parents)",
         "data": {
           "name": "Barnets navn",
           "ha_user": "Hjemmeassistent-bruger",
@@ -851,7 +851,7 @@
       },
       "edit_parent": {
         "title": "Rediger overordnet",
-        "description": "Rediger oplysningerne for den valgte forælder.",
+        "description": "Rediger oplysningerne for den valgte forælder.\n\n📖 [Konfigurationsvejledning](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Kids-Parents)",
         "data": {
           "name": "Forældernavn",
           "ha_user_id": "Hjemmeassistent-bruger",
@@ -876,7 +876,7 @@
       },
       "edit_chore": {
         "title": "Rediger opgave",
-        "description": "Rediger detaljerne for den valgte opgave.",
+        "description": "Rediger detaljerne for den valgte opgave.\n\n📖 [Konfigurationsvejledning](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Chores)",
         "data": {
           "name": "📋 Navn på huslige pligter",
           "chore_description": "📋 Beskrivelse (valgfrit)",
@@ -927,7 +927,7 @@
       },
       "edit_chore_per_kid_dates": {
         "title": "Rediger forfaldsdatoer pr. barn: {chore_name}",
-        "description": "Angiv individuelle forfaldsdatoer for hvert tildelt barn. Datofeltet på den primære redigeringsformular fungerer som en **skabelon** for nemheds skyld – brug det til hurtigt at anvende den samme dato på alle børn via afkrydsningsfeltet nedenfor, eller lad det være tomt og angiv datoer individuelt her.\n\nFelter vises for: {kid_names}. Lad feltet være tomt, hvis der ikke er nogen deadline.{template_date}",
+        "description": "Angiv individuelle forfaldsdatoer for hvert tildelt barn. Datofeltet på hovedredigeringsformularen fungerer som en **skabelon** for nemheds skyld – brug det til hurtigt at anvende den samme dato på alle børn via afkrydsningsfeltet nedenfor, eller lad det være tomt og angiv datoer individuelt her.\n\nFelter vises for: {kid_names}. Lad feltet være tomt, hvis der ikke er nogen deadline.{template_date}\n\n📖 [Avanceret vejledning](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Chores-Advanced)",
         "data": {
           "apply_template_to_all": "Anvend skabelondato på alle børn"
         },
@@ -947,7 +947,7 @@
       },
       "edit_chore_per_kid_details": {
         "title": "Tidsplan pr. barn: {chore_name}",
-        "description": "Konfigurer individuelle tidsplanindstillinger for hvert barn, der er tildelt denne opgave. De primære formularværdier fungerer som **skabeloner** – brug afkrydsningsfelterne til at anvende dem på alle børn, eller tilpas hvert barns indstillinger individuelt.\n\n**Bemærk:** Ikke alle felter nedenfor gælder for alle opgaver. Formularen viser dynamisk relevante muligheder baseret på fuldførelsestilstand, hyppighed og om der er angivet forfaldsdatoer.\n\n**Dagligt (flere) tidspunktformat:** Hvis det vises, skal du indtaste 2-6 tidspunkter i 24-timers format adskilt af | (pipe). Eksempel: 08:00|17:00\n\nBørn: {kid_names}{template_info}",
+        "description": "Konfigurer individuelle tidsplanindstillinger for hvert barn, der er tildelt denne opgave. De primære formularværdier fungerer som **skabeloner** – brug afkrydsningsfelterne til at anvende dem på alle børn, eller tilpas hvert barns indstillinger individuelt.\n\n**Bemærk:** Ikke alle felter nedenfor gælder for alle opgaver. Formularen viser dynamisk relevante muligheder baseret på fuldførelsestilstand, hyppighed og om der er angivet forfaldsdatoer.\n\n**Dagligt (flere) tidspunktformat:** Hvis det vises, skal du indtaste 2-6 tidspunkter i 24-timers format adskilt af | (pipe). Eksempel: 08:00|17:00\n\nBørn: {kid_names}{template_info}\n\n📖 [Avanceret vejledning](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Chores-Advanced)",
         "data": {
           "apply_days_to_all": "Anvend skabelondage på alle børn",
           "apply_times_to_all": "Anvend skabelontider på alle børn",
@@ -961,7 +961,7 @@
       },
       "edit_badge_cumulative": {
         "title": "Rediger kumulativt badge",
-        "description": "Konfigurer detaljerne for et kumulativt badge. Disse badges belønner børn for at nå livstidspointgrænser og understøtter vedligeholdelsescyklusser for at fremme løbende præstation.",
+        "description": "Konfigurer detaljerne for et kumulativt badge. Disse badges belønner børn for at nå livstidspointgrænser og understøtter vedligeholdelsescyklusser for at fremme løbende ydeevne.\n\n📖 [Konfigurationsvejledning](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Badges-Cumulative)",
         "data": {
           "badge_name": "Badgenavn",
           "badge_description": "Badgebeskrivelse (valgfrit)",
@@ -1011,7 +1011,7 @@
       },
       "edit_badge_daily": {
         "title": "Rediger daglig badge",
-        "description": "Konfigurer detaljerne for et dagligt badge. Disse badges belønner børn for at fuldføre daglige opgaver eller nå daglige grænser.",
+        "description": "Konfigurer detaljerne for et dagligt badge. Disse badges belønner børn for at fuldføre daglige opgaver eller nå daglige tærskler.\n\n📖 [Oversigt over badges](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
         "data": {
           "badge_name": "Badgenavn",
           "badge_description": "Badgebeskrivelse (valgfrit)",
@@ -1039,7 +1039,7 @@
       },
       "edit_badge_periodic": {
         "title": "Rediger periodisk badge",
-        "description": "Konfigurer detaljerne for et periodisk badge. Disse badges belønner børn for at nå tærskler inden for en defineret tidsperiode og understøtter nulstillingscyklusser for løbende præstation.",
+        "description": "Konfigurer detaljerne for et periodisk badge. Disse badges belønner børn for at nå tærskler inden for en defineret tidsperiode og understøtter nulstillingscyklusser for løbende præstation.\n\n📖 [Konfigurationsvejledning](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Badges-Periodic)",
         "data": {
           "badge_name": "Badgenavn",
           "badge_description": "Badgebeskrivelse (valgfrit)",
@@ -1085,7 +1085,7 @@
       },
       "edit_badge_achievement": {
         "title": "Rediger præstationsrelateret badge",
-        "description": "Konfigurer detaljerne for et badge, der er knyttet til en præstation. Disse badges belønner børn for at fuldføre specifikke præstationer.",
+        "description": "Konfigurer detaljerne for et badge, der er knyttet til en præstation. Disse badges belønner børn for at fuldføre specifikke præstationer.\n\n📖 [Oversigt over badges](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
         "data": {
           "badge_name": "Badgenavn",
           "badge_description": "Badgebeskrivelse (valgfrit)",
@@ -1109,7 +1109,7 @@
       },
       "edit_badge_challenge": {
         "title": "Rediger badge relateret til udfordring",
-        "description": "Konfigurer detaljerne for et badge, der er knyttet til en udfordring. Disse badges belønner børn for at gennemføre specifikke udfordringer.",
+        "description": "Konfigurer detaljerne for et badge, der er knyttet til en udfordring. Disse badges belønner børn for at gennemføre specifikke udfordringer.\n\n📖 [Oversigt over badges](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
         "data": {
           "badge_name": "Badgenavn",
           "badge_description": "Badgebeskrivelse (valgfrit)",
@@ -1133,7 +1133,7 @@
       },
       "edit_badge_special": {
         "title": "Rediger badge til særlige lejligheder",
-        "description": "Konfigurer detaljerne for et badge, der er oprettet til særlige lejligheder. Disse badges belønner børn for begivenheder som fødselsdage eller helligdage.",
+        "description": "Konfigurer detaljerne for et badge, der er oprettet til særlige lejligheder. Disse badges belønner børn for begivenheder som fødselsdage eller helligdage.\n\n📖 [Oversigt over badges](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
         "data": {
           "badge_name": "Badgenavn",
           "badge_description": "Badgebeskrivelse (valgfrit)",
@@ -1169,7 +1169,7 @@
       },
       "edit_reward": {
         "title": "Rediger belønning",
-        "description": "Rediger detaljerne for den valgte belønning.",
+        "description": "Rediger detaljerne for den valgte belønning.\n\n📖 [Konfigurationsvejledning](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Rewards)",
         "data": {
           "name": "Belønningsnavn",
           "internal_id": "Internt ID",
@@ -1181,7 +1181,7 @@
       },
       "edit_penalty": {
         "title": "Rediger straf",
-        "description": "Rediger detaljerne for den valgte straf.",
+        "description": "Rediger detaljerne for den valgte straf.\n\n📖 [Oversigt og eksempler](https://github.com/ad-ha/kidschores-ha/wiki/Bonuses-&-Penalties%3A-Overview-&-Examples)",
         "data": {
           "name": "Strafnavn",
           "penalty_description": "Beskrivelse (valgfrit)",
@@ -1193,7 +1193,7 @@
       },
       "edit_bonus": {
         "title": "Rediger bonus",
-        "description": "Rediger detaljerne for den valgte bonus.",
+        "description": "Rediger detaljerne for den valgte bonus.\n\n📖 [Oversigt og eksempler](https://github.com/ad-ha/kidschores-ha/wiki/Bonuses-&-Penalties%3A-Overview-&-Examples)",
         "data": {
           "name": "Bonusnavn",
           "bonus_description": "Beskrivelse (valgfrit)",
@@ -1205,7 +1205,7 @@
       },
       "edit_achievement": {
         "title": "Definer præstation",
-        "description": "Indtast detaljer for hver præstation.",
+        "description": "Indtast detaljer for hver præstation.\n\n📖 [Oversigt og funktionalitet](https://github.com/ad-ha/kidschores-ha/wiki/Challenges-&-Achievements%3A-Overview-&-Functionality)",
         "data": {
           "name": "Præstationsnavn",
           "description": "Beskrivelse (valgfrit)",
@@ -1222,7 +1222,7 @@
       },
       "edit_challenge": {
         "title": "Definer udfordring",
-        "description": "Indtast detaljer for hver udfordring.",
+        "description": "Indtast detaljer for hver udfordring.\n\n📖 [Oversigt og funktionalitet](https://github.com/ad-ha/kidschores-ha/wiki/Challenges-&-Achievements%3A-Overview-&-Functionality)",
         "data": {
           "name": "Udfordringsnavn",
           "description": "Beskrivelse (valgfrit)",
@@ -1298,7 +1298,7 @@
       },
       "dashboard_create": {
         "title": "Opret/opdater dashboard",
-        "description": "Generer et KidsChores-dashboard med faner for hvert barn.\n\nVælg et navn til dashboardet, vælg de børn, der skal inkluderes, og tilføj eventuelt en administratorfane til forældreadministration.",
+        "description": "Generer et KidsChores-dashboard med faner for hvert barn.\n\nVælg et navn til dashboardet, vælg de børn, der skal inkluderes, og tilføj eventuelt en administratorfane til forældreadministration.\n\n[📖 Vejledning til generering af dashboard](https://github.com/ad-ha/kidschores-ha/wiki/Getting-Started:-Dashboard-Generation)",
         "data": {
           "dashboard_name": "Navn på dashboard",
           "dashboard_style": "Dashboard-stil",
@@ -1341,7 +1341,7 @@
       },
       "manage_general_options": {
         "title": "Generelle muligheder",
-        "description": "Administrer generelle indstillinger for KidsChores-integrationen.",
+        "description": "Administrer generelle indstillinger for KidsChores-integrationen.\n\n[📖 Få mere at vide om sikkerhedskopiering og gendannelse](https://github.com/ad-ha/kidschores-ha/wiki/Getting-Started:-Backup-Restore)",
         "data": {
           "points_adjust_values": "Værdier for knap til manuel justering af punkter",
           "update_interval": "Opdateringsinterval",
@@ -1697,9 +1697,9 @@
         "notify_on_claim": "Giv besked om krav",
         "notify_on_approval": "Giv besked ved godkendelse",
         "notify_on_disapproval": "Giv besked ved afvisning",
-        "notify_on_reminder": "Giv besked 30 minutter før forfald (ældre version)",
         "notify_on_due_window": "Giv besked, når forfaldsfristen starter",
-        "notify_due_reminder": "Giv besked ved påmindelsestidspunktet"
+        "notify_due_reminder": "Giv besked ved påmindelsestidspunktet",
+        "notify_on_overdue": "Giv besked når forfalden er forsinket"
       }
     },
     "recurring_frequency": {

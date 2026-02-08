@@ -4,11 +4,11 @@
     "step": {
       "intro": {
         "title": "Tervetuloa KidsChores",
-        "description": "Tämä avustaja opastaa sinua perustamalla KidsChores."
+        "description": "Tämä ohjattu toiminto opastaa sinua KidsChoresin määrittämisessä.\n\n[📖 Pikaopas](https://github.com/ad-ha/kidschores-ha/wiki/Getting-Started:-Quick-Start)"
       },
       "data_recovery": {
         "title": "Tietojen palautusvaihtoehdot",
-        "description": "Olemassa olevia KidsChores-tietoja löytyi sijainnista:\n{storage_path}\n\nLöytyi {backup_count} varmuuskopiotiedostoa.\n\nMitä haluat tehdä?",
+        "description": "Aiempia KidsChores-tietoja löytyi:\n{storage_path}\n\nLöytyi {backup_count} varmuuskopiotiedostoa.\n\nMitä haluaisit tehdä?\n\n[📖 Lue lisää varmuuskopioinnista ja palautuksesta](https://github.com/ad-ha/kidschores-ha/wiki/Getting-Started:-Backup-Restore)",
         "data": {
           "backup_selection": "Valitse vaihtoehto"
         }
@@ -409,7 +409,7 @@
     "step": {
       "init": {
         "title": "Lastenkotien vaihtoehdot",
-        "description": "Hallitse lapsia, askareita, ansiomerkkejä, palkintoja, rangaistuksia, bonuksia tai viimeistelyä.",
+        "description": "Hallitse lapsia, askareita, ansiomerkkejä, palkintoja, rangaistuksia, bonuksia tai viimeistelyä.\n\n📖 [Näytä dokumentaatio](https://github.com/ad-ha/kidschores-ha/wiki)",
         "data": {
           "menu_selection": "Valitse vaihtoehto"
         }
@@ -430,7 +430,7 @@
       },
       "manage_points": {
         "title": "Muokkaa pisteiden otsikkoa ja kuvaketta",
-        "description": "Muuta pisteiden esittämiseen käytettyä otsikkoa ja kuvaketta.",
+        "description": "Vaihda pisteiden esittämiseen käytettyä otsikkoa ja kuvaketta.\n\n📖 [Määritysopas](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Points)",
         "data": {
           "points_label": "Pistemerkintä",
           "points_icon": "Pistekuvake"
@@ -438,7 +438,7 @@
       },
       "add_kid": {
         "title": "Lisää lapsi",
-        "description": "Anna tiedot uudelle lapselle.",
+        "description": "Anna uuden lapsen tiedot.\n\n📖 [Määritysopas](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Kids-Parents)",
         "data": {
           "name": "Lapsen nimi",
           "ha_user": "Kotiavustaja-käyttäjä",
@@ -455,7 +455,7 @@
       },
       "add_parent": {
         "title": "Lisää ylätaso",
-        "description": "Anna tiedot uudelle vanhemmalle.",
+        "description": "Anna uuden pääkäyttäjän tiedot.\n\n📖 [Määritysopas](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Kids-Parents)",
         "data": {
           "name": "Vanhemman nimi",
           "ha_user_id": "Kotiavustaja-käyttäjä",
@@ -480,7 +480,7 @@
       },
       "add_chore": {
         "title": "Lisää kotitehtävä",
-        "description": "Luo uusi tehtävä, jossa on pisteitä, tehtäviä ja toistuva aikataulu.",
+        "description": "Luo uusi tehtävä, joka sisältää pisteet, tehtävät ja toistuvan aikataulun.\n\n📖 [Määritysopas](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Chores)",
         "data": {
           "name": "📋 Työn nimi",
           "chore_description": "📋 Kuvaus (valinnainen)",
@@ -537,7 +537,7 @@
       },
       "add_badge_cumulative": {
         "title": "Lisää kumulatiivinen merkki",
-        "description": "Määritä kumulatiivisen ansiomerkin tiedot. Nämä ansiomerkit palkitsevat lapsia elinikäisten pisteiden saavuttamisesta ja tukevat ylläpitosyklejä jatkuvan suorituksen kannustamiseksi.",
+        "description": "Määritä kumulatiivisen ansiomerkin tiedot. Nämä ansiomerkit palkitsevat lapsia elinikäisten pisteiden kynnysarvojen saavuttamisesta ja tukevat ylläpitosyklejä jatkuvan suorituskyvyn kannustamiseksi.\n\n📖 [Määritysopas](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Badges-Cumulative)",
         "data": {
           "badge_name": "Merkin nimi",
           "badge_description": "Merkin kuvaus (valinnainen)",
@@ -587,7 +587,7 @@
       },
       "add_badge_daily": {
         "title": "Lisää päivittäinen merkki",
-        "description": "Määritä päivittäisen ansiomerkin tiedot. Nämä ansiomerkit palkitsevat lapsia päivittäisten tehtävien suorittamisesta tai päivittäisten kynnysarvojen saavuttamisesta.",
+        "description": "Määritä päivittäisen ansiomerkin tiedot. Nämä ansiomerkit palkitsevat lapsia päivittäisten tehtävien suorittamisesta tai päivittäisten kynnysarvojen saavuttamisesta.\n\n📖 [Ansiomerkkien yleiskatsaus](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
         "data": {
           "badge_name": "Merkin nimi",
           "badge_description": "Merkin kuvaus (valinnainen)",
@@ -615,7 +615,7 @@
       },
       "add_badge_periodic": {
         "title": "Lisää kausiluonteinen merkki",
-        "description": "Määritä säännöllisen ansiomerkin tiedot. Nämä ansiomerkit palkitsevat lapsia kynnysarvojen saavuttamisesta määritetyn ajanjakson sisällä ja tukevat jatkuvan suorituksen nollaussyklejä.",
+        "description": "Määritä säännöllisen ansiomerkin tiedot. Nämä ansiomerkit palkitsevat lapsia kynnysarvojen saavuttamisesta määritetyn ajanjakson sisällä ja tukevat jatkuvan suorituskyvyn nollaussyklejä.\n\n📖 [Määritysopas](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Badges-Periodic)",
         "data": {
           "badge_name": "Merkin nimi",
           "badge_description": "Merkin kuvaus (valinnainen)",
@@ -661,7 +661,7 @@
       },
       "add_badge_achievement": {
         "title": "Lisää saavutuksiin liittyvä merkki",
-        "description": "Määritä saavutukseen linkitetyn ansiomerkin tiedot. Nämä ansiomerkit palkitsevat lapsia tiettyjen saavutusten suorittamisesta.",
+        "description": "Määritä saavutukseen linkitetyn ansiomerkin tiedot. Nämä ansiomerkit palkitsevat lapsia tiettyjen saavutusten suorittamisesta.\n\n📖 [Ansiomerkkien yleiskatsaus](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
         "data": {
           "badge_name": "Merkin nimi",
           "badge_description": "Merkin kuvaus (valinnainen)",
@@ -685,7 +685,7 @@
       },
       "add_badge_challenge": {
         "title": "Lisää haasteeseen liittyvä merkki",
-        "description": "Määritä haasteeseen linkitetyn ansiomerkin tiedot. Nämä ansiomerkit palkitsevat lapsia tiettyjen haasteiden suorittamisesta.",
+        "description": "Määritä haasteeseen linkitetyn ansiomerkin tiedot. Nämä ansiomerkit palkitsevat lapsia tiettyjen haasteiden suorittamisesta.\n\n📖 [Ansiomerkkien yleiskatsaus](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
         "data": {
           "badge_name": "Merkin nimi",
           "badge_description": "Merkin kuvaus (valinnainen)",
@@ -709,7 +709,7 @@
       },
       "add_badge_special": {
         "title": "Lisää erityistilaisuusmerkki",
-        "description": "Määritä erityistilaisuuksiin luodun merkin tiedot. Nämä merkit palkitsevat lapsia tapahtumista, kuten syntymäpäivistä tai juhlapyhistä.",
+        "description": "Määritä erityistilaisuuksiin luodun merkin tiedot. Nämä merkit palkitsevat lapsia tapahtumista, kuten syntymäpäivistä tai juhlapyhistä.\n\n📖 [Merkkien yleiskatsaus](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
         "data": {
           "badge_name": "Merkin nimi",
           "badge_description": "Merkin kuvaus (valinnainen)",
@@ -745,7 +745,7 @@
       },
       "add_reward": {
         "title": "Lisää palkinto",
-        "description": "Anna uuden palkinnon tiedot.",
+        "description": "Anna uuden palkinnon tiedot.\n\n📖 [Määritysopas](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Rewards)",
         "data": {
           "name": "Palkinnon nimi",
           "internal_id": "Sisäinen tunnus",
@@ -757,7 +757,7 @@
       },
       "add_penalty": {
         "title": "Lisää rangaistus",
-        "description": "Anna uuden rangaistuksen tiedot.",
+        "description": "Anna uuden rangaistuksen tiedot.\n\n📖 [Yleiskatsaus ja esimerkit](https://github.com/ad-ha/kidschores-ha/wiki/Bonuses-&-Penalties%3A-Overview-&-Examples)",
         "data": {
           "name": "Rangaistuksen nimi",
           "penalty_description": "Kuvaus (valinnainen)",
@@ -769,7 +769,7 @@
       },
       "add_bonus": {
         "title": "Lisää bonus",
-        "description": "Anna uuden bonuksen tiedot.",
+        "description": "Anna uuden bonuksen tiedot.\n\n📖 [Yleiskatsaus ja esimerkit](https://github.com/ad-ha/kidschores-ha/wiki/Bonuses-&-Penalties%3A-Overview-&-Examples)",
         "data": {
           "name": "Bonusnimi",
           "bonus_description": "Kuvaus (valinnainen)",
@@ -781,7 +781,7 @@
       },
       "add_achievement": {
         "title": "Määrittele saavutus",
-        "description": "Anna tiedot jokaisesta saavutuksesta.",
+        "description": "Anna tiedot jokaisesta saavutuksesta.\n\n📖 [Yleiskatsaus ja toiminnallisuus](https://github.com/ad-ha/kidschores-ha/wiki/Challenges-&-Achievements%3A-Overview-&-Functionality)",
         "data": {
           "name": "Saavutuksen nimi",
           "description": "Kuvaus (valinnainen)",
@@ -798,7 +798,7 @@
       },
       "add_challenge": {
         "title": "Määrittele haaste",
-        "description": "Anna tiedot jokaisesta haasteesta.",
+        "description": "Anna tiedot jokaisesta haasteesta.\n\n📖 [Yleiskatsaus ja toiminnallisuus](https://github.com/ad-ha/kidschores-ha/wiki/Challenges-&-Achievements%3A-Overview-&-Functionality)",
         "data": {
           "name": "Haasteen nimi",
           "description": "Kuvaus (valinnainen)",
@@ -817,7 +817,7 @@
       },
       "edit_kid": {
         "title": "Muokkaa lasta",
-        "description": "Muokkaa valitun lapsen tietoja.",
+        "description": "Muokkaa valitun lapsen tietoja.\n\n📖 [Määritysopas](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Kids-Parents)",
         "data": {
           "name": "Lapsen nimi",
           "ha_user": "Kotiavustaja-käyttäjä",
@@ -851,7 +851,7 @@
       },
       "edit_parent": {
         "title": "Muokkaa ylätasapainoa",
-        "description": "Muokkaa valitun pääobjektin tietoja.",
+        "description": "Muokkaa valitun pääobjektin tietoja.\n\n📖 [Määritysopas](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Kids-Parents)",
         "data": {
           "name": "Vanhemman nimi",
           "ha_user_id": "Kotiavustaja-käyttäjä",
@@ -876,7 +876,7 @@
       },
       "edit_chore": {
         "title": "Muokkaa tehtävää",
-        "description": "Muokkaa valitun työn tietoja.",
+        "description": "Muokkaa valitun työn tietoja.\n\n📖 [Määritysopas](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Chores)",
         "data": {
           "name": "📋 Työn nimi",
           "chore_description": "📋 Kuvaus (valinnainen)",
@@ -927,7 +927,7 @@
       },
       "edit_chore_per_kid_dates": {
         "title": "Muokkaa lapsikohtaisia eräpäiviä: {chore_name}",
-        "description": "Aseta jokaiselle lapselle omat eräpäivät. Päämuokkauslomakkeen päivämääräkenttä toimii **mallina** kätevästi – käytä sitä asettaaksesi saman päivämäärän nopeasti kaikille lapsille alla olevan valintaruudun avulla tai jätä se tyhjäksi ja aseta päivämäärät erikseen tähän.\n\nKentät näytetään seuraaville: {kid_names}. Jätä tyhjäksi, jos määräaikaa ei ole.{template_date}",
+        "description": "Aseta jokaiselle lapselle omat eräpäivät. Päämuokkauslomakkeen päivämääräkenttä toimii **mallina** kätevästi – käytä sitä asettaaksesi saman päivämäärän nopeasti kaikille lapsille alla olevan valintaruudun avulla tai jätä se tyhjäksi ja aseta päivämäärät erikseen tähän.\n\nKentät näytetään seuraaville: {kid_names}. Jätä tyhjäksi, jos määräaikaa ei ole.{template_date}\n\n📖 [Lisäopas](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Chores-Advanced)",
         "data": {
           "apply_template_to_all": "Käytä mallipäivämäärää kaikkiin lapsiin"
         },
@@ -947,7 +947,7 @@
       },
       "edit_chore_per_kid_details": {
         "title": "Lapsikohtainen aikataulu: {chore_name}",
-        "description": "Määritä yksilölliset aikatauluasetukset jokaiselle tähän tehtävään määritetylle lapselle. Päälomakkeen arvot toimivat **mallipohjina** – käytä valintaruutuja ottaaksesi ne käyttöön kaikille lapsille tai mukauta kunkin lapsen asetuksia erikseen.\n\n**Huomautus:** Kaikki alla olevat kentät eivät koske kaikkia tehtäviä. Lomake näyttää dynaamisesti asiaankuuluvat vaihtoehdot suoritustavan, tiheyden ja sen perusteella, onko määräpäiviä asetettu.\n\n**Päivittäinen (useita) kellonaikoja:** Jos näkyvissä, anna 2–6 kellonaikaa 24 tunnin muodossa erotettuna pystyviivalla (|). Esimerkki: 08:00|17:00\n\nLapset: {kid_names}{template_info}",
+        "description": "Määritä yksilölliset aikatauluasetukset jokaiselle tähän tehtävään määritetylle lapselle. Päälomakkeen arvot toimivat **mallipohjina** – käytä valintaruutuja ottaaksesi ne käyttöön kaikille lapsille tai mukauta kunkin lapsen asetuksia erikseen.\n\n**Huomautus:** Kaikki alla olevat kentät eivät koske kaikkia tehtäviä. Lomake näyttää dynaamisesti asiaankuuluvat vaihtoehdot suoritustavan, tiheyden ja sen perusteella, onko määräpäiviä asetettu.\n\n**Päivittäinen (useita) aikoja -muoto:** Jos näkyvissä, anna 2–6 aikaa 24 tunnin muodossa erotettuna pystyviivalla |. Esimerkki: 08:00|17:00\n\nLapset: {kid_names}{template_info}\n\n📖 [Lisäopas](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Chores-Advanced)",
         "data": {
           "apply_days_to_all": "Käytä mallipäiviä kaikille lapsille",
           "apply_times_to_all": "Käytä malliaikoja kaikille lapsille",
@@ -961,7 +961,7 @@
       },
       "edit_badge_cumulative": {
         "title": "Muokkaa kumulatiivista arvomerkkiä",
-        "description": "Määritä kumulatiivisen ansiomerkin tiedot. Nämä ansiomerkit palkitsevat lapsia elinikäisten pisteiden saavuttamisesta ja tukevat ylläpitosyklejä jatkuvan suorituksen kannustamiseksi.",
+        "description": "Määritä kumulatiivisen ansiomerkin tiedot. Nämä ansiomerkit palkitsevat lapsia elinikäisten pisteiden kynnysarvojen saavuttamisesta ja tukevat ylläpitosyklejä jatkuvan suorituskyvyn kannustamiseksi.\n\n📖 [Määritysopas](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Badges-Cumulative)",
         "data": {
           "badge_name": "Merkin nimi",
           "badge_description": "Merkin kuvaus (valinnainen)",
@@ -1011,7 +1011,7 @@
       },
       "edit_badge_daily": {
         "title": "Muokkaa päivittäistä merkkiä",
-        "description": "Määritä päivittäisen ansiomerkin tiedot. Nämä ansiomerkit palkitsevat lapsia päivittäisten tehtävien suorittamisesta tai päivittäisten kynnysarvojen saavuttamisesta.",
+        "description": "Määritä päivittäisen ansiomerkin tiedot. Nämä ansiomerkit palkitsevat lapsia päivittäisten tehtävien suorittamisesta tai päivittäisten kynnysarvojen saavuttamisesta.\n\n📖 [Ansiomerkkien yleiskatsaus](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
         "data": {
           "badge_name": "Merkin nimi",
           "badge_description": "Merkin kuvaus (valinnainen)",
@@ -1039,7 +1039,7 @@
       },
       "edit_badge_periodic": {
         "title": "Muokkaa kausiluonteista arvomerkkiä",
-        "description": "Määritä säännöllisen ansiomerkin tiedot. Nämä ansiomerkit palkitsevat lapsia kynnysarvojen saavuttamisesta määritetyn ajanjakson sisällä ja tukevat jatkuvan suorituksen nollaussyklejä.",
+        "description": "Määritä säännöllisen ansiomerkin tiedot. Nämä ansiomerkit palkitsevat lapsia kynnysarvojen saavuttamisesta määritetyn ajanjakson sisällä ja tukevat jatkuvan suorituskyvyn nollaussyklejä.\n\n📖 [Määritysopas](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Badges-Periodic)",
         "data": {
           "badge_name": "Merkin nimi",
           "badge_description": "Merkin kuvaus (valinnainen)",
@@ -1085,7 +1085,7 @@
       },
       "edit_badge_achievement": {
         "title": "Muokkaa saavutukseen liittyvää merkkiä",
-        "description": "Määritä saavutukseen linkitetyn ansiomerkin tiedot. Nämä ansiomerkit palkitsevat lapsia tiettyjen saavutusten suorittamisesta.",
+        "description": "Määritä saavutukseen linkitetyn ansiomerkin tiedot. Nämä ansiomerkit palkitsevat lapsia tiettyjen saavutusten suorittamisesta.\n\n📖 [Ansiomerkkien yleiskatsaus](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
         "data": {
           "badge_name": "Merkin nimi",
           "badge_description": "Merkin kuvaus (valinnainen)",
@@ -1109,7 +1109,7 @@
       },
       "edit_badge_challenge": {
         "title": "Muokkaa haasteeseen linkitettyä arvomerkkiä",
-        "description": "Määritä haasteeseen linkitetyn ansiomerkin tiedot. Nämä ansiomerkit palkitsevat lapsia tiettyjen haasteiden suorittamisesta.",
+        "description": "Määritä haasteeseen linkitetyn ansiomerkin tiedot. Nämä ansiomerkit palkitsevat lapsia tiettyjen haasteiden suorittamisesta.\n\n📖 [Ansiomerkkien yleiskatsaus](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
         "data": {
           "badge_name": "Merkin nimi",
           "badge_description": "Merkin kuvaus (valinnainen)",
@@ -1133,7 +1133,7 @@
       },
       "edit_badge_special": {
         "title": "Muokkaa erityistilaisuusmerkkiä",
-        "description": "Määritä erityistilaisuuksiin luodun merkin tiedot. Nämä merkit palkitsevat lapsia tapahtumista, kuten syntymäpäivistä tai juhlapyhistä.",
+        "description": "Määritä erityistilaisuuksiin luodun merkin tiedot. Nämä merkit palkitsevat lapsia tapahtumista, kuten syntymäpäivistä tai juhlapyhistä.\n\n📖 [Merkkien yleiskatsaus](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
         "data": {
           "badge_name": "Merkin nimi",
           "badge_description": "Merkin kuvaus (valinnainen)",
@@ -1169,7 +1169,7 @@
       },
       "edit_reward": {
         "title": "Muokkaa palkintoa",
-        "description": "Muokkaa valitun palkinnon tietoja.",
+        "description": "Muokkaa valitun palkinnon tietoja.\n\n📖 [Määritysopas](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Rewards)",
         "data": {
           "name": "Palkinnon nimi",
           "internal_id": "Sisäinen tunnus",
@@ -1181,7 +1181,7 @@
       },
       "edit_penalty": {
         "title": "Muokkaa rangaistusta",
-        "description": "Muokkaa valitun rangaistuksen tietoja.",
+        "description": "Muokkaa valitun rangaistuksen tietoja.\n\n📖 [Yleiskatsaus ja esimerkit](https://github.com/ad-ha/kidschores-ha/wiki/Bonuses-&-Penalties%3A-Overview-&-Examples)",
         "data": {
           "name": "Rangaistuksen nimi",
           "penalty_description": "Kuvaus (valinnainen)",
@@ -1193,7 +1193,7 @@
       },
       "edit_bonus": {
         "title": "Muokkaa bonusta",
-        "description": "Muokkaa valitun bonuksen tietoja.",
+        "description": "Muokkaa valitun bonuksen tietoja.\n\n📖 [Yleiskatsaus ja esimerkit](https://github.com/ad-ha/kidschores-ha/wiki/Bonuses-&-Penalties%3A-Overview-&-Examples)",
         "data": {
           "name": "Bonusnimi",
           "bonus_description": "Kuvaus (valinnainen)",
@@ -1205,7 +1205,7 @@
       },
       "edit_achievement": {
         "title": "Määrittele saavutus",
-        "description": "Anna tiedot jokaisesta saavutuksesta.",
+        "description": "Anna tiedot jokaisesta saavutuksesta.\n\n📖 [Yleiskatsaus ja toiminnallisuus](https://github.com/ad-ha/kidschores-ha/wiki/Challenges-&-Achievements%3A-Overview-&-Functionality)",
         "data": {
           "name": "Saavutuksen nimi",
           "description": "Kuvaus (valinnainen)",
@@ -1222,7 +1222,7 @@
       },
       "edit_challenge": {
         "title": "Määrittele haaste",
-        "description": "Anna tiedot jokaisesta haasteesta.",
+        "description": "Anna tiedot jokaisesta haasteesta.\n\n📖 [Yleiskatsaus ja toiminnallisuus](https://github.com/ad-ha/kidschores-ha/wiki/Challenges-&-Achievements%3A-Overview-&-Functionality)",
         "data": {
           "name": "Haasteen nimi",
           "description": "Kuvaus (valinnainen)",
@@ -1298,7 +1298,7 @@
       },
       "dashboard_create": {
         "title": "Luo/Päivitä kojelauta",
-        "description": "Luo KidsChores-hallintapaneeli, jossa on välilehdet jokaiselle lapselle.\n\nValitse hallintapaneelille nimi, valitse sisällytettävät lapset ja lisää halutessasi Hallinta-välilehti vanhempien hallintaa varten.",
+        "description": "Luo KidsChores-koontinäyttö, jossa on välilehdet jokaiselle lapselle.\n\nValitse koontinäytölle nimi, valitse sisällytettävät lapset ja lisää halutessasi Järjestelmänvalvoja-välilehti vanhempien hallintaa varten.\n\n[📖 Koontinäytön luontiopas](https://github.com/ad-ha/kidschores-ha/wiki/Getting-Started:-Dashboard-Generation)",
         "data": {
           "dashboard_name": "Kojelaudan nimi",
           "dashboard_style": "Kojelaudan tyyli",
@@ -1341,7 +1341,7 @@
       },
       "manage_general_options": {
         "title": "Yleiset asetukset",
-        "description": "Hallinnoi KidsChores-integraation yleisiä asetuksia.",
+        "description": "Hallinnoi KidsChores-integraation yleisiä asetuksia.\n\n[📖 Lue lisää varmuuskopioinnista ja palautuksesta](https://github.com/ad-ha/kidschores-ha/wiki/Getting-Started:-Backup-Restore)",
         "data": {
           "points_adjust_values": "Manuaalisten pisteiden säätöpainikkeiden arvot",
           "update_interval": "Päivitysväli",
@@ -1697,9 +1697,9 @@
         "notify_on_claim": "Ilmoita vaatimuksesta",
         "notify_on_approval": "Ilmoita hyväksynnästä",
         "notify_on_disapproval": "Ilmoita hylkäämisestä",
-        "notify_on_reminder": "Ilmoita 30 minuuttia ennen määräaikaa (vanha)",
         "notify_on_due_window": "Ilmoita, kun eräpäivä alkaa",
-        "notify_due_reminder": "Ilmoita muistutusaikana"
+        "notify_due_reminder": "Ilmoita muistutusaikana",
+        "notify_on_overdue": "Ilmoita myöhästymisestä"
       }
     },
     "recurring_frequency": {
