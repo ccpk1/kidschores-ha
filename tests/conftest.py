@@ -134,7 +134,7 @@ def mock_config_entry() -> MockConfigEntry:
 def mock_storage_data() -> dict[str, dict]:
     """Provide empty storage structure for testing initialization."""
     return {
-        "meta": {"schema_version": 42},
+        "meta": {"schema_version": 44},
         "kids": {},
         "parents": {},
         "chores": {},
@@ -187,7 +187,7 @@ async def init_integration(
     with patch(
         "homeassistant.helpers.storage.Store.async_load",
         return_value={
-            "meta": {"schema_version": 42},
+            "meta": {"schema_version": 44},
             "kids": {},
             "parents": {},
             "chores": {},

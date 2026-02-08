@@ -50,6 +50,7 @@ BARE_EXCEPTION_ALLOWLIST = [
     "chore_engine.py",  # Streak calculation fallback - any failure safely resets streak
     "chore_manager.py",  # Midnight rollover handler - background timer task
     "ui_manager.py",  # Midnight rollover handler - background timer task
+    "migration_pre_v50.py",  # Fallback cascade - bare exceptions prevent total migration failure
 ]
 
 
@@ -200,7 +201,13 @@ def find_direct_store_access() -> list[Violation]:
     # - coordinator.py: owns storage infrastructure
     # - diagnostics.py: read-only for diagnostics dump
     # - system_manager.py: owns factory reset (async_clear_data)
-    allowed_files = {"coordinator.py", "diagnostics.py", "system_manager.py"}
+    # - migration_pre_v50.py: emergency auto-restore from backup (removed with v50 support)
+    allowed_files = {
+        "coordinator.py",
+        "diagnostics.py",
+        "system_manager.py",
+        "migration_pre_v50.py",
+    }
 
     # Pattern to match any .store. access
     store_pattern = re.compile(r"\.store\.")

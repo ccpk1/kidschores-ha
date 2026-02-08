@@ -242,8 +242,17 @@ DEFAULT_TIME_ZONE: ZoneInfo | None = None
 
 # Schema version for config→storage migration
 DATA_SCHEMA_VERSION: Final = "schema_version"
+SCHEMA_VERSION_TRANSITIONAL: Final = (
+    42  # Set by migrate_config_to_storage(); signals "data in storage, structural
+    # migration not yet run." Upgraded to SCHEMA_VERSION_STORAGE_ONLY by
+    # _finalize_migration_meta() after all pre-v50 phases succeed.
+)
 SCHEMA_VERSION_STORAGE_ONLY: Final = (
     43  # v50: Storage-only mode aligns with v0.5.0-beta3 (schema 43)
+    # Frozen: All pre-v50 migrations are hardcoded to produce this version.
+)
+SCHEMA_VERSION_BETA4: Final = (
+    44  # v0.5.0-beta4: Post-migration tweaks, only runs after schema 43 confirmed.
 )
 
 # Float precision for stored numeric values (points, chore stats, etc.)

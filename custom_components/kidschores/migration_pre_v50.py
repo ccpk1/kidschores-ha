@@ -11,12 +11,14 @@ lazy import to avoid any runtime cost.
 """
 
 from collections import Counter, defaultdict
+import copy
 from datetime import datetime
 import random
 from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import entity_registry as er
 
 from . import const, data_builders as db
@@ -64,11 +66,14 @@ async def migrate_config_to_storage(
     )
 
     # Check if migration is needed
-    if storage_version >= const.SCHEMA_VERSION_STORAGE_ONLY:
+    # Skip if version is at or past the transitional stamp (42+)
+    # Version 42 = config→storage done, structural migration pending
+    # Version 43+ = fully migrated
+    if storage_version >= const.SCHEMA_VERSION_TRANSITIONAL:
         const.LOGGER.info(
             "INFO: Storage schema version %s already >= %s, skipping config→storage migration",
             storage_version,
-            const.SCHEMA_VERSION_STORAGE_ONLY,
+            const.SCHEMA_VERSION_TRANSITIONAL,
         )
         return
 
@@ -103,13 +108,13 @@ async def migrate_config_to_storage(
     if not config_has_entities and not storage_has_entities:
         const.LOGGER.info(
             "INFO: No entity data in config or storage, setting storage version to %s (clean install)",
-            const.SCHEMA_VERSION_STORAGE_ONLY,
+            const.SCHEMA_VERSION_BETA4,
         )
         # Clean install - set version in meta section and save
         from homeassistant.util import dt as dt_util
 
         storage_data[const.DATA_META] = {
-            const.DATA_META_SCHEMA_VERSION: const.SCHEMA_VERSION_STORAGE_ONLY,
+            const.DATA_META_SCHEMA_VERSION: const.SCHEMA_VERSION_BETA4,
             const.DATA_META_LAST_MIGRATION_DATE: dt_util.utcnow().isoformat(),
             const.DATA_META_MIGRATIONS_APPLIED: [],
         }
@@ -227,11 +232,14 @@ async def migrate_config_to_storage(
                 config_key,
             )
 
-    # Set new schema version in meta section
+    # Set TRANSITIONAL schema version in meta section
+    # This signals "data is in storage, but structural migration has not run yet."
+    # _finalize_migration_meta() upgrades to SCHEMA_VERSION_STORAGE_ONLY (43) after
+    # all pre-v50 phases succeed. This prevents the premature-stamp bug (#243).
     from homeassistant.util import dt as dt_util
 
     storage_data[const.DATA_META] = {
-        const.DATA_META_SCHEMA_VERSION: const.SCHEMA_VERSION_STORAGE_ONLY,
+        const.DATA_META_SCHEMA_VERSION: const.SCHEMA_VERSION_TRANSITIONAL,
         const.DATA_META_LAST_MIGRATION_DATE: dt_util.utcnow().isoformat(),
         const.DATA_META_MIGRATIONS_APPLIED: ["config_to_storage"],
     }
@@ -344,120 +352,517 @@ class PreV50Migrator:
                 "Skipping schema migration backup (config→storage backup already created)"
             )
 
-        # Phase 1: Schema migrations (data structure transformations)
-        self._migrate_datetime_wrapper()
-        self._migrate_stored_datetimes()
-        self._migrate_chore_data()
-        self._migrate_kid_data()
-        self._migrate_legacy_kid_chore_data_and_streaks()
-        self._migrate_badges()
-        self._migrate_kid_legacy_badges_to_cumulative_progress()
-        self._migrate_kid_legacy_badges_to_badges_earned()
-        self._migrate_legacy_point_stats()
+        # ===================================================================
+        # ATOMIC MIGRATION: deepcopy snapshot for rollback on failure (#243)
+        # If ANY phase fails, restore data to pre-migration state so the
+        # fallback cascade (nuclear rebuild → auto-restore) works on clean data.
+        # ===================================================================
+        snapshot = copy.deepcopy(self.coordinator._data)
 
-        # Phase 2: Config sync (KC 3.x entity data from config → storage)
-        # Phase 2: Independent chores migration (populate per-kid due dates)
-        self._migrate_independent_chores()
+        try:
+            # Phase 1: Schema migrations (data structure transformations)
+            self._migrate_datetime_wrapper()
+            self._migrate_stored_datetimes()
+            self._migrate_chore_data()
+            self._migrate_kid_data()
+            self._migrate_legacy_kid_chore_data_and_streaks()
+            self._migrate_badges()
+            self._migrate_kid_legacy_badges_to_cumulative_progress()
+            self._migrate_kid_legacy_badges_to_badges_earned()
+            self._migrate_legacy_point_stats()
 
-        # Phase 2a: Per-kid applicable days migration (PKAD-2026-001)
-        self._migrate_per_kid_applicable_days()
+            # Phase 2: Config sync (KC 3.x entity data from config → storage)
+            # Phase 2: Independent chores migration (populate per-kid due dates)
+            self._migrate_independent_chores()
 
-        # Phase 2b: Approval reset type migration (allow_multiple_claims_per_day → approval_reset_type)
-        self._migrate_approval_reset_type()
+            # Phase 2a: Per-kid applicable days migration (PKAD-2026-001)
+            self._migrate_per_kid_applicable_days()
 
-        # Phase 2c: Timestamp-based chore tracking migration
-        # - Initialize approval_period_start for chores
-        # - Delete deprecated claimed_chores/approved_chores lists from kids
-        self._migrate_to_timestamp_tracking()
+            # Phase 2b: Approval reset type migration (allow_multiple_claims_per_day → approval_reset_type)
+            self._migrate_approval_reset_type()
 
-        # Phase 2d: Reward data migration to period-based structure
-        # - Migrate pending_rewards[] → reward_data[id].pending_count
-        # - Migrate reward_claims{} → reward_data[id].total_claims
-        # - Migrate reward_approvals{} → reward_data[id].total_approved
-        self._migrate_reward_data_to_periods()
+            # Phase 2c: Timestamp-based chore tracking migration
+            # - Initialize approval_period_start for chores
+            # - Delete deprecated claimed_chores/approved_chores lists from kids
+            self._migrate_to_timestamp_tracking()
 
-        # Phase 3: Config sync (KC 3.x entity data from config → storage)
-        const.LOGGER.info("Migrating KC 3.x config data to storage")
-        self._initialize_data_from_config()
+            # Phase 2d: Reward data migration to period-based structure
+            # - Migrate pending_rewards[] → reward_data[id].pending_count
+            # - Migrate reward_claims{} → reward_data[id].total_claims
+            # - Migrate reward_approvals{} → reward_data[id].total_approved
+            self._migrate_reward_data_to_periods()
 
-        # Phase 4: Add new optional chore fields (defaults for existing chores)
-        self._add_chore_optional_fields()
+            # Phase 3: Config sync (KC 3.x entity data from config → storage)
+            const.LOGGER.info("Migrating KC 3.x config data to storage")
+            self._initialize_data_from_config()
 
-        # Phase 4b: Stats consolidation - Migrate max_points_ever → periods.all_time,
-        # MUST run BEFORE _remove_legacy_fields which deletes max_points_ever
-        self._consolidate_point_stats()
+            # Phase 4: Add new optional chore fields (defaults for existing chores)
+            self._add_chore_optional_fields()
 
-        # Phase 5: Clean up all legacy fields that have been migrated
-        # This removes fields that were READ during migration but are no longer needed
-        self._remove_legacy_fields()
+            # Phase 4b: Stats consolidation - Migrate max_points_ever → periods.all_time,
+            # MUST run BEFORE _remove_legacy_fields which deletes max_points_ever
+            self._consolidate_point_stats()
 
-        # Phase 6: Round all float values to standard precision
-        # Fixes Python float arithmetic drift (e.g., 27.499999999999996 → 27.5)
-        self._round_float_precision()
+            # Phase 5: Clean up all legacy fields that have been migrated
+            # This removes fields that were READ during migration but are no longer needed
+            self._remove_legacy_fields()
 
-        # Phase 7: v50 cleanup - Remove legacy due_date fields from kid-level chore_data
-        # for independent chores (single source of truth is now chore_info[per_kid_due_dates])
-        storage_version = self.coordinator._data.get(const.DATA_META, {}).get(
-            const.DATA_META_SCHEMA_VERSION, 42
-        )
-        if storage_version < 50:
-            self._cleanup_kid_chore_data_due_dates_v50()
+            # Phase 6: Round all float values to standard precision
+            # Fixes Python float arithmetic drift (e.g., 27.499999999999996 → 27.5)
+            self._round_float_precision()
 
-        # Phase 7a: v50 notification simplification - Migrate 3-field notification config
-        # to single service selector (service presence = enabled, empty = disabled)
-        self._simplify_notification_config_v50()
+            # Phase 7: v50 cleanup - Remove legacy due_date fields from kid-level chore_data
+            # for independent chores (single source of truth is now chore_info[per_kid_due_dates])
+            storage_version = self.coordinator._data.get(const.DATA_META, {}).get(
+                const.DATA_META_SCHEMA_VERSION, 42
+            )
+            if storage_version < 50:
+                self._cleanup_kid_chore_data_due_dates_v50()
 
-        # Phase 8: Clean up orphaned/deprecated dynamic entities
-        # This is called unconditionally because _initialize_data_from_config() only
-        # calls this for KC 3.x config migrations, leaving storage-only users with
-        # orphaned entities from previous versions (e.g., integer-delta buttons).
-        self.remove_deprecated_button_entities()
-        self.remove_deprecated_sensor_entities()
+            # Phase 7a: v50 notification simplification - Migrate 3-field notification config
+            # to single service selector (service presence = enabled, empty = disabled)
+            self._simplify_notification_config_v50()
 
-        # Phase 9: Strip temporal stats from storage (Phase 7.5 - The Great Stripping)
-        # Derivative Data is Ephemeral - clock-based stats MUST NOT be saved to JSON.
-        # These fields are now derived on-demand from period buckets (point_data.periods).
-        # Keep: earned_all_time, highest_balance_all_time, longest_streak_all_time (High-Water Marks)
-        self._strip_temporal_stats()
+            # Phase 8: Clean up orphaned/deprecated dynamic entities
+            # This is called unconditionally because _initialize_data_from_config() only
+            # calls this for KC 3.x config migrations, leaving storage-only users with
+            # orphaned entities from previous versions (e.g., integer-delta buttons).
+            self.remove_deprecated_button_entities()
+            self.remove_deprecated_sensor_entities()
 
-        # Phase 10: Backfill 'completed' metric from 'approved' (v0.5.0-beta4)
-        # New parent-lag-proof statistics track work completion by claim date, not approval date.
-        # Historical approvals have no 'completed' tracking - backfill with approved counts.
-        self._migrate_completed_metric()
+            # Phase 9: Strip temporal stats from storage (Phase 7.5 - The Great Stripping)
+            # Derivative Data is Ephemeral - clock-based stats MUST NOT be saved to JSON.
+            # These fields are now derived on-demand from period buckets (point_data.periods).
+            # Keep: earned_all_time, highest_balance_all_time, longest_streak_all_time (High-Water Marks)
+            self._strip_temporal_stats()
 
-        # Phase 11 (4B): Move badge award_count from root to periods.all_time.all_time (v43)
-        # "Lean Item" pattern - remove root-level duplication, use periods as canonical source
-        # Matches Phase 2 (chore total_points) and Phase 3 (reward total_*)
-        self._migrate_badge_award_count_to_periods()
+            # Phase 10: Backfill 'completed' metric from 'approved' (v0.5.0-beta4)
+            # New parent-lag-proof statistics track work completion by claim date, not approval date.
+            # Historical approvals have no 'completed' tracking - backfill with approved counts.
+            self._migrate_completed_metric()
 
-        # Phase 11: Flatten point_data → point_periods (v42 → v43, v0.5.0-beta3)
-        # Remove nested structure and transform points_total → points_earned/spent
-        self._migrate_point_periods_v43()
+            # Phase 11 (4B): Move badge award_count from root to periods.all_time.all_time (v43)
+            # "Lean Item" pattern - remove root-level duplication, use periods as canonical source
+            # Matches Phase 2 (chore total_points) and Phase 3 (reward total_*)
+            self._migrate_badge_award_count_to_periods()
 
-        # Phase 12: Chore periods migration (v43) - "Lean Chore Architecture"
-        # - Create kid-level chore_periods bucket for aggregated history
-        # - Remove total_points from individual chore items (use periods.all_time.points)
-        # - Delete chore_stats dict entirely (now fully ephemeral)
-        self._migrate_chore_periods_v43()
+            # Phase 11: Flatten point_data → point_periods (v42 → v43, v0.5.0-beta3)
+            # Remove nested structure and transform points_total → points_earned/spent
+            self._migrate_point_periods_v43()
 
-        # Phase 12b: Reward periods migration (v43) - "Lean Reward Architecture"
-        # - Create kid-level reward_periods bucket for aggregated history
-        # - Remove total_* fields from reward_data items (use periods.all_time.*)
-        # - Remove notification_ids from reward_data items (NotificationManager owns lifecycle)
-        # - Delete reward_stats dict entirely (now fully ephemeral)
-        self._migrate_reward_periods_v43()
+            # Phase 12: Chore periods migration (v43) - "Lean Chore Architecture"
+            # - Create kid-level chore_periods bucket for aggregated history
+            # - Remove total_points from individual chore items (use periods.all_time.points)
+            # - Delete chore_stats dict entirely (now fully ephemeral)
+            self._migrate_chore_periods_v43()
 
-        # Phase 12c: Bonus/Penalty periods migration (v43) - "Lean Item Period Tracking"
-        # - Add periods structure to global bonuses_data[uuid] and penalties_data[uuid]
-        # - No kid-level aggregate buckets needed (unlike chores/rewards)
-        # - Ledger enhancement: item_name field already added in Phase 4C.4
-        self._migrate_bonus_penalty_periods_v43()
+            # Phase 12b: Reward periods migration (v43) - "Lean Reward Architecture"
+            # - Create kid-level reward_periods bucket for aggregated history
+            # - Remove total_* fields from reward_data items (use periods.all_time.*)
+            # - Remove notification_ids from reward_data items (NotificationManager owns lifecycle)
+            # - Delete reward_stats dict entirely (now fully ephemeral)
+            self._migrate_reward_periods_v43()
 
-        # Phase 13: Finalize migration metadata (MUST be last)
-        # Sets v50+ meta section and cleans up legacy keys
-        self._finalize_migration_meta()
+            # Phase 12c: Bonus/Penalty periods migration (v43) - "Lean Item Period Tracking"
+            # - Add periods structure to global bonuses_data[uuid] and penalties_data[uuid]
+            # - No kid-level aggregate buckets needed (unlike chores/rewards)
+            # - Ledger enhancement: item_name field already added in Phase 4C.4
+            self._migrate_bonus_penalty_periods_v43()
+
+            # Phase 13: Finalize migration metadata (MUST be last)
+            # Sets v50+ meta section and cleans up legacy keys
+            self._finalize_migration_meta()
+
+        except Exception:
+            # ROLLBACK: Restore data to pre-migration snapshot (#243 defense)
+            # This ensures the fallback cascade works on clean, untransformed data.
+            const.LOGGER.warning(
+                "Pre-v50 migration failed — rolling back to pre-migration snapshot. "
+                "Fallback cascade will attempt recovery"
+            )
+            self.coordinator._data = snapshot
+            raise
 
         const.LOGGER.info("All pre-v50 migrations completed successfully")
+
+    # =========================================================================
+    # Pre-v50 Migration Cascade (#243 Hardening)
+    # =========================================================================
+    # These methods implement the full migration cascade including fallback
+    # layers for recovering from failed migrations. Called by SystemManager's
+    # ensure_data_integrity() via run_full_pre_v50_cascade().
+    #
+    # DEPRECATION: Remove with the rest of this module when v50 support dropped.
+    # =========================================================================
+
+    async def run_full_pre_v50_cascade(self, current_version: int) -> None:
+        """Run the complete pre-v50 migration cascade with fallback layers.
+
+        This is the single entry point called by SystemManager.ensure_data_integrity().
+        Handles:
+        - Premature schema stamp detection (#243 v0.5.0b3 bug)
+        - Schema 42->43 structural migrations (with deepcopy rollback)
+        - Nuclear rebuild fallback (build_*() with existing= data)
+        - Auto-restore from pre-migration backup
+        - Schema 43->44 (beta4 tweaks)
+
+        Args:
+            current_version: Schema version detected by Coordinator
+        """
+        # Step 0: Detect premature stamp from v0.5.0b3 bug
+        current_version = self._detect_premature_stamp(current_version)
+
+        # Step 1: Execute pre-v50 migrations if needed (with fallback cascade)
+        if current_version < const.SCHEMA_VERSION_STORAGE_ONLY:
+            await self._run_migration_with_fallback(current_version)
+
+        # Step 2: Schema 44 gate (beta 4 tweaks) — only after schema 43 confirmed
+        meta = self.coordinator._data.get(const.DATA_META, {})
+        post_migration_version = meta.get(
+            const.DATA_META_SCHEMA_VERSION,
+            self.coordinator._data.get(const.DATA_SCHEMA_VERSION, const.DEFAULT_ZERO),
+        )
+        if post_migration_version == const.SCHEMA_VERSION_STORAGE_ONLY:
+            self._migrate_to_schema_44()
+
+    def _detect_premature_stamp(self, current_version: int) -> int:
+        """Detect and fix premature schema stamp from v0.5.0b3 bug (#243).
+
+        Old code stamped schema 43 BEFORE structural migrations ran.
+        If schema says 43/44 but legacy key "migration_performed" is still
+        present, the data was never actually transformed. Downgrade to 42
+        (TRANSITIONAL) so the structural migration pipeline runs properly.
+        Safe because all migration phases are idempotent.
+
+        Args:
+            current_version: Schema version from storage meta.
+
+        Returns:
+            Corrected version (42 if premature stamp detected, else unchanged).
+        """
+        if (
+            current_version >= const.SCHEMA_VERSION_STORAGE_ONLY
+            and const.MIGRATION_PERFORMED in self.coordinator._data
+        ):
+            const.LOGGER.warning(
+                "PreV50Migrator: Detected premature schema stamp (v%s with "
+                "legacy keys still present). Downgrading to %s to re-run "
+                "structural migrations (#243 recovery)",
+                current_version,
+                const.SCHEMA_VERSION_TRANSITIONAL,
+            )
+            current_version = const.SCHEMA_VERSION_TRANSITIONAL
+            meta = self.coordinator._data.get(const.DATA_META, {})
+            meta[const.DATA_META_SCHEMA_VERSION] = const.SCHEMA_VERSION_TRANSITIONAL
+            self.coordinator._data[const.DATA_META] = meta
+        return current_version
+
+    async def _run_migration_with_fallback(self, current_version: int) -> None:
+        """Run pre-v50 migrations with 3-layer fallback cascade (#243).
+
+        Layer 1: Atomic migration (deepcopy rollback on failure)
+        Layer 2: Nuclear rebuild via build_*() with existing= data
+        Layer 3: Auto-restore from pre-migration backup
+
+        Args:
+            current_version: Schema version before migration
+        """
+        # Layer 1: Try normal migration (has internal deepcopy rollback)
+        try:
+            await self.run_all_migrations()
+            const.LOGGER.info(
+                "PreV50Migrator: Migrated from schema %s to %s",
+                current_version,
+                const.SCHEMA_VERSION_STORAGE_ONLY,
+            )
+            return
+        except Exception:
+            const.LOGGER.warning(
+                "PreV50Migrator: Pre-v50 migration failed (schema %s). "
+                "Attempting nuclear rebuild",
+                current_version,
+            )
+
+        # Layer 2: Nuclear rebuild — pass all items through build_*()
+        rebuild_ok = self._attempt_nuclear_rebuild()
+        if rebuild_ok:
+            wipe_count = self._wipe_all_kc_entities()
+            const.LOGGER.info(
+                "PreV50Migrator: Nuclear rebuild succeeded. "
+                "Wiped %s entities (platforms will recreate them)",
+                wipe_count,
+            )
+            return
+
+        const.LOGGER.warning(
+            "PreV50Migrator: Nuclear rebuild also failed. "
+            "Attempting auto-restore from pre-migration backup"
+        )
+
+        # Layer 3: Auto-restore from pre-migration backup
+        restored = await self._attempt_auto_restore()
+        if restored:
+            const.LOGGER.info(
+                "PreV50Migrator: Auto-restored from pre-migration backup. "
+                "Migration will retry on next restart"
+            )
+            return
+
+        # All layers failed — need user intervention
+        raise ConfigEntryNotReady(
+            "Migration failed and automatic recovery was not possible. "
+            "Please go to Configure \u2192 General Options \u2192 Restore from backup."
+        )
+
+    def _attempt_nuclear_rebuild(self) -> bool:
+        """Rebuild all items through build_*() preserving user definitions (#243).
+
+        This is the automated \"Option 2\" — remove + re-add with existing data.
+        Each item is passed through its canonical builder with existing= parameter,
+        which preserves config fields and regenerates runtime structure.
+
+        Returns:
+            True if rebuild succeeded, False on failure.
+        """
+        from homeassistant.util import dt as dt_util
+
+        const.LOGGER.info("PreV50Migrator: Attempting nuclear rebuild via build_*()")
+
+        # Entity type -> (bucket key, builder callable, extra kwargs)
+        bucket_builders: list[tuple[str, str, Any]] = [
+            (const.DATA_KIDS, "kid", None),
+            (const.DATA_CHORES, "chore", None),
+            (const.DATA_REWARDS, "reward", None),
+            (const.DATA_BADGES, "badge", None),
+            (const.DATA_PENALTIES, "penalty", None),
+            (const.DATA_BONUSES, "bonus", None),
+            (const.DATA_ACHIEVEMENTS, "achievement", None),
+            (const.DATA_CHALLENGES, "challenge", None),
+            (const.DATA_PARENTS, "parent", None),
+        ]
+
+        try:
+            for bucket_key, builder_name, _ in bucket_builders:
+                items = self.coordinator._data.get(bucket_key, {})
+                rebuilt_items: dict[str, Any] = {}
+
+                for item_id, item_data in items.items():
+                    try:
+                        rebuilt = self._rebuild_single_item(db, builder_name, item_data)
+                        rebuilt_items[item_id] = rebuilt
+                    except Exception:
+                        const.LOGGER.warning(
+                            "PreV50Migrator: Failed to rebuild %s item %s, skipping",
+                            builder_name,
+                            item_id,
+                        )
+
+                self.coordinator._data[bucket_key] = rebuilt_items
+
+            # Stamp schema 43 — rebuilt data IS valid v50 structure
+            self.coordinator._data[const.DATA_META] = {
+                const.DATA_META_SCHEMA_VERSION: const.SCHEMA_VERSION_STORAGE_ONLY,
+                const.DATA_META_LAST_MIGRATION_DATE: datetime.now(
+                    dt_util.UTC
+                ).isoformat(),
+                const.DATA_META_MIGRATIONS_APPLIED: [
+                    "nuclear_rebuild_after_migration_failure"
+                ],
+                const.DATA_META_PENDING_EVALUATIONS: [],
+            }
+
+            const.LOGGER.info("PreV50Migrator: Nuclear rebuild completed successfully")
+            return True
+
+        except Exception:
+            const.LOGGER.warning(
+                "PreV50Migrator: Nuclear rebuild failed \u2014 data may be inconsistent"
+            )
+            return False
+
+    @staticmethod
+    def _rebuild_single_item(
+        db_module: Any, builder_name: str, item_data: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Rebuild a single item through its canonical builder.
+
+        Uses empty user_input so get_field() falls through to existing= values.
+        This avoids CFOF/DATA key collisions (e.g., CFOF_GLOBAL_INPUT_INTERNAL_ID
+        matching DATA_KID_INTERNAL_ID, both = \"internal_id\").
+
+        Args:
+            db_module: data_builders module
+            builder_name: One of 'kid', 'chore', 'reward', 'badge', etc.
+            item_data: Existing item data from storage.
+
+        Returns:
+            Rebuilt item data with correct schema.
+        """
+        empty: dict[str, Any] = {}
+        if builder_name == "kid":
+            return dict(db_module.build_kid(user_input=empty, existing=item_data))
+        if builder_name == "chore":
+            return dict(db_module.build_chore(user_input=empty, existing=item_data))
+        if builder_name == "reward":
+            return dict(db_module.build_reward(user_input=empty, existing=item_data))
+        if builder_name == "badge":
+            return dict(db_module.build_badge(user_input=empty, existing=item_data))
+        if builder_name == "penalty":
+            return dict(
+                db_module.build_bonus_or_penalty(
+                    user_input=empty,
+                    entity_type="penalty",
+                    existing=item_data,
+                )
+            )
+        if builder_name == "bonus":
+            return dict(
+                db_module.build_bonus_or_penalty(
+                    user_input=empty,
+                    entity_type="bonus",
+                    existing=item_data,
+                )
+            )
+        if builder_name == "achievement":
+            return dict(
+                db_module.build_achievement(user_input=empty, existing=item_data)
+            )
+        if builder_name == "challenge":
+            return dict(db_module.build_challenge(user_input=empty, existing=item_data))
+        if builder_name == "parent":
+            return dict(db_module.build_parent(user_input=empty, existing=item_data))
+
+        msg = f"Unknown builder: {builder_name}"
+        raise ValueError(msg)
+
+    def _wipe_all_kc_entities(self) -> int:
+        """Remove all KidsChores entities from the entity registry.
+
+        Platforms will recreate them on next startup with correct structure.
+
+        Returns:
+            Count of entities removed.
+        """
+        entity_reg = er.async_get(self.coordinator.hass)
+        entries = er.async_entries_for_config_entry(
+            entity_reg, self.coordinator.config_entry.entry_id
+        )
+        count = 0
+        for entry in entries:
+            entity_reg.async_remove(entry.entity_id)
+            count += 1
+        return count
+
+    async def _attempt_auto_restore(self) -> bool:
+        """Auto-restore from the most recent pre-migration backup (#243).
+
+        This automates the proven manual path: Options -> General -> Restore.
+        After restore, schema version will be < 43 so migration retries on
+        next restart.
+
+        Returns:
+            True if restore succeeded, False if no backup or restore failed.
+        """
+        hass = self.coordinator.hass
+        try:
+            backups = await bh.discover_backups(hass, self.coordinator.store)
+        except Exception:
+            const.LOGGER.warning(
+                "PreV50Migrator: Failed to discover backups for auto-restore"
+            )
+            return False
+
+        # Find most recent pre-migration backup (list is sorted newest-first)
+        pre_migration_backup = None
+        for backup_info in backups:
+            if backup_info.get("tag") == const.BACKUP_TAG_PRE_MIGRATION:
+                pre_migration_backup = backup_info
+                break
+
+        if not pre_migration_backup:
+            const.LOGGER.warning(
+                "PreV50Migrator: No pre-migration backup found for auto-restore"
+            )
+            return False
+
+        try:
+            import json
+            from pathlib import Path
+
+            filename = pre_migration_backup["filename"]
+            backup_path = Path(hass.config.path(".storage", filename))
+
+            if not await hass.async_add_executor_job(backup_path.exists):
+                const.LOGGER.warning(
+                    "PreV50Migrator: Backup file not found: %s", filename
+                )
+                return False
+
+            # Read and validate backup JSON
+            backup_str = await hass.async_add_executor_job(
+                backup_path.read_text, "utf-8"
+            )
+            if not bh.validate_backup_json(backup_str):
+                const.LOGGER.warning(
+                    "PreV50Migrator: Pre-migration backup validation failed"
+                )
+                return False
+
+            backup_data = json.loads(backup_str)
+
+            # Handle HA storage wrapper format ({"version": N, "data": {...}})
+            if "version" in backup_data and "data" in backup_data:
+                backup_data = backup_data["data"]
+
+            # Restore the backup data
+            self.coordinator.store.set_data(backup_data)
+            await self.coordinator.store.async_save()
+            self.coordinator._data = backup_data
+
+            const.LOGGER.info(
+                "PreV50Migrator: Successfully restored from pre-migration backup: %s",
+                filename,
+            )
+            return True
+
+        except Exception:
+            const.LOGGER.warning(
+                "PreV50Migrator: Failed to restore from pre-migration backup"
+            )
+            return False
+
+    def _migrate_to_schema_44(self) -> None:
+        """Apply schema 44 (beta 4) tweaks.
+
+        Only runs when current_version == 43, confirming all pre-v50 migrations
+        completed successfully. This is the safe place to add beta 4 changes
+        without touching frozen schema 43 migration code.
+
+        Schema 44 tweaks are intentionally minimal — the gate infrastructure
+        is what matters for future extensibility.
+        """
+        from homeassistant.util import dt as dt_util
+
+        const.LOGGER.info("PreV50Migrator: Applying schema 44 (beta 4) tweaks")
+
+        # --- Add beta 4 tweaks here as needed ---
+        # Example: self._add_new_field_to_kids()
+
+        # Stamp schema 44
+        meta = self.coordinator._data.get(const.DATA_META, {})
+        applied = list(meta.get(const.DATA_META_MIGRATIONS_APPLIED, []))
+        applied.append("schema_44_beta4")
+
+        self.coordinator._data[const.DATA_META] = {
+            const.DATA_META_SCHEMA_VERSION: const.SCHEMA_VERSION_BETA4,
+            const.DATA_META_LAST_MIGRATION_DATE: datetime.now(dt_util.UTC).isoformat(),
+            const.DATA_META_MIGRATIONS_APPLIED: applied,
+            const.DATA_META_PENDING_EVALUATIONS: meta.get(
+                const.DATA_META_PENDING_EVALUATIONS, []
+            ),
+        }
+
+        const.LOGGER.info("PreV50Migrator: Schema 44 migration complete")
 
     def _migrate_point_periods_v43(self) -> None:
         """Flatten point_data → point_periods and transform field names (v42 → v43).

@@ -139,6 +139,10 @@ class SystemManager(BaseManager):
 
         Boot Cascade Position: Called FIRST, emits DATA_READY when complete.
 
+        Pre-v50 migration logic (including fallback cascade, premature stamp
+        detection, and schema 44 gate) lives in migration_pre_v50.py and is
+        lazy-loaded only when needed. Modern v50+ installations skip it entirely.
+
         Args:
             current_version: Schema version detected by Coordinator
         """
@@ -147,47 +151,28 @@ class SystemManager(BaseManager):
             current_version,
         )
 
-        # 1. Execute Migrations if needed (pre-v50 → v50)
-        # NOTE: The migrator handles ALL pre-v50 logic including meta section setup
-        # and legacy key cleanup. This keeps migration logic in one droppable module.
-        if current_version < const.SCHEMA_VERSION_STORAGE_ONLY:
-            await self._run_pre_v50_migrations()
-            const.LOGGER.info(
-                "SystemManager: Migrated from schema %s to %s",
-                current_version,
-                const.SCHEMA_VERSION_STORAGE_ONLY,
-            )
+        # 1. Pre-v50 migration cascade (lazy-loaded)
+        # Includes: premature-stamp detection (#243), structural migrations,
+        # nuclear rebuild fallback, auto-restore, and schema 44 gate.
+        # migration_performed presence means legacy data needs processing
+        # regardless of reported schema version (may be prematurely stamped).
+        needs_migration = (
+            current_version < const.SCHEMA_VERSION_BETA4
+            or const.MIGRATION_PERFORMED in self.coordinator._data
+        )
+        if needs_migration:
+            from ..migration_pre_v50 import PreV50Migrator
 
-        # 2. Future version migrations (v0.5.1+ pattern)
-        # When adding new meta fields in future versions:
-        #   - Add field to Store.get_default_structure() (fresh installs)
-        #   - Increment SCHEMA_VERSION (e.g., 50 → 51)
-        #   - Add version-gated migration here:
-        #     if current_version < 51:
-        #         self._migrate_to_v51()
-        # This keeps migrations versioned and traceable.
+            migrator = PreV50Migrator(self.coordinator)
+            await migrator.run_full_pre_v50_cascade(current_version)
 
-        # 3. Startup Safety Net (Registry validation)
+        # 2. Startup Safety Net (Registry validation)
         await self.run_startup_safety_net()
         const.LOGGER.info("SystemManager: Data integrity verified")
 
-        # 4. THE BATON PASS: Data is now clean and safe
+        # 3. THE BATON PASS: Data is now clean and safe
         # Signal domain managers to begin their initialization
         self.emit(const.SIGNAL_SUFFIX_DATA_READY)
-
-    async def _run_pre_v50_migrations(self) -> None:
-        """Run pre-v50 schema migrations.
-
-        Lazy-loads the migration module to avoid any cost for v50+ users.
-        The PreV50Migrator handles ALL migration logic including:
-        - Schema transformations
-        - Meta section initialization (schema_version, migration_date)
-        - Legacy key cleanup (migration_performed, migration_key_version)
-        """
-        from ..migration_pre_v50 import PreV50Migrator
-
-        migrator = PreV50Migrator(self.coordinator)
-        await migrator.run_all_migrations()
 
     async def run_startup_safety_net(self) -> int:
         """Run startup safety net - removes orphaned entities.
