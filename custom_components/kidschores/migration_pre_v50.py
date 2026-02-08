@@ -831,6 +831,90 @@ class PreV50Migrator:
             )
             return False
 
+    def _cleanup_legacy_notify_on_reminder(self) -> None:
+        """Clean up legacy notify_on_reminder field from chores.
+
+        LEGACY MIGRATION (Schema 44 / v0.5.0-beta4):
+        - Old system: notify_on_reminder (bool) → hardcoded 30-minute reminder
+        - New system: notify_due_reminder (bool) + chore_due_reminder_offset (string)
+
+        This migration:
+        1. Reads legacy notify_on_reminder value from each chore
+        2. If notify_due_reminder doesn't exist, copies the legacy bool value
+        3. Deletes the legacy notify_on_reminder field from storage
+
+        After migration deployed broadly (v0.6.0+), remove:
+        - CFOF_CHORES_INPUT_NOTIFY_ON_REMINDER_LEGACY
+        - DATA_CHORE_NOTIFY_ON_REMINDER_LEGACY
+        - DEFAULT_NOTIFY_ON_REMINDER_LEGACY
+        - Translation key "notify_on_reminder" from all language files
+        - Legacy field checks from notification_manager.py
+        """
+        const.LOGGER.info(
+            "PreV50Migrator: Migrating legacy notify_on_reminder to notify_due_reminder"
+        )
+
+        chores = self.coordinator._data.get(const.DATA_CHORES, {})
+        migrated_count = 0
+
+        for _chore_id, chore_data in chores.items():
+            # Skip if chore already has notify_due_reminder configured
+            if const.DATA_CHORE_NOTIFY_DUE_REMINDER in chore_data:
+                # Clean up legacy field even if new field exists
+                if const.DATA_CHORE_NOTIFY_ON_REMINDER_LEGACY in chore_data:
+                    del chore_data[const.DATA_CHORE_NOTIFY_ON_REMINDER_LEGACY]
+                    migrated_count += 1
+                continue
+
+            # Read legacy value (default True to preserve existing behavior)
+            legacy_value = chore_data.get(
+                const.DATA_CHORE_NOTIFY_ON_REMINDER_LEGACY,
+                const.DEFAULT_NOTIFY_ON_REMINDER_LEGACY,
+            )
+
+            # Copy to new field
+            chore_data[const.DATA_CHORE_NOTIFY_DUE_REMINDER] = bool(legacy_value)
+
+            # Delete legacy field
+            if const.DATA_CHORE_NOTIFY_ON_REMINDER_LEGACY in chore_data:
+                del chore_data[const.DATA_CHORE_NOTIFY_ON_REMINDER_LEGACY]
+
+            migrated_count += 1
+
+        const.LOGGER.info(
+            "PreV50Migrator: Migrated %d chores from notify_on_reminder to notify_due_reminder",
+            migrated_count,
+        )
+
+    def _enable_notify_on_overdue(self) -> None:
+        """Auto-enable notify_on_overdue for existing chores.
+
+        SCHEMA 44 MIGRATION (v0.5.0-beta4):
+        - New field: notify_on_overdue (bool) controls overdue notifications
+        - Previous behavior: Always sent overdue notifications (no user control)
+        - This migration: Sets notify_on_overdue=True for all existing chores
+          to preserve the previous always-send behavior
+
+        For new chores, default is True (see DEFAULT_NOTIFY_ON_OVERDUE).
+        """
+        const.LOGGER.info(
+            "PreV50Migrator: Auto-enabling notify_on_overdue for existing chores"
+        )
+
+        chores = self.coordinator._data.get(const.DATA_CHORES, {})
+        enabled_count = 0
+
+        for _chore_id, chore_data in chores.items():
+            # Only set if field doesn't exist (avoid overwriting user preference)
+            if const.DATA_CHORE_NOTIFY_ON_OVERDUE not in chore_data:
+                chore_data[const.DATA_CHORE_NOTIFY_ON_OVERDUE] = True
+                enabled_count += 1
+
+        const.LOGGER.info(
+            "PreV50Migrator: Auto-enabled notify_on_overdue for %d chores",
+            enabled_count,
+        )
+
     def _migrate_to_schema_44(self) -> None:
         """Apply schema 44 (beta 4) tweaks.
 
@@ -846,7 +930,11 @@ class PreV50Migrator:
         const.LOGGER.info("PreV50Migrator: Applying schema 44 (beta 4) tweaks")
 
         # --- Add beta 4 tweaks here as needed ---
-        # Example: self._add_new_field_to_kids()
+        # Clean up legacy notify_on_reminder field (hardcoded 30min → configurable)
+        self._cleanup_legacy_notify_on_reminder()
+
+        # Auto-enable notify_on_overdue for existing chores (preserve behavior)
+        self._enable_notify_on_overdue()
 
         # Stamp schema 44
         meta = self.coordinator._data.get(const.DATA_META, {})

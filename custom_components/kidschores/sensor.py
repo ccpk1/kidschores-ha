@@ -1420,12 +1420,15 @@ class KidChoresSensor(KidsChoresCoordinatorEntity, SensorEntity):
         )
 
         # Add temporal stats (strip PRES prefixes)
+        # NOTE: all_time stats are storage-only, not in cache (can't calculate due to retention)
         for pres_key, value in pres_stats.items():
             if pres_key.startswith("pres_kid_chores_"):
                 attr_key = pres_key[
                     16:
                 ]  # "pres_kid_chores_approved_today" -> "approved_today"
-                all_stats[attr_key] = value
+                # Skip all_time keys - they come from storage only
+                if not attr_key.endswith("_all_time"):
+                    all_stats[attr_key] = value
             elif pres_key.startswith("pres_kid_top_chores_"):
                 attr_key = pres_key[9:]  # "pres_kid_top_chores_xxx" -> "top_chores_xxx"
                 all_stats[attr_key] = value

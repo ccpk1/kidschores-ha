@@ -590,7 +590,7 @@ CFOF_CHORES_INPUT_NAME: Final = "name"
 CFOF_CHORES_INPUT_NOTIFY_ON_APPROVAL: Final = "notify_on_approval"
 CFOF_CHORES_INPUT_NOTIFY_ON_CLAIM: Final = "notify_on_claim"
 CFOF_CHORES_INPUT_NOTIFY_ON_DISAPPROVAL: Final = "notify_on_disapproval"
-CFOF_CHORES_INPUT_NOTIFY_ON_REMINDER: Final = "notify_on_reminder"
+CFOF_CHORES_INPUT_NOTIFY_ON_OVERDUE: Final = "notify_on_overdue"
 CFOF_CHORES_INPUT_NOTIFY_ON_DUE_WINDOW: Final = "notify_on_due_window"
 CFOF_CHORES_INPUT_NOTIFY_DUE_REMINDER: Final = "notify_due_reminder"
 CFOF_CHORES_INPUT_DUE_WINDOW_OFFSET: Final = "chore_due_window_offset"
@@ -1379,7 +1379,7 @@ DATA_CHORE_NAME: Final = "name"
 DATA_CHORE_NOTIFY_ON_APPROVAL: Final = "notify_on_approval"
 DATA_CHORE_NOTIFY_ON_CLAIM: Final = "notify_on_claim"
 DATA_CHORE_NOTIFY_ON_DISAPPROVAL: Final = "notify_on_disapproval"
-DATA_CHORE_NOTIFY_ON_REMINDER: Final = "notify_on_reminder"
+DATA_CHORE_NOTIFY_ON_OVERDUE: Final = "notify_on_overdue"
 DATA_CHORE_NOTIFY_ON_DUE_WINDOW: Final = "notify_on_due_window"
 DATA_CHORE_NOTIFY_DUE_REMINDER: Final = "notify_due_reminder"
 DATA_CHORE_DUE_WINDOW_OFFSET: Final = "chore_due_window_offset"
@@ -1665,7 +1665,7 @@ DEFAULT_NOTIFY_DELAY_REMINDER: Final = 24
 DEFAULT_NOTIFY_ON_APPROVAL = True
 DEFAULT_NOTIFY_ON_CLAIM = True
 DEFAULT_NOTIFY_ON_DISAPPROVAL = True
-DEFAULT_NOTIFY_ON_REMINDER = True
+DEFAULT_NOTIFY_ON_OVERDUE = True  # Notify when chore becomes overdue
 DEFAULT_NOTIFY_ON_DUE_WINDOW = False  # Don't notify on due window start by default
 DEFAULT_NOTIFY_DUE_REMINDER = True  # Notify on due reminder by default
 DEFAULT_PENALTY_POINTS: Final = 1
@@ -4169,3 +4169,10 @@ ENTITY_SUFFIXES_LEGACY: Final = [
     ENTITY_SUFFIX_CHORE_APPROVALS_LEGACY,
     ENTITY_SUFFIX_STREAK_LEGACY,
 ]
+
+# Notification Migration (v0.5.0-beta4 schema 44)
+# Legacy hardcoded 30-minute reminder replaced by configurable notify_due_reminder + chore_due_reminder_offset
+# Migration in _migrate_to_schema_44() copies legacy bool to new notify_due_reminder if missing, then deletes
+CFOF_CHORES_INPUT_NOTIFY_ON_REMINDER_LEGACY: Final = "notify_on_reminder"
+DATA_CHORE_NOTIFY_ON_REMINDER_LEGACY: Final = "notify_on_reminder"
+DEFAULT_NOTIFY_ON_REMINDER_LEGACY: Final = True

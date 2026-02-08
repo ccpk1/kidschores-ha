@@ -1422,7 +1422,8 @@ class NotificationManager(BaseManager):
 
             # Check if reminders are enabled for this chore
             if not chore_info.get(
-                const.DATA_CHORE_NOTIFY_ON_REMINDER, const.DEFAULT_NOTIFY_ON_REMINDER
+                const.DATA_CHORE_NOTIFY_DUE_REMINDER,
+                const.DEFAULT_NOTIFY_DUE_REMINDER,
             ):
                 const.LOGGER.debug(
                     "Reminders disabled for Chore ID '%s'. Skipping",
@@ -2147,6 +2148,25 @@ class NotificationManager(BaseManager):
         due_date = payload.get("due_date", "")
 
         if not kid_id or not chore_id:
+            return
+
+        # Check if overdue notifications are enabled for this chore
+        chore_info: ChoreData | None = self.coordinator.chores_data.get(chore_id)
+        if not chore_info:
+            const.LOGGER.warning(
+                "Chore ID '%s' not found during overdue notification check",
+                chore_id,
+            )
+            return
+
+        if not chore_info.get(
+            const.DATA_CHORE_NOTIFY_ON_OVERDUE,
+            const.DEFAULT_NOTIFY_ON_OVERDUE,
+        ):
+            const.LOGGER.debug(
+                "Overdue notifications disabled for Chore ID '%s'. Skipping",
+                chore_id,
+            )
             return
 
         # Schedule-Lock: Check if already notified this period

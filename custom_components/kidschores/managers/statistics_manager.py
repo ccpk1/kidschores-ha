@@ -1791,33 +1791,10 @@ class StatisticsManager(BaseManager):
             if year_completed > 0:
                 chore_completed_year[chore_id] = year_completed
 
-        # Aggregate all_time stats from all chore period buckets
-        approved_all_time = 0
-        completed_all_time = 0
-        claimed_all_time = 0
-        points_all_time = 0.0
-
-        for _chore_id, chore_info in chore_data.items():
-            periods = chore_info.get(const.DATA_KID_CHORE_DATA_PERIODS, {})
-            all_time_container = periods.get(
-                const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME, {}
-            )
-            # All-time uses nested structure: periods["all_time"]["all_time"] = {data}
-            all_time_periods = all_time_container.get(const.PERIOD_ALL_TIME, {})
-
-            # All-time bucket stores cumulative totals
-            approved_all_time += all_time_periods.get(
-                const.DATA_KID_CHORE_DATA_PERIOD_APPROVED, 0
-            )
-            completed_all_time += all_time_periods.get(
-                const.DATA_KID_CHORE_DATA_PERIOD_COMPLETED, 0
-            )
-            claimed_all_time += all_time_periods.get(
-                const.DATA_KID_CHORE_DATA_PERIOD_CLAIMED, 0
-            )
-            points_all_time += all_time_periods.get(
-                const.DATA_KID_CHORE_DATA_PERIOD_POINTS, 0
-            )
+        # NOTE: all_time stats are NOT calculated here - they must be read from storage
+        # Reason: Retention/pruning means we can't recalculate historical all_time by summing periods
+        # All-time data lives in kid["chore_periods"]["all_time"]["all_time"] and is maintained
+        # by _record_chore_transaction() writing to both per-chore and kid-level buckets
 
         # Store snapshot counts in cache (computed inline above)
         cache[const.PRES_KID_CHORES_CURRENT_OVERDUE] = current_overdue
@@ -1830,17 +1807,17 @@ class StatisticsManager(BaseManager):
         cache[const.PRES_KID_CHORES_APPROVED_WEEK] = approved_week
         cache[const.PRES_KID_CHORES_APPROVED_MONTH] = approved_month
         cache[const.PRES_KID_CHORES_APPROVED_YEAR] = approved_year
-        cache[const.PRES_KID_CHORES_APPROVED_ALL_TIME] = approved_all_time
+        # NOTE: all_time stats omitted from cache - must be read from storage only
         cache[const.PRES_KID_CHORES_COMPLETED_TODAY] = completed_today
         cache[const.PRES_KID_CHORES_COMPLETED_WEEK] = completed_week
         cache[const.PRES_KID_CHORES_COMPLETED_MONTH] = completed_month
         cache[const.PRES_KID_CHORES_COMPLETED_YEAR] = completed_year
-        cache[const.PRES_KID_CHORES_COMPLETED_ALL_TIME] = completed_all_time
+        # NOTE: all_time stats omitted from cache - must be read from storage only
         cache[const.PRES_KID_CHORES_CLAIMED_TODAY] = claimed_today
         cache[const.PRES_KID_CHORES_CLAIMED_WEEK] = claimed_week
         cache[const.PRES_KID_CHORES_CLAIMED_MONTH] = claimed_month
         cache[const.PRES_KID_CHORES_CLAIMED_YEAR] = claimed_year
-        cache[const.PRES_KID_CHORES_CLAIMED_ALL_TIME] = claimed_all_time
+        # NOTE: all_time stats omitted from cache - must be read from storage only
         cache[const.PRES_KID_CHORES_POINTS_TODAY] = round(
             points_today, const.DATA_FLOAT_PRECISION
         )
@@ -1853,9 +1830,7 @@ class StatisticsManager(BaseManager):
         cache[const.PRES_KID_CHORES_POINTS_YEAR] = round(
             points_year, const.DATA_FLOAT_PRECISION
         )
-        cache[const.PRES_KID_CHORES_POINTS_ALL_TIME] = round(
-            points_all_time, const.DATA_FLOAT_PRECISION
-        )
+        # NOTE: all_time stats omitted from cache - must be read from storage only
 
         # Averages (derived from temporal aggregates)
         days_in_week = 7

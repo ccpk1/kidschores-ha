@@ -1446,8 +1446,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 const.DATA_CHORE_NOTIFY_ON_DISAPPROVAL,
                 const.DEFAULT_NOTIFY_ON_DISAPPROVAL,
             ),
-            const.CFOF_CHORES_INPUT_NOTIFY_ON_REMINDER: chore_data.get(
-                const.DATA_CHORE_NOTIFY_ON_REMINDER, const.DEFAULT_NOTIFY_ON_REMINDER
+            const.CFOF_CHORES_INPUT_NOTIFY_ON_REMINDER_LEGACY: chore_data.get(
+                const.DATA_CHORE_NOTIFY_ON_REMINDER_LEGACY,
+                const.DEFAULT_NOTIFY_ON_REMINDER_LEGACY,
             ),
             const.CFOF_CHORES_INPUT_NOTIFY_ON_DUE_WINDOW: chore_data.get(
                 const.DATA_CHORE_NOTIFY_ON_DUE_WINDOW,
@@ -1455,6 +1456,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             ),
             const.CFOF_CHORES_INPUT_NOTIFY_DUE_REMINDER: chore_data.get(
                 const.DATA_CHORE_NOTIFY_DUE_REMINDER, const.DEFAULT_NOTIFY_DUE_REMINDER
+            ),
+            const.CFOF_CHORES_INPUT_NOTIFY_ON_OVERDUE: chore_data.get(
+                const.DATA_CHORE_NOTIFY_ON_OVERDUE, const.DEFAULT_NOTIFY_ON_OVERDUE
             ),
         }
 
@@ -1469,12 +1473,14 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             notifications_list.append(const.DATA_CHORE_NOTIFY_ON_APPROVAL)
         if suggested_values.get(const.CFOF_CHORES_INPUT_NOTIFY_ON_DISAPPROVAL):
             notifications_list.append(const.DATA_CHORE_NOTIFY_ON_DISAPPROVAL)
-        if suggested_values.get(const.CFOF_CHORES_INPUT_NOTIFY_ON_REMINDER):
-            notifications_list.append(const.DATA_CHORE_NOTIFY_ON_REMINDER)
+        if suggested_values.get(const.CFOF_CHORES_INPUT_NOTIFY_ON_REMINDER_LEGACY):
+            notifications_list.append(const.DATA_CHORE_NOTIFY_ON_REMINDER_LEGACY)
         if suggested_values.get(const.CFOF_CHORES_INPUT_NOTIFY_ON_DUE_WINDOW):
             notifications_list.append(const.DATA_CHORE_NOTIFY_ON_DUE_WINDOW)
         if suggested_values.get(const.CFOF_CHORES_INPUT_NOTIFY_DUE_REMINDER):
             notifications_list.append(const.DATA_CHORE_NOTIFY_DUE_REMINDER)
+        if suggested_values.get(const.CFOF_CHORES_INPUT_NOTIFY_ON_OVERDUE):
+            notifications_list.append(const.DATA_CHORE_NOTIFY_ON_OVERDUE)
         suggested_values[const.CFOF_CHORES_INPUT_NOTIFICATIONS] = notifications_list
 
         # Build schema with suggested values as defaults

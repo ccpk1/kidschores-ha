@@ -1697,9 +1697,9 @@
         "notify_on_claim": "Notify on Claim",
         "notify_on_approval": "Notify on Approval",
         "notify_on_disapproval": "Notify on Disapproval",
-        "notify_on_reminder": "Notify 30 Minutes Before Due (Legacy)",
         "notify_on_due_window": "Notify When Due Window Starts",
-        "notify_due_reminder": "Notify at Due Reminder Time"
+        "notify_due_reminder": "Notify at Due Reminder Time",
+        "notify_on_overdue": "Notify When Overdue"
       }
     },
     "recurring_frequency": {
