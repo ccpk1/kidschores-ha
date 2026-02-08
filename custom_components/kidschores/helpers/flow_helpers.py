@@ -679,10 +679,13 @@ def build_chore_schema(
         ),
         vol.Optional(
             const.CFOF_CHORES_INPUT_APPLICABLE_DAYS,
-            # Use `or` to handle both missing keys AND None values
+            # Explicitly check for None to preserve empty list [] (when user clears all days)
             # Storage may have null when per_kid_applicable_days is source of truth
-            default=default.get(const.CFOF_CHORES_INPUT_APPLICABLE_DAYS)
-            or const.DEFAULT_APPLICABLE_DAYS,
+            default=(
+                default.get(const.CFOF_CHORES_INPUT_APPLICABLE_DAYS)
+                if default.get(const.CFOF_CHORES_INPUT_APPLICABLE_DAYS) is not None
+                else const.DEFAULT_APPLICABLE_DAYS
+            ),
         ): selector.SelectSelector(
             selector.SelectSelectorConfig(
                 options=cast(
@@ -1003,10 +1006,15 @@ def transform_chore_cfof_to_data(
             if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT
             else due_date_str
         ),
-        const.DATA_CHORE_APPLICABLE_DAYS: user_input.get(
-            const.CFOF_CHORES_INPUT_APPLICABLE_DAYS,
-            const.DEFAULT_APPLICABLE_DAYS,
-        ),
+        # Convert weekday strings ("mon", "tue") to integers (0, 1, ...)
+        const.DATA_CHORE_APPLICABLE_DAYS: [
+            list(const.WEEKDAY_OPTIONS.keys()).index(day)
+            for day in user_input.get(
+                const.CFOF_CHORES_INPUT_APPLICABLE_DAYS,
+                const.DEFAULT_APPLICABLE_DAYS,
+            )
+            if day in const.WEEKDAY_OPTIONS
+        ],
         const.DATA_CHORE_DAILY_MULTI_TIMES: user_input.get(
             const.CFOF_CHORES_INPUT_DAILY_MULTI_TIMES, None
         ),

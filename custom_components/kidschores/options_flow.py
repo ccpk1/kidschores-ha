@@ -1245,6 +1245,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         # If they differ, show blank (None) since the per-kid dates take precedence
         completion_criteria = chore_data.get(const.DATA_CHORE_COMPLETION_CRITERIA)
         per_kid_due_dates = chore_data.get(const.DATA_CHORE_PER_KID_DUE_DATES, {})
+        per_kid_applicable_days = chore_data.get(
+            const.DATA_CHORE_PER_KID_APPLICABLE_DAYS, {}
+        )
         assigned_kids_ids = chore_data.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
 
         if (
@@ -1312,6 +1315,64 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     e,
                 )
 
+        # For INDEPENDENT chores, check if all per-kid applicable_days are the same
+        # Similar logic to per-kid due dates above
+        existing_applicable_days_display = None
+        if (
+            completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT
+            and assigned_kids_ids
+        ):
+            # Get all applicable_days for assigned kids
+            # Convert to frozenset for hashability (lists aren't hashable)
+            all_kid_days: set[frozenset[int] | None] = set()
+            for kid_id in assigned_kids_ids:
+                kid_days = per_kid_applicable_days.get(kid_id)
+                # Convert to frozenset to make it hashable for set operations
+                if kid_days is not None:
+                    all_kid_days.add(frozenset(kid_days))
+                else:
+                    all_kid_days.add(None)
+
+            if len(all_kid_days) == 1:
+                # All assigned kids have the same applicable_days
+                common_days = next(iter(all_kid_days))
+                if common_days is not None:
+                    # Convert back from frozenset to list, then to string keys
+                    weekday_keys = list(const.WEEKDAY_OPTIONS.keys())
+                    existing_applicable_days_display = [
+                        weekday_keys[day]
+                        for day in sorted(common_days)
+                        if isinstance(day, int) and 0 <= day <= 6
+                    ]
+                    const.LOGGER.debug(
+                        "INDEPENDENT chore: all kids have same applicable_days: %s",
+                        existing_applicable_days_display,
+                    )
+                else:
+                    # All kids have None - show empty
+                    existing_applicable_days_display = []
+                    const.LOGGER.debug(
+                        "INDEPENDENT chore: all kids have no applicable_days, showing empty"
+                    )
+            else:
+                # Kids have different applicable_days - show empty (will be per-kid)
+                existing_applicable_days_display = []
+                const.LOGGER.debug(
+                    "INDEPENDENT chore: kids have different applicable_days (%d unique), "
+                    "showing empty field",
+                    len(all_kid_days),
+                )
+        else:
+            # SHARED chore or no kids: use chore-level applicable_days
+            weekday_keys = list(const.WEEKDAY_OPTIONS.keys())
+            existing_applicable_days_display = [
+                weekday_keys[day]
+                for day in chore_data.get(
+                    const.DATA_CHORE_APPLICABLE_DAYS, const.DEFAULT_APPLICABLE_DAYS
+                )
+                if isinstance(day, int) and 0 <= day <= 6
+            ]
+
         # Convert assigned_kids from internal_ids to names for display
         # (assigned_kids_ids already set above for per-kid date check)
         assigned_kids_names = [
@@ -1358,9 +1419,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             const.CFOF_CHORES_INPUT_CUSTOM_INTERVAL_UNIT: chore_data.get(
                 const.DATA_CHORE_CUSTOM_INTERVAL_UNIT
             ),
-            const.CFOF_CHORES_INPUT_APPLICABLE_DAYS: chore_data.get(
-                const.DATA_CHORE_APPLICABLE_DAYS, const.DEFAULT_APPLICABLE_DAYS
-            ),
+            # Use computed applicable_days (handles per-kid for INDEPENDENT chores)
+            const.CFOF_CHORES_INPUT_APPLICABLE_DAYS: existing_applicable_days_display,
             const.CFOF_CHORES_INPUT_DAILY_MULTI_TIMES: chore_data.get(
                 const.DATA_CHORE_DAILY_MULTI_TIMES, ""
             ),
