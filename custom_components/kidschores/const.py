@@ -3527,6 +3527,18 @@ WEEKDAY_OPTIONS = {
     "sun": "Sunday",
 }
 
+# Weekday name to integer mapping (0=Monday, 6=Sunday)
+# Used for converting UI selections to RecurrenceEngine-compatible format
+WEEKDAY_NAME_TO_INT: Final[dict[str, int]] = {
+    "mon": 0,
+    "tue": 1,
+    "wed": 2,
+    "thu": 3,
+    "fri": 4,
+    "sat": 5,
+    "sun": 6,
+}
+
 # Badge Type to Options Flow Add Step Name Mapping
 OPTIONS_FLOW_ADD_STEP: Final = {
     BADGE_TYPE_ACHIEVEMENT_LINKED: OPTIONS_FLOW_STEP_ADD_BADGE_ACHIEVEMENT,

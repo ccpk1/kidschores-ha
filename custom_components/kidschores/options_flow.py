@@ -874,12 +874,14 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
                     # Apply template applicable_days to single kid
                     if template_applicable_days:
-                        weekday_keys = list(const.WEEKDAY_OPTIONS.keys())
-                        days_as_strings = [
-                            d for d in template_applicable_days if d in weekday_keys
+                        # Convert day name strings to integers (0=Mon, 6=Sun)
+                        days_as_ints = [
+                            const.WEEKDAY_NAME_TO_INT[d]
+                            for d in template_applicable_days
+                            if d in const.WEEKDAY_NAME_TO_INT
                         ]
                         single_kid_updates[const.DATA_CHORE_PER_KID_APPLICABLE_DAYS] = {
-                            kid_id: days_as_strings
+                            kid_id: days_as_ints
                         }
                         # Clear chore-level (per-kid is source of truth)
                         single_kid_updates[const.DATA_CHORE_APPLICABLE_DAYS] = []
@@ -1151,11 +1153,11 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
                     # PKAD-2026-001: Apply template applicable_days to single kid
                     if template_applicable_days:
-                        weekday_keys = list(const.WEEKDAY_OPTIONS.keys())
+                        # Convert day name strings to integers (0=Mon, 6=Sun)
                         days_as_ints = [
-                            weekday_keys.index(d)
+                            const.WEEKDAY_NAME_TO_INT[d]
                             for d in template_applicable_days
-                            if d in weekday_keys
+                            if d in const.WEEKDAY_NAME_TO_INT
                         ]
                         single_kid_updates[const.DATA_CHORE_PER_KID_APPLICABLE_DAYS] = {
                             kid_id: days_as_ints

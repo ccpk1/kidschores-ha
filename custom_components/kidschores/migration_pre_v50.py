@@ -915,6 +915,76 @@ class PreV50Migrator:
             enabled_count,
         )
 
+    def _convert_applicable_days_to_integers(self) -> None:
+        """Convert string day names to integers in applicable_days fields.
+
+        SCHEMA 44 MIGRATION (v0.5.0-beta4):
+        - Bug fix: RecurrenceEngine requires integer weekdays (0-6), not strings
+        - Legacy data: Some chores have string day names like ["sun", "mon"]
+        - This migration: Converts all string day names to integers using WEEKDAY_NAME_TO_INT
+        - Affects: applicable_days (chore-level) and per_kid_applicable_days (independent)
+
+        After this migration, all applicable_days fields contain only integers,
+        eliminating the need for defensive conversions at read-time.
+        """
+        const.LOGGER.info(
+            "PreV50Migrator: Converting string day names to integers in applicable_days"
+        )
+
+        chores = self.coordinator._data.get(const.DATA_CHORES, {})
+        converted_chores = 0
+        converted_per_kid = 0
+
+        for _chore_id, chore_data in chores.items():
+            chore_name = chore_data.get("name", "unknown")
+
+            # Convert chore-level applicable_days (for SHARED chores)
+            if chore_data.get(const.DATA_CHORE_APPLICABLE_DAYS):
+                original_days = chore_data[const.DATA_CHORE_APPLICABLE_DAYS]
+                converted_days = [
+                    const.WEEKDAY_NAME_TO_INT.get(day, day)
+                    if isinstance(day, str)
+                    else day
+                    for day in original_days
+                ]
+                if converted_days != original_days:
+                    const.LOGGER.debug(
+                        "PreV50Migrator: Converting chore '%s' applicable_days: %s → %s",
+                        chore_name,
+                        original_days,
+                        converted_days,
+                    )
+                    chore_data[const.DATA_CHORE_APPLICABLE_DAYS] = converted_days
+                    converted_chores += 1
+
+            # Convert per-kid applicable_days (for INDEPENDENT chores)
+            if chore_data.get(const.DATA_CHORE_PER_KID_APPLICABLE_DAYS):
+                per_kid_days = chore_data[const.DATA_CHORE_PER_KID_APPLICABLE_DAYS]
+                for kid_id, days_list in per_kid_days.items():
+                    original_days = days_list
+                    converted_days = [
+                        const.WEEKDAY_NAME_TO_INT.get(day, day)
+                        if isinstance(day, str)
+                        else day
+                        for day in original_days
+                    ]
+                    if converted_days != original_days:
+                        const.LOGGER.debug(
+                            "PreV50Migrator: Converting chore '%s' per-kid days for %s: %s → %s",
+                            chore_name,
+                            kid_id,
+                            original_days,
+                            converted_days,
+                        )
+                        per_kid_days[kid_id] = converted_days
+                        converted_per_kid += 1
+
+        const.LOGGER.info(
+            "PreV50Migrator: Converted %d chore-level and %d per-kid applicable_days",
+            converted_chores,
+            converted_per_kid,
+        )
+
     def _migrate_to_schema_44(self) -> None:
         """Apply schema 44 (beta 4) tweaks.
 
@@ -935,6 +1005,9 @@ class PreV50Migrator:
 
         # Auto-enable notify_on_overdue for existing chores (preserve behavior)
         self._enable_notify_on_overdue()
+
+        # Convert string day names to integers in applicable_days (RecurrenceEngine fix)
+        self._convert_applicable_days_to_integers()
 
         # Stamp schema 44
         meta = self.coordinator._data.get(const.DATA_META, {})

@@ -907,11 +907,10 @@ class ChoreEngine:
         # Build schedule config for RecurrenceEngine
         applicable_days = chore_data.get(const.DATA_CHORE_APPLICABLE_DAYS, [])
         # Convert day names to integers if needed (RecurrenceEngine expects ints)
-        day_map = {"mon": 0, "tue": 1, "wed": 2, "thu": 3, "fri": 4, "sat": 5, "sun": 6}
         applicable_days_int: list[int] = []
         for d in applicable_days:
             if isinstance(d, str):
-                day_int = day_map.get(d.lower())
+                day_int = const.WEEKDAY_NAME_TO_INT.get(d.lower())
                 if day_int is not None:
                     applicable_days_int.append(day_int)
             elif isinstance(d, int):

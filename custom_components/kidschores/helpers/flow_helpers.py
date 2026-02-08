@@ -1009,12 +1009,12 @@ def transform_chore_cfof_to_data(
         ),
         # Convert weekday strings ("mon", "tue") to integers (0, 1, ...)
         const.DATA_CHORE_APPLICABLE_DAYS: [
-            list(const.WEEKDAY_OPTIONS.keys()).index(day)
+            const.WEEKDAY_NAME_TO_INT[day]
             for day in user_input.get(
                 const.CFOF_CHORES_INPUT_APPLICABLE_DAYS,
                 const.DEFAULT_APPLICABLE_DAYS,
             )
-            if day in const.WEEKDAY_OPTIONS
+            if day in const.WEEKDAY_NAME_TO_INT
         ],
         const.DATA_CHORE_DAILY_MULTI_TIMES: user_input.get(
             const.CFOF_CHORES_INPUT_DAILY_MULTI_TIMES, None
