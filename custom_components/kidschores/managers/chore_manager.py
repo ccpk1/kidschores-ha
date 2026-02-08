@@ -1873,6 +1873,47 @@ class ChoreManager(BaseManager):
         self._coordinator._persist()
         self._coordinator.async_set_updated_data(self._coordinator._data)
 
+    def reset_chore_to_pending(self, chore_id: str, *, persist: bool = True) -> None:
+        """Reset a specific chore to pending state for all assigned kids.
+
+        Args:
+            chore_id: The chore to reset
+            persist: If True, persist and update listeners (default). Set False when
+                    called as part of a larger operation that will persist later.
+
+        This resets:
+        - All assigned kids' states to PENDING
+        - Approval period start time
+        - Ownership claims
+        """
+        chore_info = self._coordinator.chores_data.get(chore_id)
+        if not chore_info:
+            const.LOGGER.warning("Cannot reset chore %s - not found", chore_id)
+            return
+
+        reset_count = 0
+        for kid_id in chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, []):
+            if kid_id:
+                self._transition_chore_state(
+                    kid_id,
+                    chore_id,
+                    const.CHORE_STATE_PENDING,
+                    reset_approval_period=True,
+                    clear_ownership=True,
+                    persist=False,
+                )
+                reset_count += 1
+
+        if persist and reset_count > 0:
+            self._coordinator._persist()
+            self._coordinator.async_set_updated_data(self._coordinator._data)
+
+        const.LOGGER.debug(
+            "Reset chore '%s' to pending for %d kids",
+            chore_info.get(const.DATA_CHORE_NAME, chore_id),
+            reset_count,
+        )
+
     async def reset_all_chore_states_to_pending(self) -> None:
         """Reset all chores to pending state, clearing claims/approvals.
 
@@ -1881,22 +1922,14 @@ class ChoreManager(BaseManager):
         - Resets approval_period_start for all chores
         - Emits SIGNAL_SUFFIX_CHORE_STATUS_RESET for each chore
         """
-        reset_count = 0
-        for kid_id, chore_id, _chore_info in self._iter_kid_chore_pairs():
-            self._transition_chore_state(
-                kid_id,
-                chore_id,
-                const.CHORE_STATE_PENDING,
-                reset_approval_period=True,
-                clear_ownership=True,
-                persist=False,
-            )
-            reset_count += 1
+        chore_ids = list(self._coordinator.chores_data.keys())
+        for chore_id in chore_ids:
+            self.reset_chore_to_pending(chore_id, persist=False)
 
         self._coordinator._persist()
         self._coordinator.async_set_updated_data(self._coordinator._data)
 
-        const.LOGGER.info("Manually reset %d chore assignments to pending", reset_count)
+        const.LOGGER.info("Manually reset all chores to pending")
 
     async def reset_overdue_chores(
         self, chore_id: str | None = None, kid_id: str | None = None
@@ -2042,6 +2075,14 @@ class ChoreManager(BaseManager):
 
         # Store updated chore
         self._coordinator._data[const.DATA_CHORES][chore_id] = updated_chore
+
+        # Reset states to PENDING if due dates are being updated
+        # Handles both SHARED (DATA_CHORE_DUE_DATE) and INDEPENDENT (DATA_CHORE_PER_KID_DUE_DATES)
+        if (
+            const.DATA_CHORE_DUE_DATE in updates
+            or const.DATA_CHORE_PER_KID_DUE_DATES in updates
+        ):
+            self.reset_chore_to_pending(chore_id, persist=False)
 
         # NOTE: Badge recalculation is handled by GamificationManager via
         # SIGNAL_SUFFIX_CHORE_UPDATED event (Platinum Architecture: event-driven)

@@ -1957,8 +1957,8 @@ class TestApplicableDays:
         weekday_info = coordinator.chores_data.get(weekday_id, {})
         weekday_days = weekday_info.get(DATA_CHORE_APPLICABLE_DAYS, [])
 
-        assert weekday_days == ["mon", "tue", "wed", "thu", "fri"], (
-            f"Weekday chore should have Mon-Fri, got {weekday_days}"
+        assert weekday_days == [0, 1, 2, 3, 4], (
+            f"Weekday chore should have Mon-Fri (0-4), got {weekday_days}"
         )
 
         # Weekend-only chore
@@ -1966,8 +1966,8 @@ class TestApplicableDays:
         weekend_info = coordinator.chores_data.get(weekend_id, {})
         weekend_days = weekend_info.get(DATA_CHORE_APPLICABLE_DAYS, [])
 
-        assert weekend_days == ["sat", "sun"], (
-            f"Weekend chore should have Sat-Sun, got {weekend_days}"
+        assert weekend_days == [5, 6], (
+            f"Weekend chore should have Sat-Sun (5-6), got {weekend_days}"
         )
 
         # MWF chore
@@ -1975,8 +1975,8 @@ class TestApplicableDays:
         mwf_info = coordinator.chores_data.get(mwf_id, {})
         mwf_days = mwf_info.get(DATA_CHORE_APPLICABLE_DAYS, [])
 
-        assert mwf_days == ["mon", "wed", "fri"], (
-            f"MWF chore should have Mon/Wed/Fri, got {mwf_days}"
+        assert mwf_days == [0, 2, 4], (
+            f"MWF chore should have Mon/Wed/Fri (0, 2, 4), got {mwf_days}"
         )
 
     @pytest.mark.asyncio
