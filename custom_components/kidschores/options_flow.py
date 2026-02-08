@@ -191,27 +191,36 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_ACTION)
 
         entity_dict = self._get_entity_dict()
+
         # Build sorted list of entity names for consistent display order
-        entity_names = sorted(
-            [
-                data.get(
-                    const.OPTIONS_FLOW_DATA_ENTITY_NAME,
-                    const.TRANS_KEY_DISPLAY_UNKNOWN_ENTITY,
-                )
-                for data in entity_dict.values()
-            ],
-            key=str.casefold,  # Case-insensitive sorting
-        )
+        # For kids, append marker to shadow kids for clarity (language-agnostic)
+        shadow_marker = " 🔗"  # Link symbol indicates parent linkage
+        entity_names = []
+        for data in entity_dict.values():
+            name = data.get(
+                const.OPTIONS_FLOW_DATA_ENTITY_NAME,
+                const.TRANS_KEY_DISPLAY_UNKNOWN_ENTITY,
+            )
+            # Add shadow kid marker for clarity in dropdown
+            if self._entity_type == const.OPTIONS_FLOW_DIC_KID and data.get(
+                const.DATA_KID_IS_SHADOW, False
+            ):
+                name = f"{name}{shadow_marker}"
+            entity_names.append(name)
+
+        entity_names = sorted(entity_names, key=str.casefold)
 
         if user_input is not None:
             selected_name = _ensure_str(
                 user_input[const.OPTIONS_FLOW_INPUT_ENTITY_NAME]
             )
+            # Strip shadow marker when matching back to internal_id
+            match_name = selected_name.replace(shadow_marker, "")
             internal_id = next(
                 (
                     eid
                     for eid, data in entity_dict.items()
-                    if data[const.OPTIONS_FLOW_DATA_ENTITY_NAME] == selected_name
+                    if data[const.OPTIONS_FLOW_DATA_ENTITY_NAME] == match_name
                 ),
                 None,
             )
@@ -566,10 +575,11 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
         # Retrieve HA users and existing kids for linking
         users = await self.hass.auth.async_get_users()
-        # Build sorted kids dict for dropdown
+        # Build sorted kids dict for dropdown (exclude shadow kids)
         kids_dict = {
             kid_data[const.DATA_KID_NAME]: kid_id
             for kid_id, kid_data in coordinator.kids_data.items()
+            if not kid_data.get(const.DATA_KID_IS_SHADOW, False)
         }
 
         parent_schema = await fh.build_parent_schema(
@@ -676,9 +686,11 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
         # Retrieve HA users and existing kids for linking
         users = await self.hass.auth.async_get_users()
+        # Exclude shadow kids from association list (prevents circular linkage)
         kids_dict = {
             kid_data[const.DATA_KID_NAME]: kid_id
             for kid_id, kid_data in coordinator.kids_data.items()
+            if not kid_data.get(const.DATA_KID_IS_SHADOW, False)
         }
 
         # Prepare suggested values for form (current parent data)
