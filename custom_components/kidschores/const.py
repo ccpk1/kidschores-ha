@@ -35,6 +35,9 @@ KIDSCHORES_TITLE: Final = "KidsChores"
 DOMAIN: Final = "kidschores"
 LOGGER: Final = logging.getLogger(__package__)
 
+# Debug Mode (for development - enables invariant assertions)
+DEBUG_PIPELINE_GUARDS: Final = False  # Set True to enable guard rail assertions
+
 # Supported platforms
 PLATFORMS: Final = [
     Platform.BUTTON,
@@ -1417,12 +1420,14 @@ APPROVAL_RESET_AT_MIDNIGHT_MULTI: Final = "at_midnight_multi"
 APPROVAL_RESET_AT_DUE_DATE_ONCE: Final = "at_due_date_once"
 APPROVAL_RESET_AT_DUE_DATE_MULTI: Final = "at_due_date_multi"
 APPROVAL_RESET_UPON_COMPLETION: Final = "upon_completion"
+APPROVAL_RESET_MANUAL: Final = "manual"
 APPROVAL_RESET_TYPE_OPTIONS: Final = [
     {"value": APPROVAL_RESET_AT_MIDNIGHT_ONCE, "label": "at_midnight_once"},
     {"value": APPROVAL_RESET_AT_MIDNIGHT_MULTI, "label": "at_midnight_multi"},
     {"value": APPROVAL_RESET_AT_DUE_DATE_ONCE, "label": "at_due_date_once"},
     {"value": APPROVAL_RESET_AT_DUE_DATE_MULTI, "label": "at_due_date_multi"},
     {"value": APPROVAL_RESET_UPON_COMPLETION, "label": "upon_completion"},
+    {"value": APPROVAL_RESET_MANUAL, "label": "manual"},
 ]
 DEFAULT_APPROVAL_RESET_TYPE: Final = APPROVAL_RESET_AT_MIDNIGHT_ONCE
 
@@ -2548,6 +2553,9 @@ SERVICE_APPLY_PENALTY: Final = "apply_penalty"
 SERVICE_APPROVE_CHORE: Final = "approve_chore"
 SERVICE_APPROVE_REWARD: Final = "approve_reward"
 SERVICE_CLAIM_CHORE: Final = "claim_chore"
+SERVICE_ADD_CHORE: Final = (
+    "create_chore"  # Alias for SERVICE_CREATE_CHORE (test compatibility)
+)
 SERVICE_CREATE_CHORE: Final = "create_chore"
 SERVICE_CREATE_REWARD: Final = "create_reward"
 SERVICE_DELETE_CHORE: Final = "delete_chore"
@@ -2640,6 +2648,25 @@ SERVICE_FIELD_CHORE_CRUD_AUTO_APPROVE: Final = "auto_approve"
 SERVICE_FIELD_CHORE_CRUD_DUE_DATE: Final = "due_date"
 SERVICE_FIELD_CHORE_CRUD_DUE_WINDOW_OFFSET: Final = "due_window_offset"
 SERVICE_FIELD_CHORE_CRUD_DUE_REMINDER_OFFSET: Final = "due_reminder_offset"
+
+# ==== Test aliases for convenience (used in Phase 1 tests) ====
+SERVICE_FIELD_NAME: Final = "name"  # Alias for SERVICE_FIELD_CHORE_CRUD_NAME
+SERVICE_FIELD_ASSIGNED_KIDS: Final = (
+    "assigned_kids"  # Alias for SERVICE_FIELD_CHORE_CRUD_ASSIGNED_KIDS
+)
+SERVICE_FIELD_FREQUENCY: Final = (
+    "frequency"  # Alias for SERVICE_FIELD_CHORE_CRUD_FREQUENCY
+)
+SERVICE_FIELD_POINTS: Final = "points"  # Alias for SERVICE_FIELD_CHORE_CRUD_POINTS
+SERVICE_FIELD_APPROVAL_RESET_TYPE: Final = (
+    "approval_reset_type"  # Alias for SERVICE_FIELD_CHORE_CRUD_APPROVAL_RESET
+)
+SERVICE_FIELD_OVERDUE_HANDLING: Final = (
+    "overdue_handling"  # Alias for SERVICE_FIELD_CHORE_CRUD_OVERDUE_HANDLING
+)
+SERVICE_FIELD_DUE_DATE: Final = (
+    "due_date"  # Alias for SERVICE_FIELD_CHORE_CRUD_DUE_DATE
+)
 
 # Reward service fields (workflow) - used by redeem_reward, approve_reward, disapprove_reward
 SERVICE_FIELD_REWARD_ID: Final = "id"

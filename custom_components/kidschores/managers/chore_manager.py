@@ -104,6 +104,11 @@ class ChoreManager(BaseManager):
         # Locks for race condition protection (keyed by kid_id:chore_id)
         self._approval_locks: dict[str, asyncio.Lock] = {}
 
+        # Phase 4 Guard Rails: Track state modifications per pipeline tick (debug mode)
+        self._pipeline_modified_pairs: set[tuple[str, str]] = (
+            set()
+        )  # (kid_id, chore_id)
+
     async def async_setup(self) -> None:
         """Set up the ChoreManager.
 
@@ -126,6 +131,37 @@ class ChoreManager(BaseManager):
         self.listen(const.SIGNAL_SUFFIX_PERIODIC_UPDATE, self._on_periodic_update)
 
         const.LOGGER.debug("ChoreManager initialized for entry %s", self.entry_id)
+
+    def _track_state_modification(self, kid_id: str, chore_id: str) -> None:
+        """Track state modification for guard rail assertion (debug mode).
+
+        Phase 4 Guard Rail: Ensures single state change per (kid_id, chore_id)
+        per pipeline tick. Logs warning if same pair modified twice.
+
+        Args:
+            kid_id: Kid identifier
+            chore_id: Chore identifier
+        """
+        if not const.DEBUG_PIPELINE_GUARDS:
+            return
+
+        pair = (kid_id, chore_id)
+        if pair in self._pipeline_modified_pairs:
+            const.LOGGER.warning(
+                "GUARD RAIL VIOLATION: (kid=%s, chore=%s) modified TWICE in single tick. "
+                "This violates the 'single state per tick' invariant.",
+                kid_id,
+                chore_id,
+            )
+        self._pipeline_modified_pairs.add(pair)
+
+    def _reset_pipeline_tracking(self) -> None:
+        """Reset pipeline modification tracking at start of new tick (debug mode).
+
+        Phase 4 Guard Rail: Call at start of midnight_rollover and periodic_update.
+        """
+        if const.DEBUG_PIPELINE_GUARDS:
+            self._pipeline_modified_pairs.clear()
 
     async def _on_data_ready(self, payload: dict[str, Any]) -> None:
         """Handle startup initialization after data integrity is verified.
@@ -168,6 +204,9 @@ class ChoreManager(BaseManager):
         const.LOGGER.debug("ChoreManager: Processing midnight rollover")
         if now_utc is None:
             now_utc = dt_util.utcnow()
+
+        # Phase 4 Guard Rail: Reset modification tracking
+        self._reset_pipeline_tracking()
 
         reset_count = 0
         state_modified = False
@@ -241,6 +280,9 @@ class ChoreManager(BaseManager):
         Returns:
             Number of approval resets processed.
         """
+        # Phase 4 Guard Rail: Reset modification tracking
+        self._reset_pipeline_tracking()
+
         reset_count = 0
         state_modified = False
 
@@ -301,7 +343,6 @@ class ChoreManager(BaseManager):
 
         # Clean own domain: remove deleted kid from chore assigned_kids
         chores_data = self._coordinator._data.get(const.DATA_CHORES, {})
-        cleaned = False
         for chore_info in chores_data.values():
             assigned_kids = chore_info.get(const.DATA_ASSIGNED_KIDS, [])
             if kid_id in assigned_kids:
@@ -1046,6 +1087,9 @@ class ChoreManager(BaseManager):
         """
         self._validate_kid_and_chore(kid_id, chore_id)
 
+        # Landlord duty: Ensure periods structures exist before statistics writes
+        self._ensure_kid_structures(kid_id, chore_id)
+
         chore_data = self._coordinator.chores_data[chore_id]
         kid_info = self._coordinator.kids_data[kid_id]
         kid_chore_data = self._get_kid_chore_data(kid_id, chore_id)
@@ -1451,6 +1495,8 @@ class ChoreManager(BaseManager):
 
         Inlines the mark_overdue() logic directly for single-pass efficiency.
 
+        Phase 4: Idempotency guard - skip if already OVERDUE.
+
         Args:
             entries: List of ChoreTimeEntry for chores past due
             now_utc: Current UTC datetime
@@ -1469,6 +1515,18 @@ class ChoreManager(BaseManager):
             due_dt = entry["due_dt"]
             chore_info = entry["chore_info"]
 
+            # Phase 4 Guard Rail: Idempotency - check current state before processing
+            kid_chore_data = self._get_kid_chore_data(kid_id, chore_id)
+            current_state = kid_chore_data.get(const.DATA_KID_CHORE_DATA_STATE)
+
+            if current_state == const.CHORE_STATE_OVERDUE:
+                const.LOGGER.debug(
+                    "Chore '%s' for kid '%s' already OVERDUE, skipping duplicate processing",
+                    chore_info.get(const.DATA_CHORE_NAME, chore_id),
+                    kid_id,
+                )
+                continue
+
             # Validate kid and chore exist
             try:
                 self._validate_kid_and_chore(kid_id, chore_id)
@@ -1480,6 +1538,9 @@ class ChoreManager(BaseManager):
                     err,
                 )
                 continue
+
+            # Landlord duty: Ensure periods structures exist before statistics writes
+            self._ensure_kid_structures(kid_id, chore_id)
 
             # Get data for transition calculation
             chore_data = self._coordinator.chores_data[chore_id]
@@ -1789,6 +1850,9 @@ class ChoreManager(BaseManager):
 
         if pending_claim_action == const.APPROVAL_RESET_PENDING_CLAIM_AUTO_APPROVE:
             # AUTO_APPROVE: Approve the pending claim before reset
+            # Landlord duty: Ensure periods structures exist before statistics writes
+            self._ensure_kid_structures(kid_id, chore_id)
+
             const.LOGGER.debug(
                 "Chore Reset - AUTO_APPROVE pending claim for Kid '%s' on Chore '%s'",
                 kid_id,
@@ -3021,6 +3085,8 @@ class ChoreManager(BaseManager):
         Handles all side effects: state change, global state update, persist,
         emit signal (when resetting to PENDING), and coordinator update.
 
+        Phase 4 Guard Rail: Tracks state modification for debug-mode assertion.
+
         Args:
             kid_id: The kid's internal ID
             chore_id: The chore's internal ID
@@ -3030,11 +3096,17 @@ class ChoreManager(BaseManager):
             emit: If True (default), emits CHORE_STATUS_RESET signal when → PENDING
             persist: If True (default), persists and updates coordinator data
         """
+        # Phase 4 Guard Rail: Track modification
+        self._track_state_modification(kid_id, chore_id)
+
         kid_info = self._coordinator.kids_data.get(kid_id)
         chore_info = self._coordinator.chores_data.get(chore_id)
 
         if not kid_info or not chore_info:
             return
+
+        # Landlord duty: Ensure periods structures exist before statistics writes
+        self._ensure_kid_structures(kid_id, chore_id)
 
         # Get or initialize kid chore data
         kid_chore_data = self._get_kid_chore_data(kid_id, chore_id)

@@ -2408,7 +2408,8 @@
               "at_midnight_multi": "At Midnight (Multi)",
               "at_due_date_once": "At Due Date (Once)",
               "at_due_date_multi": "At Due Date (Multi)",
-              "upon_completion": "Upon Completion"
+              "upon_completion": "Upon Completion",
+              "manual": "Manual Reset Only"
             }
           },
           "recurring_frequency": {
@@ -3142,7 +3143,8 @@
               "at_midnight_multi": "At Midnight (Multi)",
               "at_due_date_once": "At Due Date (Once)",
               "at_due_date_multi": "At Due Date (Multi)",
-              "upon_completion": "Upon Completion"
+              "upon_completion": "Upon Completion",
+              "manual": "Manual Reset Only"
             }
           },
           "recurring_frequency": {

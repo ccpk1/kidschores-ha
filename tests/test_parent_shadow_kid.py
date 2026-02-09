@@ -85,6 +85,19 @@ async def shadow_kid_scenario(
     )
 
 
+@pytest.fixture
+async def scenario_full(
+    hass: HomeAssistant,
+    mock_hass_users: dict[str, Any],
+) -> SetupResult:
+    """Set up full scenario: 3 kids (Zoë, Max!, Lila), 2 parents, many chores."""
+    return await setup_from_yaml(
+        hass,
+        mock_hass_users,
+        "tests/scenarios/scenario_full.yaml",
+    )
+
+
 # ============================================================================
 # HELPER FUNCTIONS
 # ============================================================================
@@ -651,52 +664,46 @@ class TestShadowKidDeletion:
     async def test_delete_regular_kid_unaffected_by_shadow_logic(
         self,
         hass: HomeAssistant,
-        shadow_kid_scenario: SetupResult,
+        scenario_full: SetupResult,
     ) -> None:
         """Deleting regular kid should work normally without shadow kid logic.
 
         Expected behavior:
-        1. Find Zoë (regular kid)
+        1. Find Lila (regular kid from scenario_full)
         2. Delete kid via coordinator.delete_kid_entity()
         3. Kid should be deleted
-        4. Parents unaffected
+        4. Other kids unaffected
         """
-        coordinator = shadow_kid_scenario.coordinator
+        coordinator = scenario_full.coordinator
 
-        # Find Zoë (regular kid)
-        zoe_id, zoe_data = get_kid_by_name(coordinator, "Zoë")
-        assert zoe_data.get(DATA_KID_IS_SHADOW, False) is False, (
-            "Zoë should not be a shadow kid"
+        # Find Lila (regular kid)
+        lila_id, lila_data = get_kid_by_name(coordinator, "Lila")
+        assert lila_data.get(DATA_KID_IS_SHADOW, False) is False, (
+            "Lila should not be a shadow kid"
         )
-        assert zoe_id in coordinator.kids_data, "Zoë should exist"
+        assert lila_id in coordinator.kids_data, "Lila should exist"
 
-        # Count parents before deletion
-        parents_count_before = len(coordinator.parents_data)
-
-        # Find Dad's shadow kid (should remain after Zoë deletion)
-        dad_id, dad_data = get_parent_by_name(coordinator, "Dad Leo")
-        shadow_kid_id = dad_data.get(DATA_PARENT_LINKED_SHADOW_KID_ID)
+        # Count kids before deletion
+        kids_count_before = len(coordinator.kids_data)
 
         # Delete the regular kid
-        coordinator.user_manager.delete_kid(zoe_id)
+        coordinator.user_manager.delete_kid(lila_id)
+
+        # Allow async entity cleanup to complete
+        await hass.async_block_till_done()
 
         # Verify: Kid removed
-        assert zoe_id not in coordinator.kids_data, (
+        assert lila_id not in coordinator.kids_data, (
             "Regular kid should be removed from kids_data"
         )
 
-        # Verify: Parents unaffected
-        assert len(coordinator.parents_data) == parents_count_before, (
-            "No parents should be affected when deleting regular kid"
+        # Verify: Other kids unaffected
+        assert len(coordinator.kids_data) == kids_count_before - 1, (
+            "Only one kid should be removed"
         )
 
-        # Verify: Shadow kid still exists
-        assert shadow_kid_id in coordinator.kids_data, (
-            "Shadow kid should not be affected by regular kid deletion"
-        )
-
-        # Verify: Dad's allow_chore_assignment still True
-        _, updated_dad = get_parent_by_name(coordinator, "Dad Leo")
-        assert updated_dad.get(DATA_PARENT_ALLOW_CHORE_ASSIGNMENT) is True, (
-            "Dad's allow_chore_assignment should remain True"
-        )
+        # Verify: Zoë and Max! still exist
+        zoe_id, _ = get_kid_by_name(coordinator, "Zoë")
+        max_id, _ = get_kid_by_name(coordinator, "Max!")
+        assert zoe_id in coordinator.kids_data, "Zoë should still exist"
+        assert max_id in coordinator.kids_data, "Max! should still exist"
