@@ -1009,6 +1009,40 @@ class PreV50Migrator:
         # Convert string day names to integers in applicable_days (RecurrenceEngine fix)
         self._convert_applicable_days_to_integers()
 
+        # Phase 2 (v0.5.0-beta4): Eliminate completed_by_other state
+        # Convert any existing kid chore states from "completed_by_other" to "pending"
+        # and remove completed_by_other_chores lists from kid data
+        kids = self.coordinator._data.get(const.DATA_KIDS, {})
+        chores_migrated = 0
+        lists_removed = 0
+
+        for kid_data in kids.values():
+            # Remove completed_by_other_chores list (no longer used)
+            # Note: Using deprecated constant name as string literal since
+            # the constant itself was removed in Phase 2
+            if "completed_by_other_chores" in kid_data:
+                del kid_data["completed_by_other_chores"]
+                lists_removed += 1
+
+            # Convert all completed_by_other states to pending
+            chore_data_map = kid_data.get(const.DATA_KID_CHORE_DATA, {})
+            for chore_data in chore_data_map.values():
+                current_state = chore_data.get(const.DATA_KID_CHORE_DATA_STATE)
+                # Use string literal since CHORE_STATE_COMPLETED_BY_OTHER removed
+                if current_state == "completed_by_other":
+                    chore_data[const.DATA_KID_CHORE_DATA_STATE] = (
+                        const.CHORE_STATE_PENDING
+                    )
+                    chores_migrated += 1
+
+        if chores_migrated > 0 or lists_removed > 0:
+            const.LOGGER.info(
+                "Phase 2 migration: Converted %d completed_by_other states to pending, "
+                "removed %d completed_by_other_chores lists",
+                chores_migrated,
+                lists_removed,
+            )
+
         # Stamp schema 44
         meta = self.coordinator._data.get(const.DATA_META, {})
         applied = list(meta.get(const.DATA_META_MIGRATIONS_APPLIED, []))

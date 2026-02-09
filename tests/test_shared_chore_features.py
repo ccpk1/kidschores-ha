@@ -37,7 +37,7 @@ from tests.helpers import (
     # State constants
     CHORE_STATE_APPROVED,
     CHORE_STATE_CLAIMED,
-    CHORE_STATE_COMPLETED_BY_OTHER,
+    # Phase 2: "completed_by_other" removed - use "completed_by_other" string literal
     CHORE_STATE_PENDING,
     # Completion criteria
     COMPLETION_CRITERIA_SHARED,
@@ -358,8 +358,8 @@ class TestSharedFirstAutoApprove:
         lila_state = get_chore_state_from_sensor(
             hass, "lila", "Shared First Auto Approve"
         )
-        assert max_state == CHORE_STATE_COMPLETED_BY_OTHER, f"Max: {max_state}"
-        assert lila_state == CHORE_STATE_COMPLETED_BY_OTHER, f"Lila: {lila_state}"
+        assert max_state == "completed_by_other", f"Max: {max_state}"
+        assert lila_state == "completed_by_other", f"Lila: {lila_state}"
 
     @pytest.mark.asyncio
     async def test_shared_first_auto_approve_only_winner_gets_points(
@@ -645,7 +645,7 @@ class TestSharedFirstPendingClaimHold:
         )
         assert (
             get_chore_state_from_sensor(hass, "max", "Shared First Pending Hold")
-            == CHORE_STATE_COMPLETED_BY_OTHER
+            == "completed_by_other"
         )
 
         # Trigger reset (INTERNAL API - HOLD chores are exempt from due date check)
@@ -819,7 +819,7 @@ class TestSharedFirstEdgeCases:
         )
         assert (
             get_chore_state_from_sensor(hass, "max", "Shared First Pending Clear")
-            == CHORE_STATE_COMPLETED_BY_OTHER
+            == "completed_by_other"
         )
 
         # Parent disapproves Zoë via button press - this resets all kids
@@ -845,7 +845,7 @@ class TestSharedFirstEdgeCases:
         )
         assert (
             get_chore_state_from_sensor(hass, "zoe", "Shared First Pending Clear")
-            == CHORE_STATE_COMPLETED_BY_OTHER
+            == "completed_by_other"
         )
 
     @pytest.mark.asyncio
@@ -953,11 +953,11 @@ class TestSharedFirstEdgeCases:
         # Max and Lila should be COMPLETED_BY_OTHER with NO points
         assert (
             get_chore_state_from_sensor(hass, "max", "Shared First Auto Approve")
-            == CHORE_STATE_COMPLETED_BY_OTHER
+            == "completed_by_other"
         )
         assert (
             get_chore_state_from_sensor(hass, "lila", "Shared First Auto Approve")
-            == CHORE_STATE_COMPLETED_BY_OTHER
+            == "completed_by_other"
         )
         assert get_points_from_sensor(hass, "max") == max_before  # No points
         assert get_points_from_sensor(hass, "lila") == lila_before  # No points
@@ -972,12 +972,12 @@ class TestSharedFirstEdgeCases:
         """Test: Disapproval clears completed_by_other state for all kids.
 
         Legacy: test_shared_first_disapproval_resets_all_kids
-        When the claimer is disapproved, ALL kids (including those in
-        completed_by_other state) should reset to pending.
+        When the claimer is disapproved, ALL kids (including those blocked
+        by completed_by_other status) should reset to pending.
 
-        NOTE: Uses coordinator data access to verify internal tracking list.
+        Phase 2: Tests computed completed_by_other logic via helper function.
         """
-        from tests.helpers.constants import DATA_KID_COMPLETED_BY_OTHER_CHORES
+        from tests.test_chore_state_matrix import is_in_completed_by_other
 
         coordinator = shared_scenario.coordinator
         max_id = shared_scenario.kid_ids["Max!"]
@@ -986,24 +986,18 @@ class TestSharedFirstEdgeCases:
         kid_ctx = Context(user_id=mock_hass_users["kid1"].id)
         parent_ctx = Context(user_id=mock_hass_users["parent1"].id)
 
-        # Zoë claims via button press (Max becomes completed_by_other)
+        # Zoë claims via button press (Max becomes blocked by completed_by_other)
         await claim_chore(hass, "zoe", "Shared First Pending Clear", kid_ctx)
 
-        # Verify Max is in completed_by_other (internal data check)
-        max_completed_by_other = coordinator.kids_data[max_id].get(
-            DATA_KID_COMPLETED_BY_OTHER_CHORES, []
-        )
-        assert chore_id in max_completed_by_other
+        # Verify Max sees completed_by_other (computed check via helper)
+        assert is_in_completed_by_other(coordinator, max_id, chore_id)
 
         # Disapprove Zoë via button press
         await disapprove_chore(hass, "zoe", "Shared First Pending Clear", parent_ctx)
 
-        # Max should no longer have chore in completed_by_other (internal data check)
-        max_completed_by_other = coordinator.kids_data[max_id].get(
-            DATA_KID_COMPLETED_BY_OTHER_CHORES, []
-        )
-        assert chore_id not in max_completed_by_other, (
-            "Chore should be removed from completed_by_other after disapproval"
+        # Max should no longer see completed_by_other (computed check via helper)
+        assert not is_in_completed_by_other(coordinator, max_id, chore_id), (
+            "Chore should no longer be completed_by_other after disapproval"
         )
 
         # Both should be PENDING (verified via sensor)
@@ -1089,7 +1083,7 @@ class TestSharedFirstRaceConditions:
         )
 
         # Assert exactly 2 COMPLETED_BY_OTHER
-        completed_by_other_count = states.count(CHORE_STATE_COMPLETED_BY_OTHER)
+        completed_by_other_count = states.count("completed_by_other")
         assert completed_by_other_count == 2, (
             f"Expected exactly 2 COMPLETED_BY_OTHER, got {completed_by_other_count}. "
             f"States: Zoë={zoe_state}, Max={max_state}, Lila={lila_state}"

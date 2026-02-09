@@ -89,11 +89,10 @@ class ChoreEngine:
 
     # Valid state transitions matrix
     VALID_TRANSITIONS: dict[str, list[str]] = {
-        # From PENDING: Can be claimed, go overdue, or completed by other
+        # From PENDING: Can be claimed or go overdue
         const.CHORE_STATE_PENDING: [
             const.CHORE_STATE_CLAIMED,
             const.CHORE_STATE_OVERDUE,
-            const.CHORE_STATE_COMPLETED_BY_OTHER,
         ],
         # From CLAIMED: Awaiting parent decision
         const.CHORE_STATE_CLAIMED: [
@@ -110,10 +109,6 @@ class ChoreEngine:
             const.CHORE_STATE_CLAIMED,  # Kid claims overdue chore
             const.CHORE_STATE_PENDING,  # Manual/scheduled reset
             const.CHORE_STATE_APPROVED,  # Parent completes on behalf
-        ],
-        # From COMPLETED_BY_OTHER: Reset at scheduled time
-        const.CHORE_STATE_COMPLETED_BY_OTHER: [
-            const.CHORE_STATE_PENDING,  # Scheduled reset
         ],
         # Global states (multi-kid aggregation)
         const.CHORE_STATE_CLAIMED_IN_PART: [
@@ -247,39 +242,23 @@ class ChoreEngine:
         kids_assigned: list[str],
         kid_name: str,
     ) -> list[TransitionEffect]:
-        """Plan effects for a claim action."""
+        """Plan effects for a claim action.
+
+        Phase 2: SHARED_FIRST no longer sets completed_by_other state.
+        Blocking is computed dynamically in can_claim_chore().
+        """
         effects: list[TransitionEffect] = []
 
-        if criteria == const.COMPLETION_CRITERIA_SHARED_FIRST:
-            # SHARED_FIRST: Actor claims, others become completed_by_other
-            effects.append(
-                TransitionEffect(
-                    kid_id=actor_kid_id,
-                    new_state=const.CHORE_STATE_CLAIMED,
-                    update_stats=True,
-                    set_claimed_by=kid_name,
-                )
+        # All criteria: Only actor transitions to CLAIMED
+        # SHARED_FIRST blocking is computed in validation, not stored
+        effects.append(
+            TransitionEffect(
+                kid_id=actor_kid_id,
+                new_state=const.CHORE_STATE_CLAIMED,
+                update_stats=True,
+                set_claimed_by=kid_name,
             )
-            for other_kid_id in kids_assigned:
-                if other_kid_id != actor_kid_id:
-                    effects.append(
-                        TransitionEffect(
-                            kid_id=other_kid_id,
-                            new_state=const.CHORE_STATE_COMPLETED_BY_OTHER,
-                            update_stats=False,
-                            set_claimed_by=kid_name,
-                        )
-                    )
-        else:
-            # INDEPENDENT or SHARED: Only actor transitions
-            effects.append(
-                TransitionEffect(
-                    kid_id=actor_kid_id,
-                    new_state=const.CHORE_STATE_CLAIMED,
-                    update_stats=True,
-                    set_claimed_by=kid_name,
-                )
-            )
+        )
 
         return effects
 
@@ -291,9 +270,14 @@ class ChoreEngine:
         kid_name: str,
         points: float,
     ) -> list[TransitionEffect]:
-        """Plan effects for an approve action."""
+        """Plan effects for an approve action.
+
+        Phase 2: SHARED_FIRST no longer sets completed_by_other state.
+        Other kids remain in their current state (pending/overdue).
+        """
         effects: list[TransitionEffect] = []
 
+        # Only the approving kid transitions to APPROVED
         effects.append(
             TransitionEffect(
                 kid_id=actor_kid_id,
@@ -304,18 +288,8 @@ class ChoreEngine:
             )
         )
 
-        if criteria == const.COMPLETION_CRITERIA_SHARED_FIRST:
-            # Update completed_by for other kids (who are in completed_by_other state)
-            for other_kid_id in kids_assigned:
-                if other_kid_id != actor_kid_id:
-                    effects.append(
-                        TransitionEffect(
-                            kid_id=other_kid_id,
-                            new_state=const.CHORE_STATE_COMPLETED_BY_OTHER,
-                            update_stats=False,
-                            set_completed_by=kid_name,
-                        )
-                    )
+        # SHARED_FIRST: No state changes for other kids
+        # They stay pending/overdue and are blocked by computed logic
 
         return effects
 
@@ -434,28 +408,40 @@ class ChoreEngine:
         chore_data: ChoreData | dict[str, Any],
         has_pending_claim: bool,
         is_approved_in_period: bool,
+        other_kid_states: dict[str, str] | None = None,
     ) -> tuple[bool, str | None]:
-        """Check if a kid can claim a specific chore.
+        """Check if a chore can be claimed by a specific kid.
+
+        Phase 2: SHARED_FIRST blocking is computed from other kids' states
+        instead of checking a stored completed_by_other state.
 
         Args:
             kid_chore_data: The kid's tracking data for this chore
             chore_data: The chore definition
             has_pending_claim: Result of chore_has_pending_claim()
             is_approved_in_period: Result of chore_is_approved_in_period()
+            other_kid_states: Dict mapping kid_id -> state for SHARED_FIRST check
+                            (optional, only needed for SHARED_FIRST chores)
 
         Returns:
             Tuple of (can_claim: bool, error_key: str | None)
         """
-        current_state = kid_chore_data.get(
-            const.DATA_KID_CHORE_DATA_STATE, const.CHORE_STATE_PENDING
-        )
-
-        # Check 1: completed_by_other blocks all claims
-        if current_state == const.CHORE_STATE_COMPLETED_BY_OTHER:
-            return (False, const.TRANS_KEY_ERROR_CHORE_COMPLETED_BY_OTHER)
-
         # Check multi-claim allowed
         allow_multiple = ChoreEngine.chore_allows_multiple_claims(chore_data)
+
+        # Check 1: SHARED_FIRST blocking - another kid is claimed/approved
+        completion_criteria = chore_data.get(
+            const.DATA_CHORE_COMPLETION_CRITERIA,
+            const.COMPLETION_CRITERIA_INDEPENDENT,
+        )
+        if completion_criteria == const.COMPLETION_CRITERIA_SHARED_FIRST:
+            if other_kid_states:
+                for other_state in other_kid_states.values():
+                    if other_state in (
+                        const.CHORE_STATE_CLAIMED,
+                        const.CHORE_STATE_APPROVED,
+                    ):
+                        return (False, const.TRANS_KEY_ERROR_CHORE_COMPLETED_BY_OTHER)
 
         # Check 2: pending claim blocks new claims (unless multi-claim)
         if not allow_multiple and has_pending_claim:
@@ -475,6 +461,9 @@ class ChoreEngine:
     ) -> tuple[bool, str | None]:
         """Check if a chore can be approved for a specific kid.
 
+        Phase 2: completed_by_other check removed - SHARED_FIRST blocking
+        only affects claims, not approvals (parent can still approve anyone).
+
         Args:
             kid_chore_data: The kid's tracking data for this chore
             chore_data: The chore definition
@@ -483,24 +472,12 @@ class ChoreEngine:
         Returns:
             Tuple of (can_approve: bool, error_key: str | None)
         """
-        current_state = kid_chore_data.get(
-            const.DATA_KID_CHORE_DATA_STATE, const.CHORE_STATE_PENDING
-        )
-
-        # Check 1: completed_by_other blocks all approvals
-        if current_state == const.CHORE_STATE_COMPLETED_BY_OTHER:
-            return (False, const.TRANS_KEY_ERROR_CHORE_COMPLETED_BY_OTHER)
-
-        # Check 2: already approved (unless multi-claim)
+        # Check: already approved (unless multi-claim)
         allow_multiple = ChoreEngine.chore_allows_multiple_claims(chore_data)
         if not allow_multiple and is_approved_in_period:
             return (False, const.TRANS_KEY_ERROR_CHORE_ALREADY_APPROVED)
 
         return (True, None)
-
-    # =========================================================================
-    # QUERY FUNCTIONS
-    # =========================================================================
 
     @staticmethod
     def chore_has_pending_claim(
@@ -973,8 +950,8 @@ class ChoreEngine:
 
         Returns:
             True if chore should be processed for this trigger:
-            - AT_MIDNIGHT_ONCE/MULTI → True for trigger="midnight"
-            - AT_DUE_DATE_ONCE/MULTI → True for trigger="due_date"
+            - AT_MIDNIGHT_ONCE/MULTI → True for trigger=const.TRIGGER_MIDNIGHT
+            - AT_DUE_DATE_ONCE/MULTI → True for trigger=const.TRIGGER_DUE_DATE
             - UPON_COMPLETION → Always False (handled in approve workflow)
         """
         midnight_types = {

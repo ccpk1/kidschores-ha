@@ -3,8 +3,8 @@
 ## Initiative snapshot
 
 - **Name / Code**: CHORE-FEATURES-V051 (Missed State, Due Window Claim Restrictions, Rotation Completion Criteria)
-- **Target release / milestone**: v0.5.1 (post-beta stabilization)
-- **Owner / driver(s)**: @ad-ha (product), TBD (implementation)
+- **Target release / milestone**: v0.5.0 (post-beta stabilization)
+- **Owner / driver(s)**:
 - **Status**: Analysis / Planning
 
 ## Summary & immediate steps

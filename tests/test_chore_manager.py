@@ -190,14 +190,29 @@ class TestClaimWorkflow:
         chore_manager: ChoreManager,
         mock_coordinator: MagicMock,
     ) -> None:
-        """Test claim triggers auto-approve when enabled."""
+        """Test claim triggers auto-approve when enabled.
+
+        Phase 1: Auto-approve is now atomic/inline (not background task).
+        Verify approval happens immediately by checking CHORE_APPROVED signal.
+        """
         # Enable auto-approve
         mock_coordinator.chores_data["chore-1"][const.DATA_CHORE_AUTO_APPROVE] = True
 
         await chore_manager.claim_chore("kid-1", "chore-1", "Alice")
 
-        # Verify async_create_task was called for auto-approve
-        chore_manager.hass.async_create_task.assert_called()
+        # Phase 1: Auto-approve happens inline - verify CHORE_APPROVED signal emitted
+        chore_manager.emit.assert_called()
+        # Find CHORE_APPROVED call (may also have CHORE_COMPLETED signal)
+        approved_call = None
+        for call in chore_manager.emit.call_args_list:
+            if call[0][0] == const.SIGNAL_SUFFIX_CHORE_APPROVED:
+                approved_call = call
+                break
+        assert approved_call is not None, (
+            "CHORE_APPROVED signal not emitted (auto-approve failed)"
+        )
+        assert approved_call[1]["kid_id"] == "kid-1"
+        assert approved_call[1]["parent_name"] == "auto_approve"
 
 
 # ============================================================================
@@ -367,7 +382,10 @@ class TestResetAndOverdue:
 
         # Mock _process_overdue and _process_approval_reset_entries
         chore_manager._process_overdue = AsyncMock(return_value=None)
-        chore_manager._process_approval_reset_entries = AsyncMock(return_value=0)
+        # Phase 1: _process_approval_reset_entries returns (reset_count, reset_pairs) tuple
+        chore_manager._process_approval_reset_entries = AsyncMock(
+            return_value=(0, set())
+        )
 
         # Process periodic update
         await chore_manager._on_periodic_update(now_utc=dt_now_utc())

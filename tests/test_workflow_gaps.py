@@ -33,7 +33,6 @@ import pytest
 from tests.helpers import (
     CHORE_STATE_APPROVED,
     CHORE_STATE_CLAIMED,
-    CHORE_STATE_COMPLETED_BY_OTHER,
     CHORE_STATE_PENDING,
     DATA_CHORE_DEFAULT_POINTS,
     DATA_KID_POINTS,
@@ -769,11 +768,11 @@ class TestSharedFirstChoreWorkflow:
         # Per chore_engine.py: shared_first claim marks others as completed_by_other
         assert (
             get_chore_state_from_sensor(hass, "max", "Täke Öut Trash")
-            == CHORE_STATE_COMPLETED_BY_OTHER
+            == "completed_by_other"
         )
         assert (
             get_chore_state_from_sensor(hass, "lila", "Täke Öut Trash")
-            == CHORE_STATE_COMPLETED_BY_OTHER
+            == "completed_by_other"
         )
 
     @pytest.mark.asyncio

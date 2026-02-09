@@ -68,14 +68,36 @@ def get_kid_state_for_chore(coordinator: Any, kid_id: str, chore_id: str) -> str
 
     Uses the same logic as the sensor to determine state based on
     approval period timestamps, not just the cached state field.
-    """
-    kid_info = coordinator.kids_data.get(kid_id, {})
 
+    Phase 2: completed_by_other is now computed dynamically for SHARED_FIRST chores.
+    """
     # Check approval status first (same order as sensor.py line 750)
     if coordinator.chore_manager.chore_is_approved_in_period(kid_id, chore_id):
         return const.CHORE_STATE_APPROVED
-    if chore_id in kid_info.get(const.DATA_KID_COMPLETED_BY_OTHER_CHORES, []):
-        return const.CHORE_STATE_COMPLETED_BY_OTHER
+
+    # Phase 2: Compute completed_by_other for SHARED_FIRST chores
+    chore = coordinator.chores_data.get(chore_id, {})
+    if (
+        chore.get(const.DATA_CHORE_COMPLETION_CRITERIA)
+        == const.COMPLETION_CRITERIA_SHARED_FIRST
+    ):
+        # Check if another kid has claimed or approved this chore
+        assigned_kids = chore.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
+        for other_kid_id in assigned_kids:
+            if other_kid_id == kid_id:
+                continue
+            other_kid_data = coordinator.kids_data.get(other_kid_id, {})
+            other_chore_data = other_kid_data.get(const.DATA_KID_CHORE_DATA, {}).get(
+                chore_id, {}
+            )
+            other_state = other_chore_data.get(
+                const.DATA_KID_CHORE_DATA_STATE, const.CHORE_STATE_PENDING
+            )
+            if other_state in (const.CHORE_STATE_CLAIMED, const.CHORE_STATE_APPROVED):
+                return (
+                    "completed_by_other"  # String literal - constant removed in Phase 2
+                )
+
     if coordinator.chore_manager.chore_has_pending_claim(kid_id, chore_id):
         return const.CHORE_STATE_CLAIMED
     if coordinator.chore_manager.chore_is_overdue(kid_id, chore_id):

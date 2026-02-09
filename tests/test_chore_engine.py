@@ -37,11 +37,8 @@ class TestStateTransitions:
             const.CHORE_STATE_PENDING, const.CHORE_STATE_OVERDUE
         )
 
-    def test_pending_to_completed_by_other_allowed(self) -> None:
-        """PENDING → COMPLETED_BY_OTHER is valid (for SHARED_FIRST)."""
-        assert ChoreEngine.can_transition(
-            const.CHORE_STATE_PENDING, const.CHORE_STATE_COMPLETED_BY_OTHER
-        )
+    # Phase 2: test_pending_to_completed_by_other_allowed REMOVED
+    # COMPLETED_BY_OTHER is now a computed display state, not a stored FSM state
 
     def test_claimed_to_approved_allowed(self) -> None:
         """CLAIMED → APPROVED is a valid transition."""
@@ -85,17 +82,8 @@ class TestStateTransitions:
             const.CHORE_STATE_OVERDUE, const.CHORE_STATE_APPROVED
         )
 
-    def test_completed_by_other_to_pending_allowed(self) -> None:
-        """COMPLETED_BY_OTHER → PENDING is valid (scheduled reset)."""
-        assert ChoreEngine.can_transition(
-            const.CHORE_STATE_COMPLETED_BY_OTHER, const.CHORE_STATE_PENDING
-        )
-
-    def test_completed_by_other_to_claimed_not_allowed(self) -> None:
-        """COMPLETED_BY_OTHER → CLAIMED is NOT valid."""
-        assert not ChoreEngine.can_transition(
-            const.CHORE_STATE_COMPLETED_BY_OTHER, const.CHORE_STATE_CLAIMED
-        )
+    # Phase 2: completed_by_other transition tests REMOVED
+    # completed_by_other is now a computed blocking state, not in FSM
 
     def test_unknown_state_has_no_transitions(self) -> None:
         """UNKNOWN state has no valid outgoing transitions."""
@@ -153,7 +141,7 @@ class TestCalculateTransitionClaim:
         assert effects[0].new_state == const.CHORE_STATE_CLAIMED
 
     def test_claim_shared_first_affects_all_kids(self) -> None:
-        """SHARED_FIRST: Claiming kid → CLAIMED, others → COMPLETED_BY_OTHER."""
+        """SHARED_FIRST: Claiming kid → CLAIMED (Phase 2: no state change for others)."""
         chore_data = {
             const.DATA_CHORE_COMPLETION_CRITERIA: const.COMPLETION_CRITERIA_SHARED_FIRST,
             const.DATA_CHORE_DEFAULT_POINTS: 10.0,
@@ -167,20 +155,15 @@ class TestCalculateTransitionClaim:
             kid_name="Sarah",
         )
 
-        assert len(effects) == 3
+        # Phase 2: Only 1 effect (actor), other kids remain in their current state
+        assert len(effects) == 1
 
-        # Actor kid
-        actor_effect = next(e for e in effects if e.kid_id == "kid-1")
+        # Actor kid gets CLAIMED state
+        actor_effect = effects[0]
+        assert actor_effect.kid_id == "kid-1"
         assert actor_effect.new_state == const.CHORE_STATE_CLAIMED
         assert actor_effect.update_stats is True
         assert actor_effect.set_claimed_by == "Sarah"
-
-        # Other kids
-        for kid_id in ["kid-2", "kid-3"]:
-            effect = next(e for e in effects if e.kid_id == kid_id)
-            assert effect.new_state == const.CHORE_STATE_COMPLETED_BY_OTHER
-            assert effect.update_stats is False
-            assert effect.set_claimed_by == "Sarah"
 
 
 # =============================================================================
@@ -214,7 +197,7 @@ class TestCalculateTransitionApprove:
         assert effects[0].set_completed_by == "Sarah"
 
     def test_approve_shared_first_updates_all(self) -> None:
-        """SHARED_FIRST: Approve updates completed_by for all."""
+        """SHARED_FIRST: Approve updates actor only (Phase 2: no state change for others)."""
         chore_data = {
             const.DATA_CHORE_COMPLETION_CRITERIA: const.COMPLETION_CRITERIA_SHARED_FIRST,
             const.DATA_CHORE_DEFAULT_POINTS: 20.0,
@@ -228,18 +211,15 @@ class TestCalculateTransitionApprove:
             kid_name="Sarah",
         )
 
-        assert len(effects) == 2
+        # Phase 2: Only 1 effect (actor), blocking is computed not stored
+        assert len(effects) == 1
 
-        actor_effect = next(e for e in effects if e.kid_id == "kid-1")
+        actor_effect = effects[0]
+        assert actor_effect.kid_id == "kid-1"
         assert actor_effect.new_state == const.CHORE_STATE_APPROVED
         assert actor_effect.points == 20.0
         assert actor_effect.update_stats is True
-
-        other_effect = next(e for e in effects if e.kid_id == "kid-2")
-        assert other_effect.new_state == const.CHORE_STATE_COMPLETED_BY_OTHER
-        assert other_effect.points == 0.0
-        assert other_effect.update_stats is False
-        assert other_effect.set_completed_by == "Sarah"
+        assert actor_effect.set_completed_by == "Sarah"
 
 
 # =============================================================================
@@ -431,17 +411,22 @@ class TestCanClaimChore:
     """Test claim validation logic."""
 
     def test_completed_by_other_blocks_claim(self) -> None:
-        """Kid in COMPLETED_BY_OTHER state cannot claim."""
+        """Phase 2: SHARED_FIRST with other kid CLAIMED/APPROVED blocks claim."""
         kid_chore_data = {
-            const.DATA_KID_CHORE_DATA_STATE: const.CHORE_STATE_COMPLETED_BY_OTHER,
+            const.DATA_KID_CHORE_DATA_STATE: const.CHORE_STATE_PENDING,
         }
-        chore_data: dict[str, object] = {}
+        chore_data = {
+            const.DATA_CHORE_COMPLETION_CRITERIA: const.COMPLETION_CRITERIA_SHARED_FIRST,
+        }
+        # Phase 2: Blocking computed from other kids' states
+        other_kid_states = {"other-kid": const.CHORE_STATE_CLAIMED}
 
         can_claim, error = ChoreEngine.can_claim_chore(
             kid_chore_data,
             chore_data,
             has_pending_claim=False,
             is_approved_in_period=False,
+            other_kid_states=other_kid_states,
         )
 
         assert can_claim is False
@@ -549,19 +534,8 @@ class TestCanClaimChore:
 class TestCanApproveChore:
     """Test approve validation logic."""
 
-    def test_completed_by_other_blocks_approve(self) -> None:
-        """Kid in COMPLETED_BY_OTHER state cannot be approved."""
-        kid_chore_data = {
-            const.DATA_KID_CHORE_DATA_STATE: const.CHORE_STATE_COMPLETED_BY_OTHER,
-        }
-        chore_data: dict[str, object] = {}
-
-        can_approve, error = ChoreEngine.can_approve_chore(
-            kid_chore_data, chore_data, is_approved_in_period=False
-        )
-
-        assert can_approve is False
-        assert error == const.TRANS_KEY_ERROR_CHORE_COMPLETED_BY_OTHER
+    # Phase 2: test_completed_by_other_blocks_approve REMOVED
+    # completed_by_other is not a stored state, blocking only applies to claims
 
     def test_already_approved_blocks_single_claim(self) -> None:
         """Single-claim chore cannot be approved twice in period."""
@@ -795,25 +769,25 @@ class TestComputeGlobalChoreState:
         assert result == const.CHORE_STATE_APPROVED
 
     def test_shared_first_with_claimed_returns_claimed(self) -> None:
-        """SHARED_FIRST: One claimed, others completed_by_other → CLAIMED."""
+        """SHARED_FIRST: One claimed, others pending → CLAIMED (Phase 2)."""
         chore_data = {
             const.DATA_CHORE_COMPLETION_CRITERIA: const.COMPLETION_CRITERIA_SHARED_FIRST,
         }
         kid_states = {
             "kid-1": const.CHORE_STATE_CLAIMED,
-            "kid-2": const.CHORE_STATE_COMPLETED_BY_OTHER,
+            "kid-2": const.CHORE_STATE_PENDING,  # Phase 2: no longer COMPLETED_BY_OTHER
         }
         result = ChoreEngine.compute_global_chore_state(chore_data, kid_states)
         assert result == const.CHORE_STATE_CLAIMED
 
     def test_shared_first_with_approved_returns_approved(self) -> None:
-        """SHARED_FIRST: One approved, others completed_by_other → APPROVED."""
+        """SHARED_FIRST: One approved, others pending → APPROVED (Phase 2)."""
         chore_data = {
             const.DATA_CHORE_COMPLETION_CRITERIA: const.COMPLETION_CRITERIA_SHARED_FIRST,
         }
         kid_states = {
             "kid-1": const.CHORE_STATE_APPROVED,
-            "kid-2": const.CHORE_STATE_COMPLETED_BY_OTHER,
+            "kid-2": const.CHORE_STATE_PENDING,  # Phase 2: no longer COMPLETED_BY_OTHER
         }
         result = ChoreEngine.compute_global_chore_state(chore_data, kid_states)
         assert result == const.CHORE_STATE_APPROVED

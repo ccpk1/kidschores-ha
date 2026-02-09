@@ -31,11 +31,14 @@ from tests.helpers import (
     CHORE_STATE_CLAIMED_IN_PART,
     CHORE_STATE_PENDING,
     CHORE_STATE_UNKNOWN,
+    # Phase 2: DATA_KID_COMPLETED_BY_OTHER_CHORES removed (was line 38)
+    COMPLETION_CRITERIA_SHARED_FIRST,
+    DATA_CHORE_ASSIGNED_KIDS,
+    DATA_CHORE_COMPLETION_CRITERIA,
     DATA_CHORE_STATE,
     # Data keys
     DATA_KID_CHORE_DATA,
     DATA_KID_CHORE_DATA_STATE,
-    DATA_KID_COMPLETED_BY_OTHER_CHORES,
 )
 from tests.helpers.setup import SetupResult, setup_from_yaml
 
@@ -122,7 +125,7 @@ def is_in_completed_by_other(
     kid_id: str,
     chore_id: str,
 ) -> bool:
-    """Check if kid has chore marked as completed_by_other.
+    """Check if kid sees chore as completed_by_other (Phase 2: computed dynamically).
 
     Args:
         coordinator: KidsChoresDataCoordinator
@@ -130,11 +133,25 @@ def is_in_completed_by_other(
         chore_id: The chore's internal UUID
 
     Returns:
-        True if chore is in kid's completed_by_other list
+        True if chore is SHARED_FIRST and another kid has claimed/approved
     """
-    kid_data = coordinator.kids_data.get(kid_id, {})
-    completed_by_other = kid_data.get(DATA_KID_COMPLETED_BY_OTHER_CHORES, [])
-    return chore_id in completed_by_other
+    chore = coordinator.chores_data.get(chore_id, {})
+    if chore.get(DATA_CHORE_COMPLETION_CRITERIA) != COMPLETION_CRITERIA_SHARED_FIRST:
+        return False
+
+    # Check if another kid has claimed or approved this chore
+    assigned_kids = chore.get(DATA_CHORE_ASSIGNED_KIDS, [])
+    for other_kid_id in assigned_kids:
+        if other_kid_id == kid_id:
+            continue
+        other_kid_data = coordinator.kids_data.get(other_kid_id, {})
+        other_chore_data = other_kid_data.get(DATA_KID_CHORE_DATA, {}).get(chore_id, {})
+        other_state = other_chore_data.get(
+            DATA_KID_CHORE_DATA_STATE, CHORE_STATE_PENDING
+        )
+        if other_state in (CHORE_STATE_CLAIMED, CHORE_STATE_APPROVED):
+            return True
+    return False
 
 
 def chore_has_pending_claim(

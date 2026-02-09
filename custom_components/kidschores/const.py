@@ -912,7 +912,8 @@ DATA_KID_BADGE_PROGRESS_TYPE: Final = "badge_type"
 # Note: Shared fields already defined above in Common Badge Progress Fields section
 
 DATA_KID_BONUS_APPLIES: Final = "bonus_applies"
-DATA_KID_COMPLETED_BY_OTHER_CHORES: Final = "completed_by_other_chores"
+# DATA_KID_COMPLETED_BY_OTHER_CHORES removed in v0.5.0+ (Phase 2)
+# SHARED_FIRST blocking now computed dynamically, not tracked in kid lists
 
 # Kid Chore Data Structure Constants
 DATA_KID_CHORE_DATA: Final = "chore_data"
@@ -1746,12 +1747,45 @@ CHORE_STATE_APPROVED = "approved"
 CHORE_STATE_APPROVED_IN_PART = "approved_in_part"
 CHORE_STATE_CLAIMED = "claimed"
 CHORE_STATE_CLAIMED_IN_PART = "claimed_in_part"
-CHORE_STATE_COMPLETED_BY_OTHER = "completed_by_other"
+# CHORE_STATE_COMPLETED_BY_OTHER removed in v0.5.0+ (Phase 2)
+# SHARED_FIRST blocking now computed in can_claim_chore(), not stored as state
 CHORE_STATE_DUE = "due"  # Active within due window (before due date)
 CHORE_STATE_INDEPENDENT = "independent"
 CHORE_STATE_OVERDUE = "overdue"
 CHORE_STATE_PENDING = "pending"
 CHORE_STATE_UNKNOWN = "unknown"
+
+# ==============================================================================
+# Chore Scanner API (ChoreManager Internal)
+# ==============================================================================
+# Pattern: CHORE_SCAN_<STRUCTURE>_<FIELD>
+# These constants define the internal API for ChoreManager's process_time_checks()
+# scanner, which categorizes chores by time-based status in a single pass.
+#
+# Future item types (badges, rewards) will follow same pattern:
+#   BADGE_SCAN_RESULT_*, REWARD_SCAN_ENTRY_*, etc.
+
+# Scanner Trigger Types (process_time_checks trigger parameter values)
+CHORE_SCAN_TRIGGER_MIDNIGHT: Final = "midnight"  # AT_MIDNIGHT_* chore processing
+CHORE_SCAN_TRIGGER_DUE_DATE: Final = "due_date"  # AT_DUE_DATE_* chore processing
+
+# Scanner Result Category Keys (process_time_checks return dict keys)
+CHORE_SCAN_RESULT_OVERDUE: Final = "overdue"  # Chores past due date
+CHORE_SCAN_RESULT_IN_DUE_WINDOW: Final = "in_due_window"  # Chores within due window
+CHORE_SCAN_RESULT_DUE_REMINDER: Final = "due_reminder"  # Chores within reminder window
+CHORE_SCAN_RESULT_APPROVAL_RESET_SHARED: Final = (
+    "approval_reset_shared"  # SHARED/SHARED_FIRST resets
+)
+CHORE_SCAN_RESULT_APPROVAL_RESET_INDEPENDENT: Final = (
+    "approval_reset_independent"  # INDEPENDENT resets
+)
+
+# Scanner Entry Field Keys (ChoreTimeEntry structure field keys)
+CHORE_SCAN_ENTRY_KID_ID: Final = "kid_id"  # Kid UUID
+CHORE_SCAN_ENTRY_CHORE_ID: Final = "chore_id"  # Chore UUID
+CHORE_SCAN_ENTRY_DUE_DT: Final = "due_dt"  # Due datetime object
+CHORE_SCAN_ENTRY_CHORE_INFO: Final = "chore_info"  # Chore data dict
+CHORE_SCAN_ENTRY_TIME_UNTIL_DUE: Final = "time_until_due"  # Time delta until due
 
 # Reward States
 REWARD_STATE_LOCKED: Final = "locked"

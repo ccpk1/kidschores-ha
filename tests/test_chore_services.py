@@ -29,7 +29,7 @@ from custom_components.kidschores.utils.dt_utils import dt_now_utc
 from tests.helpers import (
     CHORE_STATE_APPROVED,
     CHORE_STATE_CLAIMED,
-    CHORE_STATE_COMPLETED_BY_OTHER,
+    # Phase 2: CHORE_STATE_COMPLETED_BY_OTHER removed - use "completed_by_other" string literal
     CHORE_STATE_OVERDUE,
     CHORE_STATE_PENDING,
     COMPLETION_CRITERIA_INDEPENDENT,
@@ -78,9 +78,44 @@ async def setup_chore_services_scenario(
 
 
 def get_kid_state_for_chore(coordinator: Any, kid_id: str, chore_id: str) -> str:
-    """Get the current chore state for a specific kid."""
-    kid_chore_data = coordinator.chore_manager.get_chore_data_for_kid(kid_id, chore_id)
-    return kid_chore_data.get(DATA_KID_CHORE_DATA_STATE, CHORE_STATE_PENDING)
+    """Get the current chore display state for a specific kid (Phase 2: includes computed states).
+
+    Returns display state matching sensor behavior, including computed "completed_by_other".
+    """
+    # Check approval status first
+    if coordinator.chore_manager.chore_is_approved_in_period(kid_id, chore_id):
+        return CHORE_STATE_APPROVED
+
+    # Phase 2: Compute completed_by_other for SHARED_FIRST chores
+    chore = coordinator.chores_data.get(chore_id, {})
+    if chore.get(DATA_CHORE_COMPLETION_CRITERIA) == COMPLETION_CRITERIA_SHARED_FIRST:
+        # Check if another kid has claimed or approved this chore
+        assigned_kids = chore.get(DATA_CHORE_ASSIGNED_KIDS, [])
+        for other_kid_id in assigned_kids:
+            if other_kid_id == kid_id:
+                continue
+            other_kid_data = coordinator.kids_data.get(other_kid_id, {})
+            other_chore_data = other_kid_data.get(DATA_KID_CHORE_DATA, {}).get(
+                chore_id, {}
+            )
+            other_state = other_chore_data.get(
+                DATA_KID_CHORE_DATA_STATE, CHORE_STATE_PENDING
+            )
+            if other_state in (CHORE_STATE_CLAIMED, CHORE_STATE_APPROVED):
+                return (
+                    "completed_by_other"  # String literal - constant removed in Phase 2
+                )
+
+    # Check claimed status
+    if coordinator.chore_manager.chore_has_pending_claim(kid_id, chore_id):
+        return CHORE_STATE_CLAIMED
+
+    # Check overdue
+    if coordinator.chore_manager.chore_is_overdue(kid_id, chore_id):
+        return CHORE_STATE_OVERDUE
+
+    # Default to pending
+    return CHORE_STATE_PENDING
 
 
 def get_chore_due_date(coordinator: Any, chore_id: str) -> str | None:
@@ -247,7 +282,7 @@ class TestClaimChoreService:
         # For shared_first, Max becomes completed_by_other (missed out) when Zoë claims first
         assert (
             get_kid_state_for_chore(coordinator, max_id, chore_id)
-            == CHORE_STATE_COMPLETED_BY_OTHER
+            == "completed_by_other"  # Phase 2: String literal, constant removed
         )
 
 
@@ -336,7 +371,7 @@ class TestApproveDisapproveChoreService:
         )
         assert (
             get_kid_state_for_chore(coordinator, max_id, chore_id)
-            == CHORE_STATE_COMPLETED_BY_OTHER
+            == "completed_by_other"  # Phase 2: String literal, constant removed
         )
 
 

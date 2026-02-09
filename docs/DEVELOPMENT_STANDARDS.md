@@ -108,6 +108,25 @@ vol.Required(const.CFOF_PARENTS_INPUT_NAME, default=name): str
 - **`ACTION_*`**: Notification action button titles.
 - **`AWARD_ITEMS_*`**: Badge award composition (e.g., `AWARD_ITEMS_KEY_POINTS`).
 
+#### Internal Scanner API Patterns
+
+**`<ITEM_TYPE>_SCAN_<STRUCTURE>_<FIELD>`** = **Internal method signatures and return structures**
+
+- **Pattern**: Item-type-scoped scanner constants for type-safe dictionary access
+- **Usage**: Internal API contracts for scanner methods that categorize items by status
+- **Context**: 
+  - `process_time_checks(trigger=const.CHORE_SCAN_TRIGGER_MIDNIGHT)`
+  - `scan[const.CHORE_SCAN_RESULT_OVERDUE]`
+  - `entry[const.CHORE_SCAN_ENTRY_KID_ID]`
+- **Structure Types**:
+  - `*_TRIGGER_*`: Scanner trigger parameter values (e.g., `CHORE_SCAN_TRIGGER_MIDNIGHT`)
+  - `*_RESULT_*`: Scanner return dict category keys (e.g., `CHORE_SCAN_RESULT_OVERDUE`)
+  - `*_ENTRY_*`: Scanner entry structure field keys (e.g., `CHORE_SCAN_ENTRY_KID_ID`)
+- **Scalability**: Future item types follow same pattern:
+  - Badges: `BADGE_SCAN_RESULT_*`, `BADGE_SCAN_ENTRY_*`
+  - Rewards: `REWARD_SCAN_RESULT_*`, `REWARD_SCAN_ENTRY_*`
+- **Rule**: Always use for dict access in type-unsafe contexts (vs TypedDict with literal keys)
+
 #### Entity ID Generation (Dual-Variant System)
 
 All entity platforms MUST provide both human-readable (`*_EID_*`) and machine-readable (`*_UID_*`) variants:

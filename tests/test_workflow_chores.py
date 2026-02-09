@@ -31,7 +31,6 @@ from tests.helpers import (
     ATTR_GLOBAL_STATE,
     CHORE_STATE_APPROVED,
     CHORE_STATE_CLAIMED,
-    CHORE_STATE_COMPLETED_BY_OTHER,
     CHORE_STATE_PENDING,
     COMPLETION_CRITERIA_SHARED,
     COMPLETION_CRITERIA_SHARED_FIRST,
@@ -369,11 +368,11 @@ class TestSharedFirstChores:
         # Max and Lila should immediately be completed_by_other
         assert (
             get_chore_state_from_sensor(hass, "max", "Take out trash")
-            == CHORE_STATE_COMPLETED_BY_OTHER
+            == "completed_by_other"
         )
         assert (
             get_chore_state_from_sensor(hass, "lila", "Take out trash")
-            == CHORE_STATE_COMPLETED_BY_OTHER
+            == "completed_by_other"
         )
 
     @pytest.mark.asyncio
@@ -406,13 +405,13 @@ class TestSharedFirstChores:
         # Max and Lila remain completed_by_other, no points
         assert (
             get_chore_state_from_sensor(hass, "max", "Take out trash")
-            == CHORE_STATE_COMPLETED_BY_OTHER
+            == "completed_by_other"
         )
         assert get_points_from_sensor(hass, "max") == initial_max_points
 
         assert (
             get_chore_state_from_sensor(hass, "lila", "Take out trash")
-            == CHORE_STATE_COMPLETED_BY_OTHER
+            == "completed_by_other"
         )
         assert get_points_from_sensor(hass, "lila") == initial_lila_points
 
@@ -430,7 +429,7 @@ class TestSharedFirstChores:
 
         assert (
             get_chore_state_from_sensor(hass, "max", "Organize garage")
-            == CHORE_STATE_COMPLETED_BY_OTHER
+            == "completed_by_other"
         )
 
         # Disapprove Zoë
@@ -679,7 +678,7 @@ class TestApprovalResetNoDueDate:
         )
         assert (
             get_chore_state_from_sensor(hass, "max", "No Due Date Shared First")
-            == CHORE_STATE_COMPLETED_BY_OTHER
+            == "completed_by_other"
         )
 
         # Kid1 gets approved

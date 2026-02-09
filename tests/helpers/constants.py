@@ -23,9 +23,9 @@ CHORE STATUS SENSOR STATE VALUES (sensor.kc_<kid>_chore_status_<chore>):
     - CHORE_STATE_CLAIMED: Kid has claimed, awaiting approval
     - CHORE_STATE_APPROVED: Chore completed and approved
     - CHORE_STATE_OVERDUE: Past due date without completion
-    - CHORE_STATE_COMPLETED_BY_OTHER: Another kid completed shared_first chore
     - CHORE_STATE_CLAIMED_IN_PART: Partial claim (shared chores)
     - CHORE_STATE_APPROVED_IN_PART: Partial approval (shared chores)
+    - "completed_by_other": Computed display state (Phase 2, not in FSM)
 
 GLOBAL STATE ATTRIBUTE (ATTR_GLOBAL_STATE on chore status sensor):
     The global_state attribute shows the aggregated chore state across all
@@ -343,7 +343,6 @@ from custom_components.kidschores.const import (
     CHORE_STATE_APPROVED_IN_PART,
     CHORE_STATE_CLAIMED,
     CHORE_STATE_CLAIMED_IN_PART,
-    CHORE_STATE_COMPLETED_BY_OTHER,
     CHORE_STATE_INDEPENDENT,
     CHORE_STATE_OVERDUE,
     CHORE_STATE_PENDING,
@@ -417,7 +416,7 @@ from custom_components.kidschores.const import (
     DATA_KID_CHORE_DATA_PERIOD_APPROVED,  # v43+ approved count key
     DATA_KID_CHORE_DATA_PERIOD_POINTS,  # v43+ points key
     DATA_KID_CHORE_STATS_LEGACY,  # v43+ moved to LEGACY, use DATA_KID_CHORE_PERIODS
-    DATA_KID_COMPLETED_BY_OTHER_CHORES,
+    # Phase 2: DATA_KID_COMPLETED_BY_OTHER_CHORES removed (was line 419)
     DATA_KID_HA_USER_ID,
     DATA_KID_INTERNAL_ID,
     DATA_KID_IS_SHADOW,
@@ -600,7 +599,8 @@ CHORE_STATE_VALUES: list[str] = [
     CHORE_STATE_APPROVED_IN_PART,
     CHORE_STATE_CLAIMED_IN_PART,
     CHORE_STATE_OVERDUE,
-    CHORE_STATE_COMPLETED_BY_OTHER,
+    # Phase 2: CHORE_STATE_COMPLETED_BY_OTHER removed from FSM
+    # Tests may use string literal "completed_by_other" for display state verification
 ]
 
 REWARD_STATE_VALUES: list[str] = [

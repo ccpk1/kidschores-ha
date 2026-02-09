@@ -546,9 +546,8 @@ class KidData(TypedDict):
 
     # Overdue tracking
     overdue_chores: NotRequired[list[str]]  # Chore UUIDs
-    completed_by_other_chores: NotRequired[
-        list[str]
-    ]  # Shared chores completed by others
+    # completed_by_other_chores removed in v0.5.0+ (Phase 2)
+    # SHARED_FIRST blocking computed dynamically, not tracked in kid lists
 
 
 # =============================================================================
