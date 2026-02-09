@@ -890,17 +890,40 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
         daily_periods = periods.get(const.DATA_KID_CHORE_DATA_PERIODS_DAILY, {})
 
-        # Try to get the current streak_tally from today's data; if not present, fallback to yesterday's
-        current_streak = daily_periods.get(today_local_iso, {}).get(
-            const.DATA_KID_CHORE_DATA_PERIOD_STREAK_TALLY
-        ) or daily_periods.get(yesterday_local_iso, {}).get(
-            const.DATA_KID_CHORE_DATA_PERIOD_STREAK_TALLY, const.DEFAULT_ZERO
+        # Phase 5: Read current streak from kid_chore_data level (survives retention)
+        # Fallback to period data for backward compatibility
+        current_streak = (
+            kid_chore_data.get(const.DATA_KID_CHORE_DATA_CURRENT_STREAK)
+            or daily_periods.get(today_local_iso, {}).get(
+                const.DATA_KID_CHORE_DATA_PERIOD_STREAK_TALLY
+            )
+            or daily_periods.get(yesterday_local_iso, {}).get(
+                const.DATA_KID_CHORE_DATA_PERIOD_STREAK_TALLY, const.DEFAULT_ZERO
+            )
+        )
+
+        # Phase 5: Read current missed streak from kid_chore_data level
+        current_missed_streak = kid_chore_data.get(
+            const.DATA_KID_CHORE_DATA_CURRENT_MISSED_STREAK, const.DEFAULT_ZERO
         )
 
         highest_streak = self.coordinator.stats.get_period_total(
             periods,
             const.PERIOD_ALL_TIME,
             const.DATA_KID_CHORE_DATA_PERIOD_LONGEST_STREAK,
+            period_key_mapping=period_key_mapping,
+        )
+        # Phase 5: Add missed tracking stats
+        longest_missed_streak = self.coordinator.stats.get_period_total(
+            periods,
+            const.PERIOD_ALL_TIME,
+            const.DATA_KID_CHORE_DATA_PERIOD_MISSED_LONGEST_STREAK,
+            period_key_mapping=period_key_mapping,
+        )
+        missed_count = self.coordinator.stats.get_period_total(
+            periods,
+            const.PERIOD_ALL_TIME,
+            const.DATA_KID_CHORE_DATA_PERIOD_MISSED,
             period_key_mapping=period_key_mapping,
         )
         points_earned = self.coordinator.stats.get_period_total(
@@ -1012,6 +1035,13 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.ATTR_CHORE_CURRENT_STREAK: current_streak,
             const.ATTR_CHORE_LONGEST_STREAK: highest_streak,
             const.ATTR_CHORE_LAST_LONGEST_STREAK_DATE: last_longest_streak_date,
+            # Phase 5: Missed tracking stats
+            const.ATTR_CHORE_CURRENT_MISSED_STREAK: current_missed_streak,
+            const.ATTR_CHORE_LONGEST_MISSED_STREAK: longest_missed_streak,
+            const.ATTR_CHORE_MISSED_COUNT: missed_count,
+            const.ATTR_CHORE_LAST_MISSED: kid_chore_data.get(
+                const.DATA_KID_CHORE_DATA_LAST_MISSED
+            ),
             # --- 5. Timestamps (last_* events) ---
             const.ATTR_LAST_CLAIMED: last_claimed,
             const.ATTR_LAST_APPROVED: last_approved,

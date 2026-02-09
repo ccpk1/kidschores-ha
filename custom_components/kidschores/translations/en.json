@@ -2492,6 +2492,18 @@
           "chore_last_longest_streak_date": {
             "name": "Last Longest Streak Date"
           },
+          "chore_current_missed_streak": {
+            "name": "Current Missed Streak"
+          },
+          "chore_longest_missed_streak": {
+            "name": "Longest Missed Streak"
+          },
+          "chore_missed_count": {
+            "name": "Missed (All Time)"
+          },
+          "chore_last_missed": {
+            "name": "Last Missed"
+          },
           "last_claimed": {
             "name": "Last Claimed"
           },
