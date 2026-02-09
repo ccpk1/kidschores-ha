@@ -404,9 +404,16 @@ skip_chore_due_date:
       advanced: true
       selector:
         text:
+    mark_as_missed:
+      name: "Mark as Missed"
+      description: >
+        When true, records this skip as a missed chore in the kid's statistics.
+        Useful for tracking intentional skips separately from automated overdue resets.
+      required: false
+      default: false
+      selector:
+        boolean:
 
-# NOTE: reset_penalties, reset_bonuses, reset_rewards services removed in v0.6.0
-# Superseded by reset_transactional_data with scope="kid" or "global" and item_type filter
 
 remove_awarded_badges:
   name: "Remove Awarded Badges"

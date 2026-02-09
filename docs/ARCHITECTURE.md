@@ -742,6 +742,80 @@ The Options Flow manages modifications without unnecessary system overhead:
 
 ---
 
+## Chore State Processing Architecture
+
+### Five Logic Drivers
+
+Chore state is determined by the interaction of **five configuration drivers**:
+
+| Driver                      | Controls                                          | Constants                        | Engine Method                  |
+| --------------------------- | ------------------------------------------------- | -------------------------------- | ------------------------------ |
+| **1. Completion Criteria**  | Who must complete (independent, shared, rotation) | `COMPLETION_CRITERIA_*`          | `calculate_transition()`       |
+| **2. Recurring Frequency**  | How often chore recurs                            | `FREQUENCY_*`                    | (schedule_engine.py)           |
+| **3. Approval Reset Type**  | When approved chores reset to pending             | `APPROVAL_RESET_*`               | `should_process_at_boundary()` |
+| **4. Pending Claim Action** | What happens to pending claims at reset           | `APPROVAL_RESET_PENDING_CLAIM_*` | `calculate_boundary_action()`  |
+| **5. Overdue Handling**     | What happens when due date passes                 | `OVERDUE_HANDLING_*`             | `calculate_boundary_action()`  |
+
+**State Formula**: `State = f(CompletionCriteria, Frequency, ApprovalResetType, PendingClaimAction, OverdueHandling)`
+
+### Processing Boundaries
+
+Chore state changes occur at two distinct boundaries:
+
+#### 1. User Action Boundary (Synchronous, Locked)
+
+- **Triggers**: claim, approve, disapprove, undo actions
+- **Protection**: asyncio.Lock per (kid_id, chore_id) prevents race conditions
+- **Processing**: Immediate state transition via ChoreEngine
+- **Location**: `chore_manager.py` `_claim_chore_locked()`, `_approve_chore_locked()`, etc.
+
+#### 2. Time Boundary (Asynchronous, Batched)
+
+- **Triggers**: midnight_rollover, periodic_update (every ~5 min)
+- **Processing Order** (Phase 1): Reset-Before-Overdue (prevents Gremlin #1)
+- **Batching**: Single persist at end of pipeline (Phase 1)
+- **Location**: `chore_manager.py` `_on_midnight_rollover()`, `_on_periodic_update()`
+
+### Pipeline Hardening
+
+**Invariant 1: Single State Per Tick**
+
+- Each (kid_id, chore_id) pair modified at most once per pipeline run
+- Enforced by: Set-based exclusion (Phase 1) + debug tracking (Phase 4)
+- Debug flag: `const.DEBUG_PIPELINE_GUARDS`
+
+**Invariant 2: Idempotent Processing**
+
+- Running same scan twice produces same result
+- `_process_overdue()` skips if already OVERDUE (Phase 4)
+- `_process_approval_reset_entries()` checks current state before transitioning
+
+**Invariant 3: Persist-Once-Per-Batch**
+
+- All state changes batched, then single `_persist()` call
+- Reduces SD card writes from O(n) to O(1)
+- Implementation: `persist=False` parameter in processing methods
+
+### Valid vs Gremlin Combinations
+
+**Valid Configurations**:
+
+- `UPON_COMPLETION` + any frequency → Resets immediately on approval
+- `AT_MIDNIGHT_ONCE` + `FREQUENCY_DAILY` → Classic daily chore
+- `AT_DUE_DATE_*` + `FREQUENCY_WEEKLY` → Due date triggers reset
+- `MANUAL` + any frequency → Never auto-resets (Phase 3)
+
+**Gremlin Scenarios** (Prevented by Pipeline Reorder):
+
+1. **Overdue-After-Approval**: Chore approved at midnight → reset to PENDING → immediately OVERDUE
+   - **Prevention**: Reset processes BEFORE overdue check
+2. **Double-Processing**: Chore in both reset AND overdue lists
+   - **Prevention**: Set-based exclusion filters overdue list after reset
+3. **Non-Recurring Past Due**: `FREQUENCY_NONE` chore approved after due date → reschedules → goes OVERDUE
+   - **Prevention**: Clear due date on UPON_COMPLETION for non-recurring chores
+
+---
+
 ## Backward Compatibility
 
 The integration maintains backward compatibility for legacy installations:

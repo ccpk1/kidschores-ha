@@ -407,7 +407,14 @@ from custom_components.kidschores.const import (
     DATA_KID_CHORE_DATA_LAST_APPROVED,
     DATA_KID_CHORE_DATA_LAST_CLAIMED,
     DATA_KID_CHORE_DATA_LAST_DISAPPROVED,
+    DATA_KID_CHORE_DATA_LAST_MISSED,  # Phase 5: Missed tracking
     DATA_KID_CHORE_DATA_PENDING_CLAIM_COUNT,
+    DATA_KID_CHORE_DATA_PERIODS,  # Phase 5: Period buckets structure
+    DATA_KID_CHORE_DATA_PERIODS_DAILY,  # Phase 5: Daily buckets
+    DATA_KID_CHORE_DATA_PERIODS_WEEKLY,  # Phase 5: Weekly buckets
+    DATA_KID_CHORE_DATA_PERIODS_MONTHLY,  # Phase 5: Monthly buckets
+    DATA_KID_CHORE_DATA_PERIODS_YEARLY,  # Phase 5: Yearly buckets
+    DATA_KID_CHORE_DATA_PERIOD_MISSED,  # Phase 5: Missed count key
     DATA_KID_CHORE_DATA_STATE,
     DATA_KID_CHORE_DATA_TOTAL_COUNT,
     DATA_KID_CHORE_DATA_TOTAL_POINTS,
@@ -490,6 +497,7 @@ from custom_components.kidschores.const import (
     # OVERDUE HANDLING TYPES
     # =========================================================================
     OVERDUE_HANDLING_AT_DUE_DATE,
+    OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_AND_MARK_MISSED,  # Phase 5
     OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_AT_APPROVAL_RESET,
     OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_IMMEDIATE_ON_LATE,
     OVERDUE_HANDLING_NEVER_OVERDUE,
@@ -546,6 +554,7 @@ from custom_components.kidschores.const import (
     SERVICE_UPDATE_REWARD,
     SERVICE_MANAGE_SHADOW_LINK,
     SERVICE_RESET_CHORES_TO_PENDING_STATE,  # Renamed from SERVICE_RESET_ALL_CHORES
+    SERVICE_SKIP_CHORE_DUE_DATE,  # Phase 5
     # =========================================================================
     # SERVICE FIELD NAMES (for service call payloads)
     # =========================================================================
@@ -561,6 +570,10 @@ from custom_components.kidschores.const import (
     SERVICE_FIELD_REWARD_CRUD_DESCRIPTION,
     SERVICE_FIELD_REWARD_CRUD_ICON,
     SERVICE_FIELD_REWARD_CRUD_LABELS,
+    # =========================================================================
+    # SIGNAL SUFFIXES (Phase 5)
+    # =========================================================================
+    SIGNAL_SUFFIX_CHORE_MISSED,
     # =========================================================================
     # LEGACY CONF KEYS (for migration tests)
     # =========================================================================

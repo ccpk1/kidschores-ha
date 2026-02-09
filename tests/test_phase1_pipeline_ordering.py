@@ -18,6 +18,7 @@ from typing import Any
 from unittest.mock import AsyncMock, patch
 
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ServiceValidationError
 import pytest
 
 from custom_components.kidschores import const
@@ -524,7 +525,9 @@ class TestAutoApproveAtomicity:
         )
 
         # Alice should NOT be able to claim (SHARED_FIRST + Zoe already approved)
-        with pytest.raises(Exception):  # ServiceValidationError expected
+        with pytest.raises(
+            ServiceValidationError
+        ):  # Alice cannot claim after Zoe approved
             await hass.services.async_call(
                 const.DOMAIN,
                 const.SERVICE_CLAIM_CHORE,

@@ -128,6 +128,7 @@ class StatisticsManager(BaseManager):
         self.listen(const.SIGNAL_SUFFIX_CHORE_CLAIMED, self._on_chore_claimed)
         self.listen(const.SIGNAL_SUFFIX_CHORE_DISAPPROVED, self._on_chore_disapproved)
         self.listen(const.SIGNAL_SUFFIX_CHORE_OVERDUE, self._on_chore_overdue)
+        self.listen(const.SIGNAL_SUFFIX_CHORE_MISSED, self._on_chore_missed)
 
         # Quiet transitions - state changes without bucket writes (snapshot only)
         self.listen(const.SIGNAL_SUFFIX_CHORE_STATUS_RESET, self._on_chore_status_reset)
@@ -441,6 +442,9 @@ class StatisticsManager(BaseManager):
                 const.DATA_KID_CHORE_DATA_PERIOD_COMPLETED: 1,
             }
 
+            # Reset missed_streak_tally to 0 (completion breaks missed streak)
+            increments[const.DATA_KID_CHORE_DATA_PERIOD_MISSED_STREAK_TALLY] = 0
+
             # Handle streak_tally with max-1-per-day enforcement
             streak_tally = streak_tallies.get(kid_id)
             if streak_tally is not None:
@@ -582,9 +586,13 @@ class StatisticsManager(BaseManager):
         kid_id = payload.get("kid_id", "")
         chore_id = payload.get("chore_id", "")
 
-        # Get periods structure to check today's bucket
+        # Validate kid exists
         kid_info = self._get_kid(kid_id)
         if not kid_info:
+            const.LOGGER.warning(
+                "StatisticsManager._on_chore_overdue: Invalid kid_id=%s",
+                kid_id,
+            )
             return
 
         chore_data = kid_info.get(const.DATA_KID_CHORE_DATA, {})
@@ -620,6 +628,103 @@ class StatisticsManager(BaseManager):
             self._coordinator.async_set_updated_data(self._coordinator._data)
             const.LOGGER.debug(
                 "StatisticsManager._on_chore_overdue: kid=%s, chore=%s",
+                kid_id,
+                chore_id,
+            )
+
+    @callback
+    def _on_chore_missed(self, payload: dict[str, Any]) -> None:
+        """Handle CHORE_MISSED event - record missed to period buckets.
+
+        Phase 5: Handles missed_streak_tally from signal, writes to daily bucket.
+        Enforces max 1 missed per day by checking today's bucket value before
+        incrementing. Updates missed_longest_streak in all_time bucket if new high.
+        """
+        kid_id = payload.get("kid_id", "")
+        chore_id = payload.get("chore_id", "")
+        missed_streak_tally = payload.get("missed_streak_tally")
+
+        # Validate kid exists
+        kid_info = self._get_kid(kid_id)
+        if not kid_info:
+            const.LOGGER.warning(
+                "StatisticsManager._on_chore_missed: Invalid kid_id=%s",
+                kid_id,
+            )
+            return
+
+        chore_data = kid_info.get(const.DATA_KID_CHORE_DATA, {})
+        kid_chore_data = chore_data.get(chore_id, {})
+        periods = kid_chore_data.get(const.DATA_KID_CHORE_DATA_PERIODS, {})
+        daily_buckets = periods.get(const.DATA_KID_CHORE_DATA_PERIODS_DAILY, {})
+
+        # Get today's bucket key
+        today_key = self._stats_engine.get_period_keys().get("daily")
+
+        # Check if today's bucket already has missed >= 1 (max 1 per day rule)
+        if today_key and today_key in daily_buckets:
+            existing_missed = daily_buckets[today_key].get(
+                const.DATA_KID_CHORE_DATA_PERIOD_MISSED, 0
+            )
+            if existing_missed >= 1:
+                const.LOGGER.debug(
+                    "StatisticsManager._on_chore_missed: SKIP (already at max 1) "
+                    "kid=%s, chore=%s, date=%s, current=%d",
+                    kid_id,
+                    chore_id,
+                    today_key,
+                    existing_missed,
+                )
+                return
+
+        # Build increments: missed counter + streak_tally snapshot
+        increments: dict[str, int | float] = {
+            const.DATA_KID_CHORE_DATA_PERIOD_MISSED: 1,
+        }
+
+        # Add missed_streak_tally if provided (Phase 5)
+        if missed_streak_tally is not None:
+            increments[const.DATA_KID_CHORE_DATA_PERIOD_MISSED_STREAK_TALLY] = (
+                missed_streak_tally
+            )
+
+            # Update missed_longest_streak in all_time bucket if new high
+            all_time_container = periods.get(
+                const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME, {}
+            )
+            all_time_data = all_time_container.setdefault(const.PERIOD_ALL_TIME, {})
+            current_missed_longest = all_time_data.get(
+                const.DATA_KID_CHORE_DATA_PERIOD_MISSED_LONGEST_STREAK, 0
+            )
+            if missed_streak_tally > current_missed_longest:
+                all_time_data[
+                    const.DATA_KID_CHORE_DATA_PERIOD_MISSED_LONGEST_STREAK
+                ] = missed_streak_tally
+
+                # Also update kid-level chore_periods for _chores sensor
+                kid_chore_periods = kid_info.get(const.DATA_KID_CHORE_PERIODS)
+                if kid_chore_periods is not None:
+                    kid_all_time_container = kid_chore_periods.get(
+                        const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME, {}
+                    )
+                    kid_all_time_data = kid_all_time_container.setdefault(
+                        const.PERIOD_ALL_TIME, {}
+                    )
+                    kid_current_missed_longest = kid_all_time_data.get(
+                        const.DATA_KID_CHORE_DATA_PERIOD_MISSED_LONGEST_STREAK, 0
+                    )
+                    if missed_streak_tally > kid_current_missed_longest:
+                        kid_all_time_data[
+                            const.DATA_KID_CHORE_DATA_PERIOD_MISSED_LONGEST_STREAK
+                        ] = missed_streak_tally
+
+        # Proceed with increment (will create bucket if needed)
+        if self._record_chore_transaction(kid_id, chore_id, increments):
+            # Transactional Flush: cache was refreshed inside _record_chore_transaction,
+            # now notify sensors that data has changed
+            self._coordinator.async_set_updated_data(self._coordinator._data)
+            const.LOGGER.debug(
+                "StatisticsManager._on_chore_missed: kid=%s, chore=%s",
                 kid_id,
                 chore_id,
             )

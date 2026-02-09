@@ -191,6 +191,7 @@ SKIP_CHORE_DUE_DATE_SCHEMA = vol.Schema(
         vol.Optional(const.FIELD_CHORE_NAME): cv.string,
         vol.Optional(const.FIELD_KID_NAME): cv.string,
         vol.Optional(const.FIELD_KID_ID): cv.string,
+        vol.Optional(const.SERVICE_FIELD_MARK_AS_MISSED, default=False): cv.boolean,
     }
 )
 
@@ -1353,6 +1354,23 @@ def async_setup_services(hass: HomeAssistant):
                         "kid": str(chore_name),
                     },
                 )
+
+        # Record miss if requested (for INDEPENDENT chores, requires kid_id)
+        mark_as_missed = call.data.get(const.SERVICE_FIELD_MARK_AS_MISSED, False)
+        if mark_as_missed:
+            if kid_id:
+                # INDEPENDENT chore - record miss for specific kid
+                coordinator.chore_manager._record_chore_missed(kid_id, chore_id)
+            else:
+                # SHARED chore - record miss for all assigned kids
+                chore_info = cast(
+                    "ChoreData", coordinator.chores_data.get(chore_id, {})
+                )
+                assigned_kids = chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
+                for assigned_kid_id in assigned_kids:
+                    coordinator.chore_manager._record_chore_missed(
+                        assigned_kid_id, chore_id
+                    )
 
         await coordinator.chore_manager.skip_due_date(chore_id, kid_id)
         kid_context = f" for kid '{kid_name or kid_id}'" if kid_id else ""

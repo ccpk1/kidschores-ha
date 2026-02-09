@@ -104,6 +104,11 @@ class ChoreManager(BaseManager):
         # Locks for race condition protection (keyed by kid_id:chore_id)
         self._approval_locks: dict[str, asyncio.Lock] = {}
 
+        # Phase 4 Guard Rails: Track state modifications per pipeline tick (debug mode)
+        self._pipeline_modified_pairs: set[tuple[str, str]] = (
+            set()
+        )  # (kid_id, chore_id)
+
     async def async_setup(self) -> None:
         """Set up the ChoreManager.
 
@@ -126,6 +131,37 @@ class ChoreManager(BaseManager):
         self.listen(const.SIGNAL_SUFFIX_PERIODIC_UPDATE, self._on_periodic_update)
 
         const.LOGGER.debug("ChoreManager initialized for entry %s", self.entry_id)
+
+    def _track_state_modification(self, kid_id: str, chore_id: str) -> None:
+        """Track state modification for guard rail assertion (debug mode).
+
+        Phase 4 Guard Rail: Ensures single state change per (kid_id, chore_id)
+        per pipeline tick. Logs warning if same pair modified twice.
+
+        Args:
+            kid_id: Kid identifier
+            chore_id: Chore identifier
+        """
+        if not const.DEBUG_PIPELINE_GUARDS:
+            return
+
+        pair = (kid_id, chore_id)
+        if pair in self._pipeline_modified_pairs:
+            const.LOGGER.warning(
+                "GUARD RAIL VIOLATION: (kid=%s, chore=%s) modified TWICE in single tick. "
+                "This violates the 'single state per tick' invariant.",
+                kid_id,
+                chore_id,
+            )
+        self._pipeline_modified_pairs.add(pair)
+
+    def _reset_pipeline_tracking(self) -> None:
+        """Reset pipeline modification tracking at start of new tick (debug mode).
+
+        Phase 4 Guard Rail: Call at start of midnight_rollover and periodic_update.
+        """
+        if const.DEBUG_PIPELINE_GUARDS:
+            self._pipeline_modified_pairs.clear()
 
     async def _on_data_ready(self, payload: dict[str, Any]) -> None:
         """Handle startup initialization after data integrity is verified.
@@ -168,6 +204,9 @@ class ChoreManager(BaseManager):
         const.LOGGER.debug("ChoreManager: Processing midnight rollover")
         if now_utc is None:
             now_utc = dt_util.utcnow()
+
+        # Phase 4 Guard Rail: Reset modification tracking
+        self._reset_pipeline_tracking()
 
         reset_count = 0
         state_modified = False
@@ -241,6 +280,9 @@ class ChoreManager(BaseManager):
         Returns:
             Number of approval resets processed.
         """
+        # Phase 4 Guard Rail: Reset modification tracking
+        self._reset_pipeline_tracking()
+
         reset_count = 0
         state_modified = False
 
@@ -301,7 +343,6 @@ class ChoreManager(BaseManager):
 
         # Clean own domain: remove deleted kid from chore assigned_kids
         chores_data = self._coordinator._data.get(const.DATA_CHORES, {})
-        cleaned = False
         for chore_info in chores_data.values():
             assigned_kids = chore_info.get(const.DATA_ASSIGNED_KIDS, [])
             if kid_id in assigned_kids:
@@ -621,23 +662,14 @@ class ChoreManager(BaseManager):
 
         # Get previous streak from last completion date (schedule-aware)
         # For weekly/biweekly chores, yesterday won't have data - must use last_completed date
-        periods_data = kid_chore_data.setdefault(const.DATA_KID_CHORE_DATA_PERIODS, {})
-        daily_periods = periods_data.setdefault(
-            const.DATA_KID_CHORE_DATA_PERIODS_DAILY, {}
+        # =====================================================================
+        # GET PREVIOUS STREAK VALUES FROM CHORE DATA (NOT DAILY BUCKETS)
+        # =====================================================================
+        # Phase 5 Fix: Read from chore data level to survive retention pruning
+        # (daily buckets only retained for 7 days, breaks weekly/monthly streaks)
+        previous_streak = kid_chore_data.get(
+            const.DATA_KID_CHORE_DATA_CURRENT_STREAK, 0
         )
-        previous_streak = 0
-        if previous_last_completed:
-            # Convert UTC timestamp to local timezone, then extract date for bucket key
-            # Period buckets use local dates ("UTC for storage, local for keys")
-            local_dt = dt_parse(
-                previous_last_completed, return_type=HELPER_RETURN_DATETIME_LOCAL
-            )
-            if local_dt and isinstance(local_dt, datetime):
-                last_completed_date_key = local_dt.date().isoformat()
-                last_completed_data = daily_periods.get(last_completed_date_key, {})
-                previous_streak = last_completed_data.get(
-                    const.DATA_KID_CHORE_DATA_PERIOD_STREAK_TALLY, 0
-                )
 
         # Calculate effects
         effects = ChoreEngine.calculate_transition(
@@ -656,6 +688,27 @@ class ChoreManager(BaseManager):
         # UPDATE TIMESTAMPS AND CALCULATE STREAK
         # =====================================================================
         now_iso = dt_now_iso()
+
+        # Calculate completion streak using schedule-aware logic
+        # This checks if any scheduled occurrences were missed between completions
+        previous_last_completed = kid_chore_data.get(
+            const.DATA_KID_CHORE_DATA_LAST_COMPLETED
+        )
+        work_date_iso = kid_chore_data.get(
+            const.DATA_KID_CHORE_DATA_LAST_CLAIMED, now_iso
+        )
+        new_streak = ChoreEngine.calculate_streak(
+            current_streak=previous_streak,
+            previous_last_completed_iso=previous_last_completed,
+            current_work_date_iso=work_date_iso,
+            chore_data=chore_data,
+        )
+
+        # Store new completion streak at chore data level (survives retention)
+        kid_chore_data[const.DATA_KID_CHORE_DATA_CURRENT_STREAK] = new_streak
+
+        # Reset missed streak to 0 on completion (completion breaks missed streak)
+        kid_chore_data[const.DATA_KID_CHORE_DATA_CURRENT_MISSED_STREAK] = 0
 
         # Set last_approved timestamp (audit/financial timestamp)
         kid_chore_data[const.DATA_KID_CHORE_DATA_LAST_APPROVED] = now_iso
@@ -676,14 +729,19 @@ class ChoreManager(BaseManager):
 
         # Calculate streak using schedule-aware logic (parent-lag-proof)
         # Uses last_completed (work date) not last_approved (parent action date)
-        # Note: Streak is passed to StatisticsManager via CHORE_COMPLETED signal
-        # (not written directly to periods - that's StatisticsManager's responsibility)
+        # Phase 5 Change: Store result at chore data level (survives retention pruning)
         new_streak = ChoreEngine.calculate_streak(
             current_streak=previous_streak,
             previous_last_completed_iso=previous_last_completed,
             current_work_date_iso=effective_date_iso,
             chore_data=chore_data,
         )
+
+        # Store current streak at chore data level (never pruned)
+        kid_chore_data[const.DATA_KID_CHORE_DATA_CURRENT_STREAK] = new_streak
+
+        # Reset missed streak to 0 on completion (failure chain broken)
+        kid_chore_data[const.DATA_KID_CHORE_DATA_CURRENT_MISSED_STREAK] = 0
 
         # Update global chore state
         self._update_global_state(chore_id)
@@ -1045,6 +1103,9 @@ class ChoreManager(BaseManager):
             parent_name: Who is undoing (for audit)
         """
         self._validate_kid_and_chore(kid_id, chore_id)
+
+        # Landlord duty: Ensure periods structures exist before statistics writes
+        self._ensure_kid_structures(kid_id, chore_id)
 
         chore_data = self._coordinator.chores_data[chore_id]
         kid_info = self._coordinator.kids_data[kid_id]
@@ -1451,6 +1512,8 @@ class ChoreManager(BaseManager):
 
         Inlines the mark_overdue() logic directly for single-pass efficiency.
 
+        Phase 4: Idempotency guard - skip if already OVERDUE.
+
         Args:
             entries: List of ChoreTimeEntry for chores past due
             now_utc: Current UTC datetime
@@ -1469,6 +1532,18 @@ class ChoreManager(BaseManager):
             due_dt = entry["due_dt"]
             chore_info = entry["chore_info"]
 
+            # Phase 4 Guard Rail: Idempotency - check current state before processing
+            kid_chore_data = self._get_kid_chore_data(kid_id, chore_id)
+            current_state = kid_chore_data.get(const.DATA_KID_CHORE_DATA_STATE)
+
+            if current_state == const.CHORE_STATE_OVERDUE:
+                const.LOGGER.debug(
+                    "Chore '%s' for kid '%s' already OVERDUE, skipping duplicate processing",
+                    chore_info.get(const.DATA_CHORE_NAME, chore_id),
+                    kid_id,
+                )
+                continue
+
             # Validate kid and chore exist
             try:
                 self._validate_kid_and_chore(kid_id, chore_id)
@@ -1480,6 +1555,9 @@ class ChoreManager(BaseManager):
                     err,
                 )
                 continue
+
+            # Landlord duty: Ensure periods structures exist before statistics writes
+            self._ensure_kid_structures(kid_id, chore_id)
 
             # Get data for transition calculation
             chore_data = self._coordinator.chores_data[chore_id]
@@ -1676,6 +1754,18 @@ class ChoreManager(BaseManager):
                 ):
                     continue  # HOLD action - skip reset for this kid
 
+                # Record miss if chore was overdue and mark-missed is enabled
+                if current_state == const.CHORE_STATE_OVERDUE:
+                    overdue_handling = chore_info.get(
+                        const.DATA_CHORE_OVERDUE_HANDLING_TYPE,
+                        const.DEFAULT_OVERDUE_HANDLING_TYPE,
+                    )
+                    if (
+                        overdue_handling
+                        == const.OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_AND_MARK_MISSED
+                    ):
+                        self._record_chore_missed(kid_id, chore_id)
+
                 self._transition_chore_state(
                     kid_id,
                     chore_id,
@@ -1722,6 +1812,18 @@ class ChoreManager(BaseManager):
                     kid_id, chore_id, chore_info, kid_chore_data
                 ):
                     continue  # HOLD action - skip reset for this kid
+
+                # Record miss if chore was overdue and mark-missed is enabled
+                if kid_state == const.CHORE_STATE_OVERDUE:
+                    overdue_handling = chore_info.get(
+                        const.DATA_CHORE_OVERDUE_HANDLING_TYPE,
+                        const.DEFAULT_OVERDUE_HANDLING_TYPE,
+                    )
+                    if (
+                        overdue_handling
+                        == const.OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_AND_MARK_MISSED
+                    ):
+                        self._record_chore_missed(kid_id, chore_id)
 
                 self._transition_chore_state(
                     kid_id,
@@ -1789,6 +1891,9 @@ class ChoreManager(BaseManager):
 
         if pending_claim_action == const.APPROVAL_RESET_PENDING_CLAIM_AUTO_APPROVE:
             # AUTO_APPROVE: Approve the pending claim before reset
+            # Landlord duty: Ensure periods structures exist before statistics writes
+            self._ensure_kid_structures(kid_id, chore_id)
+
             const.LOGGER.debug(
                 "Chore Reset - AUTO_APPROVE pending claim for Kid '%s' on Chore '%s'",
                 kid_id,
@@ -3021,6 +3126,8 @@ class ChoreManager(BaseManager):
         Handles all side effects: state change, global state update, persist,
         emit signal (when resetting to PENDING), and coordinator update.
 
+        Phase 4 Guard Rail: Tracks state modification for debug-mode assertion.
+
         Args:
             kid_id: The kid's internal ID
             chore_id: The chore's internal ID
@@ -3030,11 +3137,17 @@ class ChoreManager(BaseManager):
             emit: If True (default), emits CHORE_STATUS_RESET signal when → PENDING
             persist: If True (default), persists and updates coordinator data
         """
+        # Phase 4 Guard Rail: Track modification
+        self._track_state_modification(kid_id, chore_id)
+
         kid_info = self._coordinator.kids_data.get(kid_id)
         chore_info = self._coordinator.chores_data.get(chore_id)
 
         if not kid_info or not chore_info:
             return
+
+        # Landlord duty: Ensure periods structures exist before statistics writes
+        self._ensure_kid_structures(kid_id, chore_id)
 
         # Get or initialize kid chore data
         kid_chore_data = self._get_kid_chore_data(kid_id, chore_id)
@@ -3586,6 +3699,61 @@ class ChoreManager(BaseManager):
     # =========================================================================
     # Handle due date recalculation after approvals and scheduled resets.
     # Called from workflow methods and timer-driven operations.
+
+    def _record_chore_missed(self, kid_id: str, chore_id: str) -> None:
+        """Record that a chore was missed (delegate to StatisticsManager).
+
+        Phase 5: Updates last_missed timestamp and calculates missed streak.
+        Emits CHORE_MISSED signal for StatisticsManager to record period stats.
+
+        Missed streak logic:
+        - Simple increment (not schedule-aware): previous_missed_streak + 1
+        - Stored at chore data level (survives retention pruning)
+        - Reset to 0 on chore completion (in approve_chore)
+
+        Args:
+            kid_id: The kid's internal ID
+            chore_id: The chore's internal ID
+        """
+        kid_chore_data = self._get_kid_chore_data(kid_id, chore_id)
+
+        # Get kid name for notification standard
+        kid_info: KidData | dict[str, Any] = self.coordinator.kids_data.get(kid_id, {})
+        kid_name = str(kid_info.get(const.DATA_KID_NAME, "Unknown"))
+
+        # Get previous missed streak from chore data (not from daily buckets)
+        # Phase 5: Read from chore level to survive retention pruning
+        previous_missed_streak = kid_chore_data.get(
+            const.DATA_KID_CHORE_DATA_CURRENT_MISSED_STREAK, 0
+        )
+
+        # Calculate new missed streak (simple increment, not schedule-aware)
+        new_missed_streak = previous_missed_streak + 1
+
+        # Store current missed streak at chore data level (never pruned)
+        kid_chore_data[const.DATA_KID_CHORE_DATA_CURRENT_MISSED_STREAK] = (
+            new_missed_streak
+        )
+
+        # Update top-level timestamp (like last_approved, last_claimed)
+        kid_chore_data[const.DATA_KID_CHORE_DATA_LAST_MISSED] = dt_now_iso()
+
+        # Ensure periods structure exists for StatisticsManager to write to
+        # Phase 3B Landlord/Tenant: ChoreManager must create containers before emitting
+        self._ensure_kid_structures(kid_id, chore_id)
+
+        # Persist changes before emitting signal (transactional integrity)
+        self.coordinator._persist()
+
+        # Emit signal for StatisticsManager to handle period buckets
+        # Pass missed_streak_tally for daily bucket snapshot (display purposes)
+        self.emit(
+            const.SIGNAL_SUFFIX_CHORE_MISSED,
+            kid_id=kid_id,
+            chore_id=chore_id,
+            kid_name=kid_name,
+            missed_streak_tally=new_missed_streak,
+        )
 
     def _reschedule_chore_due(
         self,

@@ -35,6 +35,9 @@ KIDSCHORES_TITLE: Final = "KidsChores"
 DOMAIN: Final = "kidschores"
 LOGGER: Final = logging.getLogger(__package__)
 
+# Debug Mode (for development - enables invariant assertions)
+DEBUG_PIPELINE_GUARDS: Final = False  # Set True to enable guard rail assertions
+
 # Supported platforms
 PLATFORMS: Final = [
     Platform.BUTTON,
@@ -141,6 +144,7 @@ SIGNAL_SUFFIX_CHORE_DISAPPROVED: Final = "chore_disapproved"
 SIGNAL_SUFFIX_CHORE_UNDONE: Final = "chore_undone"
 SIGNAL_SUFFIX_CHORE_AUTO_APPROVED: Final = "chore_auto_approved"
 SIGNAL_SUFFIX_CHORE_OVERDUE: Final = "chore_overdue"
+SIGNAL_SUFFIX_CHORE_MISSED: Final = "chore_missed"  # Phase 5: Missed tracking
 SIGNAL_SUFFIX_CHORE_DUE_REMINDER: Final = "chore_due_reminder"
 SIGNAL_SUFFIX_CHORE_DUE_WINDOW: Final = "chore_due_window"
 SIGNAL_SUFFIX_CHORE_STATUS_RESET: Final = "chore_status_reset"
@@ -926,6 +930,7 @@ DATA_KID_CHORE_DATA_LAST_CLAIMED: Final = "last_claimed"
 DATA_KID_CHORE_DATA_LAST_COMPLETED: Final = "last_completed"
 DATA_KID_CHORE_DATA_LAST_DISAPPROVED: Final = "last_disapproved"
 DATA_KID_CHORE_DATA_LAST_OVERDUE: Final = "last_overdue"
+DATA_KID_CHORE_DATA_LAST_MISSED: Final = "last_missed"  # Phase 5: Last miss timestamp
 DATA_KID_CHORE_DATA_LAST_LONGEST_STREAK_ALL_TIME: Final = "last_longest_streak_all_time"
 DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START: Final = (
     "approval_period_start"  # INDEPENDENT: per-kid period start
@@ -949,8 +954,22 @@ DATA_KID_CHORE_DATA_PERIOD_LONGEST_STREAK: Final = (
     "longest_streak"  # All-time: high water mark (HWM)
 )
 DATA_KID_CHORE_DATA_PERIOD_OVERDUE: Final = "overdue"
+DATA_KID_CHORE_DATA_PERIOD_MISSED: Final = "missed"  # Phase 5: Period miss counter
+DATA_KID_CHORE_DATA_PERIOD_MISSED_STREAK_TALLY: Final = (
+    "missed_streak_tally"  # Phase 5: Daily consecutive misses
+)
+DATA_KID_CHORE_DATA_PERIOD_MISSED_LONGEST_STREAK: Final = (
+    "missed_longest_streak"  # Phase 5: All-time missed streak HWM
+)
 DATA_KID_CHORE_DATA_PERIOD_POINTS: Final = "points"
 DATA_KID_CHORE_DATA_BADGE_REFS: Final = "badge_refs"
+
+# Current Streak Values (Chore Data Level - Never Pruned)
+# Phase 5: Store current streak values at chore data level to survive retention pruning
+DATA_KID_CHORE_DATA_CURRENT_STREAK: Final = "current_streak"  # Completion streak
+DATA_KID_CHORE_DATA_CURRENT_MISSED_STREAK: Final = (
+    "current_missed_streak"  # Consecutive misses
+)
 
 # Chore Periods (Global Bucket) - v44+ (Phase 2)
 DATA_KID_CHORE_PERIODS: Final = "chore_periods"
@@ -1417,12 +1436,14 @@ APPROVAL_RESET_AT_MIDNIGHT_MULTI: Final = "at_midnight_multi"
 APPROVAL_RESET_AT_DUE_DATE_ONCE: Final = "at_due_date_once"
 APPROVAL_RESET_AT_DUE_DATE_MULTI: Final = "at_due_date_multi"
 APPROVAL_RESET_UPON_COMPLETION: Final = "upon_completion"
+APPROVAL_RESET_MANUAL: Final = "manual"
 APPROVAL_RESET_TYPE_OPTIONS: Final = [
     {"value": APPROVAL_RESET_AT_MIDNIGHT_ONCE, "label": "at_midnight_once"},
     {"value": APPROVAL_RESET_AT_MIDNIGHT_MULTI, "label": "at_midnight_multi"},
     {"value": APPROVAL_RESET_AT_DUE_DATE_ONCE, "label": "at_due_date_once"},
     {"value": APPROVAL_RESET_AT_DUE_DATE_MULTI, "label": "at_due_date_multi"},
     {"value": APPROVAL_RESET_UPON_COMPLETION, "label": "upon_completion"},
+    {"value": APPROVAL_RESET_MANUAL, "label": "manual"},
 ]
 DEFAULT_APPROVAL_RESET_TYPE: Final = APPROVAL_RESET_AT_MIDNIGHT_ONCE
 
@@ -1436,6 +1457,9 @@ OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_AT_APPROVAL_RESET: Final = (
 OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_IMMEDIATE_ON_LATE: Final = (
     "at_due_date_clear_immediate_on_late"
 )
+OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_AND_MARK_MISSED: Final = (
+    "at_due_date_clear_and_mark_missed"  # Phase 5: Reset + record miss stats
+)
 OVERDUE_HANDLING_TYPE_OPTIONS: Final = [
     {"value": OVERDUE_HANDLING_AT_DUE_DATE, "label": "at_due_date"},
     {"value": OVERDUE_HANDLING_NEVER_OVERDUE, "label": "never_overdue"},
@@ -1446,6 +1470,10 @@ OVERDUE_HANDLING_TYPE_OPTIONS: Final = [
     {
         "value": OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_IMMEDIATE_ON_LATE,
         "label": "at_due_date_clear_immediate_on_late",
+    },
+    {
+        "value": OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_AND_MARK_MISSED,
+        "label": "at_due_date_clear_and_mark_missed",
     },
 ]
 DEFAULT_OVERDUE_HANDLING_TYPE: Final = (
@@ -1649,7 +1677,7 @@ DEFAULT_CALENDAR_SHOW_PERIOD: Final = 90
 DEFAULT_CHORE_AUTO_APPROVE: Final = False
 DEFAULT_CHORE_SHOW_ON_CALENDAR: Final = True
 DEFAULT_CHALLENGE_REWARD_POINTS: Final = 0
-DEFAULT_RETENTION_DAILY: Final = 7
+DEFAULT_RETENTION_DAILY: Final = 14
 DEFAULT_RETENTION_WEEKLY: Final = 5
 DEFAULT_RETENTION_MONTHLY: Final = 3
 DEFAULT_RETENTION_YEARLY: Final = 3
@@ -1818,6 +1846,7 @@ TRANS_KEY_NOTIF_TITLE_CHORE_CLAIMED: Final = "notification_title_chore_claimed"
 TRANS_KEY_NOTIF_TITLE_CHORE_APPROVED: Final = "notification_title_chore_approved"
 TRANS_KEY_NOTIF_TITLE_CHORE_DISAPPROVED: Final = "notification_title_chore_disapproved"
 TRANS_KEY_NOTIF_TITLE_CHORE_OVERDUE: Final = "notification_title_chore_overdue"
+TRANS_KEY_NOTIF_TITLE_CHORE_MISSED: Final = "notification_title_chore_missed"  # Phase 5
 TRANS_KEY_NOTIF_TITLE_CHORE_REMINDER: Final = "notification_title_chore_reminder"
 TRANS_KEY_NOTIF_TITLE_CHORE_DUE_SOON: Final = "notification_title_chore_due_soon"
 TRANS_KEY_NOTIF_TITLE_CHORE_DUE_REMINDER: Final = (
@@ -1852,6 +1881,9 @@ TRANS_KEY_NOTIF_MESSAGE_CHORE_DISAPPROVED: Final = (
     "notification_message_chore_disapproved"
 )
 TRANS_KEY_NOTIF_MESSAGE_CHORE_OVERDUE: Final = "notification_message_chore_overdue"
+TRANS_KEY_NOTIF_MESSAGE_CHORE_MISSED: Final = (
+    "notification_message_chore_missed"  # Phase 5
+)
 TRANS_KEY_NOTIF_MESSAGE_CHORE_REMINDER: Final = "notification_message_chore_reminder"
 TRANS_KEY_NOTIF_MESSAGE_CHORE_DUE_SOON: Final = "notification_message_chore_due_soon"
 TRANS_KEY_NOTIF_MESSAGE_CHORE_DUE_REMINDER: Final = (
@@ -2548,6 +2580,9 @@ SERVICE_APPLY_PENALTY: Final = "apply_penalty"
 SERVICE_APPROVE_CHORE: Final = "approve_chore"
 SERVICE_APPROVE_REWARD: Final = "approve_reward"
 SERVICE_CLAIM_CHORE: Final = "claim_chore"
+SERVICE_ADD_CHORE: Final = (
+    "create_chore"  # Alias for SERVICE_CREATE_CHORE (test compatibility)
+)
 SERVICE_CREATE_CHORE: Final = "create_chore"
 SERVICE_CREATE_REWARD: Final = "create_reward"
 SERVICE_DELETE_CHORE: Final = "delete_chore"
@@ -2621,6 +2656,9 @@ SERVICE_FIELD_CHORE_NAME: Final = "chore_name"
 SERVICE_FIELD_CHORE_ID: Final = "chore_id"
 SERVICE_FIELD_CHORE_DUE_DATE: Final = "due_date"
 SERVICE_FIELD_CHORE_POINTS_AWARDED: Final = "points_awarded"
+SERVICE_FIELD_MARK_AS_MISSED: Final = (
+    "mark_as_missed"  # Phase 5: Skip service parameter
+)
 
 # Chore service fields (CRUD) - user-friendly names for service calls
 SERVICE_FIELD_CHORE_CRUD_ID: Final = "id"
@@ -2640,6 +2678,25 @@ SERVICE_FIELD_CHORE_CRUD_AUTO_APPROVE: Final = "auto_approve"
 SERVICE_FIELD_CHORE_CRUD_DUE_DATE: Final = "due_date"
 SERVICE_FIELD_CHORE_CRUD_DUE_WINDOW_OFFSET: Final = "due_window_offset"
 SERVICE_FIELD_CHORE_CRUD_DUE_REMINDER_OFFSET: Final = "due_reminder_offset"
+
+# ==== Test aliases for convenience (used in Phase 1 tests) ====
+SERVICE_FIELD_NAME: Final = "name"  # Alias for SERVICE_FIELD_CHORE_CRUD_NAME
+SERVICE_FIELD_ASSIGNED_KIDS: Final = (
+    "assigned_kids"  # Alias for SERVICE_FIELD_CHORE_CRUD_ASSIGNED_KIDS
+)
+SERVICE_FIELD_FREQUENCY: Final = (
+    "frequency"  # Alias for SERVICE_FIELD_CHORE_CRUD_FREQUENCY
+)
+SERVICE_FIELD_POINTS: Final = "points"  # Alias for SERVICE_FIELD_CHORE_CRUD_POINTS
+SERVICE_FIELD_APPROVAL_RESET_TYPE: Final = (
+    "approval_reset_type"  # Alias for SERVICE_FIELD_CHORE_CRUD_APPROVAL_RESET
+)
+SERVICE_FIELD_OVERDUE_HANDLING: Final = (
+    "overdue_handling"  # Alias for SERVICE_FIELD_CHORE_CRUD_OVERDUE_HANDLING
+)
+SERVICE_FIELD_DUE_DATE: Final = (
+    "due_date"  # Alias for SERVICE_FIELD_CHORE_CRUD_DUE_DATE
+)
 
 # Reward service fields (workflow) - used by redeem_reward, approve_reward, disapprove_reward
 SERVICE_FIELD_REWARD_ID: Final = "id"
