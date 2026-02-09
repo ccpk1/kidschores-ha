@@ -749,7 +749,6 @@ def build_chore_schema(
                 const.DATA_CHORE_NOTIFY_ON_CLAIM,
                 const.DATA_CHORE_NOTIFY_ON_APPROVAL,
                 const.DATA_CHORE_NOTIFY_ON_DISAPPROVAL,
-                const.DATA_CHORE_NOTIFY_ON_REMINDER_LEGACY,
                 const.DATA_CHORE_NOTIFY_ON_OVERDUE,
                 const.DATA_CHORE_NOTIFY_ON_DUE_WINDOW,
                 const.DATA_CHORE_NOTIFY_DUE_REMINDER,
@@ -1028,9 +1027,6 @@ def transform_chore_cfof_to_data(
         ),
         const.DATA_CHORE_NOTIFY_ON_DISAPPROVAL: (
             const.DATA_CHORE_NOTIFY_ON_DISAPPROVAL in notifications
-        ),
-        const.DATA_CHORE_NOTIFY_ON_REMINDER_LEGACY: (
-            const.DATA_CHORE_NOTIFY_ON_REMINDER_LEGACY in notifications
         ),
         const.DATA_CHORE_NOTIFY_ON_OVERDUE: (
             const.DATA_CHORE_NOTIFY_ON_OVERDUE in notifications
@@ -3125,11 +3121,6 @@ def _build_notification_defaults(default: dict[str, Any]) -> list[str]:
         const.DEFAULT_NOTIFY_ON_DISAPPROVAL,
     ):
         notifications.append(const.DATA_CHORE_NOTIFY_ON_DISAPPROVAL)
-    if default.get(
-        const.CFOF_CHORES_INPUT_NOTIFY_ON_REMINDER_LEGACY,
-        const.DEFAULT_NOTIFY_ON_REMINDER_LEGACY,
-    ):
-        notifications.append(const.DATA_CHORE_NOTIFY_ON_REMINDER_LEGACY)
     if default.get(
         const.CFOF_CHORES_INPUT_NOTIFY_ON_DUE_WINDOW,
         const.DEFAULT_NOTIFY_ON_DUE_WINDOW,

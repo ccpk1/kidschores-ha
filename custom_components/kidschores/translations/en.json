@@ -1674,7 +1674,8 @@
         "at_midnight_multi": "Multiple times per day - Resets at midnight",
         "at_due_date_once": "Once per period - Resets at due date",
         "at_due_date_multi": "Multiple times per period - Resets at due date",
-        "upon_completion": "Unlimited completions - Resets after completion"
+        "upon_completion": "Unlimited completions - Resets after completion",
+        "manual": "Manual - Reset only via service call"
       }
     },
     "overdue_handling_type": {

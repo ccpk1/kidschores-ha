@@ -1460,10 +1460,6 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 const.DATA_CHORE_NOTIFY_ON_DISAPPROVAL,
                 const.DEFAULT_NOTIFY_ON_DISAPPROVAL,
             ),
-            const.CFOF_CHORES_INPUT_NOTIFY_ON_REMINDER_LEGACY: chore_data.get(
-                const.DATA_CHORE_NOTIFY_ON_REMINDER_LEGACY,
-                const.DEFAULT_NOTIFY_ON_REMINDER_LEGACY,
-            ),
             const.CFOF_CHORES_INPUT_NOTIFY_ON_DUE_WINDOW: chore_data.get(
                 const.DATA_CHORE_NOTIFY_ON_DUE_WINDOW,
                 const.DEFAULT_NOTIFY_ON_DUE_WINDOW,
@@ -1487,8 +1483,6 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             notifications_list.append(const.DATA_CHORE_NOTIFY_ON_APPROVAL)
         if suggested_values.get(const.CFOF_CHORES_INPUT_NOTIFY_ON_DISAPPROVAL):
             notifications_list.append(const.DATA_CHORE_NOTIFY_ON_DISAPPROVAL)
-        if suggested_values.get(const.CFOF_CHORES_INPUT_NOTIFY_ON_REMINDER_LEGACY):
-            notifications_list.append(const.DATA_CHORE_NOTIFY_ON_REMINDER_LEGACY)
         if suggested_values.get(const.CFOF_CHORES_INPUT_NOTIFY_ON_DUE_WINDOW):
             notifications_list.append(const.DATA_CHORE_NOTIFY_ON_DUE_WINDOW)
         if suggested_values.get(const.CFOF_CHORES_INPUT_NOTIFY_DUE_REMINDER):
