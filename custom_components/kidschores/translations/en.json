@@ -2330,6 +2330,10 @@
           "name": "Kid ID",
           "description": "The internal ID of the kid. Advanced users only - use kid_name instead.",
           "example": "abc123-def456"
+        },
+        "mark_as_missed": {
+          "name": "Mark as Missed",
+          "description": "When true, records this skip as a missed chore in the kid's statistics. Useful for tracking intentional skips separately from automated overdue resets."
         }
       }
     },
