@@ -16,7 +16,7 @@
 | Phase 2 – COMPLETED_BY_OTHER Elimination | Remove state; sensors compute display state        | 100%       | ✅ COMPLETE: Schema 44 migration + computed blocking |
 | Phase 4 – Pipeline Guard Rails           | Debug-mode invariant assertions, idempotency       | 100%       | ✅ COMPLETE: tracking + idempotency + docs + tests   |
 | Phase 3 – Manual Reset Type              | Add `APPROVAL_RESET_MANUAL`                        | 100%       | ✅ COMPLETE: constant + translations + engine verify |
-| Phase 5 – Missed State Tracking          | New missed tracking for overdue chores             | 0%         | PLANNED: building for v0.5.0-beta4                   |
+| Phase 5 – Missed State Tracking          | New missed tracking for overdue chores             | 100%       | ✅ COMPLETE: ChoreEngine fix + kid_name + tests      |
 | Phase 6 – Due Window Lock                | Restrict claims until due window opens             | 0%         | PLANNED: building for v0.5.0-beta4                   |
 | Phase 7 – Rotation Chores                | Assignment rotation for shared chores              | 0%         | PLANNED: decision point before building              |
 
@@ -68,6 +68,7 @@
      - **D6 (Phase 4 Guard Rails)**: APPROVED — Debug mode only to start. Not production assertions.
      - **D7 (Target Release)**: ALL phases targeting v0.5.0-beta4 schema 44 (not deferred to v0.5.1/v0.5.2/v0.6.0). Chore state handling is foundational.
      - **D8 (Feature Phases)**: Planned features (Missed State, Due Window Lock, Rotation) added as Phases 5-7 with a decision point before building.
+     - **D9 (Phase 5 Missed Refinements)**: APPROVED (2026-02-09) — Add `OVERDUE_HANDLING_CLEAR_AND_MARK_MISSED` (no rename of existing options). Use period bucket pattern matching existing chore statistics: `last_missed` (top-level timestamp), `missed` (period counter), `missed_streak_tally` (daily consecutive), `missed_longest_streak` (all-time high-water mark). Add `mark_as_missed` parameter to skip service. StatisticsManager handles period bucket writes via CHORE_MISSED signal. No migration required, additive only.
    - **Completion confirmation**: `[x]` Analysis reviewed and approved — proceed to Technical Specification
    - **Technical Specification**: See `CHORE_STATE_ARCHITECTURE_REVIEW_SUP_TECH_SPEC.md`
 

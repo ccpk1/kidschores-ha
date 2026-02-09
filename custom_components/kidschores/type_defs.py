@@ -936,6 +936,23 @@ class ChoreCompletedEvent(TypedDict, total=False):
     streak_tallies: dict[str, int]  # Required: kid_id -> streak value
 
 
+class ChoreMissedEvent(TypedDict, total=False):
+    """Event payload for SIGNAL_SUFFIX_CHORE_MISSED.
+
+    Emitted by: ChoreManager._record_chore_missed()
+    Consumed by: StatisticsManager (missed count + missed_streak_tally tracking)
+
+    Phase 5: Records missed chores (automated from OVERDUE resets or manual skip).
+    missed_streak_tally is the consecutive missed count, stored at chore level
+    and written to daily buckets by StatisticsManager.
+    """
+
+    kid_id: str  # Required
+    chore_id: str  # Required
+    kid_name: str  # Required: For notification display (standard)
+    missed_streak_tally: int  # Required: Consecutive missed count
+
+
 class ChoreDisapprovedEvent(TypedDict, total=False):
     """Event payload for SIGNAL_SUFFIX_CHORE_DISAPPROVED.
 

@@ -1120,84 +1120,259 @@ if current_state == const.CHORE_STATE_OVERDUE:
 
 **Goal**: Track when chores are missed (overdue at reset boundary) for statistics and gamification.
 
-**Decision Point**: ⚠️ Confirm scope before building.
+**Decision Point**: ✅ Scope confirmed with refinements (2026-02-09).
 
 ### 5.1 Concept
 
-When a chore reaches a reset boundary while OVERDUE, it is "missed" — the kid failed to complete it in the period. Currently, the `CLEAR_AT_APPROVAL_RESET` overdue handling resets overdue chores at the boundary, but there's no record that the chore was missed.
+When a chore reaches a reset boundary while OVERDUE, it can be "missed" — the kid failed to complete it in the period. This is controlled by a new overdue handling option that records accountability metrics while resetting the chore.
+
+**Behavioral Options**:
+
+- **`OVERDUE_HANDLING_BLOCKING`** - Stays OVERDUE until completed (no reset, no miss recorded)
+- **`OVERDUE_HANDLING_CLEAR_AT_APPROVAL_RESET`** - Resets to PENDING without recording miss (existing behavior, unchanged)
+- **`OVERDUE_HANDLING_CLEAR_AND_MARK_MISSED`** - NEW: Resets to PENDING AND records missed stats
+
+**No Migration Required**: New option is additive. Existing chores continue with their current behavior.
 
 ### 5.2 Proposed Data Model
 
 ```python
-# New constant in const.py
-DATA_KID_CHORE_DATA_MISSED_COUNT: Final = "missed_count"
+# New overdue handling constant in const.py
+OVERDUE_HANDLING_CLEAR_AND_MARK_MISSED: Final = "clear_and_mark_missed"
+# Add to OVERDUE_HANDLING_OPTIONS list
+
+# New kid chore data field (top-level timestamp)
 DATA_KID_CHORE_DATA_LAST_MISSED: Final = "last_missed"
-DATA_KID_CHORE_DATA_MISSED_STREAK: Final = "missed_streak"
+
+# New period bucket fields (matches existing pattern: approved, claimed, overdue, etc.)
+DATA_KID_CHORE_DATA_PERIOD_MISSED: Final = "missed"
+DATA_KID_CHORE_DATA_PERIOD_MISSED_STREAK_TALLY: Final = "missed_streak_tally"
+DATA_KID_CHORE_DATA_PERIOD_MISSED_LONGEST_STREAK: Final = "missed_longest_streak"
 
 # New signal
 SIGNAL_SUFFIX_CHORE_MISSED: Final = "chore_missed"
 
+# New service field for manual skip
+SERVICE_FIELD_MARK_AS_MISSED: Final = "mark_as_missed"
+
 # New translation keys
 TRANS_KEY_NOTIF_TITLE_CHORE_MISSED: Final = "notif_title_chore_missed"
 TRANS_KEY_NOTIF_MESSAGE_CHORE_MISSED: Final = "notif_message_chore_missed"
+TRANS_KEY_SERVICE_MARK_AS_MISSED: Final = "service_mark_as_missed"
+TRANS_KEY_SERVICE_MARK_AS_MISSED_DESC: Final = "service_mark_as_missed_desc"
 ```
+
+**Data Structure Pattern (matches existing chore stats):**
+
+```json
+{
+  "kid_chore_data": {
+    "chore_uuid": {
+      "last_missed": "2026-02-09T10:30:00+00:00", // Top-level timestamp (like last_approved)
+      "periods": {
+        "daily": {
+          "2026-02-09": {
+            "missed": 1, // Count for this day (like approved, claimed)
+            "missed_streak_tally": 3 // Current consecutive misses (like streak_tally)
+          }
+        },
+        "weekly": {
+          "2026-W06": {
+            "missed": 2 // Week total
+          }
+        },
+        "monthly": {
+          "2026-02": {
+            "missed": 5 // Month total
+          }
+        },
+        "yearly": {
+          "2026": {
+            "missed": 5 // Year total
+          }
+        },
+        "all_time": {
+          "all_time": {
+            "missed": 12, // Lifetime total (never decreases)
+            "missed_longest_streak": 5 // High-water mark (NO missed_streak_tally here)
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+**Key Points:**
+
+- **last_missed**: Top-level timestamp (like `last_approved`, `last_claimed`)
+- **missed**: Period bucket counter (like `approved`, `claimed`, `overdue`)
+- **missed_streak_tally**: Daily-only field tracking current consecutive misses (like `streak_tally` for completions)
+- **missed_longest_streak**: All-time high-water mark only (like `longest_streak`)
+- **Pattern**: Exactly matches how existing chore statistics are structured
 
 ### 5.3 Logic Flow
 
+**Automated Recording (Reset Boundary)**:
+
 ```
 Reset boundary reached for OVERDUE chore:
-  1. Record missed: increment missed_count, set last_missed, update missed_streak
-  2. Emit SIGNAL_SUFFIX_CHORE_MISSED
-  3. Reset to PENDING (existing behavior)
-  4. Reschedule due date (existing behavior)
+  IF overdue_handling == OVERDUE_HANDLING_CLEAR_AND_MARK_MISSED:
+    1. Call _record_chore_missed(kid_id, chore_id)
+  2. Reset to PENDING (existing behavior)
+  3. Reschedule due date (existing behavior)
 ```
 
-**Location**: Inside `_process_approval_reset_entries()`, when resetting a chore that is currently OVERDUE:
+**Manual Recording (Skip Service)**:
+
+```
+kidschores.skip_chore_due_date service called:
+  IF mark_as_missed == True:
+    1. Call _record_chore_missed(kid_id, chore_id)
+  2. Reset/reschedule chore (existing behavior)
+```
+
+**Helper Method** (new in `managers/chore_manager.py`):
+
+```python
+def _record_chore_missed(self, kid_id: str, chore_id: str) -> None:
+    """Record that a chore was missed (delegate to StatisticsManager).
+
+    Updates:
+    - last_missed (top-level timestamp)
+    - Emits SIGNAL_SUFFIX_CHORE_MISSED for StatisticsManager to record period stats
+
+    StatisticsManager handles:
+    - missed (period bucket counter)
+    - missed_streak_tally (daily consecutive misses)
+    - missed_longest_streak (all-time high-water mark)
+    """
+    kid_chore_data = self._get_kid_chore_data(kid_id, chore_id)
+
+    # Update top-level timestamp (like last_approved, last_claimed)
+    kid_chore_data[const.DATA_KID_CHORE_DATA_LAST_MISSED] = dt_now_iso()
+
+    # Emit signal for StatisticsManager to handle period buckets
+    # (matches pattern: CHORE_APPROVED, CHORE_CLAIMED, CHORE_OVERDUE)
+    self.emit(
+        const.SIGNAL_SUFFIX_CHORE_MISSED,
+        kid_id=kid_id,
+        chore_id=chore_id,
+    )
+```
+
+**StatisticsManager Handler** (new in `managers/statistics_manager.py`):
+
+```python
+@callback
+def _on_chore_missed(self, payload: dict[str, Any]) -> None:
+    """Handle CHORE_MISSED event - record missed to period buckets.
+
+    Records:
+    - missed count to daily/weekly/monthly/yearly/all_time buckets
+    - missed_streak_tally to daily bucket (current consecutive misses)
+    - missed_longest_streak to all_time bucket (high-water mark)
+
+    Follows same pattern as _on_chore_overdue, _on_chore_approved, etc.
+    """
+    kid_id = payload.get("kid_id", "")
+    chore_id = payload.get("chore_id", "")
+
+    # Prepare increments for period buckets
+    increments = {const.DATA_KID_CHORE_DATA_PERIOD_MISSED: 1}
+
+    # Record transaction to period buckets (daily/weekly/monthly/yearly/all_time)
+    # Engine will handle streak_tally and longest_streak calculations
+    if self._record_chore_transaction(kid_id, chore_id, increments):
+        # Transactional Flush: cache was refreshed inside _record_chore_transaction
+        self._coordinator.async_set_updated_data(self._coordinator._data)
+        const.LOGGER.debug(
+            "StatisticsManager._on_chore_missed: kid=%s, chore=%s",
+            kid_id,
+            chore_id,
+        )
+```
+
+**Location for Automated Call**: Inside `_process_approval_reset_entries()`, when resetting a chore that is currently OVERDUE:
 
 ```python
 # Before transitioning to PENDING:
 if kid_state == const.CHORE_STATE_OVERDUE:
-    # Record missed
-    kid_chore_data[const.DATA_KID_CHORE_DATA_MISSED_COUNT] = (
-        kid_chore_data.get(const.DATA_KID_CHORE_DATA_MISSED_COUNT, 0) + 1
+    overdue_handling = chore_data.get(
+        const.DATA_CHORE_OVERDUE_HANDLING,
+        const.OVERDUE_HANDLING_BLOCKING,
     )
-    kid_chore_data[const.DATA_KID_CHORE_DATA_LAST_MISSED] = dt_now_iso()
-    kid_chore_data[const.DATA_KID_CHORE_DATA_MISSED_STREAK] = (
-        kid_chore_data.get(const.DATA_KID_CHORE_DATA_MISSED_STREAK, 0) + 1
-    )
-    self.emit(
-        const.SIGNAL_SUFFIX_CHORE_MISSED,
-        kid_id=kid_id, chore_id=chore_id,
-        missed_count=kid_chore_data[const.DATA_KID_CHORE_DATA_MISSED_COUNT],
-    )
+    if overdue_handling == const.OVERDUE_HANDLING_CLEAR_AND_MARK_MISSED:
+        self._record_chore_missed(kid_id, chore_id)
 ```
 
-When a chore is APPROVED (not missed), reset the missed streak:
+**Streak Tally Reset on Approval** (handled automatically):
 
 ```python
-# In _approve_chore_locked, on successful approval:
-kid_chore_data[const.DATA_KID_CHORE_DATA_MISSED_STREAK] = 0
+# On successful approval, the missed streak naturally breaks
+# StatisticsManager already handles this via _on_chore_approved signal
+# which records an approval to the period buckets
+# The streak_tally calculation in StatisticsEngine will see the approval
+# and reset missed_streak_tally to 0 automatically
+# No explicit code needed in _approve_chore_locked() - pattern matches existing streak behavior
+```
+
+**Use Cases for Missed Streak Tally**:
+
+- **Tally = 1**: "Reminder notification"
+- **Tally = 3**: "Needs Attention alert to Parent"
+- **Tally = 5**: "Deduct allowance/points"
+
+This distinguishes between "forgot once" vs "stopped doing this chore entirely."
+
+**Access Pattern for Dashboard/Automations**:
+
+```python
+# From sensor attributes or periods data:
+daily_bucket = kid_chore_data["periods"]["daily"][today_key]
+current_missed_streak = daily_bucket.get("missed_streak_tally", 0)
+
+all_time_bucket = kid_chore_data["periods"]["all_time"]["all_time"]
+total_missed = all_time_bucket.get("missed", 0)
+longest_missed_streak = all_time_bucket.get("missed_longest_streak", 0)
+
+# Last missed timestamp (top-level):
+last_missed_iso = kid_chore_data.get("last_missed")
 ```
 
 ### 5.4 Affected Files
 
-| File                        | Change                                                    |
-| --------------------------- | --------------------------------------------------------- |
-| `const.py`                  | Add DATA*KID_CHORE_DATA_MISSED*_, SIGNAL\__, TRANS*KEY*\* |
-| `managers/chore_manager.py` | Record missed in `_process_approval_reset_entries()`      |
-| `managers/chore_manager.py` | Reset missed_streak in `_approve_chore_locked()`          |
-| `sensor.py`                 | Expose missed_count, missed_streak as attributes          |
-| `managers/ui_manager.py`    | Include missed stats in dashboard helper                  |
-| `translations/en.json`      | Add notification text                                     |
+| File                             | Change                                                                                                                                                       |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `const.py`                       | Add OVERDUE_HANDLING_CLEAR_AND_MARK_MISSED, DATA_KID_CHORE_DATA_LAST_MISSED, DATA_KID_CHORE_DATA_PERIOD_MISSED\*, SIGNAL, SERVICE_FIELD, TRANS_KEY constants |
+| `managers/chore_manager.py`      | Add `_record_chore_missed()` helper method                                                                                                                   |
+| `managers/chore_manager.py`      | Call `_record_chore_missed()` in `_process_approval_reset_entries()`                                                                                         |
+| `managers/statistics_manager.py` | Add `_on_chore_missed()` signal handler                                                                                                                      |
+| `managers/statistics_manager.py` | Subscribe to SIGNAL_SUFFIX_CHORE_MISSED in `async_initialize()`                                                                                              |
+| `engines/statistics_engine.py`   | Ensure streak_tally/longest_streak logic handles missed metric (should already work)                                                                         |
+| `services.py`                    | Add `mark_as_missed` parameter to `skip_chore_due_date` service                                                                                              |
+| `services.yaml`                  | Update `skip_chore_due_date` schema with new boolean field                                                                                                   |
+| `sensor.py`                      | Expose missed stats from period buckets as sensor attributes                                                                                                 |
+| `managers/ui_manager.py`         | Include missed stats in dashboard helper sensor (from periods.all_time)                                                                                      |
+| `helpers/flow_helpers.py`        | Add CLEAR_AND_MARK_MISSED to overdue handling selector                                                                                                       |
+| `translations/en.json`           | Add notification text, service field text, overdue handling option label                                                                                     |
 
 ### 5.5 Test Scenarios — Phase 5
 
-| #    | Test Name                                        | Validates                     |
-| ---- | ------------------------------------------------ | ----------------------------- |
-| T5.1 | `test_missed_count_incremented_on_overdue_reset` | Counter increases on reset    |
-| T5.2 | `test_missed_streak_reset_on_approval`           | Streak clears when completed  |
-| T5.3 | `test_missed_signal_emitted`                     | Signal emitted for statistics |
-| T5.4 | `test_missed_data_in_sensor_attributes`          | Sensor exposes missed stats   |
+| #     | Test Name                                              | Validates                                                                 |
+| ----- | ------------------------------------------------------ | ------------------------------------------------------------------------- |
+| T5.1  | `test_missed_recorded_with_clear_and_mark_missed`      | Missed count incremented in period buckets when overdue_handling triggers |
+| T5.2  | `test_no_missed_recorded_with_clear_at_approval_reset` | No missed stats when using standard clear (backward compat)               |
+| T5.3  | `test_missed_streak_tally_increments`                  | missed_streak_tally increments in daily bucket on consecutive misses      |
+| T5.4  | `test_missed_streak_tally_resets_on_approval`          | missed_streak_tally resets to 0 when chore completed                      |
+| T5.5  | `test_missed_longest_streak_high_water_mark`           | missed_longest_streak tracks highest consecutive miss count in all_time   |
+| T5.6  | `test_manual_skip_with_mark_as_missed_true`            | Service parameter records miss to period buckets manually                 |
+| T5.7  | `test_manual_skip_with_mark_as_missed_false`           | Service parameter skips without recording miss                            |
+| T5.8  | `test_missed_signal_emitted`                           | CHORE_MISSED signal emitted with correct payload                          |
+| T5.9  | `test_missed_data_in_sensor_attributes`                | Sensor exposes missed stats from period buckets                           |
+| T5.10 | `test_missed_stats_in_multiple_period_buckets`         | Missed recorded to daily/weekly/monthly/yearly/all_time buckets           |
+| T5.11 | `test_tiered_intervention_missed_streak_tally`         | Dashboard/automation can check daily missed_streak_tally for alerts       |
+| T5.12 | `test_last_missed_timestamp_updated`                   | Top-level last_missed timestamp updated on miss                           |
 
 ---
 

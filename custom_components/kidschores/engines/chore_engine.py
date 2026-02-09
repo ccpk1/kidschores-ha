@@ -1026,6 +1026,12 @@ class ChoreEngine:
                 == const.OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_AT_APPROVAL_RESET
             ):
                 return "reset_and_reschedule" if has_due_date else "reset_only"
+            # CLEAR_AND_MARK_MISSED = record miss then reset
+            if (
+                overdue_handling
+                == const.OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_AND_MARK_MISSED
+            ):
+                return "reset_and_reschedule" if has_due_date else "reset_only"
             # CLEAR_IMMEDIATE_ON_LATE = already handled when due passed, skip
             if (
                 overdue_handling

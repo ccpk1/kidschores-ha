@@ -1682,7 +1682,8 @@
         "at_due_date": "Overdue Until Complete",
         "never_overdue": "Never Overdue",
         "at_due_date_clear_at_approval_reset": "Overdue Until Approval Reset",
-        "at_due_date_clear_immediate_on_late": "Overdue Until Complete (Clear Late Approvals Immediately)"
+        "at_due_date_clear_immediate_on_late": "Overdue Until Complete (Clear Late Approvals Immediately)",
+        "at_due_date_clear_and_mark_missed": "Overdue Until Reset (Mark as Missed)"
       }
     },
     "approval_reset_pending_claim_action": {
@@ -4107,6 +4108,12 @@
     },
     "notif_message_data_reset_item": {
       "message": "Data reset complete for {item_name}. Runtime data cleared."
+    },
+    "notif_title_chore_missed": {
+      "message": "Chore Missed"
+    },
+    "notif_message_chore_missed": {
+      "message": "{kid_name} missed the chore: {chore_name}"
     }
   }
 }
