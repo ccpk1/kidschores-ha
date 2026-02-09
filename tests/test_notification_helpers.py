@@ -58,14 +58,14 @@ class TestBuildChoreActions:
 
     def test_returns_list_of_three_actions(self) -> None:
         """Test that function returns exactly 3 action dictionaries."""
-        actions = build_chore_actions("kid-123", "chore-456")
+        actions = build_chore_actions("kid-123", "chore-456", "entry123")
 
         assert isinstance(actions, list)
         assert len(actions) == 3
 
     def test_action_format_structure(self) -> None:
         """Test that each action has required 'action' and 'title' keys."""
-        actions = build_chore_actions("kid-123", "chore-456")
+        actions = build_chore_actions("kid-123", "chore-456", "entry123")
 
         for action_dict in actions:
             assert NOTIFY_ACTION in action_dict
@@ -74,35 +74,35 @@ class TestBuildChoreActions:
             assert isinstance(action_dict[NOTIFY_TITLE], str)
 
     def test_approve_action_pipe_format(self) -> None:
-        """Test approve action uses pipe-separated format: ACTION|kid_id|chore_id."""
-        actions = build_chore_actions("kid-123", "chore-456")
+        """Test approve action uses pipe-separated format: ACTION|entry_id|kid_id|chore_id."""
+        actions = build_chore_actions("kid-123", "chore-456", "entry123")
         approve_action = actions[0]
 
-        expected = f"{ACTION_APPROVE_CHORE}|kid-123|chore-456"
+        expected = f"{ACTION_APPROVE_CHORE}|entry123|kid-123|chore-456"
         assert approve_action[NOTIFY_ACTION] == expected
         assert approve_action[NOTIFY_TITLE] == TRANS_KEY_NOTIF_ACTION_APPROVE
 
     def test_disapprove_action_pipe_format(self) -> None:
         """Test disapprove action uses pipe-separated format."""
-        actions = build_chore_actions("kid-123", "chore-456")
+        actions = build_chore_actions("kid-123", "chore-456", "entry123")
         disapprove_action = actions[1]
 
-        expected = f"{ACTION_DISAPPROVE_CHORE}|kid-123|chore-456"
+        expected = f"{ACTION_DISAPPROVE_CHORE}|entry123|kid-123|chore-456"
         assert disapprove_action[NOTIFY_ACTION] == expected
         assert disapprove_action[NOTIFY_TITLE] == TRANS_KEY_NOTIF_ACTION_DISAPPROVE
 
     def test_remind_action_pipe_format(self) -> None:
         """Test remind action uses pipe-separated format."""
-        actions = build_chore_actions("kid-123", "chore-456")
+        actions = build_chore_actions("kid-123", "chore-456", "entry123")
         remind_action = actions[2]
 
-        expected = f"{ACTION_REMIND_30}|kid-123|chore-456"
+        expected = f"{ACTION_REMIND_30}|entry123|kid-123|chore-456"
         assert remind_action[NOTIFY_ACTION] == expected
         assert remind_action[NOTIFY_TITLE] == TRANS_KEY_NOTIF_ACTION_REMIND_30
 
     def test_translation_keys_not_raw_strings(self) -> None:
         """Test that translation keys are constants, not hardcoded strings."""
-        actions = build_chore_actions("kid-123", "chore-456")
+        actions = build_chore_actions("kid-123", "chore-456", "entry123")
 
         # All title values should use translation key constants
         for action_dict in actions:
@@ -124,46 +124,50 @@ class TestBuildRewardActions:
 
     def test_returns_list_of_three_actions(self) -> None:
         """Test that function returns exactly 3 action dictionaries."""
-        actions = build_reward_actions("kid-123", "reward-456")
+        actions = build_reward_actions("kid-123", "reward-456", "entry123")
 
         assert isinstance(actions, list)
         assert len(actions) == 3
 
     def test_without_notif_id_three_parts(self) -> None:
-        """Test action format without notif_id: ACTION|kid_id|reward_id."""
-        actions = build_reward_actions("kid-123", "reward-456", notif_id=None)
+        """Test action format without notif_id: ACTION|entry_id|kid_id|reward_id."""
+        actions = build_reward_actions(
+            "kid-123", "reward-456", "entry123", notif_id=None
+        )
 
         approve_action = actions[0]
-        expected = f"{ACTION_APPROVE_REWARD}|kid-123|reward-456"
+        expected = f"{ACTION_APPROVE_REWARD}|entry123|kid-123|reward-456"
         assert approve_action[NOTIFY_ACTION] == expected
 
         disapprove_action = actions[1]
-        expected = f"{ACTION_DISAPPROVE_REWARD}|kid-123|reward-456"
+        expected = f"{ACTION_DISAPPROVE_REWARD}|entry123|kid-123|reward-456"
         assert disapprove_action[NOTIFY_ACTION] == expected
 
         remind_action = actions[2]
-        expected = f"{ACTION_REMIND_30}|kid-123|reward-456"
+        expected = f"{ACTION_REMIND_30}|entry123|kid-123|reward-456"
         assert remind_action[NOTIFY_ACTION] == expected
 
     def test_with_notif_id_four_parts(self) -> None:
-        """Test action format with notif_id: ACTION|kid_id|reward_id|notif_id."""
-        actions = build_reward_actions("kid-123", "reward-456", notif_id="notif-789")
+        """Test action format with notif_id: ACTION|entry_id|kid_id|reward_id|notif_id."""
+        actions = build_reward_actions(
+            "kid-123", "reward-456", "entry123", notif_id="notif-789"
+        )
 
         approve_action = actions[0]
-        expected = f"{ACTION_APPROVE_REWARD}|kid-123|reward-456|notif-789"
+        expected = f"{ACTION_APPROVE_REWARD}|entry123|kid-123|reward-456|notif-789"
         assert approve_action[NOTIFY_ACTION] == expected
 
         disapprove_action = actions[1]
-        expected = f"{ACTION_DISAPPROVE_REWARD}|kid-123|reward-456|notif-789"
+        expected = f"{ACTION_DISAPPROVE_REWARD}|entry123|kid-123|reward-456|notif-789"
         assert disapprove_action[NOTIFY_ACTION] == expected
 
         remind_action = actions[2]
-        expected = f"{ACTION_REMIND_30}|kid-123|reward-456|notif-789"
+        expected = f"{ACTION_REMIND_30}|entry123|kid-123|reward-456|notif-789"
         assert remind_action[NOTIFY_ACTION] == expected
 
     def test_reward_uses_correct_translation_keys(self) -> None:
         """Test that reward actions use the same translation keys as chores."""
-        actions = build_reward_actions("kid-123", "reward-456")
+        actions = build_reward_actions("kid-123", "reward-456", "entry123")
 
         assert actions[0][NOTIFY_TITLE] == TRANS_KEY_NOTIF_ACTION_APPROVE
         assert actions[1][NOTIFY_TITLE] == TRANS_KEY_NOTIF_ACTION_DISAPPROVE
@@ -340,6 +344,7 @@ class TestParsedActionProperties:
         """Test is_chore_action returns True for APPROVE_CHORE."""
         parsed = ParsedAction(
             action_type=ACTION_APPROVE_CHORE,
+            entry_id="entry123",
             kid_id="kid-123",
             entity_id="chore-456",
         )
@@ -352,6 +357,7 @@ class TestParsedActionProperties:
         """Test is_chore_action returns True for DISAPPROVE_CHORE."""
         parsed = ParsedAction(
             action_type=ACTION_DISAPPROVE_CHORE,
+            entry_id="entry123",
             kid_id="kid-123",
             entity_id="chore-456",
         )
@@ -364,6 +370,7 @@ class TestParsedActionProperties:
         """Test is_reward_action returns True for APPROVE_REWARD."""
         parsed = ParsedAction(
             action_type=ACTION_APPROVE_REWARD,
+            entry_id="entry123",
             kid_id="kid-123",
             entity_id="reward-456",
             notif_id="notif-789",
@@ -377,6 +384,7 @@ class TestParsedActionProperties:
         """Test is_reward_action returns True for DISAPPROVE_REWARD."""
         parsed = ParsedAction(
             action_type=ACTION_DISAPPROVE_REWARD,
+            entry_id="entry123",
             kid_id="kid-123",
             entity_id="reward-456",
             notif_id="notif-789",
@@ -390,6 +398,7 @@ class TestParsedActionProperties:
         """Test is_reminder_action returns True for REMIND_30."""
         parsed = ParsedAction(
             action_type=ACTION_REMIND_30,
+            entry_id="entry123",
             kid_id="kid-123",
             entity_id="chore-456",
         )
@@ -402,6 +411,7 @@ class TestParsedActionProperties:
         """Test chore_id property returns entity_id for chore actions."""
         parsed = ParsedAction(
             action_type=ACTION_APPROVE_CHORE,
+            entry_id="entry123",
             kid_id="kid-123",
             entity_id="chore-456",
         )
@@ -413,6 +423,7 @@ class TestParsedActionProperties:
         """Test chore_id property for reminder without notif_id (chore reminder)."""
         parsed = ParsedAction(
             action_type=ACTION_REMIND_30,
+            entry_id="entry123",
             kid_id="kid-123",
             entity_id="chore-456",
             notif_id=None,
@@ -425,6 +436,7 @@ class TestParsedActionProperties:
         """Test reward_id property returns entity_id for reward actions."""
         parsed = ParsedAction(
             action_type=ACTION_APPROVE_REWARD,
+            entry_id="entry123",
             kid_id="kid-123",
             entity_id="reward-456",
             notif_id="notif-789",
@@ -437,6 +449,7 @@ class TestParsedActionProperties:
         """Test reward_id property for reminder with notif_id (reward reminder)."""
         parsed = ParsedAction(
             action_type=ACTION_REMIND_30,
+            entry_id="entry123",
             kid_id="kid-123",
             entity_id="reward-456",
             notif_id="notif-789",
@@ -449,6 +462,7 @@ class TestParsedActionProperties:
         """Test chore_id returns None for reward actions."""
         parsed = ParsedAction(
             action_type=ACTION_APPROVE_REWARD,
+            entry_id="entry123",
             kid_id="kid-123",
             entity_id="reward-456",
             notif_id="notif-789",
@@ -460,6 +474,7 @@ class TestParsedActionProperties:
         """Test reward_id returns None for chore actions."""
         parsed = ParsedAction(
             action_type=ACTION_APPROVE_CHORE,
+            entry_id="entry123",
             kid_id="kid-123",
             entity_id="chore-456",
         )

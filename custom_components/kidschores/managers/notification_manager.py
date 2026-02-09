@@ -435,7 +435,9 @@ class NotificationManager(BaseManager):
     # =========================================================================
 
     @staticmethod
-    def build_claim_action(kid_id: str, chore_id: str) -> list[dict[str, str]]:
+    def build_claim_action(
+        kid_id: str, chore_id: str, entry_id: str
+    ) -> list[dict[str, str]]:
         """Build a claim action button for kid notifications.
 
         Returns a single action button for kids to claim a chore directly from
@@ -444,13 +446,15 @@ class NotificationManager(BaseManager):
         Args:
             kid_id: The internal ID of the kid
             chore_id: The internal ID of the chore
+            entry_id: The config entry ID (will be truncated to 8 chars)
 
         Returns:
             List containing one action dictionary with 'action' and 'title' keys.
         """
+        truncated_entry_id = entry_id[:8]
         return [
             {
-                const.NOTIFY_ACTION: f"{const.ACTION_CLAIM_CHORE}|{kid_id}|{chore_id}",
+                const.NOTIFY_ACTION: f"{const.ACTION_CLAIM_CHORE}|{truncated_entry_id}|{kid_id}|{chore_id}",
                 const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_CLAIM,
             },
         ]
@@ -518,7 +522,9 @@ class NotificationManager(BaseManager):
         ]
 
     @staticmethod
-    def build_chore_actions(kid_id: str, chore_id: str) -> list[dict[str, str]]:
+    def build_chore_actions(
+        kid_id: str, chore_id: str, entry_id: str
+    ) -> list[dict[str, str]]:
         """Build standard notification actions for chore workflows.
 
         Returns the three standard action buttons for chore notifications:
@@ -529,28 +535,30 @@ class NotificationManager(BaseManager):
         Args:
             kid_id: The internal ID of the kid
             chore_id: The internal ID of the chore
+            entry_id: The config entry ID (will be truncated to 8 chars)
 
         Returns:
             List of action dictionaries with 'action' and 'title' keys.
         """
+        truncated_entry_id = entry_id[:8]
         return [
             {
-                const.NOTIFY_ACTION: f"{const.ACTION_APPROVE_CHORE}|{kid_id}|{chore_id}",
+                const.NOTIFY_ACTION: f"{const.ACTION_APPROVE_CHORE}|{truncated_entry_id}|{kid_id}|{chore_id}",
                 const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_APPROVE,
             },
             {
-                const.NOTIFY_ACTION: f"{const.ACTION_DISAPPROVE_CHORE}|{kid_id}|{chore_id}",
+                const.NOTIFY_ACTION: f"{const.ACTION_DISAPPROVE_CHORE}|{truncated_entry_id}|{kid_id}|{chore_id}",
                 const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_DISAPPROVE,
             },
             {
-                const.NOTIFY_ACTION: f"{const.ACTION_REMIND_30}|{kid_id}|{chore_id}",
+                const.NOTIFY_ACTION: f"{const.ACTION_REMIND_30}|{truncated_entry_id}|{kid_id}|{chore_id}",
                 const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_REMIND_30,
             },
         ]
 
     @staticmethod
     def build_reward_actions(
-        kid_id: str, reward_id: str, notif_id: str | None = None
+        kid_id: str, reward_id: str, entry_id: str, notif_id: str | None = None
     ) -> list[dict[str, str]]:
         """Build standard notification actions for reward workflows.
 
@@ -562,24 +570,26 @@ class NotificationManager(BaseManager):
         Args:
             kid_id: The internal ID of the kid
             reward_id: The internal ID of the reward
+            entry_id: The config entry ID (will be truncated to 8 chars)
             notif_id: Optional notification tracking ID for deduplication.
 
         Returns:
             List of action dictionaries with 'action' and 'title' keys.
         """
+        truncated_entry_id = entry_id[:8]
         suffix = f"|{notif_id}" if notif_id else ""
 
         return [
             {
-                const.NOTIFY_ACTION: f"{const.ACTION_APPROVE_REWARD}|{kid_id}|{reward_id}{suffix}",
+                const.NOTIFY_ACTION: f"{const.ACTION_APPROVE_REWARD}|{truncated_entry_id}|{kid_id}|{reward_id}{suffix}",
                 const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_APPROVE,
             },
             {
-                const.NOTIFY_ACTION: f"{const.ACTION_DISAPPROVE_REWARD}|{kid_id}|{reward_id}{suffix}",
+                const.NOTIFY_ACTION: f"{const.ACTION_DISAPPROVE_REWARD}|{truncated_entry_id}|{kid_id}|{reward_id}{suffix}",
                 const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_DISAPPROVE,
             },
             {
-                const.NOTIFY_ACTION: f"{const.ACTION_REMIND_30}|{kid_id}|{reward_id}{suffix}",
+                const.NOTIFY_ACTION: f"{const.ACTION_REMIND_30}|{truncated_entry_id}|{kid_id}|{reward_id}{suffix}",
                 const.NOTIFY_TITLE: const.TRANS_KEY_NOTIF_ACTION_REMIND_30,
             },
         ]
@@ -637,8 +647,8 @@ class NotificationManager(BaseManager):
         data: dict[str, Any] | None,
         json_key: str,
         text_type: str = "message",
-    ) -> str:
-        """Format notification text with placeholders, handling errors gracefully.
+    ) -> str | None:
+        """Format notification text with placeholders, blocking on missing data.
 
         Args:
             template: Template string with {placeholder} syntax
@@ -647,18 +657,19 @@ class NotificationManager(BaseManager):
             text_type: "title" or "message" for error logging
 
         Returns:
-            Formatted string, or original template if formatting fails
+            Formatted string if successful, None if placeholders missing (blocks notification)
         """
         try:
             return template.format(**(data or {}))
         except KeyError as err:
-            const.LOGGER.warning(
-                "Missing placeholder %s in %s for notification '%s'",
+            const.LOGGER.error(
+                "Blocking notification '%s' due to missing placeholder %s in %s. "
+                "This indicates a system bug that needs fixing.",
+                json_key,
                 err,
                 text_type,
-                json_key,
             )
-            return template
+            return None
 
     def _translate_action_buttons(
         self, actions: list[dict[str, str]] | None, translations: dict[str, Any]
@@ -957,6 +968,13 @@ class NotificationManager(BaseManager):
             "message",
         )
 
+        # Skip notification if placeholders missing
+        if title is None or message is None:
+            const.LOGGER.error(
+                "Skipping notification to kid_id=%s due to missing placeholders", kid_id
+            )
+            return
+
         # Translate action button titles
         translated_actions = self._translate_action_buttons(actions, translations)
 
@@ -1114,6 +1132,15 @@ class NotificationManager(BaseManager):
                 "message",
             )
 
+            # Skip notification if placeholders missing
+            if title is None or message is None:
+                const.LOGGER.error(
+                    "Skipping notification to parent_id=%s (kid_id=%s) due to missing placeholders",
+                    parent_id,
+                    kid_id,
+                )
+                continue
+
             # Translate action button titles
             translated_actions = self._translate_action_buttons(actions, translations)
 
@@ -1239,6 +1266,14 @@ class NotificationManager(BaseManager):
                 json_key,
                 "message",
             )
+
+            # Skip notification if placeholders missing
+            if title is None or message is None:
+                const.LOGGER.error(
+                    "Skipping notification to parent_id=%s due to missing placeholders",
+                    parent_id,
+                )
+                continue
 
             mobile_notify_service = parent_info.get(
                 const.DATA_PARENT_MOBILE_NOTIFY_SERVICE, const.SENTINEL_EMPTY
@@ -1456,7 +1491,7 @@ class NotificationManager(BaseManager):
                 return
 
             # Build actions and send reminder
-            actions = self.build_chore_actions(kid_id, chore_id)
+            actions = self.build_chore_actions(kid_id, chore_id, self.entry_id)
             extra_data = self.build_extra_data(kid_id, chore_id=chore_id)
             await self.notify_parents_translated(
                 kid_id,
@@ -1496,7 +1531,7 @@ class NotificationManager(BaseManager):
                 return
 
             # Build actions and send reminder
-            actions = self.build_reward_actions(kid_id, reward_id)
+            actions = self.build_reward_actions(kid_id, reward_id, self.entry_id)
             extra_data = self.build_extra_data(kid_id, reward_id=reward_id)
             reward_info: RewardData = cast(
                 "RewardData", self.coordinator.rewards_data.get(reward_id, {})
@@ -1763,7 +1798,7 @@ class NotificationManager(BaseManager):
         )
 
         # Build action buttons
-        actions = self.build_chore_actions(kid_id, chore_id)
+        actions = self.build_chore_actions(kid_id, chore_id, self.entry_id)
         extra_data = self.build_extra_data(kid_id, chore_id=chore_id)
 
         if pending_count > 1:
@@ -1842,7 +1877,7 @@ class NotificationManager(BaseManager):
                 return
 
         # Build actions for parents
-        actions = self.build_reward_actions(kid_id, reward_id, notif_id)
+        actions = self.build_reward_actions(kid_id, reward_id, self.entry_id, notif_id)
         extra_data = self.build_extra_data(
             kid_id, reward_id=reward_id, notif_id=notif_id
         )
@@ -2064,7 +2099,7 @@ class NotificationManager(BaseManager):
                     "hours": hours,
                     "points": points,
                 },
-                actions=self.build_claim_action(kid_id, chore_id),
+                actions=self.build_claim_action(kid_id, chore_id, self.entry_id),
             )
         )
 
@@ -2119,7 +2154,7 @@ class NotificationManager(BaseManager):
                     "minutes": minutes,
                     "points": points,
                 },
-                actions=self.build_claim_action(kid_id, chore_id),
+                actions=self.build_claim_action(kid_id, chore_id, self.entry_id),
             )
         )
 
@@ -2196,7 +2231,7 @@ class NotificationManager(BaseManager):
                 title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_OVERDUE,
                 message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_OVERDUE,
                 message_data={"chore_name": chore_name, "due_date": formatted_due_date},
-                actions=self.build_claim_action(kid_id, chore_id),
+                actions=self.build_claim_action(kid_id, chore_id, self.entry_id),
             )
         )
 
