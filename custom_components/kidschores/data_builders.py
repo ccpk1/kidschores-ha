@@ -1383,6 +1383,13 @@ def build_chore(
     )
 
     # --- Build complete chore structure ---
+    # Extract values needed for rotation genesis logic
+    assigned_kids_value = get_field(const.DATA_CHORE_ASSIGNED_KIDS, [])
+    completion_criteria_value = get_field(
+        const.DATA_CHORE_COMPLETION_CRITERIA,
+        const.COMPLETION_CRITERIA_INDEPENDENT,
+    )
+
     # Cast to ChoreData - all required fields are populated
     return cast(
         "ChoreData",
@@ -1420,9 +1427,7 @@ def build_chore(
                 get_field(const.DATA_CHORE_ICON, const.SENTINEL_EMPTY)
             ),
             # Assignment
-            const.DATA_CHORE_ASSIGNED_KIDS: list(
-                get_field(const.DATA_CHORE_ASSIGNED_KIDS, [])
-            ),
+            const.DATA_CHORE_ASSIGNED_KIDS: list(assigned_kids_value),
             # Scheduling
             const.DATA_CHORE_RECURRING_FREQUENCY: recurring_frequency,
             const.DATA_CHORE_CUSTOM_INTERVAL: custom_interval,
@@ -1528,6 +1533,42 @@ def build_chore(
             const.DATA_CHORE_COMPLETION_CRITERIA: get_field(
                 const.DATA_CHORE_COMPLETION_CRITERIA,
                 const.COMPLETION_CRITERIA_INDEPENDENT,
+            ),
+            # Rotation tracking (v0.5.0 Chore Logic)
+            const.DATA_CHORE_ROTATION_TURN_HOLDER: get_field(
+                const.DATA_CHORE_ROTATION_TURN_HOLDER,
+                (
+                    assigned_kids_value[0]
+                    if (
+                        is_create
+                        and assigned_kids_value
+                        and completion_criteria_value
+                        in (
+                            const.COMPLETION_CRITERIA_ROTATION_SIMPLE,
+                            const.COMPLETION_CRITERIA_ROTATION_SMART,
+                        )
+                    )
+                    else None
+                ),
+            ),
+            const.DATA_CHORE_ROTATION_ORDER: get_field(
+                const.DATA_CHORE_ROTATION_ORDER,
+                (
+                    list(assigned_kids_value)
+                    if (
+                        is_create
+                        and assigned_kids_value
+                        and completion_criteria_value
+                        in (
+                            const.COMPLETION_CRITERIA_ROTATION_SIMPLE,
+                            const.COMPLETION_CRITERIA_ROTATION_SMART,
+                        )
+                    )
+                    else []
+                ),
+            ),
+            const.DATA_CHORE_ROTATION_OVERRIDE_EXPIRES: get_field(
+                const.DATA_CHORE_ROTATION_OVERRIDE_EXPIRES, None
             ),
         },
     )

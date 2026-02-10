@@ -1,7 +1,9 @@
 # Blueprint: Chore Logic v0.5.0 — Implementation Specification
 
 _Supporting document for [CHORE_LOGIC_V050_IN-PROCESS.md](CHORE_LOGIC_V050_IN-PROCESS.md)_
-_All 16 design decisions resolved. This document provides code-level specifications._
+_All design decisions resolved. **Rotation Design v2 applied** (2026-02-12): 2 rotation criteria + steal-as-overdue._
+_See plan document "⚠️ ROTATION DESIGN v2" section for authoritative behavioral definitions._
+_See plan document "⚠️ APPROVAL CYCLE PROCESSING MODEL" section for mandatory three-lane vocabulary._
 
 ---
 
@@ -42,7 +44,7 @@ class ChoreData(TypedDict):
     rotation_cycle_override: NotRequired[bool]          # True = any kid can claim
 ```
 
-### 1.2 New Completion Criteria Values (D-05, D-12)
+### 1.2 New Completion Criteria Values (D-05 revised, D-12)
 
 **File**: `custom_components/kidschores/const.py`
 
@@ -52,34 +54,38 @@ COMPLETION_CRITERIA_SHARED: Final = "shared_all"
 COMPLETION_CRITERIA_INDEPENDENT: Final = "independent"
 COMPLETION_CRITERIA_SHARED_FIRST: Final = "shared_first"
 
-# NEW — Rotation sub-types (D-05, D-12: Criteria Overload)
+# NEW — Rotation sub-types (D-05 revised: 2 types, NOT 3)
 COMPLETION_CRITERIA_ROTATION_SIMPLE: Final = "rotation_simple"
-COMPLETION_CRITERIA_ROTATION_STEAL: Final = "rotation_steal"
 COMPLETION_CRITERIA_ROTATION_SMART: Final = "rotation_smart"
+# NOTE: rotation_steal REMOVED — steal mechanic is now an overdue handling type (D-06 revised)
 
-# Update options list — used by flow helpers and services
+# Update options list — 5 entries total
 COMPLETION_CRITERIA_OPTIONS: Final = [
     {"value": COMPLETION_CRITERIA_SHARED, "label": "shared_all"},
     {"value": COMPLETION_CRITERIA_INDEPENDENT, "label": "independent"},
     {"value": COMPLETION_CRITERIA_SHARED_FIRST, "label": "shared_first"},
     {"value": COMPLETION_CRITERIA_ROTATION_SIMPLE, "label": "rotation_simple"},
-    {"value": COMPLETION_CRITERIA_ROTATION_STEAL, "label": "rotation_steal"},
     {"value": COMPLETION_CRITERIA_ROTATION_SMART, "label": "rotation_smart"},
 ]
 ```
 
-### 1.3 New Overdue Handling Type (D-02)
+### 1.3 New Overdue Handling Types (D-02, D-06 revised)
 
 ```python
 # Existing 5 types unchanged
 # NEW — 6th type: strict lock until midnight
 OVERDUE_AT_DUE_DATE_MARK_MISSED_AND_LOCK: Final = "at_due_date_mark_missed_and_lock"
 
-# Update options list
+# NEW — 7th type: steal window for rotation chores (D-06 revised)
+OVERDUE_HANDLING_AT_DUE_DATE_ALLOW_STEAL: Final = "at_due_date_allow_steal"
+
+# Update options list — 7 entries total
 OVERDUE_HANDLING_TYPE_OPTIONS: Final = [
     # ... existing 5 entries ...
     {"value": OVERDUE_AT_DUE_DATE_MARK_MISSED_AND_LOCK,
      "label": "at_due_date_mark_missed_and_lock"},
+    {"value": OVERDUE_HANDLING_AT_DUE_DATE_ALLOW_STEAL,
+     "label": "at_due_date_allow_steal"},
 ]
 ```
 
@@ -128,7 +134,6 @@ def is_single_claimer_mode(chore_data: ChoreData | dict[str, Any]) -> bool:
     return criteria in (
         const.COMPLETION_CRITERIA_SHARED_FIRST,
         const.COMPLETION_CRITERIA_ROTATION_SIMPLE,
-        const.COMPLETION_CRITERIA_ROTATION_STEAL,
         const.COMPLETION_CRITERIA_ROTATION_SMART,
     )
 
@@ -137,7 +142,7 @@ def is_rotation_mode(chore_data: ChoreData | dict[str, Any]) -> bool:
     """Return True if chore uses any rotation sub-type.
 
     Used for rotation-specific logic: turn advancement, override,
-    steal mechanics. NOT for claim-blocking (use is_single_claimer_mode).
+    steal-via-overdue mechanics. NOT for claim-blocking (use is_single_claimer_mode).
     """
     criteria = chore_data.get(
         const.DATA_CHORE_COMPLETION_CRITERIA,
@@ -145,7 +150,6 @@ def is_rotation_mode(chore_data: ChoreData | dict[str, Any]) -> bool:
     )
     return criteria in (
         const.COMPLETION_CRITERIA_ROTATION_SIMPLE,
-        const.COMPLETION_CRITERIA_ROTATION_STEAL,
         const.COMPLETION_CRITERIA_ROTATION_SMART,
     )
 ```
@@ -167,7 +171,6 @@ def is_shared_chore(chore_data: ChoreData | dict[str, Any]) -> bool:
         const.COMPLETION_CRITERIA_SHARED,
         const.COMPLETION_CRITERIA_SHARED_FIRST,
         const.COMPLETION_CRITERIA_ROTATION_SIMPLE,
-        const.COMPLETION_CRITERIA_ROTATION_STEAL,
         const.COMPLETION_CRITERIA_ROTATION_SMART,
     )
 ```
@@ -200,18 +203,18 @@ AFTER (adapter pattern — rotation works automatically):
 
 **File-by-file adoption priority** (by impact density):
 
-| Priority | File                        | Sites | Refactoring Notes                                                                     |
-| -------- | --------------------------- | ----- | ------------------------------------------------------------------------------------- |
-| 1        | `managers/chore_manager.py` | 25    | Heaviest target. Each `== SHARED_FIRST` → `is_single_claimer_mode()`. Test after.    |
-| 2        | `engines/chore_engine.py`   | 10    | Update `can_claim_chore()`, `compute_global_state()`, `calculate_transition()`.       |
-| 3        | `options_flow.py`           | 6     | Per-kid step gating. `INDEPENDENT`-only checks can remain as-is.                      |
-| 4        | `helpers/flow_helpers.py`   | 5     | Form building. `transform_chore_cfof_to_data()` per-kid date routing.                 |
-| 5        | `sensor.py`                 | 4     | Entity creation gating + attribute routing.                                            |
-| 6        | `data_builders.py`          | 3     | Validation + build defaults.                                                           |
-| 7        | `services.py`               | 3     | Service input validation.                                                              |
-| 8        | `schedule_engine.py`        | 2     | Per-kid vs chore-level date/day routing.                                               |
-| 9        | `helpers/entity_helpers.py` | 1     | **Bug fix**: `cleanup_orphaned_shared_state_sensors()` checks `SHARED` only, misses `SHARED_FIRST` + rotation. |
-| 10       | `managers/statistics_manager.py` | 1 | Daily snapshot due-date lookup.                                                        |
+| Priority | File                             | Sites | Refactoring Notes                                                                                              |
+| -------- | -------------------------------- | ----- | -------------------------------------------------------------------------------------------------------------- |
+| 1        | `managers/chore_manager.py`      | 25    | Heaviest target. Each `== SHARED_FIRST` → `is_single_claimer_mode()`. Test after.                              |
+| 2        | `engines/chore_engine.py`        | 10    | Update `can_claim_chore()`, `compute_global_state()`, `calculate_transition()`.                                |
+| 3        | `options_flow.py`                | 6     | Per-kid step gating. `INDEPENDENT`-only checks can remain as-is.                                               |
+| 4        | `helpers/flow_helpers.py`        | 5     | Form building. `transform_chore_cfof_to_data()` per-kid date routing.                                          |
+| 5        | `sensor.py`                      | 4     | Entity creation gating + attribute routing.                                                                    |
+| 6        | `data_builders.py`               | 3     | Validation + build defaults.                                                                                   |
+| 7        | `services.py`                    | 3     | Service input validation.                                                                                      |
+| 8        | `schedule_engine.py`             | 2     | Per-kid vs chore-level date/day routing.                                                                       |
+| 9        | `helpers/entity_helpers.py`      | 1     | **Bug fix**: `cleanup_orphaned_shared_state_sensors()` checks `SHARED` only, misses `SHARED_FIRST` + rotation. |
+| 10       | `managers/statistics_manager.py` | 1     | Daily snapshot due-date lookup.                                                                                |
 
 **Directive**: Convert file-by-file, running `pytest tests/` after each file. Do NOT attempt all 60 sites in one commit.
 
@@ -232,9 +235,10 @@ AFTER (adapter pattern — rotation works automatically):
                                   │ no
                     ┌─────────────▼──────────────┐
                     │ P3: not_my_turn             │  ← is_rotation_mode AND
-                    │   (steal exception: skip    │     kid ≠ current_turn AND
-                    │    if steal + past due)     │     NOT (steal AND past_due) AND
-                    └─────────────┬──────────────┘     override == False
+                    │   (allow_steal exception:   │     kid ≠ current_turn AND
+                    │    skip if overdue_handling  │     NOT (allow_steal AND past_due)
+                    │    == allow_steal + past due)│     AND override == False
+                    └─────────────┬──────────────┘
                                   │ no
                      ┌────────────▼────────────┐
                      │ P4: missed              │  ← overdue == mark_missed_and_lock
@@ -300,16 +304,17 @@ def resolve_kid_chore_state(
         override = chore_data.get(const.DATA_CHORE_ROTATION_CYCLE_OVERRIDE, False)
 
         if kid_id != current_turn and not override:
-            criteria = chore_data.get(const.DATA_CHORE_COMPLETION_CRITERIA)
+            overdue_handling = chore_data.get(const.DATA_CHORE_OVERDUE_HANDLING_TYPE)
 
-            # STEAL EXCEPTION: past due date, steal lifts the restriction
-            if criteria == const.COMPLETION_CRITERIA_ROTATION_STEAL:
+            # STEAL EXCEPTION: overdue handling is allow_steal + past due date
+            # In that case, not_my_turn blocking lifts — any kid can claim
+            if overdue_handling == const.OVERDUE_HANDLING_AT_DUE_DATE_ALLOW_STEAL:
                 if due_date is not None and now > due_date:
-                    pass  # Fall through — steal is active
+                    pass  # Fall through — steal window is active
                 else:
                     return (const.CHORE_STATE_NOT_MY_TURN, "not_my_turn")
             else:
-                # Simple and Smart: strict turn enforcement
+                # Simple and Smart without steal: strict turn enforcement
                 return (const.CHORE_STATE_NOT_MY_TURN, "not_my_turn")
 
     # P4 — Missed lock (strict: no claiming allowed)
@@ -437,7 +442,6 @@ approve_chore(kid_id, chore_id, parent_name)
   │     │
   │     ├─ Determine next turn:
   │     │    ├─ rotation_simple → calculate_next_turn_simple()
-  │     │    ├─ rotation_steal  → calculate_next_turn_simple()  (same logic)
   │     │    └─ rotation_smart  → query stats → calculate_next_turn_smart()
   │     │
   │     ├─ Write: rotation_current_kid_id = next_kid_id
@@ -451,7 +455,7 @@ approve_chore(kid_id, chore_id, parent_name)
   └─ [existing upon_completion reset check]
 ```
 
-### 4.2 Turn Calculation — Simple & Steal
+### 4.2 Turn Calculation — Simple (Round-Robin)
 
 **File**: `custom_components/kidschores/engines/chore_engine.py`
 
@@ -463,7 +467,8 @@ def calculate_next_turn_simple(
 ) -> str:
     """Calculate next turn using round-robin order.
 
-    Used by rotation_simple and rotation_steal (same advancement logic).
+    Used by rotation_simple. Advances to the next kid in assigned_kids
+    list order, wrapping around at the end.
     Resilience: if current_kid_id is not in list, reset to first kid.
     """
     if not assigned_kids:
@@ -516,8 +521,12 @@ async def _advance_rotation(self, chore_id: str, approved_kid_id: str) -> None:
     """Advance rotation to next kid after a successful approval.
 
     Called from approve_chore() after the approval persist.
-    Handles simple/steal (round-robin) and smart (fairness-weighted).
+    Handles simple (round-robin) and smart (fairness-weighted).
     Always resets rotation_cycle_override (D-15).
+
+    Note on steal (D-18): When a non-turn-holder completes via
+    at_due_date_allow_steal, the turn advances normally from the
+    completer — NOT back to the skipped turn-holder.
     """
     chore_data = self._data.get(const.DATA_CHORES, {}).get(chore_id)
     if not chore_data or not ChoreEngine.is_rotation_mode(chore_data):
@@ -544,7 +553,7 @@ async def _advance_rotation(self, chore_id: str, approved_kid_id: str) -> None:
         )
         method = "smart"
     else:
-        # Simple and Steal both use round-robin
+        # rotation_simple: round-robin advancement
         next_kid_id = ChoreEngine.calculate_next_turn_simple(
             assigned_kids, previous_kid_id
         )
@@ -637,11 +646,12 @@ vol.Optional(
 ### 6.1 Concept (D-02)
 
 The 6th overdue handling type: `at_due_date_mark_missed_and_lock`. When the due date passes:
+
 1. Kid's chore state becomes `missed` (Priority 4 in FSM)
 2. `can_claim` returns `False` with reason `"missed"`
 3. Miss is recorded via `_record_missed_chore()` (existing)
-4. State is **locked** — kid cannot claim until next reset
-5. Only `AT_MIDNIGHT_*` reset types can unlock (D-03 validation)
+4. State is **locked** — kid cannot claim until the approval reset boundary fires
+5. Only `at_midnight_*` `approval_reset_type` values are compatible (D-03 validation) — the overdue policy at the approval reset boundary unlocks the `missed` state
 
 ### 6.2 Scanner Integration
 
@@ -668,17 +678,18 @@ if overdue_type == const.OVERDUE_AT_DUE_DATE_MARK_MISSED_AND_LOCK:
 ```
 
 **Important distinction from existing `clear_and_mark_missed`**:
-- **Existing** (`clear_and_mark_missed`): Records miss → resets to `pending` at the approval boundary
-- **New** (`mark_missed_and_lock`): Records miss → locks in `missed` → only midnight resets
 
-### 6.3 Midnight Reset
+- **Existing** (`clear_and_mark_missed`): At due date: records miss → at approval reset boundary: overdue policy clears overdue status and resets chore state to `pending`
+- **New** (`mark_missed_and_lock`): At due date: records miss + locks in `missed` state → at approval reset boundary: overdue policy unlocks `missed` state and resets chore state to `pending`
 
-In `_process_approval_boundary_resets()`, for `AT_MIDNIGHT_*` chores:
+### 6.3 Overdue Policy at Approval Reset Boundary
+
+In `_process_approval_boundary_resets()`, when the approval reset boundary fires (Lane 1) for `at_midnight_*` chores, the overdue policy (Lane 2) executes:
 
 ```python
 # After checking if kid state needs reset:
 if kid_state == const.CHORE_STATE_MISSED:
-    # Unlock missed state at midnight
+    # Overdue policy: unlock missed state, reset chore state to pending
     kid_chore_data[const.DATA_KID_CHORE_DATA_STATE] = const.CHORE_STATE_PENDING
     state_modified = True
 
@@ -687,6 +698,21 @@ if kid_state == const.CHORE_STATE_MISSED:
         current_turn = chore_data.get(const.DATA_CHORE_ROTATION_CURRENT_KID_ID)
         if current_turn == kid_id:
             await self._advance_rotation(chore_id, kid_id)
+
+# For allow_steal rotation chores: overdue policy at approval reset boundary
+# clears overdue status even if no one claimed (pure miss). Chore state resets
+# to pending and _advance_rotation handles turn advancement (D-17).
+overdue_handling = chore_data.get(const.DATA_CHORE_OVERDUE_HANDLING_TYPE)
+if overdue_handling == const.OVERDUE_HANDLING_AT_DUE_DATE_ALLOW_STEAL:
+    if kid_state == const.CHORE_STATE_OVERDUE:
+        kid_chore_data[const.DATA_KID_CHORE_DATA_STATE] = const.CHORE_STATE_PENDING
+        state_modified = True
+
+        if ChoreEngine.is_rotation_mode(chore_data):
+            current_turn = chore_data.get(const.DATA_CHORE_ROTATION_CURRENT_KID_ID)
+            if current_turn == kid_id:
+                # Record missed stat for skipped turn-holder, then advance
+                await self._advance_rotation(chore_id, kid_id)
 ```
 
 ---
@@ -715,12 +741,10 @@ def get_criteria_transition_actions(
     """
     was_rotation = old_criteria in (
         const.COMPLETION_CRITERIA_ROTATION_SIMPLE,
-        const.COMPLETION_CRITERIA_ROTATION_STEAL,
         const.COMPLETION_CRITERIA_ROTATION_SMART,
     )
     is_rotation = new_criteria in (
         const.COMPLETION_CRITERIA_ROTATION_SIMPLE,
-        const.COMPLETION_CRITERIA_ROTATION_STEAL,
         const.COMPLETION_CRITERIA_ROTATION_SMART,
     )
 
@@ -807,6 +831,7 @@ if new_criteria and new_criteria != old_criteria:
 **File**: `custom_components/kidschores/services.py` — Lines 784-788
 
 **DELETE** this block:
+
 ```python
 # Block completion_criteria changes (immutable after creation)
 if const.SERVICE_FIELD_CHORE_CRUD_COMPLETION_CRITERIA in call.data:
@@ -828,13 +853,13 @@ UPDATE_CHORE_SCHEMA = vol.Schema({
 ```
 
 **Update** `_COMPLETION_CRITERIA_VALUES` to include new rotation types:
+
 ```python
 _COMPLETION_CRITERIA_VALUES = [
     const.COMPLETION_CRITERIA_INDEPENDENT,
     const.COMPLETION_CRITERIA_SHARED_FIRST,
     const.COMPLETION_CRITERIA_SHARED,
     const.COMPLETION_CRITERIA_ROTATION_SIMPLE,   # NEW
-    const.COMPLETION_CRITERIA_ROTATION_STEAL,    # NEW
     const.COMPLETION_CRITERIA_ROTATION_SMART,    # NEW
 ]
 ```
@@ -1185,15 +1210,15 @@ def _handle_chore_missed(self, payload: dict[str, Any]) -> None:
 
 Add to existing validation rules:
 
-| ID     | Rule                                                                                  | Error Key                                          |
-| ------ | ------------------------------------------------------------------------------------- | -------------------------------------------------- |
-| **V-01** | `mark_missed_and_lock` requires `AT_MIDNIGHT_*` reset type (D-03)                    | `TRANS_KEY_VALIDATION_MISSED_LOCK_RESET_INCOMPATIBLE` |
-| **V-02** | `claim_restriction_enabled == True` requires `due_window_offset` with duration > 0   | `TRANS_KEY_VALIDATION_CLAIM_RESTRICTION_NO_WINDOW`    |
-| **V-03** | All rotation types require `len(assigned_kids) >= 2` (D-14)                          | `TRANS_KEY_VALIDATION_ROTATION_MIN_KIDS`              |
-| **V-04** | `rotation_steal` requires a due date (D-06)                                          | `TRANS_KEY_VALIDATION_ROTATION_STEAL_NO_DUE_DATE`     |
+| ID       | Rule                                                                                                              | Error Key                                             |
+| -------- | ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| **V-01** | `mark_missed_and_lock` requires `at_midnight_*` `approval_reset_type` (D-03)                                      | `TRANS_KEY_VALIDATION_MISSED_LOCK_RESET_INCOMPATIBLE` |
+| **V-02** | `claim_restriction_enabled == True` requires `due_window_offset` with duration > 0                                | `TRANS_KEY_VALIDATION_CLAIM_RESTRICTION_NO_WINDOW`    |
+| **V-03** | All rotation types require `len(assigned_kids) >= 2` (D-14)                                                       | `TRANS_KEY_VALIDATION_ROTATION_MIN_KIDS`              |
+| **V-04** | `at_due_date_allow_steal` requires rotation criteria + `at_midnight_once` `approval_reset_type` + due date (D-06) | `TRANS_KEY_VALIDATION_ALLOW_STEAL_INCOMPATIBLE`       |
 
 ```python
-# V-01 — Missed lock requires midnight reset
+# V-01 — Missed lock requires at_midnight_* approval_reset_type
 overdue_type = data.get(const.DATA_CHORE_OVERDUE_HANDLING_TYPE)
 reset_type = data.get(const.DATA_CHORE_APPROVAL_RESET_TYPE)
 if overdue_type == const.OVERDUE_AT_DUE_DATE_MARK_MISSED_AND_LOCK:
@@ -1215,7 +1240,6 @@ if claim_restricted:
 criteria = data.get(const.DATA_CHORE_COMPLETION_CRITERIA)
 rotation_criteria = {
     const.COMPLETION_CRITERIA_ROTATION_SIMPLE,
-    const.COMPLETION_CRITERIA_ROTATION_STEAL,
     const.COMPLETION_CRITERIA_ROTATION_SMART,
 }
 if criteria in rotation_criteria:
@@ -1223,11 +1247,19 @@ if criteria in rotation_criteria:
     if len(assigned) < 2:
         errors["assigned_kids"] = const.TRANS_KEY_VALIDATION_ROTATION_MIN_KIDS
 
-# V-04 — Rotation steal requires due date
-if criteria == const.COMPLETION_CRITERIA_ROTATION_STEAL:
-    due_date = data.get(const.DATA_CHORE_DUE_DATE)
-    if not due_date:
-        errors["due_date"] = const.TRANS_KEY_VALIDATION_ROTATION_STEAL_NO_DUE_DATE
+# V-04 — at_due_date_allow_steal requires rotation criteria + at_midnight_once approval_reset_type + due date
+if overdue_type == const.OVERDUE_HANDLING_AT_DUE_DATE_ALLOW_STEAL:
+    # Must be a rotation chore
+    if criteria not in rotation_criteria:
+        errors["overdue_handling_type"] = const.TRANS_KEY_VALIDATION_ALLOW_STEAL_INCOMPATIBLE
+    # Must have at_midnight_once approval_reset_type (steal window needs daily recurrence)
+    elif reset_type != const.APPROVAL_RESET_AT_MIDNIGHT_ONCE:
+        errors["overdue_handling_type"] = const.TRANS_KEY_VALIDATION_ALLOW_STEAL_INCOMPATIBLE
+    # Must have a due date (defines when steal window opens)
+    else:
+        due_date = data.get(const.DATA_CHORE_DUE_DATE)
+        if not due_date:
+            errors["overdue_handling_type"] = const.TRANS_KEY_VALIDATION_ALLOW_STEAL_INCOMPATIBLE
 ```
 
 ### 13.2 Build Defaults
@@ -1258,53 +1290,67 @@ if criteria in rotation_criteria and not existing:
 
 ### 14.1 New Constants (by category)
 
-**Completion Criteria** (3):
+**Completion Criteria** (2):
+
 - `COMPLETION_CRITERIA_ROTATION_SIMPLE`
-- `COMPLETION_CRITERIA_ROTATION_STEAL`
 - `COMPLETION_CRITERIA_ROTATION_SMART`
 
-**Overdue Handling** (1):
+**Overdue Handling** (2):
+
 - `OVERDUE_AT_DUE_DATE_MARK_MISSED_AND_LOCK`
+- `OVERDUE_HANDLING_AT_DUE_DATE_ALLOW_STEAL` ← NEW (rotation-only, lifts not_my_turn at due date)
 
 **Chore States** (3):
+
 - `CHORE_STATE_WAITING`
 - `CHORE_STATE_NOT_MY_TURN`
 - `CHORE_STATE_MISSED`
 
 **Storage Keys** (3):
+
 - `DATA_CHORE_CLAIM_RESTRICTION_ENABLED`
 - `DATA_CHORE_ROTATION_CURRENT_KID_ID`
 - `DATA_CHORE_ROTATION_CYCLE_OVERRIDE`
 
 **Signal** (1):
+
 - `SIGNAL_SUFFIX_ROTATION_ADVANCED`
 
 **Services** (3):
+
 - `SERVICE_SET_ROTATION_TURN`
 - `SERVICE_RESET_ROTATION`
 - `SERVICE_OPEN_ROTATION_CYCLE`
 
 **Service Fields** (1):
+
 - `SERVICE_FIELD_ROTATION_KID_ID`
 
 **Config Flow** (1):
+
 - `CFOF_CHORES_INPUT_CLAIM_RESTRICTION`
 
 **Attributes** (3):
+
 - `ATTR_CHORE_LOCK_REASON`
 - `ATTR_CHORE_TURN_KID_NAME`
 - `ATTR_CHORE_AVAILABLE_AT`
 
 **Translation Keys** (~15 new):
+
 - State labels: `TRANS_KEY_CHORE_STATE_WAITING`, `TRANS_KEY_CHORE_STATE_NOT_MY_TURN`, `TRANS_KEY_CHORE_STATE_MISSED`
-- Criteria labels: `TRANS_KEY_ROTATION_SIMPLE`, `TRANS_KEY_ROTATION_STEAL`, `TRANS_KEY_ROTATION_SMART`
-- Overdue label: `TRANS_KEY_OVERDUE_MARK_MISSED_AND_LOCK`
-- Notification: `TRANS_KEY_NOTIF_TITLE_CHORE_MISSED`, `TRANS_KEY_NOTIF_MESSAGE_CHORE_MISSED` (verify if already present)
-- Validation errors: `TRANS_KEY_VALIDATION_MISSED_LOCK_RESET_INCOMPATIBLE`, `TRANS_KEY_VALIDATION_CLAIM_RESTRICTION_NO_WINDOW`, `TRANS_KEY_VALIDATION_ROTATION_MIN_KIDS`, `TRANS_KEY_VALIDATION_ROTATION_STEAL_NO_DUE_DATE`
+- Criteria labels: `TRANS_KEY_ROTATION_SIMPLE`, `TRANS_KEY_ROTATION_SMART`
+- Overdue labels: `TRANS_KEY_OVERDUE_MARK_MISSED_AND_LOCK`, `TRANS_KEY_OVERDUE_AT_DUE_DATE_ALLOW_STEAL`
+- Notification: `TRANS_KEY_NOTIF_TITLE_CHORE_MISSED`, `TRANS_KEY_NOTIF_MESSAGE_CHORE_MISSED`, `TRANS_KEY_NOTIF_TITLE_STEAL_WINDOW_OPEN`, `TRANS_KEY_NOTIF_MESSAGE_STEAL_WINDOW_OPEN`
+- Validation errors: `TRANS_KEY_VALIDATION_MISSED_LOCK_RESET_INCOMPATIBLE`, `TRANS_KEY_VALIDATION_CLAIM_RESTRICTION_NO_WINDOW`, `TRANS_KEY_VALIDATION_ROTATION_MIN_KIDS`, `TRANS_KEY_VALIDATION_ALLOW_STEAL_INCOMPATIBLE`
 - Service errors: `TRANS_KEY_ERROR_NOT_ROTATION_CHORE`, `TRANS_KEY_ERROR_KID_NOT_ASSIGNED`
 - Service descriptions: 3 services × (name + description + fields)
 
 **Constants to REMOVE**:
+
+- `COMPLETION_CRITERIA_ROTATION_STEAL` (moved to overdue handling)
+- `TRANS_KEY_CRITERIA_ROTATION_STEAL` (replaced by `TRANS_KEY_OVERDUE_AT_DUE_DATE_ALLOW_STEAL`)
+- `TRANS_KEY_VALIDATION_ROTATION_STEAL_NO_DUE_DATE` (replaced by `TRANS_KEY_VALIDATION_ALLOW_STEAL_INCOMPATIBLE`)
 - `TRANS_KEY_ERROR_COMPLETION_CRITERIA_IMMUTABLE` (D-11: guard removed)
 
 ### 14.2 Translation Entries (en.json additions)
@@ -1333,7 +1379,10 @@ if criteria in rotation_criteria and not existing:
       "description": "Manually set which kid's turn it is for a rotation chore.",
       "fields": {
         "chore_id": { "name": "Chore", "description": "The chore to update." },
-        "rotation_kid_id": { "name": "Kid", "description": "The kid who should be the current turn holder." }
+        "rotation_kid_id": {
+          "name": "Kid",
+          "description": "The kid who should be the current turn holder."
+        }
       }
     },
     "reset_rotation": {
@@ -1352,24 +1401,36 @@ if criteria in rotation_criteria and not existing:
     }
   },
   "exceptions": {
-    "not_rotation_chore": { "message": "This chore does not use rotation. Only rotation chores support this action." },
-    "kid_not_assigned": { "message": "The specified kid is not assigned to this chore." },
-    "missed_lock_reset_incompatible": { "message": "The 'mark missed and lock' overdue strategy requires a midnight-based reset type." },
-    "claim_restriction_no_window": { "message": "Claim restriction requires a due window offset to be configured." },
-    "rotation_min_kids": { "message": "Rotation chores require at least two assigned kids." },
-    "rotation_steal_no_due_date": { "message": "The 'steal' rotation type requires a due date to determine when the steal window opens." }
+    "not_rotation_chore": {
+      "message": "This chore does not use rotation. Only rotation chores support this action."
+    },
+    "kid_not_assigned": {
+      "message": "The specified kid is not assigned to this chore."
+    },
+    "missed_lock_reset_incompatible": {
+      "message": "The 'mark missed and lock' overdue strategy requires a midnight-based approval reset type (at_midnight_once or at_midnight_multi)."
+    },
+    "claim_restriction_no_window": {
+      "message": "Claim restriction requires a due window offset to be configured."
+    },
+    "rotation_min_kids": {
+      "message": "Rotation chores require at least two assigned kids."
+    },
+    "allow_steal_incompatible": {
+      "message": "The 'allow steal' overdue strategy requires a rotation chore with at_midnight_once approval reset type and a due date configured."
+    }
   },
   "selector": {
     "completion_criteria": {
       "options": {
-        "rotation_simple": "Rotation (simple)",
-        "rotation_steal": "Rotation (steal)",
-        "rotation_smart": "Rotation (smart)"
+        "rotation_simple": "Rotation Simple (Turn-holder only, strict order)",
+        "rotation_smart": "Rotation Smart (Turn-holder only, fairness-weighted)"
       }
     },
     "overdue_handling_type": {
       "options": {
-        "at_due_date_mark_missed_and_lock": "Mark missed and lock"
+        "at_due_date_mark_missed_and_lock": "Mark missed and lock until reset",
+        "at_due_date_allow_steal": "Allow steal (any kid can claim after due date)"
       }
     }
   }
@@ -1380,48 +1441,52 @@ if criteria in rotation_criteria and not existing:
 
 ## Appendix A — File Impact Summary
 
-| File | Section | Change Description |
-|---|---|---|
-| `const.py` | Constants | ~30 new constants, remove 1 |
-| `type_defs.py` | TypedDict | 3 new NotRequired fields on ChoreData |
-| `data_builders.py` | build + validate | 3 defaults + 4 validation rules |
-| `engines/chore_engine.py` | Logic | 2 adapters + FSM + 2 rotation helpers + transition helper |
-| `managers/chore_manager.py` | Orchestration | _advance_rotation + scanner + midnight + transition + 3 service methods + adapter adoption (25 sites) |
-| `managers/statistics_manager.py` | Query | 2 new public methods |
-| `managers/ui_manager.py` | Dashboard | 3 new chore attributes |
-| `managers/notification_manager.py` | Wiring | CHORE_MISSED subscription + handler |
-| `helpers/flow_helpers.py` | Forms | claim_restriction selector + criteria/overdue options |
-| `helpers/entity_helpers.py` | Bug fix | cleanup_orphaned_shared_state_sensors SHARED_FIRST |
-| `options_flow.py` | Edit form | claim_restriction + criteria transition on save |
-| `services.py` | API | Remove guard + add criteria to update + 3 new services |
-| `services.yaml` | Descriptions | 3 new service entries |
-| `migration_pre_v50.py` | Backfill | 3 fields on all existing chores |
-| `sensor.py` | Attributes | lock_reason, turn_kid_name, available_at + adapter adoption |
-| `translations/en.json` | i18n | ~15 new keys, remove 1 |
+| File                               | Section          | Change Description                                                                                           |
+| ---------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------ |
+| `const.py`                         | Constants        | ~28 new constants (2 criteria, 2 overdue, 3 states, etc.), remove 3 (rotation_steal + related)               |
+| `type_defs.py`                     | TypedDict        | 3 new NotRequired fields on ChoreData                                                                        |
+| `data_builders.py`                 | build + validate | 3 defaults + 4 validation rules (V-01..V-04, where V-04 validates allow_steal compatibility)                 |
+| `engines/chore_engine.py`          | Logic            | 2 adapters + FSM (P3 checks overdue_handling for steal) + 2 rotation helpers + transition helper             |
+| `managers/chore_manager.py`        | Orchestration    | \_advance_rotation + scanner + midnight (D-17 pure miss) + transition + 3 service methods + adapter adoption |
+| `managers/statistics_manager.py`   | Query            | 2 new public methods                                                                                         |
+| `managers/ui_manager.py`           | Dashboard        | 3 new chore attributes                                                                                       |
+| `managers/notification_manager.py` | Wiring           | CHORE_MISSED subscription + steal window open notification                                                   |
+| `helpers/flow_helpers.py`          | Forms            | claim_restriction selector + 2 criteria options + 7th overdue option (allow_steal)                           |
+| `helpers/entity_helpers.py`        | Bug fix          | cleanup_orphaned_shared_state_sensors SHARED_FIRST                                                           |
+| `options_flow.py`                  | Edit form        | claim_restriction + criteria transition on save + V-04 allow_steal validation                                |
+| `services.py`                      | API              | Remove guard + add criteria to update (5 values) + 3 new services                                            |
+| `services.yaml`                    | Descriptions     | 3 new service entries                                                                                        |
+| `migration_pre_v50.py`             | Backfill         | 3 fields on all existing chores                                                                              |
+| `sensor.py`                        | Attributes       | lock_reason, turn_kid_name, available_at + adapter adoption                                                  |
+| `translations/en.json`             | i18n             | ~15 new keys, remove 3 (rotation_steal related), fix rotation_simple/smart descriptions                      |
 
 ## Appendix B — Test Matrix (Key Scenarios)
 
-| # | Scenario | Type | Expected Result |
-|---|----------|------|-----------------|
-| 1 | `rotation_simple`: Create → Claim kid A → Approve → Check turn | Service | Turn advances to kid B |
-| 2 | `rotation_simple`: Kid B claims when Kid A's turn | Service | Blocked: `not_my_turn` |
-| 3 | `rotation_steal`: Kid B claims after due date | Service | Allowed (steal active) |
-| 4 | `rotation_steal`: Kid B claims before due date | Service | Blocked: `not_my_turn` |
-| 5 | `rotation_smart`: 3 kids, counts 5/3/4 → approve | Service | Turn goes to kid B (count 3) |
-| 6 | `open_rotation_cycle` → Kid B claims (not their turn) | Service | Allowed (override active) |
-| 7 | After override claim approved → check override | Service | Override cleared (D-15) |
-| 8 | `set_rotation_turn` to Kid C → check turn | Service | Turn is Kid C |
-| 9 | `reset_rotation` → check turn | Service | Turn is assigned_kids[0] |
-| 10 | Rotation chore, delete current turn kid | Signal | Turn auto-advances to remaining[0] |
-| 11 | `mark_missed_and_lock`: past due → attempt claim | Service | Blocked: `missed` |
-| 12 | `mark_missed_and_lock`: midnight reset → attempt claim | Service | Allowed (reset to pending) |
-| 13 | `claim_restriction`: claim before window | Service | Blocked: `waiting` |
-| 14 | `claim_restriction`: claim in window | Service | Allowed |
-| 15 | Update criteria: `independent` → `rotation_simple` | Service | `rotation_current_kid_id` set |
-| 16 | Update criteria: `rotation_simple` → `independent` | Service | rotation fields cleared |
-| 17 | Update criteria: rotation + 1 kid | Service | Validation error: min 2 kids |
-| 18 | `rotation_steal` without due date | Validation | Error |
-| 19 | `mark_missed_and_lock` + `upon_completion` reset | Validation | Error |
-| 20 | FSM P3 > P5: rotation not-my-turn even when overdue | Engine | `not_my_turn` (not `overdue`) |
-| 21 | FSM P1 > P3: rotation approved overrides not-my-turn | Engine | `approved` |
-| 22 | Migration: existing chores get new fields | Migration | All 3 fields backfilled |
+| #   | Scenario                                                              | Type       | Expected Result                                                     |
+| --- | --------------------------------------------------------------------- | ---------- | ------------------------------------------------------------------- |
+| 1   | `rotation_simple`: Create → Claim kid A → Approve → Check turn        | Service    | Turn advances to kid B                                              |
+| 2   | `rotation_simple`: Kid B claims when Kid A's turn                     | Service    | Blocked: `not_my_turn`                                              |
+| 3   | `allow_steal`: Kid B claims after due date (steal window open)        | Service    | Allowed (not_my_turn lifted)                                        |
+| 4   | `allow_steal`: Kid B claims before due date                           | Service    | Blocked: `not_my_turn`                                              |
+| 5   | `rotation_smart`: 3 kids, counts 5/3/4 → approve                      | Service    | Turn goes to kid B (count 3)                                        |
+| 6   | `open_rotation_cycle` → Kid B claims (not their turn)                 | Service    | Allowed (override active)                                           |
+| 7   | After override claim approved → check override                        | Service    | Override cleared (D-15)                                             |
+| 8   | `set_rotation_turn` to Kid C → check turn                             | Service    | Turn is Kid C                                                       |
+| 9   | `reset_rotation` → check turn                                         | Service    | Turn is assigned_kids[0]                                            |
+| 10  | Rotation chore, delete current turn kid                               | Signal     | Turn auto-advances to remaining[0]                                  |
+| 11  | `mark_missed_and_lock`: past due → attempt claim                      | Service    | Blocked: `missed`                                                   |
+| 12  | `mark_missed_and_lock`: approval reset boundary fires → attempt claim | Service    | Allowed (overdue policy unlocked `missed`, chore state → `pending`) |
+| 13  | `claim_restriction`: claim before window                              | Service    | Blocked: `waiting`                                                  |
+| 14  | `claim_restriction`: claim in window                                  | Service    | Allowed                                                             |
+| 15  | Update criteria: `independent` → `rotation_simple`                    | Service    | `rotation_current_kid_id` set                                       |
+| 16  | Update criteria: `rotation_simple` → `independent`                    | Service    | rotation fields cleared                                             |
+| 17  | Update criteria: rotation + 1 kid                                     | Service    | Validation error: min 2 kids                                        |
+| 18  | `allow_steal` + non-rotation chore                                    | Validation | Error (V-04)                                                        |
+| 19  | `mark_missed_and_lock` + `upon_completion` `approval_reset_type`      | Validation | Error (V-01)                                                        |
+| 20  | `allow_steal` + non-`at_midnight_once` `approval_reset_type`          | Validation | Error (V-04)                                                        |
+| 21  | `allow_steal` + no due date                                           | Validation | Error (V-04)                                                        |
+| 22  | `allow_steal`: Pure miss → approval reset boundary fires (D-17)       | Service    | Overdue policy advances turn to next kid                            |
+| 23  | `allow_steal`: After steal → turn from completer (D-18)               | Service    | Turn advances from stealer                                          |
+| 24  | FSM P3 > P5: rotation not-my-turn even when overdue                   | Engine     | `not_my_turn` (not `overdue`)                                       |
+| 25  | FSM P1 > P3: rotation approved overrides not-my-turn                  | Engine     | `approved`                                                          |
+| 26  | Migration: existing chores get new fields                             | Migration  | All 3 fields backfilled                                             |

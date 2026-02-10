@@ -342,6 +342,7 @@ class ChoreManager(BaseManager):
             return
 
         # Clean own domain: remove deleted kid from chore assigned_kids
+        cleaned = False
         chores_data = self._coordinator._data.get(const.DATA_CHORES, {})
         for chore_info in chores_data.values():
             assigned_kids = chore_info.get(const.DATA_ASSIGNED_KIDS, [])
@@ -1773,6 +1774,11 @@ class ChoreManager(BaseManager):
                     reset_approval_period=True,
                     clear_ownership=True,
                 )
+
+                # Reschedule if category indicates rescheduling is needed
+                if category == "reset_and_reschedule":
+                    self._reschedule_chore_due(chore_id)
+
                 reset_count += 1
                 reset_pairs.add((kid_id, chore_id))
 
@@ -1832,6 +1838,11 @@ class ChoreManager(BaseManager):
                     reset_approval_period=True,
                     clear_ownership=True,
                 )
+
+                # Reschedule if category indicates rescheduling is needed
+                if category == "reset_and_reschedule":
+                    self._reschedule_chore_due(chore_id, kid_id)
+
                 reset_count += 1
                 reset_pairs.add((kid_id, chore_id))
 
@@ -3241,8 +3252,14 @@ class ChoreManager(BaseManager):
 
         Returns:
             The kid_chore_data dict for this kid+chore
+
+        Raises:
+            ValueError: If kid_id does not exist (kid was deleted)
         """
-        kid_info = self._coordinator.kids_data[kid_id]
+        # Defensive check: kid may have been deleted during async operations
+        kid_info = self._coordinator.kids_data.get(kid_id)
+        if not kid_info:
+            raise ValueError(f"Kid {kid_id} does not exist (may have been deleted)")
 
         # Phase 3B Landlord duty: Ensure chore_data container exists
         kid_chores: dict[str, dict[str, Any]] | None = kid_info.get(

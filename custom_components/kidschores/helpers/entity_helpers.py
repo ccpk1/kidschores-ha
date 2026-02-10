@@ -529,6 +529,11 @@ def get_item_name_or_log_error(
         Item name if present, None if missing (with error log).
         A missing name indicates data corruption in storage.
     """
+    # If item_data is empty dict, item was likely deleted (race during cleanup)
+    # Return None silently instead of logging corruption error
+    if not item_data:
+        return None
+
     name = item_data.get(name_key)
     if not name:
         const.LOGGER.error(

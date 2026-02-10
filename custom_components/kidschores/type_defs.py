@@ -211,7 +211,12 @@ class ChoreData(TypedDict):
     auto_approve: NotRequired[bool]
 
     # Completion criteria
-    completion_criteria: str  # SHARED, SHARED_FIRST, INDEPENDENT
+    completion_criteria: str  # SHARED, SHARED_FIRST, INDEPENDENT, ROTATION_*
+
+    # Rotation tracking (v0.5.0 Chore Logic - only for rotation_* criteria)
+    rotation_turn_holder: NotRequired[str | None]  # kid_id UUID
+    rotation_order: NotRequired[list[str]]  # List of kid UUIDs
+    rotation_override_expires: NotRequired[str | None]  # ISO datetime
 
 
 # =============================================================================

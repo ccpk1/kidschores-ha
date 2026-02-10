@@ -1665,7 +1665,9 @@
       "options": {
         "shared_all": "Shared All (All kids must complete together)",
         "independent": "Independent (Each kid completes on their own)",
-        "shared_first": "Shared First (First completion counts)"
+        "shared_first": "Shared First (First completion counts)",
+        "rotation_simple": "Rotation Simple (Turn-holder only, strict order)",
+        "rotation_smart": "Rotation Smart (Turn-holder only, fairness-weighted)"
       }
     },
     "approval_reset_type": {
@@ -1683,7 +1685,9 @@
         "never_overdue": "Never Overdue",
         "at_due_date_clear_at_approval_reset": "Overdue Until Approval Reset",
         "at_due_date_clear_immediate_on_late": "Overdue Until Complete (Clear Late Approvals Immediately)",
-        "at_due_date_clear_and_mark_missed": "Overdue Until Reset (Mark as Missed)"
+        "at_due_date_clear_and_mark_missed": "Overdue Until Reset (Mark as Missed)",
+        "at_due_date_mark_missed_and_lock": "Lock Until Reset (Prevent claims, mark missed)",
+        "at_due_date_allow_steal": "Overdue Until Reset (Allow steal, rotation only)"
       }
     },
     "approval_reset_pending_claim_action": {
@@ -2352,6 +2356,69 @@
           "example": "Chore Master"
         }
       }
+    },
+    "advance_rotation": {
+      "name": "Advance Rotation",
+      "description": "Manually advance the rotation turn for a rotation chore. Moves to the next kid in the rotation_order.",
+      "fields": {
+        "chore_id": {
+          "name": "Chore ID",
+          "description": "The internal ID of the rotation chore.",
+          "example": "abc123"
+        },
+        "chore_name": {
+          "name": "Chore Name",
+          "description": "The name of the rotation chore (alternative to chore_id).",
+          "example": "Take Out Trash"
+        }
+      }
+    },
+    "override_rotation_turn": {
+      "name": "Override Rotation Turn",
+      "description": "Temporarily override rotation turn to a specific kid. Override expires after specified duration or when chore completes.",
+      "fields": {
+        "chore_id": {
+          "name": "Chore ID",
+          "description": "The internal ID of the rotation chore.",
+          "example": "abc123"
+        },
+        "chore_name": {
+          "name": "Chore Name",
+          "description": "The name of the rotation chore (alternative to chore_id).",
+          "example": "Take Out Trash"
+        },
+        "kid_id": {
+          "name": "Kid ID",
+          "description": "The kid to give the turn to (internal UUID).",
+          "example": "kid-uuid-123"
+        },
+        "kid_name": {
+          "name": "Kid Name",
+          "description": "The kid to give the turn to (alternative to kid_id).",
+          "example": "Alice"
+        },
+        "override_duration_hours": {
+          "name": "Override Duration (hours)",
+          "description": "How long the override lasts (in hours). Use 0 for until completion.",
+          "example": "24"
+        }
+      }
+    },
+    "clear_rotation_override": {
+      "name": "Clear Rotation Override",
+      "description": "Remove active rotation override and return to normal rotation order.",
+      "fields": {
+        "chore_id": {
+          "name": "Chore ID",
+          "description": "The internal ID of the rotation chore.",
+          "example": "abc123"
+        },
+        "chore_name": {
+          "name": "Chore Name",
+          "description": "The name of the rotation chore (alternative to chore_id).",
+          "example": "Take Out Trash"
+        }
+      }
     }
   },
   "entity": {
@@ -2368,7 +2435,10 @@
           "none": "None",
           "approved_in_part": "Approved (in-part)",
           "claimed_in_part": "Claimed (in-part)",
-          "completed_by_other": "Completed by Other"
+          "completed_by_other": "Completed by Other",
+          "waiting": "Waiting (Due Window Not Open)",
+          "not_my_turn": "Not My Turn (Rotation)",
+          "missed": "Missed (Locked)"
         },
         "state_attributes": {
           "purpose": {
@@ -4004,6 +4074,18 @@
     },
     "not_assigned": {
       "message": "{entity} not assigned to {kid}"
+    },
+    "rotation_no_turn_holder": {
+      "message": "Rotation chores must have a turn holder assigned"
+    },
+    "rotation_invalid_order": {
+      "message": "Rotation order must be a non-empty list of kid IDs"
+    },
+    "rotation_duplicate_in_order": {
+      "message": "Rotation order cannot contain duplicate kids"
+    },
+    "rotation_unassigned_in_order": {
+      "message": "All kids in rotation order must be assigned to the chore"
     },
     "insufficient_points": {
       "message": "{kid} has {current} points but needs {required} points"

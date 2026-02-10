@@ -40,6 +40,17 @@ CHORE_ACTION_UNDO = "undo"
 CHORE_ACTION_RESET = "reset"
 CHORE_ACTION_OVERDUE = "overdue"
 
+# Relaxed overdue types (P5 FSM check - v0.5.0)
+# These types transition to overdue state but keep chores claimable
+_RELAXED_OVERDUE_TYPES: frozenset[str] = frozenset(
+    {
+        const.OVERDUE_HANDLING_AT_DUE_DATE,
+        const.OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_AT_APPROVAL_RESET,
+        const.OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_IMMEDIATE_ON_LATE,
+        const.OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_AND_MARK_MISSED,
+    }
+)
+
 
 # =============================================================================
 # TRANSITION EFFECT DATA STRUCTURE
@@ -409,32 +420,41 @@ class ChoreEngine:
         has_pending_claim: bool,
         is_approved_in_period: bool,
         other_kid_states: dict[str, str] | None = None,
+        *,
+        resolved_state: str | None = None,
+        lock_reason: str | None = None,
     ) -> tuple[bool, str | None]:
         """Check if a chore can be claimed by a specific kid.
 
-        Phase 2: SHARED_FIRST blocking is computed from other kids' states
-        instead of checking a stored completed_by_other state.
+        v0.5.0 FSM integration: If resolved_state is provided (from
+        resolve_kid_chore_state), check for blocking states first.
 
         Args:
             kid_chore_data: The kid's tracking data for this chore
             chore_data: The chore definition
             has_pending_claim: Result of chore_has_pending_claim()
             is_approved_in_period: Result of chore_is_approved_in_period()
-            other_kid_states: Dict mapping kid_id -> state for SHARED_FIRST check
-                            (optional, only needed for SHARED_FIRST chores)
+            other_kid_states: Dict mapping kid_id -> state for single-claimer check
+                            (optional, only needed for single-claimer chores)
+            resolved_state: Pre-calculated state from resolve_kid_chore_state()
+            lock_reason: Lock reason from resolve_kid_chore_state()
 
         Returns:
             Tuple of (can_claim: bool, error_key: str | None)
         """
+        # NEW — FSM-based blocking (v0.5.0 P3, P4, P6 states)
+        if resolved_state in (
+            const.CHORE_STATE_MISSED,
+            const.CHORE_STATE_WAITING,
+            const.CHORE_STATE_NOT_MY_TURN,
+        ):
+            return (False, lock_reason or resolved_state)
+
         # Check multi-claim allowed
         allow_multiple = ChoreEngine.chore_allows_multiple_claims(chore_data)
 
-        # Check 1: SHARED_FIRST blocking - another kid is claimed/approved
-        completion_criteria = chore_data.get(
-            const.DATA_CHORE_COMPLETION_CRITERIA,
-            const.COMPLETION_CRITERIA_INDEPENDENT,
-        )
-        if completion_criteria == const.COMPLETION_CRITERIA_SHARED_FIRST:
+        # Check 1: single-claimer blocking (shared_first + rotation via adapter)
+        if ChoreEngine.is_single_claimer_mode(chore_data):
             if other_kid_states:
                 for other_state in other_kid_states.values():
                     if other_state in (
@@ -527,6 +547,43 @@ class ChoreEngine:
         )
 
     @staticmethod
+    def is_rotation_mode(chore_data: ChoreData | dict[str, Any]) -> bool:
+        """Check if chore uses rotation completion criteria.
+
+        Returns True for rotation_simple and rotation_smart.
+        Part of Logic Adapter pattern (D-12) for v0.5.0 rotation feature.
+        """
+        criteria = chore_data.get(
+            const.DATA_CHORE_COMPLETION_CRITERIA,
+            const.COMPLETION_CRITERIA_INDEPENDENT,
+        )
+        return criteria in (
+            const.COMPLETION_CRITERIA_ROTATION_SIMPLE,
+            const.COMPLETION_CRITERIA_ROTATION_SMART,
+        )
+
+    @staticmethod
+    def is_single_claimer_mode(chore_data: ChoreData | dict[str, Any]) -> bool:
+        """Check if chore allows only one kid to claim per cycle.
+
+        Returns True for shared_first and all rotation types.
+        Part of Logic Adapter pattern (D-12) - prevents gremlin code across
+        ~60 existing shared_first check sites.
+
+        This adapter enables rotation types to transparently inherit the
+        "single claimer" behavior without modifying existing three-way branches.
+        """
+        criteria = chore_data.get(
+            const.DATA_CHORE_COMPLETION_CRITERIA,
+            const.COMPLETION_CRITERIA_INDEPENDENT,
+        )
+        return criteria in (
+            const.COMPLETION_CRITERIA_SHARED_FIRST,
+            const.COMPLETION_CRITERIA_ROTATION_SIMPLE,
+            const.COMPLETION_CRITERIA_ROTATION_SMART,
+        )
+
+    @staticmethod
     def get_chore_data_for_kid(
         kid_data: KidData | dict[str, Any],
         chore_id: str,
@@ -536,6 +593,108 @@ class ChoreEngine:
         return (
             chore_tracking.get(chore_id, {}) if isinstance(chore_tracking, dict) else {}
         )
+
+    # =========================================================================
+    # STATE RESOLUTION (v0.5.0 FSM)
+    # =========================================================================
+
+    @staticmethod
+    def resolve_kid_chore_state(
+        chore_data: ChoreData | dict[str, Any],
+        kid_id: str,
+        now: datetime,
+        *,
+        is_approved_in_period: bool,
+        has_pending_claim: bool,
+        due_date: datetime | None,
+        due_window_start: datetime | None,
+    ) -> tuple[str, str | None]:
+        """Resolve the calculated display state for a kid's chore.
+
+        8-tier FSM evaluates conditions in priority order (first match wins).
+        Returns (state, lock_reason) tuple. lock_reason is non-None only
+        for blocking states (waiting, not_my_turn, missed).
+
+        Priority order:
+          P1: approved   P2: claimed      P3: not_my_turn  P4: missed
+          P5: overdue    P6: waiting      P7: due          P8: pending
+
+        Args:
+            chore_data: The chore definition
+            kid_id: The kid's internal ID
+            now: Current datetime (timezone-aware)
+            is_approved_in_period: Whether kid already approved this cycle
+            has_pending_claim: Whether kid has unapproved claim
+            due_date: Chore due date (timezone-aware), or None
+            due_window_start: Claim window start (timezone-aware), or None
+
+        Returns:
+            Tuple of (state_string, lock_reason_or_None)
+        """
+        # P1 — Approved takes absolute precedence
+        if is_approved_in_period:
+            return (const.CHORE_STATE_APPROVED, None)
+
+        # P2 — Pending claim awaiting parent action
+        if has_pending_claim:
+            return (const.CHORE_STATE_CLAIMED, None)
+
+        # P3 — Rotation: not this kid's turn
+        if ChoreEngine.is_rotation_mode(chore_data):
+            current_turn = chore_data.get(const.DATA_CHORE_ROTATION_TURN_HOLDER)
+            override = (
+                chore_data.get(const.DATA_CHORE_ROTATION_OVERRIDE_EXPIRES) is not None
+            )
+
+            if kid_id != current_turn and not override:
+                overdue_handling = chore_data.get(
+                    const.DATA_CHORE_OVERDUE_HANDLING_TYPE
+                )
+
+                # STEAL EXCEPTION: overdue handling is allow_steal + past due date
+                # In that case, not_my_turn blocking lifts — any kid can claim
+                if overdue_handling == const.OVERDUE_HANDLING_AT_DUE_DATE_ALLOW_STEAL:
+                    if due_date is not None and now > due_date:
+                        pass  # Fall through — steal window is active
+                    else:
+                        return (const.CHORE_STATE_NOT_MY_TURN, "not_my_turn")
+                else:
+                    # Simple and Smart without steal: strict turn enforcement
+                    return (const.CHORE_STATE_NOT_MY_TURN, "not_my_turn")
+
+        # P4 — Missed lock (strict: no claiming allowed)
+        overdue_type = chore_data.get(const.DATA_CHORE_OVERDUE_HANDLING_TYPE)
+        if (
+            overdue_type == const.OVERDUE_HANDLING_AT_DUE_DATE_MARK_MISSED_AND_LOCK
+            and due_date is not None
+            and now > due_date
+        ):
+            return (const.CHORE_STATE_MISSED, "missed")
+
+        # P5 — Overdue (relaxed: still claimable)
+        if (
+            overdue_type in _RELAXED_OVERDUE_TYPES
+            and due_date is not None
+            and now > due_date
+        ):
+            return (const.CHORE_STATE_OVERDUE, None)
+
+        # P6 — Waiting (claim restriction: before window opens)
+        # TODO: Add DATA_CHORE_CLAIM_RESTRICTION_ENABLED to const.py
+        claim_restricted = chore_data.get("claim_restriction_enabled", False)
+        if claim_restricted and due_window_start is not None and now < due_window_start:
+            return (const.CHORE_STATE_WAITING, "waiting")
+
+        # P7 — Due (inside the claim window)
+        if (
+            due_window_start is not None
+            and due_date is not None
+            and due_window_start <= now <= due_date
+        ):
+            return (const.CHORE_STATE_DUE, None)
+
+        # P8 — Default
+        return (const.CHORE_STATE_PENDING, None)
 
     # =========================================================================
     # DUE DATE & SCHEDULING QUERIES
@@ -729,6 +888,118 @@ class ChoreEngine:
         return approved_dt >= period_start_dt
 
     # =========================================================================
+    # ROTATION HELPERS (v0.5.0)
+    # =========================================================================
+
+    @staticmethod
+    def calculate_next_turn_simple(
+        assigned_kids: list[str],
+        current_kid_id: str,
+    ) -> str:
+        """Calculate next turn for rotation_simple (strict round-robin).
+
+        Args:
+            assigned_kids: Ordered list of kid UUIDs assigned to the chore
+            current_kid_id: UUID of the current turn holder
+
+        Returns:
+            UUID of the next turn holder (wraps around at end of list)
+        """
+        if not assigned_kids:
+            # Should never happen (rotation requires ≥2 kids), but defensive
+            return current_kid_id
+
+        try:
+            current_index = assigned_kids.index(current_kid_id)
+            next_index = (current_index + 1) % len(assigned_kids)
+            return assigned_kids[next_index]
+        except ValueError:
+            # Resilience: current_kid_id not in list → reset to first
+            return assigned_kids[0]
+
+    @staticmethod
+    def calculate_next_turn_smart(
+        assigned_kids: list[str],
+        approved_counts: dict[str, int],
+        last_approved_timestamps: dict[str, str | None],
+    ) -> str:
+        """Calculate next turn for rotation_smart (fairness-weighted).
+
+        Sorts kids by:
+        1. Ascending approved count (fewest completions first)
+        2. Ascending last_approved timestamp (oldest first, None = never = first)
+        3. List-order position (tie-breaker)
+
+        Args:
+            assigned_kids: Ordered list of kid UUIDs assigned to the chore
+            approved_counts: Dict mapping kid_id -> approval count for this chore
+            last_approved_timestamps: Dict mapping kid_id -> ISO timestamp or None
+
+        Returns:
+            UUID of the kid who should get the next turn
+        """
+        if not assigned_kids:
+            # Should never happen, but defensive
+            return assigned_kids[0] if assigned_kids else ""
+
+        def sort_key(kid_id: str) -> tuple[int, str, int]:
+            count = approved_counts.get(kid_id, 0)
+            timestamp = last_approved_timestamps.get(kid_id)
+            # None sorts first (never completed)
+            timestamp_str = timestamp if timestamp is not None else ""
+            position = assigned_kids.index(kid_id)
+            return (count, timestamp_str, position)
+
+        sorted_kids = sorted(assigned_kids, key=sort_key)
+        return sorted_kids[0]
+
+    @staticmethod
+    def get_criteria_transition_actions(
+        old_criteria: str,
+        new_criteria: str,
+        chore_data: ChoreData | dict[str, Any],
+    ) -> dict[str, Any]:
+        """Get field changes needed when switching completion criteria.
+
+        Supports mutable completion_criteria (D-11). Manager applies
+        these changes when user edits chore criteria.
+
+        Args:
+            old_criteria: Current completion_criteria value
+            new_criteria: Target completion_criteria value
+            chore_data: The chore definition (for assigned_kids access)
+
+        Returns:
+            Dict of field changes to apply (field_name -> new_value)
+        """
+        changes: dict[str, Any] = {}
+
+        old_is_rotation = old_criteria in (
+            const.COMPLETION_CRITERIA_ROTATION_SIMPLE,
+            const.COMPLETION_CRITERIA_ROTATION_SMART,
+        )
+        new_is_rotation = new_criteria in (
+            const.COMPLETION_CRITERIA_ROTATION_SIMPLE,
+            const.COMPLETION_CRITERIA_ROTATION_SMART,
+        )
+
+        # Non-rotation → rotation: Initialize rotation fields
+        if not old_is_rotation and new_is_rotation:
+            assigned_kids = chore_data.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
+            if assigned_kids:
+                changes[const.DATA_CHORE_ROTATION_TURN_HOLDER] = assigned_kids[0]
+            changes[const.DATA_CHORE_ROTATION_OVERRIDE_EXPIRES] = None
+
+        # Rotation → non-rotation: Clear rotation fields
+        elif old_is_rotation and not new_is_rotation:
+            changes[const.DATA_CHORE_ROTATION_TURN_HOLDER] = None
+            changes[const.DATA_CHORE_ROTATION_OVERRIDE_EXPIRES] = None
+
+        # Rotation → different rotation: Keep existing turn (no reset)
+
+        return changes
+
+    # =========================================================================
     # POINT CALCULATIONS
     # =========================================================================
 
@@ -779,7 +1050,7 @@ class ChoreEngine:
         if total == 1:
             return next(iter(kid_states.values()))
 
-        # Count states
+        # Count states (v0.5.0: added waiting, not_my_turn, missed, due)
         count_pending = sum(
             1 for s in kid_states.values() if s == const.CHORE_STATE_PENDING
         )
@@ -792,6 +1063,16 @@ class ChoreEngine:
         count_overdue = sum(
             1 for s in kid_states.values() if s == const.CHORE_STATE_OVERDUE
         )
+        count_waiting = sum(
+            1 for s in kid_states.values() if s == const.CHORE_STATE_WAITING
+        )
+        count_not_my_turn = sum(
+            1 for s in kid_states.values() if s == const.CHORE_STATE_NOT_MY_TURN
+        )
+        count_missed = sum(
+            1 for s in kid_states.values() if s == const.CHORE_STATE_MISSED
+        )
+        count_due = sum(1 for s in kid_states.values() if s == const.CHORE_STATE_DUE)
 
         # All same state
         if count_pending == total:
@@ -802,20 +1083,39 @@ class ChoreEngine:
             return const.CHORE_STATE_APPROVED
         if count_overdue == total:
             return const.CHORE_STATE_OVERDUE
+        if count_waiting == total:
+            return const.CHORE_STATE_WAITING
+        if count_missed == total:
+            return const.CHORE_STATE_MISSED
+        if count_due == total:
+            return const.CHORE_STATE_DUE
 
         criteria = chore_data.get(
             const.DATA_CHORE_COMPLETION_CRITERIA,
             const.COMPLETION_CRITERIA_SHARED,
         )
 
-        # SHARED_FIRST: Global state tracks the claimant's progression
-        if criteria == const.COMPLETION_CRITERIA_SHARED_FIRST:
+        # SINGLE_CLAIMER (shared_first + rotation): Track active kid's state
+        if ChoreEngine.is_single_claimer_mode(chore_data):
             if count_approved > 0:
                 return const.CHORE_STATE_APPROVED
             if count_claimed > 0:
                 return const.CHORE_STATE_CLAIMED
             if count_overdue > 0:
                 return const.CHORE_STATE_OVERDUE
+            if count_missed > 0:
+                return const.CHORE_STATE_MISSED
+            if count_due > 0:
+                return const.CHORE_STATE_DUE
+            if count_waiting > 0:
+                return const.CHORE_STATE_WAITING
+            # Rotation: not_my_turn is cosmetic for non-turn-holders
+            if count_not_my_turn > 0:
+                # If ANY kid can claim (not all blocked), show pending
+                if count_pending > 0 or count_due > 0:
+                    return const.CHORE_STATE_PENDING
+                # All blocked by rotation → show not_my_turn
+                return const.CHORE_STATE_NOT_MY_TURN
             return const.CHORE_STATE_PENDING
 
         # SHARED: Partial states

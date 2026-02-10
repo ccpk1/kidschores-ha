@@ -835,9 +835,9 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
         assigned_kids_ids = chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
         assigned_kids_names = [
-            get_kid_name_by_id(self.coordinator, k_id)
-            or f"{const.TRANS_KEY_LABEL_KID} {k_id}"
+            name
             for k_id in assigned_kids_ids
+            if (name := get_kid_name_by_id(self.coordinator, k_id))
         ]
 
         kid_info: KidData = cast(
@@ -850,9 +850,9 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
         assigned_kids_ids = chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
         assigned_kids_names = [
-            get_kid_name_by_id(self.coordinator, k_id)
-            or f"{const.TRANS_KEY_LABEL_KID} {k_id}"
+            name
             for k_id in assigned_kids_ids
+            if (name := get_kid_name_by_id(self.coordinator, k_id))
         ]
 
         kid_chore_data = kid_info.get(const.DATA_KID_CHORE_DATA, {}).get(

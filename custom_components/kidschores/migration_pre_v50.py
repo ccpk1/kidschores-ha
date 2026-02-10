@@ -1009,6 +1009,9 @@ class PreV50Migrator:
         # Convert string day names to integers in applicable_days (RecurrenceEngine fix)
         self._convert_applicable_days_to_integers()
 
+        # v0.5.0 Chore Logic: Backfill rotation fields for all chores
+        self._backfill_rotation_fields()
+
         # Phase 2 (v0.5.0-beta4): Eliminate completed_by_other state
         # Convert any existing kid chore states from "completed_by_other" to "pending"
         # and remove completed_by_other_chores lists from kid data
@@ -1058,6 +1061,57 @@ class PreV50Migrator:
         }
 
         const.LOGGER.info("PreV50Migrator: Schema 44 migration complete")
+
+    def _backfill_rotation_fields(self) -> None:
+        """Add rotation_turn_holder, rotation_order, rotation_override_expires to all chores.
+
+        For existing rotation_* chores: initialize turn_holder and order if not present.
+        For non-rotation chores: add fields as None/empty (clean data model).
+        """
+        const.LOGGER.info(
+            "PreV50Migrator: Backfilling rotation fields for v0.5.0 Chore Logic"
+        )
+
+        chores = self.coordinator._data.get(const.DATA_CHORES, {})
+        backfilled_count = 0
+        initialized_rotation_count = 0
+
+        for _chore_id, chore_data in chores.items():
+            criteria = chore_data.get(
+                const.DATA_CHORE_COMPLETION_CRITERIA,
+                const.COMPLETION_CRITERIA_INDEPENDENT,
+            )
+            is_rotation = criteria in (
+                const.COMPLETION_CRITERIA_ROTATION_SIMPLE,
+                const.COMPLETION_CRITERIA_ROTATION_SMART,
+            )
+            assigned_kids = chore_data.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
+
+            # Add fields if missing (backward compat)
+            if const.DATA_CHORE_ROTATION_TURN_HOLDER not in chore_data:
+                if is_rotation and assigned_kids:
+                    chore_data[const.DATA_CHORE_ROTATION_TURN_HOLDER] = assigned_kids[0]
+                    initialized_rotation_count += 1
+                else:
+                    chore_data[const.DATA_CHORE_ROTATION_TURN_HOLDER] = None
+                backfilled_count += 1
+
+            if const.DATA_CHORE_ROTATION_ORDER not in chore_data:
+                if is_rotation and assigned_kids:
+                    chore_data[const.DATA_CHORE_ROTATION_ORDER] = list(assigned_kids)
+                else:
+                    chore_data[const.DATA_CHORE_ROTATION_ORDER] = []
+                backfilled_count += 1
+
+            if const.DATA_CHORE_ROTATION_OVERRIDE_EXPIRES not in chore_data:
+                chore_data[const.DATA_CHORE_ROTATION_OVERRIDE_EXPIRES] = None
+                backfilled_count += 1
+
+        const.LOGGER.info(
+            "Backfilled %d rotation fields, initialized %d rotation chores",
+            backfilled_count,
+            initialized_rotation_count,
+        )
 
     def _migrate_point_periods_v43(self) -> None:
         """Flatten point_data → point_periods and transform field names (v42 → v43).
