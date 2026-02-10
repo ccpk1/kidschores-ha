@@ -5,7 +5,7 @@
 - **Name / Code**: Chore Logic v0.5.0 — Due Window Claim Restrictions + Advanced Rotation
 - **Target release / milestone**: v0.5.0 (Schema v44 — extended in-place, no bump)
 - **Owner / driver(s)**: KidsChores core team
-- **Status**: Not started — awaiting 3 follow-up decisions (D-14, D-15, D-16); 13 of 16 decisions resolved
+- **Status**: Not started — all 16 decisions resolved (2026-02-11); blueprint created
 
 ## Summary & immediate steps
 
@@ -19,20 +19,23 @@
 
 1. **Key objective** – Introduce two new chore management capabilities: (a) **Due Window Claim Restrictions** that prevent kids from claiming chores before a configurable window opens, and (b) **Advanced Rotation Logic** that extends shared_first chores into a disciplined turn-based system with three sub-types (simple, steal, smart). Both features extend the existing FSM with three new calculated states (`waiting`, `not_my_turn`, `missed` as a locked terminal state).
 
-2. **Summary of recent work** – Architecture specification drafted. Codebase research completed. 13 of 16 decisions resolved (2026-02-10):
+2. **Summary of recent work** – Architecture specification drafted. Codebase research completed. All 16 decisions resolved (2026-02-11):
    - Schema stays at **v44** — extend existing `_migrate_to_schema_44()` to backfill new fields (D-13)
    - **Criteria Overload pattern** (D-12): Rotation types are new `completion_criteria` values (`rotation_simple`, `rotation_steal`, `rotation_smart`). Logic Adapter methods (`is_single_claimer_mode()`, `is_rotation_mode()`) prevent gremlin code across ~60 check sites
    - **completion_criteria is MUTABLE** (D-11): Users can change criteria when editing chores. The `services.py` L784-788 immutability guard is incorrect and must be removed. Data transition logic handles field cleanup on criteria change.
    - Existing `clear_and_mark_missed` and new `mark_missed_and_lock` are **two distinct strategies** (6th overdue type)
    - `SIGNAL_SUFFIX_CHORE_MISSED` and `_record_missed_chore()` already exist — will extend payload
+   - All rotation types require **≥ 2 assigned kids** (D-14)
+   - `rotation_cycle_override` cleared by **next approval** (D-15) — approval reset handles the override
+   - `can_claim` is a **calculated boolean attribute on the kid chore status sensor** (D-16) — engine → manager → sensor pipeline
    - No rotation code exists yet (greenfield)
 
 3. **Next steps (short term)**
-   - Resolve 3 remaining decisions (D-14, D-15, D-16) — none are hard blockers for Phase 1
+   - All decisions resolved — ready to begin Phase 1 implementation
    - Begin Phase 1: constants, types, Logic Adapters, migration extension
+   - Blueprint document created for implementer reference: [CHORE_LOGIC_V050_SUP_BLUEPRINT.md](CHORE_LOGIC_V050_SUP_BLUEPRINT.md)
 
 4. **Risks / blockers**
-   - **NON-BLOCKING**: 3 minor decisions remaining (D-14 min kids, D-15 override reset, D-16 can_claim location)
    - Risk: ~60 criteria check sites need audit for Logic Adapter adoption. `chore_manager.py` has 25 sites — highest refactoring density
    - Risk: Smart rotation depends on StatsEngine/StatsManager query that doesn't yet exist
    - Risk: `is_shared_chore()` in engine has **zero production callers** (dead code). All callers inline their own checks — this validates the Logic Adapter approach but means broader refactoring
@@ -44,17 +47,18 @@
    - [tests/AGENT_TESTING_USAGE_GUIDE.md](../../tests/AGENT_TESTING_USAGE_GUIDE.md) — Test patterns
    - [migration_pre_v50.py](../../custom_components/kidschores/migration_pre_v50.py) — v44 migration section (if migration needed)
    - Supporting doc: [CHORE_LOGIC_V050_SUP_STATE_MATRIX.md](CHORE_LOGIC_V050_SUP_STATE_MATRIX.md) — Full FSM state matrix
+   - Supporting doc: [CHORE_LOGIC_V050_SUP_BLUEPRINT.md](CHORE_LOGIC_V050_SUP_BLUEPRINT.md) — Detailed implementation blueprint with code samples
 
 6. **Decisions & completion check**
 
-   ### Resolved Decisions (2026-02-10)
+   ### Resolved Decisions (2026-02-11 — complete)
 
    | ID       | Question                                                       | Decision                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Impact                                                                                                                                                                                                                                                                                                                        |
    | -------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
    | **D-01** | Schema version                                                 | ✅ **v44** (no bump).                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Migration extended in-place (D-13).                                                                                                                                                                                                                                                                                           |
    | **D-02** | Existing `clear_and_mark_missed` vs new `mark_missed_and_lock` | ✅ **Two distinct strategies**. Existing = "signal miss → reset to pending at boundary." New = "signal miss → lock in `missed` state → midnight resets."                                                                                                                                                                                                                                                                                                                                   | Add 6th overdue type `OVERDUE_AT_DUE_DATE_MARK_MISSED_AND_LOCK`. Existing unchanged.                                                                                                                                                                                                                                          |
    | **D-03** | `mark_missed_and_lock` reset compatibility                     | ✅ **AT*MIDNIGHT*\* only**.                                                                                                                                                                                                                                                                                                                                                                                                                                                                | Validation rule: reject `upon_completion`, `at_due_date_*`, `manual` reset types.                                                                                                                                                                                                                                             |
-   | **D-04** | `claim_restriction_enabled` scope                              | ✅ **Per-chore boolean**. Existing `can_claim` calculated attribute will be used.                                                                                                                                                                                                                                                                                                                                                                                                          | Per-chore field in storage + flow. D-16 needed to clarify where existing `can_claim` lives.                                                                                                                                                                                                                                   |
+   | **D-04** | `claim_restriction_enabled` scope                              | ✅ **Per-chore boolean**. Existing `can_claim` calculated attribute will be used.                                                                                                                                                                                                                                                                                                                                                                                                          | Per-chore field in storage + flow. `can_claim` is a calculated boolean attribute on the kid chore status sensor.                                                                                                                                                                                                               |
    | **D-05** | Rotation as completion criteria                                | ✅ **New `completion_criteria` values** (`rotation_simple`, `rotation_steal`, `rotation_smart`).                                                                                                                                                                                                                                                                                                                                                                                           | Three new constants. Engine uses Logic Adapter pattern (D-12) to treat rotation as shared_first-like.                                                                                                                                                                                                                         |
    | **D-06** | `rotation_steal` without due date                              | ✅ **Require due date** in validation.                                                                                                                                                                                                                                                                                                                                                                                                                                                     | New validation rule in `data_builders.py`.                                                                                                                                                                                                                                                                                    |
    | **D-07** | CHORE_MISSED signal                                            | ✅ **Extend existing** payload with optional `due_date` and `reason` fields.                                                                                                                                                                                                                                                                                                                                                                                                               | Backward compatible.                                                                                                                                                                                                                                                                                                          |
@@ -64,14 +68,10 @@
    | **D-11** | `completion_criteria` mutability                               | ✅ **Mutable**. Users CAN change `completion_criteria` when editing a chore via options flow. The `services.py` immutability guard (L784-788) is incorrect and must be **removed**. When criteria changes, **data transition logic** handles cleanup (e.g., clear rotation fields when switching away from rotation; initialize `rotation_current_kid_id` when switching TO rotation).                                                                                                     | Remove immutability guard from `services.py`. Add `_handle_criteria_transition()` method to ChoreManager. Add `completion_criteria` to `UPDATE_CHORE_SCHEMA`.                                                                                                                                                                 |
    | **D-12** | Data model: rotation as criteria value vs. separate field      | ✅ **Option A — Criteria Overload**. Rotation types are new `completion_criteria` values: `rotation_simple`, `rotation_steal`, `rotation_smart`. UI is one-click — no separate `rotation_type` field. **Logic Adapter** pattern in `ChoreEngine` prevents "gremlin code": `is_single_claimer_mode()` → True for `shared_first` + all rotation types; `is_rotation_mode()` → True for `rotation_*` only. All existing `shared_first` checks use `is_single_claimer_mode()` adapter instead. | ~60 existing criteria check sites across 10 production files. The Logic Adapter pattern makes most transparent — existing three-way branches (INDEPENDENT / SHARED_FIRST / SHARED) become (INDEPENDENT / single_claimer / SHARED) and rotation chores automatically get correct behavior. See "Logic Adapter audit" in Notes. |
    | **D-13** | Existing chore field backfill strategy                         | ✅ **Extend v44 migration** in `migration_pre_v50.py` to backfill new fields on existing chores.                                                                                                                                                                                                                                                                                                                                                                                           | Add backfill step to `_migrate_to_schema_44()`: set `claim_restriction_enabled=False`, `rotation_current_kid_id=None`, `rotation_cycle_override=False` on all existing chores.                                                                                                                                                |
+   | **D-14** | Rotation minimum kids                                          | ✅ **All rotation types require ≥ 2 assigned kids**. Turn-taking with 1 kid is meaningless for any rotation variant.                                                                                                                                                                                                                                                                                                                                                                       | Validation rule V-03 applies to `rotation_simple`, `rotation_steal`, AND `rotation_smart` uniformly. Error message in `data_builders.py`.                                                                                                                                                                                     |
+   | **D-15** | `rotation_cycle_override` reset trigger                        | ✅ **Approval reset handles the override**. Next approval of any kid on the chore clears `rotation_cycle_override = False`. The override is for "let anyone claim THIS cycle's instance." Once approved, normal rotation resumes.                                                                                                                                                                                                                                                           | Handled in `_advance_rotation()` — which already resets `rotation_cycle_override = False` after approval. No additional timer/scanner logic needed.                                                                                                                                                                           |
+   | **D-16** | Where `can_claim` attribute lives                              | ✅ **Calculated boolean on the kid chore status sensor** (`KidChoreStatusSensor.extra_state_attributes`). Pipeline: `ChoreEngine.can_claim_chore()` → `ChoreManager.can_claim_chore()` → sensor attribute. Dashboard helper does NOT include it — documented to fetch via `state_attr(chore.eid, 'can_claim')`. `ATTR_CAN_CLAIM` constant already exists.                                                                                                                                  | New blocking conditions (waiting, not_my_turn, missed) integrate into existing `ChoreEngine.can_claim_chore()`. No new sensor or attribute needed — extend existing logic.                                                                                                                                                     |
 
-   ### Open Follow-Up Decisions (PENDING — 3 remaining)
-
-   | ID       | Question                                                                | Options                                                                                                          | Recommendation                                                                                                                                                         | Decision |
-   | -------- | ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-   | **D-14** | Rotation minimum kids — 2 for all types or just smart?                  | (A) All rotation types require ≥ 2 kids / (B) Only smart requires ≥ 2                                            | (A) All types — turn-taking with 1 kid is meaningless for any rotation variant.                                                                                        | ⬜       |
-   | **D-15** | `rotation_cycle_override` reset trigger — what defines "current cycle"? | (A) Next approval clears override / (B) Next midnight clears override / (C) Next due date clears override        | (A) Next approval — the override is for "let anyone claim THIS cycle's instance." Once approved, the normal rotation resumes.                                          | ⬜       |
-   | **D-16** | Where does the existing `can_claim` attribute live?                     | (A) Chore status sensor entity attribute / (B) Dashboard helper chore list / (C) Somewhere else — please clarify | Need clarification — dashboard helper currently has 6 fields per chore (eid, name, state, labels, grouping, is_am_pm) with no `can_claim`. Is it on the sensor entity? | ⬜       |
    - **Completion confirmation**: `[ ]` All follow-up items completed (architecture updates, cleanup, documentation, etc.) before requesting owner approval to mark initiative done.
 
 ## Tracking expectations
@@ -119,7 +119,7 @@
        - `ATTR_CHORE_LOCK_REASON = "lock_reason"`
        - `ATTR_CHORE_TURN_KID_NAME = "turn_kid_name"`
        - `ATTR_CHORE_AVAILABLE_AT = "available_at"`
-       - _Depends on D-16_: Existing `can_claim` may already have an ATTR constant
+       - `ATTR_CAN_CLAIM` already exists in `const.py` (confirmed D-16). No new constant needed — extend existing `can_claim_chore()` logic.
      - **Translation keys**:
        - `TRANS_KEY_CHORE_STATE_WAITING`, `TRANS_KEY_CHORE_STATE_NOT_MY_TURN`, `TRANS_KEY_CHORE_STATE_MISSED`
        - `TRANS_KEY_ROTATION_SIMPLE`, `TRANS_KEY_ROTATION_STEAL`, `TRANS_KEY_ROTATION_SMART`
@@ -145,7 +145,7 @@
      - In `validate_chore_data()`: Add new validation rules:
        - **V-01**: If `overdue_handling == mark_missed_and_lock`, then `approval_reset` must be `AT_MIDNIGHT_*` only (D-03). Reject `upon_completion`, `at_due_date_*`, `manual`.
        - **V-02**: If `claim_restriction_enabled == True`, then `due_window_offset` must parse to duration > 0.
-       - **V-03**: All rotation types require `assigned_kids` with `len >= 2` (D-14 — recommended for all types).
+       - **V-03**: All rotation types require `assigned_kids` with `len >= 2` (D-14 resolved: all types).
        - **V-04**: `rotation_steal` requires a due date (D-06).
      - Validate: `mypy custom_components/kidschores/data_builders.py`
 
@@ -168,7 +168,7 @@
 - **Key issues**
   - The 3 new `completion_criteria` values must be added atomically to `COMPLETION_CRITERIA_OPTIONS`, `_COMPLETION_CRITERIA_VALUES` in services.py, and flow_helpers selectors
   - The existing 5 overdue types appear in `flow_helpers.py` selector options and `OVERDUE_HANDLING_OPTIONS` — the 6th type must be added alongside
-  - D-14 (min kids for rotation) is a minor open question — if decided differently, V-03 validation rule is slightly modified but Phase 1 structure doesn't change
+  - D-14 resolved: All rotation types require ≥ 2 kids. V-03 validation rule applies uniformly.
 
 ---
 
@@ -276,7 +276,7 @@
        - If `rotation_simple` or `rotation_steal` → call `ChoreEngine.calculate_next_turn_simple()`
        - If `rotation_smart` → query StatsEngine/StatsManager for approved counts (D-08) → call `ChoreEngine.calculate_next_turn_smart()`
        - Update `rotation_current_kid_id` in chore data
-       - Reset `rotation_cycle_override` to `False` (D-15 pending — recommended: next approval clears override)
+       - Reset `rotation_cycle_override` to `False` (D-15 resolved: next approval clears override)
        - After `_persist()`: emit `SIGNAL_SUFFIX_ROTATION_ADVANCED` with payload:
          ```
          {"chore_id": str, "previous_kid_id": str, "new_kid_id": str, "method": "simple"|"smart"|"manual"}
@@ -340,7 +340,7 @@
      - **`open_rotation_cycle`** (`SERVICE_OPEN_ROTATION_CYCLE`):
        - Fields: `chore_id` (required)
        - Sets `rotation_cycle_override = True`
-       - _Depends on D-15_: Override cleared on next approval (recommended) or midnight
+       - D-15 resolved: Override cleared on next approval (handled in `_advance_rotation()`)
        - Delegates to `chore_manager.open_rotation_cycle(chore_id)`
      - Add schemas with vol.Schema, handler functions, register in `async_setup_services()`
 
@@ -381,7 +381,7 @@
        - `lock_reason` (str | None) — `"waiting"`, `"not_my_turn"`, `"missed"`, or `None`
        - `turn_kid_name` (str | None) — resolve `rotation_current_kid_id` to kid name (if `is_rotation_mode()`)
        - `available_at` (str | None) — ISO datetime of `due_window_start` (if `claim_restriction_enabled` and state is `waiting`)
-       - _Depends on D-16_: If `can_claim` already exists as a sensor attribute, add it to dashboard helper too; otherwise add new `can_claim` (bool) field
+       - `can_claim` already exists as a sensor attribute on `KidChoreStatusSensor` (confirmed D-16). Dashboard helper documents that consumers should use `state_attr(chore.eid, 'can_claim')`. Consider adding `can_claim` to dashboard helper dict for convenience.
      - Existing 6 fields (`eid`, `name`, `state`, `labels`, `grouping`, `is_am_pm`) remain unchanged
 
   2. **Update flow helpers — Chore creation/edit form**
