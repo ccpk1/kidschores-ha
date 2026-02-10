@@ -1674,8 +1674,7 @@
         "at_midnight_multi": "Multiple times per day - Resets at midnight",
         "at_due_date_once": "Once per period - Resets at due date",
         "at_due_date_multi": "Multiple times per period - Resets at due date",
-        "upon_completion": "Unlimited completions - Resets after completion",
-        "manual": "Manual - Reset only via service call"
+        "upon_completion": "Unlimited completions - Resets after completion"
       }
     },
     "overdue_handling_type": {
@@ -2492,18 +2491,6 @@
           },
           "chore_last_longest_streak_date": {
             "name": "Last Longest Streak Date"
-          },
-          "chore_current_missed_streak": {
-            "name": "Current Missed Streak"
-          },
-          "chore_longest_missed_streak": {
-            "name": "Longest Missed Streak"
-          },
-          "chore_missed_count": {
-            "name": "Missed (All Time)"
-          },
-          "chore_last_missed": {
-            "name": "Last Missed"
           },
           "last_claimed": {
             "name": "Last Claimed"

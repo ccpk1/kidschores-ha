@@ -17,8 +17,8 @@
 | Phase 4 – Pipeline Guard Rails           | Debug-mode invariant assertions, idempotency       | 100%       | ✅ COMPLETE: tracking + idempotency + docs + tests   |
 | Phase 3 – Manual Reset Type              | Add `APPROVAL_RESET_MANUAL`                        | 100%       | ✅ COMPLETE: constant + translations + engine verify |
 | Phase 5 – Missed State Tracking          | New missed tracking for overdue chores             | 100%       | ✅ COMPLETE: ChoreEngine fix + kid_name + tests      |
-| Phase 6 – Due Window Lock                | Restrict claims until due window opens             | 0%         | PLANNED: building for v0.5.0-beta4                   |
-| Phase 7 – Rotation Chores                | Assignment rotation for shared chores              | 0%         | PLANNED: decision point before building              |
+| Phase 6 – Due Window Lock                | Restrict claims until due window opens             | 0%         | Defer to separate initiative                         |
+| Phase 7 – Rotation Chores                | Assignment rotation for shared chores              | 0%         | Defer to separate initiative                         |
 
 1. **Key objective** – Audit the chore state machine for race conditions, processing order bugs, and unnecessary state complexity. Deliver a hardened pipeline where `f(Time, Config, UserAction)` always produces a single deterministic state outcome per tick.
 

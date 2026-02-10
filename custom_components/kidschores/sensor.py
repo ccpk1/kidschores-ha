@@ -4284,12 +4284,33 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
         kid_info: KidData = cast(
             "KidData", self.coordinator.kids_data.get(self._kid_id, {})
         )
-        chores_attr = []
 
         try:
             entity_registry = async_get(self.hass)
         except (KeyError, ValueError, AttributeError):
             entity_registry = None
+
+        # Shadow kid capability check - determine early to filter lists
+        is_shadow = kid_info.get(const.DATA_KID_IS_SHADOW, False)
+        gamification_enabled = True
+        chore_workflow_enabled = True
+
+        if is_shadow:
+            # Get parent data to check capability flags
+            parent_data = get_parent_for_shadow_kid(self.coordinator, self._kid_id)
+            if parent_data:
+                gamification_enabled = parent_data.get(
+                    const.DATA_PARENT_ENABLE_GAMIFICATION, False
+                )
+                chore_workflow_enabled = parent_data.get(
+                    const.DATA_PARENT_ENABLE_CHORE_WORKFLOW, False
+                )
+            else:
+                # Defensive: shadow kid without parent data - disable extras
+                gamification_enabled = False
+                chore_workflow_enabled = False
+
+        chores_attr = []
 
         for chore_id, chore_info in self.coordinator.chores_data.items():
             if self._kid_id not in chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, []):
@@ -4458,94 +4479,96 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
         # Sort badges by name (alphabetically)
         badges_attr.sort(key=lambda b: str(b.get(const.ATTR_NAME, "")).lower())
 
-        # Bonuses for this kid
+        # Bonuses for this kid - only build if gamification is enabled
         bonuses_attr = []
-        for bonus_id, bonus_info in self.coordinator.bonuses_data.items():
-            bonus_name = get_item_name_or_log_error(
-                "bonus", bonus_id, bonus_info, const.DATA_BONUS_NAME
-            )
-            if not bonus_name:
-                continue
-            # Get ParentBonusApplyButton entity_id
-            bonus_eid = None
-            if entity_registry:
-                unique_id = f"{self._entry.entry_id}_{self._kid_id}_{bonus_id}{const.BUTTON_KC_UID_SUFFIX_PARENT_BONUS_APPLY}"
-                bonus_eid = entity_registry.async_get_entity_id(
-                    "button", const.DOMAIN, unique_id
+        if gamification_enabled:
+            for bonus_id, bonus_info in self.coordinator.bonuses_data.items():
+                bonus_name = get_item_name_or_log_error(
+                    "bonus", bonus_id, bonus_info, const.DATA_BONUS_NAME
+                )
+                if not bonus_name:
+                    continue
+                # Get ParentBonusApplyButton entity_id
+                bonus_eid = None
+                if entity_registry:
+                    unique_id = f"{self._entry.entry_id}_{self._kid_id}_{bonus_id}{const.BUTTON_KC_UID_SUFFIX_PARENT_BONUS_APPLY}"
+                    bonus_eid = entity_registry.async_get_entity_id(
+                        "button", const.DOMAIN, unique_id
+                    )
+
+                # Get bonus points
+                bonus_points = bonus_info.get(const.DATA_BONUS_POINTS, 0)
+
+                # Get applied count for this bonus for this kid
+                bonus_applies = kid_info.get(const.DATA_KID_BONUS_APPLIES, {})
+                bonus_entry = bonus_applies.get(bonus_id)
+                if bonus_entry:
+                    periods = bonus_entry.get(const.DATA_KID_BONUS_PERIODS, {})
+                    applied_count = self.coordinator.stats.get_period_total(
+                        periods,
+                        const.PERIOD_ALL_TIME,
+                        const.DATA_KID_BONUS_PERIOD_APPLIES,
+                    )
+                else:
+                    applied_count = 0
+
+                bonuses_attr.append(
+                    {
+                        const.ATTR_EID: bonus_eid,
+                        const.ATTR_NAME: bonus_name,
+                        const.ATTR_POINTS: bonus_points,
+                        const.ATTR_APPLIED: applied_count,
+                    }
                 )
 
-            # Get bonus points
-            bonus_points = bonus_info.get(const.DATA_BONUS_POINTS, 0)
-
-            # Get applied count for this bonus for this kid
-            bonus_applies = kid_info.get(const.DATA_KID_BONUS_APPLIES, {})
-            bonus_entry = bonus_applies.get(bonus_id)
-            if bonus_entry:
-                periods = bonus_entry.get(const.DATA_KID_BONUS_PERIODS, {})
-                applied_count = self.coordinator.stats.get_period_total(
-                    periods,
-                    const.PERIOD_ALL_TIME,
-                    const.DATA_KID_BONUS_PERIOD_APPLIES,
-                )
-            else:
-                applied_count = 0
-
-            bonuses_attr.append(
-                {
-                    const.ATTR_EID: bonus_eid,
-                    const.ATTR_NAME: bonus_name,
-                    const.ATTR_POINTS: bonus_points,
-                    const.ATTR_APPLIED: applied_count,
-                }
-            )
-
-        # Sort bonuses by name (alphabetically)
-        bonuses_attr.sort(key=lambda b: str(b.get(const.ATTR_NAME, "")).lower())
-
-        # Penalties for this kid
+            # Sort bonuses by name (alphabetically)
+            bonuses_attr.sort(key=lambda b: str(b.get(const.ATTR_NAME, "")).lower())
+        # Bonuses for this kid
+        # Penalties for this kid - only build if gamification is enabled
         penalties_attr = []
-        for penalty_id, penalty_info in self.coordinator.penalties_data.items():
-            penalty_name = get_item_name_or_log_error(
-                "penalty", penalty_id, penalty_info, const.DATA_PENALTY_NAME
-            )
-            if not penalty_name:
-                continue
-            # Get ParentPenaltyApplyButton entity_id
-            penalty_eid = None
-            if entity_registry:
-                unique_id = f"{self._entry.entry_id}_{self._kid_id}_{penalty_id}{const.BUTTON_KC_UID_SUFFIX_PARENT_PENALTY_APPLY}"
-                penalty_eid = entity_registry.async_get_entity_id(
-                    "button", const.DOMAIN, unique_id
+        if gamification_enabled:
+            for penalty_id, penalty_info in self.coordinator.penalties_data.items():
+                penalty_name = get_item_name_or_log_error(
+                    "penalty", penalty_id, penalty_info, const.DATA_PENALTY_NAME
+                )
+                if not penalty_name:
+                    continue
+                # Get ParentPenaltyApplyButton entity_id
+                penalty_eid = None
+                if entity_registry:
+                    unique_id = f"{self._entry.entry_id}_{self._kid_id}_{penalty_id}{const.BUTTON_KC_UID_SUFFIX_PARENT_PENALTY_APPLY}"
+                    penalty_eid = entity_registry.async_get_entity_id(
+                        "button", const.DOMAIN, unique_id
+                    )
+
+                # Get penalty points (stored as positive, represents points removed)
+                penalty_points = penalty_info.get(const.DATA_PENALTY_POINTS, 0)
+
+                # Get applied count for this penalty for this kid
+                penalty_applies = kid_info.get(const.DATA_KID_PENALTY_APPLIES, {})
+                penalty_entry = penalty_applies.get(penalty_id)
+                if penalty_entry:
+                    periods = penalty_entry.get(const.DATA_KID_PENALTY_PERIODS, {})
+                    applied_count = self.coordinator.stats.get_period_total(
+                        periods,
+                        const.PERIOD_ALL_TIME,
+                        const.DATA_KID_PENALTY_PERIOD_APPLIES,
+                    )
+                else:
+                    applied_count = 0
+
+                penalties_attr.append(
+                    {
+                        const.ATTR_EID: penalty_eid,
+                        const.ATTR_NAME: penalty_name,
+                        const.ATTR_POINTS: penalty_points,
+                        const.ATTR_APPLIED: applied_count,
+                    }
                 )
 
-            # Get penalty points (stored as positive, represents points removed)
-            penalty_points = penalty_info.get(const.DATA_PENALTY_POINTS, 0)
-
-            # Get applied count for this penalty for this kid
-            penalty_applies = kid_info.get(const.DATA_KID_PENALTY_APPLIES, {})
-            penalty_entry = penalty_applies.get(penalty_id)
-            if penalty_entry:
-                periods = penalty_entry.get(const.DATA_KID_PENALTY_PERIODS, {})
-                applied_count = self.coordinator.stats.get_period_total(
-                    periods,
-                    const.PERIOD_ALL_TIME,
-                    const.DATA_KID_PENALTY_PERIOD_APPLIES,
-                )
-            else:
-                applied_count = 0
-
-            penalties_attr.append(
-                {
-                    const.ATTR_EID: penalty_eid,
-                    const.ATTR_NAME: penalty_name,
-                    const.ATTR_POINTS: penalty_points,
-                    const.ATTR_APPLIED: applied_count,
-                }
-            )
-
-        # Sort penalties by name (alphabetically)
-        penalties_attr.sort(key=lambda p: str(p.get(const.ATTR_NAME, "")).lower())
-
+            # Sort penalties by name (alphabetically)
+            penalties_attr.sort(key=lambda p: str(p.get(const.ATTR_NAME, "")).lower())
+        # Penalties for this kid
         # Achievements assigned to this kid
         achievements_attr = []
         for (
@@ -4610,9 +4633,9 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
         # Sort challenges by name (alphabetically)
         challenges_attr.sort(key=lambda c: (c.get(const.ATTR_NAME) or "").lower())
 
-        # Point adjustment buttons for this kid
+        # Point adjustment buttons for this kid - only build if gamification is enabled
         points_buttons_attr = []
-        if entity_registry:
+        if gamification_enabled and entity_registry:
             from .helpers.entity_helpers import get_points_adjustment_buttons
 
             buttons = get_points_adjustment_buttons(
@@ -4677,26 +4700,6 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
         # Build dashboard helpers dict (used by dashboard to avoid slug construction)
         dashboard_helpers = self._build_dashboard_helpers(entity_registry)
-
-        # Shadow kid capability attributes for dashboard conditional rendering
-        is_shadow = kid_info.get(const.DATA_KID_IS_SHADOW, False)
-        gamification_enabled = True
-        chore_workflow_enabled = True
-
-        if is_shadow:
-            # Get parent data to check capability flags
-            parent_data = get_parent_for_shadow_kid(self.coordinator, self._kid_id)
-            if parent_data:
-                gamification_enabled = parent_data.get(
-                    const.DATA_PARENT_ENABLE_GAMIFICATION, False
-                )
-                chore_workflow_enabled = parent_data.get(
-                    const.DATA_PARENT_ENABLE_CHORE_WORKFLOW, False
-                )
-            else:
-                # Defensive: shadow kid without parent data - disable extras
-                gamification_enabled = False
-                chore_workflow_enabled = False
 
         return {
             const.ATTR_PURPOSE: const.TRANS_KEY_PURPOSE_DASHBOARD_HELPER,
