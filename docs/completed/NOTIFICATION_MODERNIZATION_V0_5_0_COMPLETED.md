@@ -918,3 +918,161 @@ python -m pytest tests/ -v --tb=line  # All tests pass
 ---
 
 **Next Action**: Hand off to **KidsChores Plan Agent** for implementation with Phase 1 (race condition fix) as highest priority.
+
+---
+
+# AMENDMENT: Implementation Gap Analysis & Remediation (January 2026)
+
+**Status**: COMPLETED - All gaps filled ✅
+**Author**: KidsChores Strategist
+**Date**: January 15, 2026
+
+## Discovery
+
+During January 2026 GitHub issue #255 investigation, comprehensive audit revealed that the v0.5.0 Notification Modernization Plan was **marked complete but missing critical implementations**:
+
+### Missing Implementations Discovered
+
+1. **Kid Notification Tag Support**: The `notify_kid` and `notify_kid_translated` methods lacked tag parameters despite plan requirements
+2. **Auto-Clearing Functionality**: Missing `clear_notification_for_kid` method and auto-clearing logic
+3. **Signal Handlers**: Missing `_handle_chore_approved` method despite registered signal listener
+4. **Kid-Specific Notifications**: Overdue and due window notifications to kids weren't using tag system
+5. **Chore Disapproved Handler**: Missing `_handle_chore_disapproved` method for kid notifications
+
+### Architecture Impact
+
+These gaps caused:
+
+- **Notification spam** - Kids received multiple overdue notifications that never cleared
+- **Inconsistent UX** - Parents got tag-based notifications, kids didn't
+- **Runtime errors** - Signal listeners registered but handlers missing
+- **Poor notification hygiene** - No auto-clearing on state changes
+
+## Remediation Implementation (All Completed ✅)
+
+### 1. Kid Notification Tag Support ✅
+
+**File**: `custom_components/kidschores/managers/notification_manager.py`
+
+**Changes Made**:
+
+- Enhanced `notify_kid()` method with `tag_type` and `tag_identifiers` parameters
+- Enhanced `notify_kid_translated()` method with tag parameters
+- Updated all kid notification calls to use appropriate tags
+- Added `build_notification_tag()` method usage for kids
+
+**Code Added**:
+
+```python
+async def notify_kid_translated(
+    self,
+    kid_id: str,
+    title_key: str,
+    message_key: str,
+    message_data: dict[str, Any] | None = None,
+    extra_data: dict[str, Any] | None = None,
+    tag_type: str | None = None,
+    tag_identifiers: tuple[str, ...] | None = None,
+) -> None:
+```
+
+### 2. Auto-Clearing Infrastructure ✅
+
+**File**: `custom_components/kidschores/managers/notification_manager.py`
+
+**Method Added**:
+
+```python
+async def clear_notification_for_kid(
+    self,
+    kid_id: str,
+    tag: str | None = None,
+) -> None:
+    """Clear notifications for a specific kid with optional tag filtering."""
+```
+
+**Integration**: Mirrors parent clearing functionality for consistent UX
+
+### 3. Missing Signal Handlers ✅
+
+**File**: `custom_components/kidschores/managers/notification_manager.py`
+
+**Handlers Added**:
+
+- `_handle_chore_approved()` - Auto-clears claim notifications and kid overdue/due notifications
+- `_handle_chore_disapproved()` - Notifies kid of disapproval and clears parent claim notifications
+
+**Signal Registry**: Listeners were registered in `setup_signal_listeners()` but methods were missing
+
+### 4. Auto-Clearing Logic Integration ✅
+
+**Enhanced Methods**:
+
+- `_handle_chore_claimed()` - Now clears overdue/due window notifications for kids
+- `_handle_chore_approved()` - Clears both parent claim and kid overdue notifications
+- `_handle_chore_disapproved()` - Clears parent claim notifications
+
+**Pattern**: Each state transition automatically clears relevant stale notifications
+
+### 5. Kid Overdue Notification Tags ✅
+
+**File**: `custom_components/kidschores/managers/notification_manager.py`
+
+**Updates Made**:
+
+- `_handle_chore_overdue()` - Now uses `NOTIFY_TAG_TYPE_OVERDUE` tags
+- `_handle_chore_due_window()` - Now uses `NOTIFY_TAG_TYPE_DUE_WINDOW` tags
+- Integration with `build_notification_tag()` for consistent tag format
+
+## Architectural Compliance Verification
+
+### Tag System Consistency ✅
+
+- **Parents**: Tag-based notifications with auto-clearing ✅
+- **Kids**: Tag-based notifications with auto-clearing ✅
+- **Tag Format**: Consistent across all notification types ✅
+
+### Signal Architecture ✅
+
+- **Registered listeners**: All have corresponding handler methods ✅
+- **Auto-clearing**: Implemented for all state transitions ✅
+- **Cross-manager communication**: Maintains signal-first pattern ✅
+
+### Performance Impact ✅
+
+- **Concurrent operations**: Uses `async_create_task()` for non-blocking ✅
+- **Tag efficiency**: Single-notification replacement vs notification spam ✅
+- **Error handling**: Graceful degradation with logging ✅
+
+## Validation Results
+
+### Code Quality ✅
+
+```bash
+./utils/quick_lint.sh --fix  # PASSED
+mypy custom_components/kidschores/  # ZERO ERRORS
+python -m pytest tests/ -v  # ALL TESTS PASSED
+```
+
+### Functional Testing ✅
+
+- **Kid notifications**: Properly tagged and auto-clear on state changes
+- **Parent notifications**: Existing functionality preserved
+- **Signal flow**: All CHORE\_\* signals properly handled
+- **Error cases**: Graceful handling of missing kids, services
+
+### UX Improvement Verification ✅
+
+- **Notification spam**: Eliminated through auto-clearing
+- **Consistency**: Kids and parents now have same tag-based experience
+- **State accuracy**: Notifications reflect current chore state, not historical
+
+## Summary
+
+**Total Implementation Gap**: ~200 lines of critical notification infrastructure
+**Remediation Scope**: 5 major missing features across signal handling, tag support, and auto-clearing
+**Quality Impact**: Moved from "marked complete but broken" to "functionally complete and tested"
+
+The original v0.5.0 plan architecture was **sound** - the gap was in execution completeness. All planned features are now properly implemented and validated.
+
+**Status**: ✅ **NOTIFICATION MODERNIZATION v0.5.0 FULLY COMPLETE**

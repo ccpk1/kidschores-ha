@@ -159,6 +159,10 @@ class NotificationManager(BaseManager):
 
         # Chore events
         self.listen(const.SIGNAL_SUFFIX_CHORE_CLAIMED, self._handle_chore_claimed)
+        self.listen(const.SIGNAL_SUFFIX_CHORE_APPROVED, self._handle_chore_approved)
+        self.listen(
+            const.SIGNAL_SUFFIX_CHORE_DISAPPROVED, self._handle_chore_disapproved
+        )
 
         # Reward events
         self.listen(const.SIGNAL_SUFFIX_REWARD_CLAIMED, self._handle_reward_claimed)
@@ -870,11 +874,24 @@ class NotificationManager(BaseManager):
         message: str,
         actions: list[dict[str, str]] | None = None,
         extra_data: dict[str, str] | None = None,
+        tag_type: str | None = None,
+        tag_identifiers: tuple[str, ...] | None = None,
     ) -> None:
         """Notify a kid using their configured notification settings."""
         kid_info: KidData | None = self.coordinator.kids_data.get(kid_id)
         if not kid_info:
             return
+
+        # Build notification tag if tag_type provided
+        notification_tag = None
+        if tag_type:
+            identifiers = tag_identifiers if tag_identifiers else (kid_id,)
+            notification_tag = self.build_notification_tag(tag_type, *identifiers)
+            const.LOGGER.debug(
+                "Using notification tag '%s' for kid %s",
+                notification_tag,
+                kid_id,
+            )
 
         mobile_notify_service = kid_info.get(
             const.DATA_KID_MOBILE_NOTIFY_SERVICE, const.SENTINEL_EMPTY
@@ -884,21 +901,28 @@ class NotificationManager(BaseManager):
         )
 
         if mobile_notify_service:
+            # Build final extra_data with tag if provided
+            final_extra_data = dict(extra_data) if extra_data else {}
+            if notification_tag:
+                final_extra_data[const.NOTIFY_TAG] = notification_tag
+
             await self._send_notification(
                 mobile_notify_service,
                 title,
                 message,
                 actions=actions,
-                extra_data=extra_data,
+                extra_data=final_extra_data if final_extra_data else None,
             )
         elif persistent_enabled:
+            # Use tag for notification_id when available for smart replacement
+            notification_id = notification_tag if notification_tag else f"kid_{kid_id}"
             await self.hass.services.async_call(
                 const.NOTIFY_PERSISTENT_NOTIFICATION,
                 const.NOTIFY_CREATE,
                 {
                     const.NOTIFY_TITLE: title,
                     const.NOTIFY_MESSAGE: message,
-                    const.NOTIFY_NOTIFICATION_ID: f"kid_{kid_id}",
+                    const.NOTIFY_NOTIFICATION_ID: notification_id,
                 },
                 blocking=True,
             )
@@ -916,6 +940,8 @@ class NotificationManager(BaseManager):
         message_data: dict[str, Any] | None = None,
         actions: list[dict[str, str]] | None = None,
         extra_data: dict[str, str] | None = None,
+        tag_type: str | None = None,
+        tag_identifiers: tuple[str, ...] | None = None,
     ) -> None:
         """Notify a kid using translated title and message.
 
@@ -979,7 +1005,15 @@ class NotificationManager(BaseManager):
         translated_actions = self._translate_action_buttons(actions, translations)
 
         # Call notification method
-        await self.notify_kid(kid_id, title, message, translated_actions, extra_data)
+        await self.notify_kid(
+            kid_id,
+            title,
+            message,
+            translated_actions,
+            extra_data,
+            tag_type=tag_type,
+            tag_identifiers=tag_identifiers,
+        )
 
     # =========================================================================
     # Parent Notifications
@@ -1414,6 +1448,55 @@ class NotificationManager(BaseManager):
                 kid_id,
             )
 
+    async def clear_notification_for_kid(
+        self,
+        kid_id: str,
+        tag: str | None = None,
+    ) -> None:
+        """Clear notifications for a specific kid.
+
+        Args:
+            kid_id: ID of the kid to clear notifications for
+            tag: Optional tag to clear specific notifications
+        """
+        kid_info: KidData | None = self.coordinator.kids_data.get(kid_id)
+        if not kid_info:
+            const.LOGGER.debug("Kid '%s' not found, cannot clear notifications", kid_id)
+            return
+
+        if not kid_info.get(const.DATA_KID_MOBILE_NOTIFY_SERVICE):
+            const.LOGGER.debug(
+                "No notification service configured for kid '%s'", kid_id
+            )
+            return
+
+        service_name = kid_info[const.DATA_KID_MOBILE_NOTIFY_SERVICE]
+
+        service_data: dict[str, Any] = {
+            "message": "clear_notification",
+        }
+
+        if tag:
+            service_data["data"] = {"tag": tag}
+            const.LOGGER.debug(
+                "Clearing notification with tag '%s' for kid '%s'", tag, kid_id
+            )
+        else:
+            const.LOGGER.debug("Clearing all notifications for kid '%s'", kid_id)
+
+        try:
+            await self.hass.services.async_call(
+                "notify",
+                service_name,
+                service_data,
+            )
+        except Exception as ex:
+            const.LOGGER.warning(
+                "Failed to clear notification for kid '%s': %s",
+                kid_id,
+                ex,
+            )
+
     async def remind_in_minutes(
         self,
         kid_id: str,
@@ -1841,6 +1924,22 @@ class NotificationManager(BaseManager):
         # Note: Due-soon reminder tracking is already cleared by ChoreManager.claim_chore()
         # per Cross-Manager Directive 2 (Direct Writes are FORBIDDEN)
 
+        # Auto-clear: Remove overdue and due window notifications for kid
+        # when they claim the chore (v0.5.0+ auto-clearing functionality)
+        overdue_tag = self.build_notification_tag(
+            const.NOTIFY_TAG_TYPE_OVERDUE, chore_id
+        )
+        due_window_tag = self.build_notification_tag(
+            const.NOTIFY_TAG_TYPE_DUE_WINDOW, chore_id
+        )
+
+        self.hass.async_create_task(
+            self.clear_notification_for_kid(kid_id, overdue_tag)
+        )
+        self.hass.async_create_task(
+            self.clear_notification_for_kid(kid_id, due_window_tag)
+        )
+
         const.LOGGER.debug(
             "NotificationManager: Sent chore claimed notification for kid=%s, chore=%s",
             kid_id,
@@ -1991,6 +2090,95 @@ class NotificationManager(BaseManager):
         )
 
     @callback
+    def _handle_chore_disapproved(self, payload: dict[str, Any]) -> None:
+        """Handle CHORE_DISAPPROVED event - send notification to kid.
+
+        Args:
+            payload: Event data containing kid_id, chore_id, chore_name
+        """
+        kid_id = payload.get("kid_id", "")
+        chore_id = payload.get("chore_id", "")
+        chore_name = payload.get("chore_name", "Unknown Chore")
+
+        if not kid_id:
+            return
+
+        extra_data = {const.DATA_KID_ID: kid_id, const.DATA_CHORE_ID: chore_id}
+
+        # Notify kid
+        self.hass.async_create_task(
+            self.notify_kid_translated(
+                kid_id,
+                title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_DISAPPROVED,
+                message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_DISAPPROVED,
+                message_data={"chore_name": chore_name},
+                extra_data=extra_data,
+            )
+        )
+
+        # Clear the original claim notification from parents' devices
+        self.hass.async_create_task(
+            self.clear_notification_for_parents(
+                kid_id,
+                const.NOTIFY_TAG_TYPE_STATUS,
+                chore_id,
+            )
+        )
+
+        const.LOGGER.debug(
+            "NotificationManager: Sent chore disapproved notification for kid=%s, chore=%s",
+            kid_id,
+            chore_name,
+        )
+
+    @callback
+    def _handle_chore_approved(self, payload: dict[str, Any]) -> None:
+        """Handle CHORE_APPROVED event - clear pending notifications.
+
+        This implements auto-clearing functionality for approved chores.
+        Clears both parent claim notifications and kid overdue notifications.
+
+        Args:
+            payload: Event data containing kid_id, chore_id, chore_name
+        """
+        kid_id = payload.get("kid_id", "")
+        chore_id = payload.get("chore_id", "")
+        chore_name = payload.get("chore_name", "Unknown Chore")
+
+        if not kid_id or not chore_id:
+            return
+
+        # Clear claim notification for parents
+        self.hass.async_create_task(
+            self.clear_notification_for_parents(
+                kid_id,
+                const.NOTIFY_TAG_TYPE_STATUS,
+                chore_id,
+            )
+        )
+
+        # Clear overdue/due window notifications for kid
+        overdue_tag = self.build_notification_tag(
+            const.NOTIFY_TAG_TYPE_OVERDUE, chore_id
+        )
+        due_window_tag = self.build_notification_tag(
+            const.NOTIFY_TAG_TYPE_DUE_WINDOW, chore_id
+        )
+
+        self.hass.async_create_task(
+            self.clear_notification_for_kid(kid_id, overdue_tag)
+        )
+        self.hass.async_create_task(
+            self.clear_notification_for_kid(kid_id, due_window_tag)
+        )
+
+        const.LOGGER.debug(
+            "NotificationManager: Cleared notifications for approved chore=%s, kid=%s",
+            chore_name,
+            kid_id,
+        )
+
+    @callback
     def _handle_bonus_applied(self, payload: dict[str, Any]) -> None:
         """Handle BONUS_APPLIED event - send notification to kid.
 
@@ -2088,7 +2276,7 @@ class NotificationManager(BaseManager):
             )
             return
 
-        # Notify kid with claim action
+        # Notify kid with claim action (using tag for smart replacement)
         self.hass.async_create_task(
             self.notify_kid_translated(
                 kid_id,
@@ -2100,6 +2288,8 @@ class NotificationManager(BaseManager):
                     "points": points,
                 },
                 actions=self.build_claim_action(kid_id, chore_id, self.entry_id),
+                tag_type=const.NOTIFY_TAG_TYPE_STATUS,
+                tag_identifiers=(chore_id, kid_id),
             )
         )
 
@@ -2224,14 +2414,23 @@ class NotificationManager(BaseManager):
         due_dt = dt_to_utc(due_date) if due_date else None
         formatted_due_date = dt_format_short(due_dt, language=kid_language)
 
-        # Notify kid with claim action
+        # Get kid's name for notification message
+        kid_name = kid_info.get(const.DATA_KID_NAME, "Unknown Kid")
+
+        # Notify kid with claim action (using tag for smart replacement)
         self.hass.async_create_task(
             self.notify_kid_translated(
                 kid_id,
                 title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_OVERDUE,
                 message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_OVERDUE,
-                message_data={"chore_name": chore_name, "due_date": formatted_due_date},
+                message_data={
+                    "kid_name": kid_name,
+                    "chore_name": chore_name,
+                    "due_date": formatted_due_date,
+                },
                 actions=self.build_claim_action(kid_id, chore_id, self.entry_id),
+                tag_type=const.NOTIFY_TAG_TYPE_STATUS,
+                tag_identifiers=(chore_id, kid_id),
             )
         )
 
