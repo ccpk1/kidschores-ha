@@ -857,9 +857,7 @@ class ChoreEngine:
             New streak value: 1 if first completion or streak broken,
                              current_streak + 1 if on-time
         """
-        from custom_components.kidschores.engines.schedule_engine import (
-            RecurrenceEngine,
-        )
+        from .schedule_engine import RecurrenceEngine
 
         # First completion ever = streak of 1
         if not previous_last_completed_iso:

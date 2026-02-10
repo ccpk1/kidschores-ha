@@ -12,8 +12,8 @@ Submodules:
     - math_utils: Point rounding, multiplier arithmetic, progress calculations
 
 Usage:
-    from custom_components.kidschores.utils import dt_utils
-    from custom_components.kidschores.utils.math_utils import round_points
+    from . import dt_utils
+    from .math_utils import round_points
 """
 
 from . import dt_utils, math_utils

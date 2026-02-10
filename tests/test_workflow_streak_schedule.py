@@ -33,6 +33,7 @@ from custom_components.kidschores.const import (
     DATA_CHORE_APPLICABLE_DAYS,
     DATA_CHORE_CUSTOM_INTERVAL,
     DATA_CHORE_CUSTOM_INTERVAL_UNIT,
+    DATA_KID_CHORE_DATA_CURRENT_STREAK,
     DATA_KID_CHORE_DATA_LAST_COMPLETED,
     DATA_KID_CHORE_DATA_PERIOD_LONGEST_STREAK,
     DATA_KID_CHORE_DATA_PERIOD_STREAK_TALLY,
@@ -206,6 +207,9 @@ def set_yesterday_streak(
     daily = periods.setdefault(DATA_KID_CHORE_DATA_PERIODS_DAILY, {})
     day_data = daily.setdefault(yesterday_iso, {})
     day_data[DATA_KID_CHORE_DATA_PERIOD_STREAK_TALLY] = streak
+
+    # Phase 5 fix: Also set persistent current_streak that workflow expects
+    per_chore[DATA_KID_CHORE_DATA_CURRENT_STREAK] = streak
 
 
 # =============================================================================

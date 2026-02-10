@@ -16,10 +16,10 @@ Submodules:
     - translation_helpers: Translation file loading and caching
 
 Usage:
-    from custom_components.kidschores.helpers import entity_helpers
-    from custom_components.kidschores.helpers.auth_helpers import is_user_authorized_for_kid
-    from custom_components.kidschores.helpers import flow_helpers as fh
-    from custom_components.kidschores.helpers import translation_helpers as th
+    from . import entity_helpers
+    from .auth_helpers import is_user_authorized_for_kid
+    from . import flow_helpers as fh
+    from . import translation_helpers as th
 """
 
 from . import (
