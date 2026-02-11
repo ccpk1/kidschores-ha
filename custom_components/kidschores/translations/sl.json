@@ -39,10 +39,10 @@
           "points_icon": "Ikona točk",
           "update_interval": "Interval posodobitve (minute)",
           "calendar_show_period": "Obdobje prikaza koledarja (dnevi)",
-          "retention_daily": "Dnevno zadrževanje (dni)",
-          "retention_weekly": "Tedensko zadrževanje (tedni)",
-          "retention_monthly": "Mesečno hrambo (meseci)",
-          "retention_yearly": "Letno hrambo (leta)",
+          "retention_daily": "Dnevna hramba (dni)",
+          "retention_weekly": "Tedenska hramba(tedni)",
+          "retention_monthly": "Mesečna hramba (meseci)",
+          "retention_yearly": "Letna hramba (leta)",
           "points_adjust_values": "Vrednosti prilagoditve točk (ločene po ceveh)"
         },
         "data_description": {
@@ -69,7 +69,7 @@
         "description": "Vpišite ime za vsakega otroka.",
         "data": {
           "name": "Ime otroka",
-          "ha_user": "Uporabnik domačega pomočnika",
+          "ha_user": "Home Assistant uporabnik",
           "mobile_notify_service": "Obvestila",
           "dashboard_language": "Jezik"
         },
@@ -90,7 +90,7 @@
         "description": "Vnesite podatke za vsakega starša.",
         "data": {
           "name": "Ime starša",
-          "ha_user_id": "Uporabnik domačega pomočnika",
+          "ha_user_id": "Home Assistant uporabnik",
           "associated_kids": "Povezani otroci",
           "mobile_notify_service": "Obvestila",
           "dashboard_language": "Jezik"
@@ -177,8 +177,8 @@
           "threshold_value": "🎯 CILJ: Mejna vrednost",
           "maintenance_rules": "🎯 CILJ: Vzdrževalne točke (neobvezno)",
           "occasion_type": "🎉 Vrsta priložnosti",
-          "associated_achievement": "🏆 Povezani dosežek",
-          "associated_challenge": "🏁 Povezani izziv",
+          "associated_achievement": "🏆 Povezan dosežek",
+          "associated_challenge": "🏁 Povezan izziv",
           "selected_chores": "🧹 Sledena opravila (neobvezno)",
           "assigned_to": "🧒 Dodeljeni otroci",
           "award_items": "🎁 NAGRADE: Izberite točke, nagrade, bonuse, množitelj (neobvezno)",

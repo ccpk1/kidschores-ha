@@ -1,120 +1,130 @@
 {
-  "chore_assigned": {
-    "title": "Tarefas para Crianças: Nova Tarefa",
-    "message": "Uma nova tarefa {chore_name} foi-lhe atribuída! Data de entrega: {due_date}"
+  "_comment_kid_section": "═══════════════════════════════ ════════════════════════════════",
+  "_comment_kid_desc": "NOTIFICAÇÕES PARA CRIANÇAS: Tom lúdico, na segunda pessoa, encorajador e com emojis. SEM o prefixo 'TarefasParaCrianças:'.",
+  "_comment_kid_footer": "═══════════════════════════════ ════════════════════════════════",
+  "chore_approved_kid": {
+    "title": "🎉 Tarefa aprovada!",
+    "message": "{chore_name} aprovado! Ganhou {points} pontos"
   },
-  "chore_claimed": {
-    "title": "KidsChores: Tarefa Reivindicada",
-    "message": "{kid_name} tarefa reivindicada {chore_name}"
+  "chore_disapproved_kid": {
+    "title": "↩️ Tarefa devolvida",
+    "message": "{chore_name} necessita de mais trabalho."
   },
-  "chore_approved": {
-    "title": "Tarefas para Crianças: Aprovadas",
-    "message": "{kid_name}: {chore_name} aprovado! +{points} pontos"
+  "chore_overdue_kid": {
+    "title": "⏰ Tarefa atrasada",
+    "message": "{chore_name} está atrasado! Complete-o agora para ganhar {points} pontos"
   },
-  "chore_disapproved": {
-    "title": "Tarefas para Crianças: Tarefas Não Aprovadas",
-    "message": "A sua tarefa {chore_name} não foi aprovada"
+  "chore_missed_kid": {
+    "title": "😔 Tarefa expirada",
+    "message": "{chore_name} expirou sem estar concluído."
   },
-  "chore_overdue": {
-    "title": "Tarefas para Crianças: Tarefas Atrasadas",
-    "message": "{kid_name}: {chore_name} está atrasado! A data de validade era {due_date}"
+  "chore_due_reminder_kid": {
+    "title": "⏰ Lembrete de Tarefas",
+    "message": "{chore_name} deve ser entregue em {minutes} minutos! Vale {points} pontos"
   },
-  "chore_due_soon": {
-    "title": "⏰ Tarefa para entregar em breve!",
-    "message": "{chore_name} deve ser entregue em {minutes} minutos (+{points}pts)"
+  "chore_due_window_kid": {
+    "title": "🎯 Tarefa a fazer agora",
+    "message": "{chore_name} já está disponível! Conclua até {hours} hora(s) para ganhar {points} pontos."
   },
-  "chore_due_reminder": {
-    "title": "⏰ Tarefa para entregar em breve!",
-    "message": "{chore_name} deve ser entregue em {minutes} minutos (+{points}pts)"
+  "reward_approved_kid": {
+    "title": "🎉 Recompensa aprovada!",
+    "message": "{reward_name} aprovado!"
   },
-  "chore_due_window": {
-    "title": "🔔 Tarefa a fazer agora",
-    "message": "{chore_name} já está disponível! Conclua-a em {hours} hora(s) para ganhar {points} pontos."
-  },
-  "chore_reminder": {
-    "title": "KidsChores: Lembrete para Tarefas Pendentes",
-    "message": "Lembrete: A tarefa {chore_name} reivindicada por {kid_name} está a aguardar aprovação."
-  },
-  "reward_claimed_kid": {
-    "title": "Tarefas para Crianças: Recompensa Resgatada",
-    "message": "Reivindicou a recompensa de {reward_name} por {points} pontos!"
-  },
-  "reward_claimed_parent": {
-    "title": "Tarefas para Crianças: Recompensa Resgatada",
-    "message": "{kid_name} reivindicou recompensa {reward_name} por {points} pontos"
-  },
-  "reward_approved": {
-    "title": "Tarefas para Crianças: Recompensa Aprovada",
-    "message": "Recompensa {reward_name} aprovada!"
-  },
-  "reward_disapproved": {
-    "title": "Tarefas para Crianças: Recompensa Não Aprovada",
-    "message": "A recompensa {reward_name} não foi aprovada."
-  },
-  "reward_reminder": {
-    "title": "KidsChores: Lembrete para recompensa pendente",
-    "message": "Lembrete: A recompensa {reward_name} reivindicada por {kid_name} está a aguardar aprovação."
+  "reward_disapproved_kid": {
+    "title": "💭 Pedido de recompensa devolvido",
+    "message": "{reward_name} não foi aprovado desta vez."
   },
   "badge_earned_kid": {
-    "title": "Tarefas para Crianças: Distintivo Conquistado",
+    "title": "🥇 Insígnia conquistada!",
     "message": "Ganhou o crachá {badge_name} !"
   },
-  "badge_earned_parent": {
-    "title": "Tarefas para Crianças: Distintivo Conquistado",
-    "message": "{kid_name} ganhou o crachá {badge_name} !"
-  },
   "achievement_earned_kid": {
-    "title": "Tarefas para Crianças: Conquista Obtida",
-    "message": "Conquistaste a conquista {achievement_name}!"
-  },
-  "achievement_earned_parent": {
-    "title": "Tarefas para Crianças: Conquista Obtida",
-    "message": "{kid_name} conquista merecida {achievement_name}!"
+    "title": "🏆 Conquista alcançada!",
+    "message": "Ganhou {achievement_name}! Continuem com o excelente trabalho!"
   },
   "challenge_completed_kid": {
-    "title": "Tarefas para Crianças: Desafio Concluído",
-    "message": "Concluiu o desafio {challenge_name}!"
+    "title": "🏁 Desafio Concluído!",
+    "message": "Concluiu {challenge_name}! Continuem com o excelente trabalho!"
+  },
+  "penalty_applied_kid": {
+    "title": "⚠️ Penalidade aplicada",
+    "message": "{penalty_name}: {points} pontos deduzidos. Vamos voltar ao início!"
+  },
+  "bonus_applied_kid": {
+    "title": "⭐ Bónus aplicado!",
+    "message": "{bonus_name}: Ganhou {points} pontos de bónus! Ótimo trabalho!"
+  },
+  "_comment_parent_section": "═══════════════════════════════ ════════════════════════════════",
+  "_comment_parent_desc": "NOTIFICAÇÕES AOS PAIS: Informativas, na terceira pessoa, com instruções para a ação. Formato: '{kid_name}: Acção'. SEM prefixo 'Tarefas da Criança:'.",
+  "_comment_parent_footer": "═══════════════════════════════ ════════════════════════════════",
+  "chore_claimed_parent": {
+    "title": "✋ {kid_name}: Tarefa atribuída",
+    "message": "{kid_name} reivindicou {chore_name} e está a trabalhar nisso agora"
+  },
+  "chore_reminder_parent": {
+    "title": "⏰ {kid_name}: Aprovação necessária",
+    "message": "Lembrete: {chore_name} reivindicado por {kid_name} está a aguardar a sua avaliação."
+  },
+  "chore_overdue_parent": {
+    "title": "⚠️ {kid_name}: Tarefa atrasada",
+    "message": "{kid_name}'s chore {chore_name} is overdue (due: {due_date})"
+  },
+  "pending_chores_parent": {
+    "title": "📋 {kid_name}: {count} Pendente",
+    "message": "{count} tarefas que aguardam revisão. Mais recente: {latest_chore} (+{points} pts)"
+  },
+  "reward_claimed_parent": {
+    "title": "🎁 {kid_name}: Pedido de Recompensa",
+    "message": "{kid_name} solicitou {reward_name} pontos no valor de {points}"
+  },
+  "reward_reminder_parent": {
+    "title": "⏰ {kid_name}: Recompensa pendente",
+    "message": "Recorde-se: {reward_name} solicitado por {kid_name} aguarda a sua aprovação."
+  },
+  "badge_earned_parent": {
+    "title": "🏆 {kid_name}: Insígnia Conquistada",
+    "message": "{kid_name} ganhou o crachá {badge_name} !"
+  },
+  "achievement_earned_parent": {
+    "title": "⭐ {kid_name}: Conquista",
+    "message": "{kid_name} ganhou {achievement_name}"
   },
   "challenge_completed_parent": {
-    "title": "Tarefas para Crianças: Desafio Concluído",
-    "message": "{kid_name} desafio concluído {challenge_name}!"
+    "title": "🎯 {kid_name}: Desafio Concluído",
+    "message": "{kid_name} concluído {challenge_name}"
   },
-  "penalty_applied": {
-    "title": "Tarefas para Crianças: Penalização Aplicada",
-    "message": "Penalidade {penalty_name} aplicada: -{points} pontos"
+  "_comment_system_section": "═══════════════════════════════ ════════════════════════════════",
+  "_comment_system_desc": "NOTIFICAÇÕES DO SISTEMA/ADMINISTRADOR: Operações de gestão de dados",
+  "_comment_system_footer": "═══════════════════════════════ ════════════════════════════════",
+  "data_reset": {
+    "title": "🔄 KidsChores: Redefinição de dados",
+    "message": "Os dados do sistema foram repostos."
   },
-  "bonus_applied": {
-    "title": "Tarefas para Crianças: Bónus Aplicado",
-    "message": "Bônus {bonus_name} aplicado: +{points} pontos"
+  "data_reset_global": {
+    "title": "🔄 Tarefas para Crianças: Reinício Completo",
+    "message": "Todos os dados do sistema foram repostos nos valores padrão."
   },
-  "pending_chores": {
-    "title": "Tarefas para Crianças: {kid_name}",
-    "message": "{count} tarefas pendentes (mais recentes: {latest_chore} +{points}pts)"
+  "data_reset_kid": {
+    "title": "🔄 Tarefas para Crianças: Reiniciar a Rotina Infantil",
+    "message": "Reinicialização de dados para {kid_name}"
   },
-  "status_update": {
-    "title": "✅ Tarefas para Crianças",
-    "message": "Estado atualizado"
+  "data_reset_item_type": {
+    "title": "🔄 Tarefas para Crianças: {item_type} Reiniciar",
+    "message": "Todos os dados {item_type} foram repostos"
   },
-  "chore_approved_status": {
-    "title": "✅ Tarefas para Crianças",
-    "message": "{chore_name} aprovado por {parent_name}"
+  "data_reset_item": {
+    "title": "🔄 Tarefas Infantis: Redefinição de Itens",
+    "message": "{item_type} '{item_name}' foi reposto"
   },
-  "chore_disapproved_status": {
-    "title": "❌ Tarefas para Crianças",
-    "message": "{chore_name} desaprovado por {parent_name}"
-  },
-  "reward_approved_status": {
-    "title": "✅ Tarefas para Crianças",
-    "message": "{reward_name} recompensa aprovada"
-  },
+  "_comment_actions_section": "═══════════════════════════════ ════════════════════════════════",
+  "_comment_actions_desc": "BOTÕES DE AÇÃO DE NOTIFICAÇÃO: Linguagem mais suave e encorajadora",
+  "_comment_actions_footer": "═══════════════════════════════ ════════════════════════════════",
   "actions": {
-    "approve": "Aprovar",
-    "claim": "✋ Reivindique agora",
-    "complete": "Concluir",
-    "disapprove": "Desaprovar",
-    "remind_30": "Lembrete em 30 minutos",
-    "skip": "Ignorar",
-    "approve_latest": "✅ Aprovar mais recente",
-    "review_all": "👀 Analisar tudo"
+    "approve": "✅ Aprovar",
+    "claim": "✋ Eu consegui!",
+    "complete": "✅ Completo",
+    "disapprove": "↩️ Desaprovar",
+    "remind_30": "⏰ Lembrete em 30 minutos",
+    "skip": "⏭️ Saltar"
   }
 }
