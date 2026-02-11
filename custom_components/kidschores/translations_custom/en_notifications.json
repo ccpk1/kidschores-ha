@@ -13,7 +13,7 @@
   },
   "chore_disapproved": {
     "title": "KidsChores: Chore Disapproved",
-    "message": "{kid_name}'s chore {chore_name} was not approved"
+    "message": "Your chore {chore_name} was not approved"
   },
   "chore_overdue": {
     "title": "KidsChores: Chore Overdue",

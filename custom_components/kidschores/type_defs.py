@@ -211,7 +211,18 @@ class ChoreData(TypedDict):
     auto_approve: NotRequired[bool]
 
     # Completion criteria
-    completion_criteria: str  # SHARED, SHARED_FIRST, INDEPENDENT
+    completion_criteria: str  # SHARED, SHARED_FIRST, INDEPENDENT, ROTATION_*
+
+    # Rotation tracking (v0.5.0 Chore Logic - only for rotation_* criteria)
+    rotation_current_kid_id: NotRequired[
+        str | None
+    ]  # kid_id UUID of current turn holder
+    rotation_cycle_override: NotRequired[
+        bool
+    ]  # Boolean: temp allow any kid to claim (cleared on advancement)
+
+    # Claims restriction (v0.5.0 Chore Logic - blocks claims before due window)
+    claim_restriction_enabled: NotRequired[bool]
 
 
 # =============================================================================

@@ -142,8 +142,8 @@
           "chore_labels": "Tags to organize chores (e.g., 'kitchen', 'outdoor'). Leave blank if not needed.",
           "default_points": "Points earned when completed.",
           "assigned_kids": "Kids who can see and claim this chore.",
-          "completion_criteria": "Independent (each kid completes separately), Shared All (all must complete), or Shared First (first to claim blocks others).",
-          "approval_reset_type": "Controls when this chore resets and how many completions are allowed during that period.",
+          "completion_criteria": "Controls how the chore is completed when multiple kids are assigned: individual tracking, shared completion, or turn-based rotation.",
+          "approval_reset_type": "Controls when the chore's approval cycle boundary fires (midnight, due date, upon completion, or manual trigger).",
           "approval_reset_pending_claim_action": "This is what happens to claims still waiting for approval when the approval reset occurs.",
           "overdue_handling_type": "Action after due date: Hide overdue status, remain overdue until claimed, or reset to pending at next approval cycle.",
           "auto_approve": "When enabled, claims are instantly approved without parent review.",
@@ -511,10 +511,10 @@
           "chore_labels": "Tags to organize chores (e.g., 'kitchen', 'outdoor'). Leave blank if not needed.",
           "default_points": "Points earned when completed.",
           "assigned_kids": "Kids who can see and claim this chore.",
-          "completion_criteria": "Independent (each kid completes separately), Shared All (all must complete), or Shared First (first to claim blocks others).",
-          "approval_reset_type": "Controls when this chore approval resets and how many completions are allowed during that period.",
-          "approval_reset_pending_claim_action": "This is what happens to claims still waiting for approval when the approval reset occurs.",
-          "overdue_handling_type": "Action after due date: Hide overdue status, remain overdue until claimed, or reset to pending at next approval cycle.",
+          "completion_criteria": "Controls how the chore is completed when multiple kids are assigned: individual tracking, shared completion, or turn-based rotation.",
+          "approval_reset_type": "Controls when the chore's approval cycle boundary fires (midnight, due date, upon completion, or manual trigger).",
+          "approval_reset_pending_claim_action": "Controls what happens to unapproved claims when the approval reset boundary fires.",
+          "overdue_handling_type": "Controls what happens when the due date passes and what happens to overdue chores at the approval reset boundary.",
           "auto_approve": "When enabled, claims are instantly approved without parent review.",
           "recurring_frequency": "How often the chore recurs: Daily, Weekly, Monthly, Yearly, Custom, or None. If you select 'Daily - Multiple times per day', an additional screen will appear to configure the specific times.",
           "custom_interval": "Number of time units between repetitions (e.g., 3 for 'every 3 weeks'). Only used with Custom frequency.",
@@ -908,10 +908,10 @@
           "chore_labels": "Tags to organize chores (e.g., 'kitchen', 'outdoor'). Leave blank if not needed.",
           "default_points": "Points earned when completed.",
           "assigned_kids": "Kids who can see and claim this chore.",
-          "completion_criteria": "Independent (each kid completes separately), Shared All (all must complete), or Shared First (first to claim blocks others).",
-          "approval_reset_type": "Controls when this chore approval resets and how many completions are allowed during that period.",
-          "approval_reset_pending_claim_action": "When the approval of this chore resets (based on Approval Reset Timing above), what happens to claims still waiting for approval?",
-          "overdue_handling_type": "Action after due date: Hide overdue status, remain overdue until claimed, or reset to pending at next approval cycle.",
+          "completion_criteria": "Controls how the chore is completed when multiple kids are assigned: individual tracking, shared completion, or turn-based rotation.",
+          "approval_reset_type": "Controls when the chore's approval cycle boundary fires (midnight, due date, upon completion, or manual trigger).",
+          "approval_reset_pending_claim_action": "Controls what happens to unapproved claims when the approval reset boundary fires.",
+          "overdue_handling_type": "Controls what happens when the due date passes and what happens to overdue chores at the approval reset boundary.",
           "auto_approve": "When enabled, claims are instantly approved without parent review.",
           "recurring_frequency": "How often the chore recurs: Daily, Weekly, Monthly, Yearly, Custom, or None. If you select 'Daily - Multiple times per day', an additional screen will appear to configure the specific times.",
           "custom_interval": "Number of time units between repetitions (e.g., 3 for 'every 3 weeks'). Only used with Custom frequency.",
@@ -1505,6 +1505,7 @@
       "error_daily_multi_times_too_few": "At least 2 times are required for 'Multiple times per day' frequency. For a single time, use regular 'Daily' frequency.",
       "error_daily_multi_times_too_many": "Maximum 6 times allowed per day for 'Multiple times per day' frequency.",
       "error_daily_multi_due_date_required": "'Multiple times per day' frequency requires a due date to be set. The date determines when scheduling starts and the times determine availability windows each day.",
+      "error_allow_steal_incompatible": "Allow Steal overdue handling is only compatible with Rotation chores (rotation_simple or rotation_smart), 'Once per day' reset type, and requires a due date to define when the steal window opens.",
       "error_at_due_date_reset_requires_due_date": "'At Due Date' approval reset types (Once or Multi) require a due date to be set. Without a due date, the approval reset will never trigger and the chore will remain approved indefinitely.",
       "error_per_kid_applicable_days_invalid": "Invalid applicable days format for one or more kids. Days must be integers 0-6 (Monday-Sunday) with no duplicates.",
       "error_per_kid_daily_multi_times_invalid": "Invalid daily times format for one or more kids. Use 24-hour format separated by | (e.g., 08:00|17:00).",
@@ -1665,7 +1666,9 @@
       "options": {
         "shared_all": "Shared All (All kids must complete together)",
         "independent": "Independent (Each kid completes on their own)",
-        "shared_first": "Shared First (First completion counts)"
+        "shared_first": "Shared First (First completion counts)",
+        "rotation_simple": "Rotation Simple (Turn-holder only, strict order)",
+        "rotation_smart": "Rotation Smart (Turn-holder only, fairness-weighted)"
       }
     },
     "approval_reset_type": {
@@ -1674,16 +1677,19 @@
         "at_midnight_multi": "Multiple times per day - Resets at midnight",
         "at_due_date_once": "Once per period - Resets at due date",
         "at_due_date_multi": "Multiple times per period - Resets at due date",
-        "upon_completion": "Unlimited completions - Resets after completion"
+        "upon_completion": "Unlimited completions - Resets upon completion",
+        "manual": "Manual reset only - No automatic resets"
       }
     },
     "overdue_handling_type": {
       "options": {
-        "at_due_date": "Overdue Until Complete",
         "never_overdue": "Never Overdue",
+        "at_due_date": "Overdue Until Complete",
         "at_due_date_clear_at_approval_reset": "Overdue Until Approval Reset",
         "at_due_date_clear_immediate_on_late": "Overdue Until Complete (Clear Late Approvals Immediately)",
-        "at_due_date_clear_and_mark_missed": "Overdue Until Reset (Mark as Missed)"
+        "at_due_date_clear_and_mark_missed": "Overdue Until Approval Reset (Mark as Missed)",
+        "at_due_date_mark_missed_and_lock": "Lock Until Approval Reset (Prevent claims, mark missed)",
+        "at_due_date_allow_steal": "Allow Steal Until Approval Reset (Rotation Only)"
       }
     },
     "approval_reset_pending_claim_action": {
@@ -2088,22 +2094,22 @@
         },
         "completion_criteria": {
           "name": "Completion Criteria",
-          "description": "How the chore is completed when multiple kids are assigned: independent (each kid completes separately), shared_first (first kid to complete earns points), or shared_all (all kids must complete). Cannot be changed after creation.",
+          "description": "Controls how the chore is completed when multiple kids are assigned: individual tracking, shared completion, or turn-based rotation.",
           "example": "independent"
         },
         "approval_reset_type": {
           "name": "Approval Reset Type",
-          "description": "When the chore resets for re-completion.",
+          "description": "Controls when the chore's approval cycle boundary fires (midnight, due date, upon completion, or manual trigger).",
           "example": "at_midnight_once"
         },
         "pending_claims": {
           "name": "Pending Claims Action",
-          "description": "What happens to pending claims when the chore resets: hold_pending (keep claims), clear_pending (remove claims), or auto_approve_pending (approve all pending).",
+          "description": "Controls what happens to unapproved claims when the approval reset boundary fires.",
           "example": "hold_pending"
         },
         "overdue_handling": {
           "name": "Overdue Handling",
-          "description": "How to handle the chore when it becomes overdue.",
+          "description": "Controls what happens when the due date passes and what happens to overdue chores at the approval reset boundary.",
           "example": "at_due_date"
         },
         "auto_approve": {
@@ -2227,6 +2233,64 @@
           "name": "Name",
           "description": "Name of the chore to delete.",
           "example": "Clean Room"
+        }
+      }
+    },
+    "set_rotation_turn": {
+      "name": "Set Rotation Turn",
+      "description": "Manually assign the current turn to a specific kid in a rotation chore. Only works for rotation chores (rotation_simple or rotation_smart). Use either ID or name for identification.",
+      "fields": {
+        "chore_id": {
+          "name": "Chore ID",
+          "description": "Internal ID of the rotation chore. Optional if chore_name is provided.",
+          "example": "abc123-def456-789..."
+        },
+        "chore_name": {
+          "name": "Chore Name",
+          "description": "Name of the rotation chore. Optional if chore_id is provided.",
+          "example": "Clean Bedroom"
+        },
+        "kid_id": {
+          "name": "Kid ID",
+          "description": "Internal ID of the kid to assign the turn to. Must be assigned to this chore. Optional if kid_name is provided.",
+          "example": "xyz789-abc123-456..."
+        },
+        "kid_name": {
+          "name": "Kid Name",
+          "description": "Name of the kid to assign the turn to. Must be assigned to this chore. Optional if kid_id is provided.",
+          "example": "Alice"
+        }
+      }
+    },
+    "reset_rotation": {
+      "name": "Reset Rotation",
+      "description": "Reset rotation turn to the first assigned kid. Only works for rotation chores (rotation_simple or rotation_smart). Use either ID or name for identification.",
+      "fields": {
+        "chore_id": {
+          "name": "Chore ID",
+          "description": "Internal ID of the rotation chore to reset. Optional if chore_name is provided.",
+          "example": "abc123-def456-789..."
+        },
+        "chore_name": {
+          "name": "Chore Name",
+          "description": "Name of the rotation chore to reset. Optional if chore_id is provided.",
+          "example": "Clean Bedroom"
+        }
+      }
+    },
+    "open_rotation_cycle": {
+      "name": "Open Rotation Cycle",
+      "description": "Enable rotation cycle override for one cycle, allowing any assigned kid to claim regardless of turn. Override clears after next approval. Use either ID or name for identification.",
+      "fields": {
+        "chore_id": {
+          "name": "Chore ID",
+          "description": "Internal ID of the rotation chore to open. Optional if chore_name is provided.",
+          "example": "abc123-def456-789..."
+        },
+        "chore_name": {
+          "name": "Chore Name",
+          "description": "Name of the rotation chore to open. Optional if chore_id is provided.",
+          "example": "Clean Bedroom"
         }
       }
     },
@@ -2368,7 +2432,10 @@
           "none": "None",
           "approved_in_part": "Approved (in-part)",
           "claimed_in_part": "Claimed (in-part)",
-          "completed_by_other": "Completed by Other"
+          "completed_by_other": "Completed by Other",
+          "waiting": "Waiting (Due Window Not Open)",
+          "not_my_turn": "Not My Turn (Rotation)",
+          "missed": "Missed (Locked)"
         },
         "state_attributes": {
           "purpose": {
@@ -2403,7 +2470,9 @@
             "state": {
               "independent": "Independent",
               "shared_first": "Shared (First)",
-              "shared_all": "Shared (All)"
+              "shared_all": "Shared (All)",
+              "rotation_simple": "Rotation Simple",
+              "rotation_smart": "Rotation Smart"
             }
           },
           "approval_reset_type": {
@@ -2552,6 +2621,20 @@
           },
           "time_until_overdue": {
             "name": "Time Until Overdue"
+          },
+          "lock_reason": {
+            "name": "Lock Reason",
+            "state": {
+              "waiting": "Waiting for due window",
+              "not_my_turn": "Not your turn",
+              "missed": "Missed"
+            }
+          },
+          "turn_kid_name": {
+            "name": "Turn Kid Name"
+          },
+          "available_at": {
+            "name": "Available At"
           }
         }
       },
@@ -3138,7 +3221,9 @@
             "state": {
               "independent": "Independent",
               "shared_first": "Shared (First Only)",
-              "shared_all": "Shared (All Required)"
+              "shared_all": "Shared (All Required)",
+              "rotation_simple": "Rotation Simple",
+              "rotation_smart": "Rotation Smart"
             }
           },
           "approval_reset_type": {
@@ -4004,6 +4089,30 @@
     },
     "not_assigned": {
       "message": "{entity} not assigned to {kid}"
+    },
+    "rotation_no_turn_holder": {
+      "message": "Rotation chores must have a turn holder assigned"
+    },
+    "rotation_invalid_order": {
+      "message": "Rotation order must be a non-empty list of kid IDs"
+    },
+    "rotation_duplicate_in_order": {
+      "message": "Rotation order cannot contain duplicate kids"
+    },
+    "rotation_unassigned_in_order": {
+      "message": "All kids in rotation order must be assigned to the chore"
+    },
+    "rotation_min_kids": {
+      "message": "Rotation chores require at least 2 assigned kids"
+    },
+    "not_rotation": {
+      "message": "This chore is not in rotation mode"
+    },
+    "kid_not_assigned": {
+      "message": "Kid is not assigned to this chore"
+    },
+    "no_assigned_kids": {
+      "message": "No kids are assigned to this chore"
     },
     "insufficient_points": {
       "message": "{kid} has {current} points but needs {required} points"

@@ -21,7 +21,7 @@ import asyncio
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, cast
 
-from homeassistant.exceptions import HomeAssistantError
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.util import dt as dt_util
 
 from .. import const, data_builders as db
@@ -342,8 +342,9 @@ class ChoreManager(BaseManager):
             return
 
         # Clean own domain: remove deleted kid from chore assigned_kids
+        cleaned = False
         chores_data = self._coordinator._data.get(const.DATA_CHORES, {})
-        for chore_info in chores_data.values():
+        for _, chore_info in chores_data.items():
             assigned_kids = chore_info.get(const.DATA_ASSIGNED_KIDS, [])
             if kid_id in assigned_kids:
                 chore_info[const.DATA_ASSIGNED_KIDS] = [
@@ -355,6 +356,34 @@ class ChoreManager(BaseManager):
                     chore_info.get(const.DATA_CHORE_NAME),
                 )
                 cleaned = True
+
+                # Phase 3 Step 6: Handle rotation resilience (D-06 resilience)
+                # If deleted kid was the current turn-holder, reassign to first remaining kid
+                if ChoreEngine.is_rotation_mode(chore_info):
+                    current_turn_holder = chore_info.get(
+                        const.DATA_CHORE_ROTATION_CURRENT_KID_ID
+                    )
+                    if current_turn_holder == kid_id:
+                        remaining_kids = chore_info.get(const.DATA_ASSIGNED_KIDS, [])
+                        if remaining_kids:
+                            # Reassign to first remaining kid
+                            chore_info[const.DATA_CHORE_ROTATION_CURRENT_KID_ID] = (
+                                remaining_kids[0]
+                            )
+                            const.LOGGER.debug(
+                                "Rotation resilience: Reassigned turn from deleted kid %s to %s for chore '%s'",
+                                kid_id,
+                                remaining_kids[0],
+                                chore_info.get(const.DATA_CHORE_NAME),
+                            )
+                        else:
+                            # No kids left - clear rotation metadata
+                            chore_info[const.DATA_CHORE_ROTATION_CURRENT_KID_ID] = None
+                            chore_info[const.DATA_CHORE_ROTATION_CYCLE_OVERRIDE] = False
+                            const.LOGGER.debug(
+                                "Rotation resilience: Cleared rotation metadata for chore '%s' (no kids remaining)",
+                                chore_info.get(const.DATA_CHORE_NAME),
+                            )
 
             # Clean up per-kid data structures
             per_kid_due_dates = chore_info.get(const.DATA_CHORE_PER_KID_DUE_DATES, {})
@@ -449,6 +478,19 @@ class ChoreManager(BaseManager):
         has_pending = ChoreEngine.chore_has_pending_claim(kid_chore_data)
         is_approved = self.chore_is_approved_in_period(kid_id, chore_id)
 
+        # v0.5.0 FSM integration: Calculate resolved state for rotation/due window blocking
+        due_date = self.get_due_date(chore_id, kid_id)
+        due_window_start = self.get_due_window_start(kid_id, chore_id)
+        resolved_state, lock_reason = ChoreEngine.resolve_kid_chore_state(
+            chore_data=chore_data,
+            kid_id=kid_id,
+            due_date=due_date,
+            due_window_start=due_window_start,
+            has_pending_claim=has_pending,
+            is_approved_in_period=is_approved,
+            now=dt_util.now(),
+        )
+
         # For SHARED_FIRST, collect other kids' states for blocking check
         completion_criteria = chore_data.get(
             const.DATA_CHORE_COMPLETION_CRITERIA,
@@ -467,13 +509,15 @@ class ChoreManager(BaseManager):
                         const.DATA_KID_CHORE_DATA_STATE, const.CHORE_STATE_PENDING
                     )
 
-        # Delegate validation to engine (stateless pure logic)
+        # Delegate validation to engine (stateless pure logic with FSM state)
         can_claim, error_key = ChoreEngine.can_claim_chore(
             kid_chore_data=kid_chore_data,
             chore_data=chore_data,
             has_pending_claim=has_pending,
             is_approved_in_period=is_approved,
             other_kid_states=other_kid_states,
+            resolved_state=resolved_state,
+            lock_reason=lock_reason,
         )
 
         if not can_claim:
@@ -1565,7 +1609,31 @@ class ChoreManager(BaseManager):
             kid_name = kid_info.get(const.DATA_KID_NAME, "Unknown")
             kids_assigned = chore_data.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
 
-            # Calculate and apply state transition via Engine
+            # Phase 3 Step 2: Check for mark_missed_and_lock overdue handling
+            overdue_handling = chore_data.get(
+                const.DATA_CHORE_OVERDUE_HANDLING_TYPE,
+                const.DEFAULT_OVERDUE_HANDLING_TYPE,
+            )
+
+            if (
+                overdue_handling
+                == const.OVERDUE_HANDLING_AT_DUE_DATE_MARK_MISSED_AND_LOCK
+            ):
+                # Lock the chore in MISSED state (not claimable)
+                kid_chore_data[const.DATA_KID_CHORE_DATA_STATE] = (
+                    const.CHORE_STATE_MISSED
+                )
+                self._update_global_state(chore_id)
+
+                # Record missed stat (handles persist and signal emission)
+                self._record_chore_missed(
+                    kid_id, chore_id, due_date=due_dt, reason="strict_lock"
+                )
+
+                marked_count += 1
+                continue  # Skip normal overdue processing
+
+            # Calculate and apply state transition via Engine (normal overdue path)
             effects = ChoreEngine.calculate_transition(
                 chore_data=chore_data,
                 actor_kid_id=kid_id,
@@ -1766,6 +1834,33 @@ class ChoreManager(BaseManager):
                     ):
                         self._record_chore_missed(kid_id, chore_id)
 
+                # Phase 3 Step 3: Clear MISSED lock at midnight for mark_missed_and_lock strategy
+                if current_state == const.CHORE_STATE_MISSED:
+                    overdue_handling = chore_info.get(
+                        const.DATA_CHORE_OVERDUE_HANDLING_TYPE,
+                        const.DEFAULT_OVERDUE_HANDLING_TYPE,
+                    )
+                    if (
+                        overdue_handling
+                        == const.OVERDUE_HANDLING_AT_DUE_DATE_MARK_MISSED_AND_LOCK
+                        and trigger == const.CHORE_SCAN_TRIGGER_MIDNIGHT
+                    ):
+                        # D-17: For rotation chores, advance turn if current holder missed
+                        if ChoreEngine.is_rotation_mode(chore_info):
+                            current_turn_holder = chore_info.get(
+                                const.DATA_CHORE_ROTATION_CURRENT_KID_ID
+                            )
+                            if current_turn_holder == kid_id:
+                                # Advance rotation to next kid
+                                rotation_payload = self._advance_rotation(
+                                    chore_id, kid_id, method="auto"
+                                )
+                                # Collect payloads for batch emission after persist
+                                if rotation_payload:
+                                    if "rotation_payloads" not in locals():
+                                        rotation_payloads = []
+                                    rotation_payloads.append(rotation_payload)
+
                 self._transition_chore_state(
                     kid_id,
                     chore_id,
@@ -1773,6 +1868,11 @@ class ChoreManager(BaseManager):
                     reset_approval_period=True,
                     clear_ownership=True,
                 )
+
+                # Reschedule if category indicates rescheduling is needed
+                if category == "reset_and_reschedule":
+                    self._reschedule_chore_due(chore_id)
+
                 reset_count += 1
                 reset_pairs.add((kid_id, chore_id))
 
@@ -1825,6 +1925,36 @@ class ChoreManager(BaseManager):
                     ):
                         self._record_chore_missed(kid_id, chore_id)
 
+                # Phase 3 Step 3: Clear MISSED lock at midnight for mark_missed_and_lock strategy
+                if kid_state == const.CHORE_STATE_MISSED:
+                    overdue_handling = chore_info.get(
+                        const.DATA_CHORE_OVERDUE_HANDLING_TYPE,
+                        const.DEFAULT_OVERDUE_HANDLING_TYPE,
+                    )
+                    if (
+                        overdue_handling
+                        == const.OVERDUE_HANDLING_AT_DUE_DATE_MARK_MISSED_AND_LOCK
+                        and trigger == const.CHORE_SCAN_TRIGGER_MIDNIGHT
+                    ):
+                        # D-17: For rotation chores, advance turn if current holder missed
+                        if ChoreEngine.is_rotation_mode(chore_info):
+                            current_turn_holder = chore_info.get(
+                                const.DATA_CHORE_ROTATION_CURRENT_KID_ID
+                            )
+                            if current_turn_holder == kid_id:
+                                # Advance rotation to next kid
+                                rotation_payload = self._advance_rotation(
+                                    chore_id, kid_id, method="auto"
+                                )
+                                # Collect payloads for batch emission after persist
+                                if (
+                                    rotation_payload
+                                    and "rotation_payloads" not in locals()
+                                ):
+                                    rotation_payloads = []
+                                if rotation_payload:
+                                    rotation_payloads.append(rotation_payload)
+
                 self._transition_chore_state(
                     kid_id,
                     chore_id,
@@ -1832,6 +1962,11 @@ class ChoreManager(BaseManager):
                     reset_approval_period=True,
                     clear_ownership=True,
                 )
+
+                # Reschedule if category indicates rescheduling is needed
+                if category == "reset_and_reschedule":
+                    self._reschedule_chore_due(chore_id, kid_id)
+
                 reset_count += 1
                 reset_pairs.add((kid_id, chore_id))
 
@@ -1846,6 +1981,11 @@ class ChoreManager(BaseManager):
         if persist and reset_count > 0:
             self._coordinator._persist()
             self._coordinator.async_set_updated_data(self._coordinator._data)
+
+            # Emit rotation signals after successful persist
+            if "rotation_payloads" in locals():
+                for payload in rotation_payloads:
+                    self.emit(const.SIGNAL_SUFFIX_CHORE_ROTATION_ADVANCED, **payload)
 
         return reset_count, reset_pairs
 
@@ -2339,6 +2479,21 @@ class ChoreManager(BaseManager):
             )
 
         existing = chores_data[chore_id]
+
+        # Phase 3 Step 5: Handle completion_criteria transitions (D-11)
+        # Wire transition handler for options flow (services remain immutable)
+        old_criteria = existing.get(
+            const.DATA_CHORE_COMPLETION_CRITERIA,
+            const.COMPLETION_CRITERIA_INDEPENDENT,
+        )
+        new_criteria = updates.get(const.DATA_CHORE_COMPLETION_CRITERIA)
+
+        if new_criteria and new_criteria != old_criteria:
+            # Transition handler validates, initializes/clears fields, persists, emits
+            self._handle_criteria_transition(chore_id, old_criteria, new_criteria)
+            # Return updated chore data (transition handler already persisted)
+            return chores_data[chore_id]
+
         # Build updated chore (merge existing with updates)
         updated_chore = dict(db.build_chore(updates, existing=existing))
 
@@ -2766,9 +2921,25 @@ class ChoreManager(BaseManager):
         ):
             return (False, const.TRANS_KEY_ERROR_CHORE_ALREADY_APPROVED)
 
-        # Check 3: Delegate to Engine for SHARED_FIRST blocking
+        # Check 3: Delegate to Engine for SHARED_FIRST blocking and FSM-based locking
+        # v0.5.0: Calculate resolved_state to enable rotation/waiting/missed blocking
         has_pending = ChoreEngine.chore_has_pending_claim(kid_chore_data)
         is_approved = self.chore_is_approved_in_period(kid_id, chore_id)
+
+        # Get resolved state for FSM-based claim blocking (rotation, waiting, missed)
+        # Use existing helper methods to get due_date and due_window_start
+        due_date = self.get_due_date(chore_id, kid_id)
+        due_window_start = self.get_due_window_start(kid_id, chore_id)
+
+        resolved_state, lock_reason = ChoreEngine.resolve_kid_chore_state(
+            chore_data=chore_data,
+            kid_id=kid_id,
+            now=dt_util.now(),
+            is_approved_in_period=is_approved,
+            has_pending_claim=has_pending,
+            due_date=due_date,
+            due_window_start=due_window_start,
+        )
 
         return ChoreEngine.can_claim_chore(
             kid_chore_data=kid_chore_data,
@@ -2776,6 +2947,8 @@ class ChoreManager(BaseManager):
             has_pending_claim=has_pending,
             is_approved_in_period=is_approved,
             other_kid_states=other_kid_states,
+            resolved_state=resolved_state,
+            lock_reason=lock_reason,
         )
 
     def can_approve_chore(self, kid_id: str, chore_id: str) -> tuple[bool, str | None]:
@@ -2893,21 +3066,26 @@ class ChoreManager(BaseManager):
             const.DATA_KID_CHORE_DATA_STATE, const.CHORE_STATE_PENDING
         )
 
-        # Derive display state with priority
-        # Priority: approved > completed_by_other > claimed > overdue > due > pending
-        if is_approved:
-            display_state = const.CHORE_STATE_APPROVED
-        elif is_completed_by_other:
-            # Phase 2: Use string literal since CHORE_STATE_COMPLETED_BY_OTHER removed
+        # v0.5.0: Use FSM to derive display state (replaces old priority logic)
+        # Get due_date and due_window_start for FSM calculation
+        due_date = self.get_due_date(chore_id, kid_id)
+        due_window_start = self.get_due_window_start(kid_id, chore_id)
+
+        # Resolve state using FSM (8-tier priority: approved > claimed > not_my_turn > missed > overdue > waiting > due > pending)
+        display_state, lock_reason = ChoreEngine.resolve_kid_chore_state(
+            chore_data=chore_data,
+            kid_id=kid_id,
+            now=dt_util.now(),
+            is_approved_in_period=is_approved,
+            has_pending_claim=has_pending,
+            due_date=due_date,
+            due_window_start=due_window_start,
+        )
+
+        # Fall back to completed_by_other for SHARED_FIRST if another kid active
+        # (This is a display-only state not in FSM)
+        if is_completed_by_other and display_state == const.CHORE_STATE_PENDING:
             display_state = "completed_by_other"
-        elif has_pending:
-            display_state = const.CHORE_STATE_CLAIMED
-        elif is_overdue:
-            display_state = const.CHORE_STATE_OVERDUE
-        elif is_due:
-            display_state = const.CHORE_STATE_DUE
-        else:
-            display_state = const.CHORE_STATE_PENDING
 
         return {
             "state": display_state,
@@ -3183,9 +3361,37 @@ class ChoreManager(BaseManager):
         # Update global chore state (aggregates all kids' states)
         self._update_global_state(chore_id)
 
+        # Phase 3 Step 1: Advance rotation turn when resetting to PENDING
+        # (Rotation advances at approval reset boundary, NOT on approval)
+        rotation_signal_payload = None
+        if new_state == const.CHORE_STATE_PENDING and reset_approval_period:
+            # Find the kid who completed this cycle (for rotation advancement)
+            # Use completed_by from chore_info before clear_ownership wipes it
+            completed_by_kid_id = None
+            if not clear_ownership:
+                # If ownership not cleared yet, get from current data
+                completed_by = chore_info.get(const.DATA_CHORE_COMPLETED_BY)
+                if isinstance(completed_by, str):
+                    completed_by_kid_id = completed_by
+                elif isinstance(completed_by, list) and completed_by:
+                    completed_by_kid_id = completed_by[0]
+
+            # Advance rotation (returns payload for signal emission after persist)
+            if completed_by_kid_id:
+                rotation_signal_payload = self._advance_rotation(
+                    chore_id, completed_by_kid_id, method="auto"
+                )
+
         # Persist and emit (per DEVELOPMENT_STANDARDS.md § 5.3)
         if persist:
             self._coordinator._persist()
+
+            # Phase 3 Step 1: Emit rotation signal after persist
+            if rotation_signal_payload:
+                self.emit(
+                    const.SIGNAL_SUFFIX_CHORE_ROTATION_ADVANCED,
+                    **rotation_signal_payload,
+                )
 
             # Emit reset signal when transitioning to PENDING
             if emit and new_state == const.CHORE_STATE_PENDING:
@@ -3241,8 +3447,14 @@ class ChoreManager(BaseManager):
 
         Returns:
             The kid_chore_data dict for this kid+chore
+
+        Raises:
+            ValueError: If kid_id does not exist (kid was deleted)
         """
-        kid_info = self._coordinator.kids_data[kid_id]
+        # Defensive check: kid may have been deleted during async operations
+        kid_info = self._coordinator.kids_data.get(kid_id)
+        if not kid_info:
+            raise ValueError(f"Kid {kid_id} does not exist (may have been deleted)")
 
         # Phase 3B Landlord duty: Ensure chore_data container exists
         kid_chores: dict[str, dict[str, Any]] | None = kid_info.get(
@@ -3388,6 +3600,338 @@ class ChoreManager(BaseManager):
 
         return True
 
+    def _advance_rotation(
+        self, chore_id: str, completing_kid_id: str, method: str = "auto"
+    ) -> dict[str, Any] | None:
+        """Advance rotation turn to next kid after approval.
+
+        Phase 3 Step 1: Rotation turn advancement logic.
+        Called after successful approval, before _persist().
+
+        Args:
+            chore_id: The chore's internal ID
+            completing_kid_id: The kid who just completed the chore
+            method: "auto" (normal approval), "simple" (forced simple),
+                   "smart" (forced smart), or "manual" (service call)
+
+        Returns:
+            Signal payload dict for CHORE_ROTATION_ADVANCED, or None if not rotation mode.
+            Caller should emit signal after _persist() succeeds.
+        """
+        chore_data = self._coordinator.chores_data[chore_id]
+
+        # Early exit if not rotation mode
+        if not ChoreEngine.is_rotation_mode(chore_data):
+            return None
+
+        # Capture previous turn holder for signal
+        previous_kid_id = chore_data.get(const.DATA_CHORE_ROTATION_CURRENT_KID_ID)
+
+        # Determine rotation type
+        completion_criteria = chore_data.get(
+            const.DATA_CHORE_COMPLETION_CRITERIA,
+            const.COMPLETION_CRITERIA_INDEPENDENT,
+        )
+
+        # Get assigned kids list
+        assigned_kids = chore_data.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
+
+        # Calculate next turn based on rotation type
+        new_kid_id: str | None = None
+
+        if method == "auto":
+            # Determine method from completion criteria
+            if completion_criteria == const.COMPLETION_CRITERIA_ROTATION_SIMPLE:
+                method = "simple"
+            elif completion_criteria == const.COMPLETION_CRITERIA_ROTATION_SMART:
+                method = "smart"
+
+        if method == "simple":
+            # Simple rotation: round-robin by list index
+            new_kid_id = ChoreEngine.calculate_next_turn_simple(
+                assigned_kids, completing_kid_id
+            )
+
+        elif method == "smart":
+            # Smart rotation: fairness-weighted selection
+            # Query StatisticsManager for completed counts and last completed timestamps
+            # Phase 3 Step 8: Methods now implemented - smart rotation enabled
+            if hasattr(
+                self.coordinator.statistics_manager, "get_chore_completed_counts"
+            ):
+                completed_counts = (
+                    self.coordinator.statistics_manager.get_chore_completed_counts(
+                        chore_id, assigned_kids
+                    )
+                )
+                last_completed_timestamps = self.coordinator.statistics_manager.get_chore_last_completed_timestamps(
+                    chore_id, assigned_kids
+                )
+
+                new_kid_id = ChoreEngine.calculate_next_turn_smart(
+                    assigned_kids=assigned_kids,
+                    completed_counts=completed_counts,
+                    last_completed_timestamps=last_completed_timestamps,
+                )
+            else:
+                # Fallback to simple rotation until Step 8 is complete
+                const.LOGGER.debug(
+                    "Smart rotation methods not yet implemented, using simple rotation"
+                )
+                new_kid_id = ChoreEngine.calculate_next_turn_simple(
+                    assigned_kids, completing_kid_id
+                )
+
+        elif method == "manual":
+            # Manual method: turn was already set by service call
+            # Just emit signal, don't change rotation_current_kid_id
+            new_kid_id = chore_data.get(const.DATA_CHORE_ROTATION_CURRENT_KID_ID)
+
+        # Update rotation metadata
+        if new_kid_id:
+            chore_data[const.DATA_CHORE_ROTATION_CURRENT_KID_ID] = new_kid_id
+
+        # Clear rotation override after advancement (D-15: cleared on next approval)
+        chore_data[const.DATA_CHORE_ROTATION_CYCLE_OVERRIDE] = False
+
+        # Return payload for caller to emit after _persist()
+        return {
+            "chore_id": chore_id,
+            "previous_kid_id": previous_kid_id,
+            "new_kid_id": new_kid_id,
+            "method": method,
+        }
+
+    def _handle_criteria_transition(
+        self, chore_id: str, old_criteria: str, new_criteria: str
+    ) -> None:
+        """Handle completion_criteria changes (D-11 — criteria is mutable).
+
+        When user edits chore's completion_criteria field, this method:
+        - Validates rotation requirements (≥2 assigned kids)
+        - Initializes/clears rotation fields as needed
+        - Applies field changes from Engine transition logic
+        - Persists changes and emits CHORE_UPDATED signal
+
+        Args:
+            chore_id: The chore's internal ID
+            old_criteria: Previous completion_criteria value
+            new_criteria: New completion_criteria value
+
+        Raises:
+            ServiceValidationError: If rotation criteria with <2 assigned kids
+        """
+        chore_data = self._coordinator.chores_data.get(chore_id)
+        if not chore_data:
+            raise ServiceValidationError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_CHORE_NOT_FOUND,
+            )
+
+        # Get transition actions from Engine
+        changes = ChoreEngine.get_criteria_transition_actions(
+            old_criteria=old_criteria,
+            new_criteria=new_criteria,
+            chore_data=chore_data,
+        )
+
+        # Validate rotation requirements (D-14: rotation requires ≥2 kids)
+        new_is_rotation = new_criteria in (
+            const.COMPLETION_CRITERIA_ROTATION_SIMPLE,
+            const.COMPLETION_CRITERIA_ROTATION_SMART,
+        )
+        if new_is_rotation:
+            assigned_kids = chore_data.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
+            if len(assigned_kids) < 2:
+                raise ServiceValidationError(
+                    translation_domain=const.DOMAIN,
+                    translation_key=const.TRANS_KEY_ERROR_ROTATION_MIN_KIDS,
+                )
+
+        # Apply field changes to storage
+        for field_name, new_value in changes.items():
+            chore_data[field_name] = new_value  # type: ignore[literal-required]
+
+        # Persist changes
+        self._coordinator._persist()
+
+        # Emit CHORE_UPDATED signal (Phase 4 UX listens for dashboard refresh)
+        self.emit(
+            const.SIGNAL_SUFFIX_CHORE_UPDATED,
+            chore_id=chore_id,
+            updated_fields=list(changes.keys()),
+        )
+
+        const.LOGGER.debug(
+            "Criteria transition: chore=%s %s→%s (applied %d changes)",
+            chore_id,
+            old_criteria,
+            new_criteria,
+            len(changes),
+        )
+
+    # ==========================================================================
+    # PUBLIC ROTATION MANAGEMENT METHODS (Phase 3 Step 7 - v0.5.0)
+    # ==========================================================================
+
+    async def set_rotation_turn(self, chore_id: str, kid_id: str) -> None:
+        """Set rotation turn to a specific kid.
+
+        Called by: services.handle_set_rotation_turn (manual user intervention)
+
+        Args:
+            chore_id: Internal ID of the rotation chore
+            kid_id: Internal ID of the kid to receive the turn
+
+        Raises:
+            ServiceValidationError: If chore is not rotation mode or kid not assigned
+        """
+        chores_data = self._coordinator._data[const.DATA_CHORES]
+
+        if chore_id not in chores_data:
+            raise ServiceValidationError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_CHORE_NOT_FOUND,
+            )
+
+        chore_info = chores_data[chore_id]
+
+        # Validate rotation mode
+        if not ChoreEngine.is_rotation_mode(chore_info):
+            raise ServiceValidationError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_ROTATION,
+            )
+
+        # Validate kid is assigned
+        assigned_kids = chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
+        if kid_id not in assigned_kids:
+            raise ServiceValidationError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_KID_NOT_ASSIGNED,
+            )
+
+        # Set the turn
+        chore_info[const.DATA_CHORE_ROTATION_CURRENT_KID_ID] = kid_id
+
+        # Persist
+        self._coordinator._persist()
+
+        # Emit signal
+        self.emit(
+            const.SIGNAL_SUFFIX_CHORE_UPDATED,
+            chore_id=chore_id,
+            updated_fields=[const.DATA_CHORE_ROTATION_CURRENT_KID_ID],
+        )
+
+        const.LOGGER.info(
+            "Set rotation turn: chore=%s kid=%s",
+            chore_id,
+            kid_id,
+        )
+
+    async def reset_rotation(self, chore_id: str) -> None:
+        """Reset rotation to first assigned kid.
+
+        Called by: services.handle_reset_rotation (manual reset to start)
+
+        Args:
+            chore_id: Internal ID of the rotation chore
+
+        Raises:
+            ServiceValidationError: If chore is not rotation mode or has no assigned kids
+        """
+        chores_data = self._coordinator._data[const.DATA_CHORES]
+
+        if chore_id not in chores_data:
+            raise ServiceValidationError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_CHORE_NOT_FOUND,
+            )
+
+        chore_info = chores_data[chore_id]
+
+        # Validate rotation mode
+        if not ChoreEngine.is_rotation_mode(chore_info):
+            raise ServiceValidationError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_ROTATION,
+            )
+
+        # Validate has assigned kids
+        assigned_kids = chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
+        if not assigned_kids:
+            raise ServiceValidationError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NO_ASSIGNED_KIDS,
+            )
+
+        # Reset to first kid
+        first_kid = assigned_kids[0]
+        chore_info[const.DATA_CHORE_ROTATION_CURRENT_KID_ID] = first_kid
+
+        # Persist
+        self._coordinator._persist()
+
+        # Emit signal
+        self.emit(
+            const.SIGNAL_SUFFIX_CHORE_UPDATED,
+            chore_id=chore_id,
+            updated_fields=[const.DATA_CHORE_ROTATION_CURRENT_KID_ID],
+        )
+
+        const.LOGGER.info(
+            "Reset rotation: chore=%s → kid=%s",
+            chore_id,
+            first_kid,
+        )
+
+    async def open_rotation_cycle(self, chore_id: str) -> None:
+        """Open rotation cycle - allow any assigned kid to claim once.
+
+        Called by: services.handle_open_rotation_cycle (override for one cycle)
+
+        Args:
+            chore_id: Internal ID of the rotation chore
+
+        Raises:
+            ServiceValidationError: If chore is not rotation mode
+        """
+        chores_data = self._coordinator._data[const.DATA_CHORES]
+
+        if chore_id not in chores_data:
+            raise ServiceValidationError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_CHORE_NOT_FOUND,
+            )
+
+        chore_info = chores_data[chore_id]
+
+        # Validate rotation mode
+        if not ChoreEngine.is_rotation_mode(chore_info):
+            raise ServiceValidationError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_NOT_ROTATION,
+            )
+
+        # Set cycle override flag (temp allow any kid to claim)
+        chore_info[const.DATA_CHORE_ROTATION_CYCLE_OVERRIDE] = True
+
+        # Persist
+        self._coordinator._persist()
+
+        # Emit signal
+        self.emit(
+            const.SIGNAL_SUFFIX_CHORE_UPDATED,
+            chore_id=chore_id,
+            updated_fields=[const.DATA_CHORE_ROTATION_CYCLE_OVERRIDE],
+        )
+
+        const.LOGGER.info(
+            "Opened rotation cycle: chore=%s",
+            chore_id,
+        )
+
     def _apply_effect(self, effect: TransitionEffect, chore_id: str) -> None:
         """Apply a single TransitionEffect to coordinator data.
 
@@ -3473,10 +4017,14 @@ class ChoreManager(BaseManager):
                 count_approved += 1
             elif state == const.CHORE_STATE_CLAIMED:
                 count_claimed += 1
-            elif state == const.CHORE_STATE_OVERDUE:
+            elif state in (const.CHORE_STATE_OVERDUE, const.CHORE_STATE_MISSED):
+                # Phase 2: missed maps like overdue for global state
                 count_overdue += 1
-            # Phase 2: CHORE_STATE_COMPLETED_BY_OTHER removed from FSM
-            # All other states (including any legacy data) count as pending
+            elif state == const.CHORE_STATE_NOT_MY_TURN:
+                # Phase 2: not_my_turn is cosmetic, ignore for global aggregation
+                # (rotation chores aggregate based on turn-holder's state)
+                pass
+            # Phase 2: waiting and all other states count as pending
             else:
                 count_pending += 1
 
@@ -3700,7 +4248,13 @@ class ChoreManager(BaseManager):
     # Handle due date recalculation after approvals and scheduled resets.
     # Called from workflow methods and timer-driven operations.
 
-    def _record_chore_missed(self, kid_id: str, chore_id: str) -> None:
+    def _record_chore_missed(
+        self,
+        kid_id: str,
+        chore_id: str,
+        due_date: datetime | None = None,
+        reason: str | None = None,
+    ) -> None:
         """Record that a chore was missed (delegate to StatisticsManager).
 
         Phase 5: Updates last_missed timestamp and calculates missed streak.
@@ -3714,6 +4268,8 @@ class ChoreManager(BaseManager):
         Args:
             kid_id: The kid's internal ID
             chore_id: The chore's internal ID
+            due_date: Optional due date for the missed chore (D-07)
+            reason: Optional reason for missed chore (D-07)
         """
         kid_chore_data = self._get_kid_chore_data(kid_id, chore_id)
 
@@ -3747,13 +4303,21 @@ class ChoreManager(BaseManager):
 
         # Emit signal for StatisticsManager to handle period buckets
         # Pass missed_streak_tally for daily bucket snapshot (display purposes)
-        self.emit(
-            const.SIGNAL_SUFFIX_CHORE_MISSED,
-            kid_id=kid_id,
-            chore_id=chore_id,
-            kid_name=kid_name,
-            missed_streak_tally=new_missed_streak,
-        )
+        # Phase 3 Step 2: Include optional due_date and reason fields (D-07)
+        signal_payload: dict[str, Any] = {
+            "kid_id": kid_id,
+            "chore_id": chore_id,
+            "kid_name": kid_name,
+            "missed_streak_tally": new_missed_streak,
+        }
+        if due_date is not None:
+            signal_payload["due_date"] = (
+                due_date.isoformat() if isinstance(due_date, datetime) else due_date
+            )
+        if reason is not None:
+            signal_payload["reason"] = reason
+
+        self.emit(const.SIGNAL_SUFFIX_CHORE_MISSED, **signal_payload)
 
     def _reschedule_chore_due(
         self,

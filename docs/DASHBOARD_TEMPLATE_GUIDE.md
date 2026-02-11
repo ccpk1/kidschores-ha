@@ -274,6 +274,152 @@ Ensure output has required keys:
 
 ---
 
+## v0.5.0 Chore Attributes Reference
+
+### Dashboard Helper Chore Fields
+
+The `sensor.kc_<kid>_ui_dashboard_helper` provides enriched chore data with these attributes:
+
+#### Core Chore Fields (v0.4.x)
+
+| Field      | Type   | Description                                | Example                   |
+| ---------- | ------ | ------------------------------------------ | ------------------------- |
+| `eid`      | string | Entity ID of the chore's kid status sensor | `sensor.kc_alice_chore_1` |
+| `name`     | string | Human-readable chore name                  | `"Wash Dishes"`           |
+| `state`    | string | Current chore state                        | `"pending"`, `"claimed"`  |
+| `labels`   | list   | Categorization tags                        | `["kitchen", "daily"]`    |
+| `grouping` | string | UI grouping hint                           | `"morning"`, `"evening"`  |
+| `is_am_pm` | bool   | Whether chore uses 12-hour time format     | `true`, `false`           |
+
+#### New v0.5.0 Rotation & Restriction Fields
+
+| Field           | Type         | Description                                                | Example                                  |
+| --------------- | ------------ | ---------------------------------------------------------- | ---------------------------------------- |
+| `lock_reason`   | string\|null | Why chore is locked (null = not locked)                    | `"waiting"`, `"not_my_turn"`, `"missed"` |
+| `turn_kid_name` | string\|null | Current turn holder (rotation chores only)                 | `"Bob"`, `null`                          |
+| `available_at`  | string\|null | ISO timestamp when chore becomes available (waiting state) | `"2026-02-10T17:30:00Z"`, `null`         |
+
+### Jinja2 Template Examples
+
+#### Rotation Status Display
+
+```yaml
+- type: custom:mushroom-template-card
+  primary: |
+    {%- set chore = chores_list[0] -%}
+    {{ chore.name }}
+    {%- if chore.turn_kid_name -%}
+    {%- if chore.turn_kid_name == name -%}
+    🎯 (Your Turn)
+    {%- else -%}
+    ⏳ ({{ chore.turn_kid_name }}'s Turn)
+    {%- endif -%}
+    {%- endif -%}
+  secondary: |
+    {%- set chore = chores_list[0] -%}
+    {%- if chore.lock_reason == "not_my_turn" -%}
+    Wait for {{ chore.turn_kid_name }} to complete their turn
+    {%- elif chore.lock_reason == "missed" -%}
+    ⛔ Missed - wait for next reset
+    {%- elif chore.available_at -%}
+    ⏰ Available {{ chore.available_at | as_timestamp | timestamp_custom('%H:%M') }}
+    {%- else -%}
+    {{ chore.state | title }}
+    {%- endif -%}
+```
+
+#### Availability Countdown
+
+```yaml
+- type: custom:mushroom-template-card
+  primary: Due Window Status
+  secondary: |
+    {%- set chore = chores_list[0] -%}
+    {%- if chore.lock_reason == "waiting" and chore.available_at -%}
+    {%- set available_time = chore.available_at | as_timestamp -%}
+    {%- set now_time = now().timestamp() -%}
+    {%- if available_time > now_time -%}
+    🔒 Available in {{ ((available_time - now_time) / 60) | round(0) }}m
+    {%- else -%}
+    ✅ Now available!
+    {%- endif -%}
+    {%- else -%}
+    Ready to claim
+    {%- endif -%}
+```
+
+#### Lock Reason Icon Mapping
+
+```yaml
+icon: |
+  {%- set chore = chores_list[0] -%}
+  {%- if chore.lock_reason == "waiting" -%}
+  mdi:clock-outline
+  {%- elif chore.lock_reason == "not_my_turn" -%}
+  mdi:account-clock
+  {%- elif chore.lock_reason == "missed" -%}
+  mdi:calendar-remove
+  {%- elif chore.state == "claimed" -%}
+  mdi:hand-wave
+  {%- elif chore.state == "approved" -%}
+  mdi:check-circle
+  {%- else -%}
+  mdi:clipboard-list
+  {%- endif -%}
+icon_color: |
+  {%- set chore = chores_list[0] -%}
+  {%- if chore.lock_reason in ["waiting", "not_my_turn", "missed"] -%}
+  red
+  {%- elif chore.state == "claimed" -%}
+  orange
+  {%- elif chore.state == "approved" -%}
+  green
+  {%- else -%}
+  blue
+  {%- endif -%}
+```
+
+#### Multi-Chore Rotation Summary
+
+```yaml
+- type: custom:auto-entities
+  card:
+    type: entities
+  filter:
+    include:
+      - entity_id: "sensor.kc_<< kid.slug >>_ui_dashboard_helper"
+        options:
+          type: custom:mushroom-template-card
+          primary: |
+            {%- for chore in state_attr(config.entity, 'chores') -%}
+            {%- if chore.turn_kid_name -%}
+            {{ chore.name }}:
+            {%- if chore.turn_kid_name == '<< kid.name >>' -%}
+            🎯 Your turn
+            {%- else -%}
+            {{ chore.turn_kid_name }}'s turn
+            {%- endif -%}
+            {%- if not loop.last %} • {% endif -%}
+            {%- endif -%}
+            {%- endfor -%}
+```
+
+### State to Color Mapping
+
+Standard colors for chore states and lock reasons:
+
+| State/Lock    | Color    | Icon Suggestion       | Meaning                            |
+| ------------- | -------- | --------------------- | ---------------------------------- |
+| `pending`     | `blue`   | `mdi:clipboard-list`  | Ready to claim                     |
+| `claimed`     | `orange` | `mdi:hand-wave`       | Awaiting parent approval           |
+| `approved`    | `green`  | `mdi:check-circle`    | Completed and approved             |
+| `overdue`     | `red`    | `mdi:alert-circle`    | Past due date                      |
+| `waiting`     | `red`    | `mdi:clock-outline`   | Before due window opens            |
+| `not_my_turn` | `purple` | `mdi:account-clock`   | Rotation - not current turn holder |
+| `missed`      | `grey`   | `mdi:calendar-remove` | Terminal state - wait for reset    |
+
+---
+
 ## Adding a New Template Style
 
 1. **Create template file**: `templates/dashboard_[style].yaml`

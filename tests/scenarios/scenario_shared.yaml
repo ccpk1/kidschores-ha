@@ -226,6 +226,88 @@ chores:
     overdue_handling_type: "at_due_date"
     approval_reset_pending_claim_action: "auto_approve_pending"
     due_date: "+1d17:00"
+
+  # ==========================================================================
+  # ROTATION_SIMPLE CHORES (3+ chores for Builder 2 rotation testing)
+  # ==========================================================================
+
+  # Test: 3-kid rotation_simple daily
+  - name: "Dishes Rotation"
+    assigned_to: ["Zoë", "Max!", "Lila"]
+    points: 15.0
+    icon: "mdi:silverware-fork-knife"
+    completion_criteria: "rotation_simple"
+    recurring_frequency: "daily"
+    auto_approve: false
+
+  # Test: 2-kid rotation_simple weekly
+  - name: "Vacuum Living Room"
+    assigned_to: ["Zoë", "Max!"]
+    points: 12.0
+    icon: "mdi:vacuum"
+    completion_criteria: "rotation_simple"
+    recurring_frequency: "weekly"
+    auto_approve: false
+
+  # Test: 3-kid rotation_simple with auto_approve
+  - name: "Feed Pet Fish"
+    assigned_to: ["Zoë", "Max!", "Lila"]
+    points: 5.0
+    icon: "mdi:fish"
+    completion_criteria: "rotation_simple"
+    recurring_frequency: "daily"
+    auto_approve: true
+
+  # Test: 2-kid rotation_simple (different pair)
+  - name: "Water Plants"
+    assigned_to: ["Max!", "Lila"]
+    points: 8.0
+    icon: "mdi:watering-can"
+    completion_criteria: "rotation_simple"
+    recurring_frequency: "daily"
+    auto_approve: false
+
+  # ==========================================================================
+  # ROTATION_SMART CHORES (3+ chores for Builder 2 rotation testing)
+  # ==========================================================================
+
+  # Test: 3-kid rotation_smart daily (fairness-weighted)
+  - name: "Laundry Rotation"
+    assigned_to: ["Zoë", "Max!", "Lila"]
+    points: 20.0
+    icon: "mdi:washing-machine"
+    completion_criteria: "rotation_smart"
+    recurring_frequency: "daily"
+    auto_approve: false
+
+  # Test: 2-kid rotation_smart weekly
+  - name: "Clean Bathroom Mirror"
+    assigned_to: ["Zoë", "Lila"]
+    points: 10.0
+    icon: "mdi:mirror"
+    completion_criteria: "rotation_smart"
+    recurring_frequency: "weekly"
+    auto_approve: false
+
+  # Test: 3-kid rotation_smart with overdue handling
+  - name: "Organize Bookshelf"
+    assigned_to: ["Zoë", "Max!", "Lila"]
+    points: 18.0
+    icon: "mdi:bookshelf"
+    completion_criteria: "rotation_smart"
+    recurring_frequency: "weekly"
+    auto_approve: false
+    due_date: "+7d14:00"
+
+  # Test: 2-kid rotation_smart (different pair)
+  - name: "Clean Computer Desk"
+    assigned_to: ["Max!", "Lila"]
+    points: 12.0
+    icon: "mdi:desk"
+    completion_criteria: "rotation_smart"
+    recurring_frequency: "daily"
+    auto_approve: false
+
 # =============================================================================
 # CHORE COVERAGE MATRIX
 # =============================================================================
@@ -253,7 +335,19 @@ chores:
 #   - Pending Clear, 2 kids: Shared First Pending Clear (10pts) - Zoë, Max
 #   - Pending Auto Approve, 2 kids: Shared First Pending Auto Approve (10pts) - Zoë, Max
 #
-# Kid Assignment Coverage:
-#   - Zoë: 7 chores (all except Clean bathroom)
-#   - Max: 7 chores (all except Get the mail)
-#   - Lila: 6 chores (all except Walk the dog, Organize garage)
+# ROTATION_SIMPLE (4 chores):
+#   - Daily, 3 kids: Dishes Rotation (15pts)
+#   - Weekly, 2 kids: Vacuum Living Room (12pts) - Zoë, Max
+#   - Daily Auto-Approve, 3 kids: Feed Pet Fish (5pts)
+#   - Daily, 2 kids: Water Plants (8pts) - Max, Lila
+#
+# ROTATION_SMART (4 chores):
+#   - Daily, 3 kids: Laundry Rotation (20pts)
+#   - Weekly, 2 kids: Clean Bathroom Mirror (10pts) - Zoë, Lila
+#   - Weekly with Due Date, 3 kids: Organize Bookshelf (18pts)
+#   - Daily, 2 kids: Clean Computer Desk (12pts) - Max, Lila
+#
+# Kid Assignment Coverage (Updated with Rotation Chores):
+#   - Zoë: 13 chores (7 shared + 6 rotation)
+#   - Max: 13 chores (7 shared + 6 rotation)
+#   - Lila: 12 chores (6 shared + 6 rotation)

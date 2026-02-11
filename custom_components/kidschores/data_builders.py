@@ -1289,6 +1289,31 @@ def validate_chore_data(
             )
             return errors
 
+    # === V-03: Rotation requires ≥ 2 assigned kids ===
+    rotation_criteria = {
+        const.COMPLETION_CRITERIA_ROTATION_SIMPLE,
+        const.COMPLETION_CRITERIA_ROTATION_SMART,
+    }
+    if completion_criteria in rotation_criteria:
+        if len(assigned_kids) < 2:
+            errors[const.CFOP_ERROR_ASSIGNED_KIDS] = (
+                const.TRANS_KEY_ERROR_ROTATION_MIN_KIDS
+            )
+            return errors
+
+    # === V-05: at_due_date_allow_steal compatibility ===
+    if overdue_handling == const.OVERDUE_HANDLING_AT_DUE_DATE_ALLOW_STEAL:
+        # Must be a rotation chore
+        if (
+            completion_criteria not in rotation_criteria
+            or approval_reset != const.APPROVAL_RESET_AT_MIDNIGHT_ONCE
+            or not due_date_raw
+        ):
+            errors[const.CFOP_ERROR_OVERDUE_RESET_COMBO] = (
+                const.TRANS_KEY_CFOF_ERROR_ALLOW_STEAL_INCOMPATIBLE
+            )
+            return errors
+
     return errors
 
 
@@ -1383,6 +1408,13 @@ def build_chore(
     )
 
     # --- Build complete chore structure ---
+    # Extract values needed for rotation genesis logic
+    assigned_kids_value = get_field(const.DATA_CHORE_ASSIGNED_KIDS, [])
+    completion_criteria_value = get_field(
+        const.DATA_CHORE_COMPLETION_CRITERIA,
+        const.COMPLETION_CRITERIA_INDEPENDENT,
+    )
+
     # Cast to ChoreData - all required fields are populated
     return cast(
         "ChoreData",
@@ -1420,9 +1452,7 @@ def build_chore(
                 get_field(const.DATA_CHORE_ICON, const.SENTINEL_EMPTY)
             ),
             # Assignment
-            const.DATA_CHORE_ASSIGNED_KIDS: list(
-                get_field(const.DATA_CHORE_ASSIGNED_KIDS, [])
-            ),
+            const.DATA_CHORE_ASSIGNED_KIDS: list(assigned_kids_value),
             # Scheduling
             const.DATA_CHORE_RECURRING_FREQUENCY: recurring_frequency,
             const.DATA_CHORE_CUSTOM_INTERVAL: custom_interval,
@@ -1528,6 +1558,27 @@ def build_chore(
             const.DATA_CHORE_COMPLETION_CRITERIA: get_field(
                 const.DATA_CHORE_COMPLETION_CRITERIA,
                 const.COMPLETION_CRITERIA_INDEPENDENT,
+            ),
+            # Rotation tracking (v0.5.0 Chore Logic)
+            const.DATA_CHORE_ROTATION_CURRENT_KID_ID: get_field(
+                const.DATA_CHORE_ROTATION_CURRENT_KID_ID,
+                (
+                    assigned_kids_value[0]
+                    if (
+                        is_create
+                        and assigned_kids_value
+                        and completion_criteria_value
+                        in (
+                            const.COMPLETION_CRITERIA_ROTATION_SIMPLE,
+                            const.COMPLETION_CRITERIA_ROTATION_SMART,
+                        )
+                    )
+                    else None
+                ),
+            ),
+            # rotation_order removed - unused field, assigned_kids defines order
+            const.DATA_CHORE_ROTATION_CYCLE_OVERRIDE: get_field(
+                const.DATA_CHORE_ROTATION_CYCLE_OVERRIDE, False
             ),
         },
     )

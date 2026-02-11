@@ -344,15 +344,20 @@ from custom_components.kidschores.const import (
     CHORE_STATE_CLAIMED,
     CHORE_STATE_CLAIMED_IN_PART,
     CHORE_STATE_INDEPENDENT,
+    CHORE_STATE_MISSED,  # v0.5.0
+    CHORE_STATE_NOT_MY_TURN,  # v0.5.0
     CHORE_STATE_OVERDUE,
     CHORE_STATE_PENDING,
     CHORE_STATE_UNKNOWN,
+    CHORE_STATE_WAITING,  # v0.5.0
     # =========================================================================
     # COMPLETION CRITERIA
     # =========================================================================
     COMPLETION_CRITERIA_INDEPENDENT,
     COMPLETION_CRITERIA_SHARED,
     COMPLETION_CRITERIA_SHARED_FIRST,
+    COMPLETION_CRITERIA_ROTATION_SIMPLE,  # v0.5.0
+    COMPLETION_CRITERIA_ROTATION_SMART,  # v0.5.0
     # =========================================================================
     # DOMAIN & COORDINATOR
     # =========================================================================
@@ -388,6 +393,8 @@ from custom_components.kidschores.const import (
     DATA_CHORE_PER_KID_DAILY_MULTI_TIMES,
     DATA_CHORE_PER_KID_DUE_DATES,
     DATA_CHORE_RECURRING_FREQUENCY,
+    DATA_CHORE_ROTATION_CURRENT_KID_ID,  # v0.5.0
+    DATA_CHORE_ROTATION_CYCLE_OVERRIDE,  # v0.5.0
     DATA_CHORE_SHOW_ON_CALENDAR,
     DATA_CHORE_STATE,
     DATA_CHORE_TIMESTAMP,
@@ -555,6 +562,9 @@ from custom_components.kidschores.const import (
     SERVICE_MANAGE_SHADOW_LINK,
     SERVICE_RESET_CHORES_TO_PENDING_STATE,  # Renamed from SERVICE_RESET_ALL_CHORES
     SERVICE_SKIP_CHORE_DUE_DATE,  # Phase 5
+    SERVICE_SET_ROTATION_TURN,  # v0.5.0
+    SERVICE_RESET_ROTATION,  # v0.5.0
+    SERVICE_OPEN_ROTATION_CYCLE,  # v0.5.0
     # =========================================================================
     # SERVICE FIELD NAMES (for service call payloads)
     # =========================================================================
@@ -570,10 +580,13 @@ from custom_components.kidschores.const import (
     SERVICE_FIELD_REWARD_CRUD_DESCRIPTION,
     SERVICE_FIELD_REWARD_CRUD_ICON,
     SERVICE_FIELD_REWARD_CRUD_LABELS,
+    SERVICE_FIELD_CHORE_ID,  # v0.5.0
+    SERVICE_FIELD_CHORE_NAME,  # v0.5.0
     # =========================================================================
     # SIGNAL SUFFIXES (Phase 5)
     # =========================================================================
     SIGNAL_SUFFIX_CHORE_MISSED,
+    SIGNAL_SUFFIX_CHORE_ROTATION_ADVANCED,  # v0.5.0
     # =========================================================================
     # LEGACY CONF KEYS (for migration tests)
     # =========================================================================
@@ -627,4 +640,6 @@ COMPLETION_CRITERIA_VALUES: list[str] = [
     COMPLETION_CRITERIA_INDEPENDENT,
     COMPLETION_CRITERIA_SHARED,
     COMPLETION_CRITERIA_SHARED_FIRST,
+    COMPLETION_CRITERIA_ROTATION_SIMPLE,
+    COMPLETION_CRITERIA_ROTATION_SMART,
 ]
