@@ -77,7 +77,11 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             return await self.async_step_points_label()
 
         return self.async_show_form(
-            step_id=const.CONFIG_FLOW_STEP_INTRO, data_schema=vol.Schema({})
+            step_id=const.CONFIG_FLOW_STEP_INTRO,
+            data_schema=vol.Schema({}),
+            description_placeholders={
+                const.PLACEHOLDER_DOCUMENTATION_URL: const.DOC_URL_QUICK_START
+            },
         )
 
     # --------------------------------------------------------------------------
@@ -189,6 +193,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             description_placeholders={
                 "storage_path": str(storage_path.parent),
                 "backup_count": str(len(backups)),
+                const.PLACEHOLDER_DOCUMENTATION_URL: const.DOC_URL_BACKUP_RESTORE,
             },
         )
 
@@ -903,10 +908,25 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
         # Determine step name dynamically
         step_name = const.CONFIG_FLOW_STEP_BADGES
 
+        # Add documentation URL based on badge_type (same logic as options flow)
+        doc_url_map = {
+            const.BADGE_TYPE_CUMULATIVE: const.DOC_URL_BADGES_CUMULATIVE,
+            const.BADGE_TYPE_PERIODIC: const.DOC_URL_BADGES_PERIODIC,
+            const.BADGE_TYPE_ACHIEVEMENT_LINKED: const.DOC_URL_BADGES_OVERVIEW,
+            const.BADGE_TYPE_CHALLENGE_LINKED: const.DOC_URL_BADGES_OVERVIEW,
+            const.BADGE_TYPE_DAILY: const.DOC_URL_BADGES_OVERVIEW,
+            const.BADGE_TYPE_SPECIAL_OCCASION: const.DOC_URL_BADGES_OVERVIEW,
+        }
+
         return self.async_show_form(
             step_id=step_name,
             data_schema=data_schema,
             errors=errors,
+            description_placeholders={
+                const.PLACEHOLDER_DOCUMENTATION_URL: doc_url_map.get(
+                    badge_type, const.DOC_URL_BADGES_OVERVIEW
+                )
+            },
         )
 
     # --------------------------------------------------------------------------

@@ -56,6 +56,47 @@ STORE: Final = "store"
 STORAGE_KEY: Final = "kidschores_data"
 STORAGE_VERSION: Final = 1
 
+# Documentation URLs (injected via description_placeholders to satisfy hassfest)
+DOC_URL_QUICK_START: Final = (
+    "https://github.com/ad-ha/kidschores-ha/wiki/Getting-Started:-Quick-Start"
+)
+DOC_URL_BACKUP_RESTORE: Final = (
+    "https://github.com/ad-ha/kidschores-ha/wiki/Getting-Started:-Backup-Restore"
+)
+DOC_URL_DASHBOARD_GENERATION: Final = (
+    "https://github.com/ad-ha/kidschores-ha/wiki/Getting-Started:-Dashboard-Generation"
+)
+DOC_URL_BADGES_OVERVIEW: Final = (
+    "https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview"
+)
+DOC_URL_BADGES_CUMULATIVE: Final = (
+    "https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Badges-Cumulative"
+)
+DOC_URL_BADGES_PERIODIC: Final = (
+    "https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Badges-Periodic"
+)
+DOC_URL_ACHIEVEMENTS_OVERVIEW: Final = "https://github.com/ad-ha/kidschores-ha/wiki/Challenges-&-Achievements%3A-Overview-&-Functionality"
+DOC_URL_BONUSES_PENALTIES: Final = "https://github.com/ad-ha/kidschores-ha/wiki/Bonuses-&-Penalties%3A-Overview-&-Examples"
+DOC_URL_CHORES: Final = (
+    "https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Chores"
+)
+DOC_URL_CHORES_ADVANCED: Final = (
+    "https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Chores-Advanced"
+)
+DOC_URL_KIDS_PARENTS: Final = (
+    "https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Kids-Parents"
+)
+DOC_URL_POINTS: Final = (
+    "https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Points"
+)
+DOC_URL_REWARDS: Final = (
+    "https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Rewards"
+)
+DOC_URL_MAIN_WIKI: Final = "https://github.com/ad-ha/kidschores-ha/wiki"
+
+# Description Placeholder Keys (for hassfest compliance)
+PLACEHOLDER_DOCUMENTATION_URL: Final = "documentation_url"
+
 # ==============================================================================
 # Dashboard Template Configuration (v0.5.0-beta3, Schema 43)
 # ==============================================================================

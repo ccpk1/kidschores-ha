@@ -131,6 +131,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     )
                 }
             ),
+            description_placeholders={
+                const.PLACEHOLDER_DOCUMENTATION_URL: const.DOC_URL_MAIN_WIKI
+            },
         )
 
     async def async_step_manage_entity(self, user_input=None):
@@ -366,7 +369,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             step_id=const.OPTIONS_FLOW_STEP_MANAGE_POINTS,
             data_schema=points_schema,
             errors=errors,
-            description_placeholders={},
+            description_placeholders={
+                const.PLACEHOLDER_DOCUMENTATION_URL: const.DOC_URL_POINTS
+            },
         )
 
     # ----------------------------------------------------------------------------------
@@ -412,7 +417,12 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             schema = self.add_suggested_values_to_schema(schema, user_input)
 
         return self.async_show_form(
-            step_id=const.OPTIONS_FLOW_STEP_ADD_KID, data_schema=schema, errors=errors
+            step_id=const.OPTIONS_FLOW_STEP_ADD_KID,
+            data_schema=schema,
+            errors=errors,
+            description_placeholders={
+                const.PLACEHOLDER_DOCUMENTATION_URL: const.DOC_URL_KIDS_PARENTS
+            },
         )
 
     async def async_step_edit_kid(self, user_input=None):
@@ -491,6 +501,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 step_id=const.OPTIONS_FLOW_STEP_EDIT_KID_SHADOW,
                 data_schema=schema,
                 errors=errors,
+                description_placeholders={
+                    const.PLACEHOLDER_DOCUMENTATION_URL: const.DOC_URL_KIDS_PARENTS
+                },
             )
 
         # Regular kid (no warnings)
@@ -498,6 +511,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             step_id=const.OPTIONS_FLOW_STEP_EDIT_KID,
             data_schema=schema,
             errors=errors,
+            description_placeholders={
+                const.PLACEHOLDER_DOCUMENTATION_URL: const.DOC_URL_KIDS_PARENTS
+            },
         )
 
     async def async_step_edit_kid_shadow(self, user_input=None):
@@ -596,6 +612,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             step_id=const.OPTIONS_FLOW_STEP_ADD_PARENT,
             data_schema=parent_schema,
             errors=errors,
+            description_placeholders={
+                const.PLACEHOLDER_DOCUMENTATION_URL: const.DOC_URL_KIDS_PARENTS
+            },
         )
 
     async def async_step_edit_parent(self, user_input=None):
@@ -738,6 +757,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             step_id=const.OPTIONS_FLOW_STEP_EDIT_PARENT,
             data_schema=parent_schema,
             errors=errors,
+            description_placeholders={
+                const.PLACEHOLDER_DOCUMENTATION_URL: const.DOC_URL_KIDS_PARENTS
+            },
         )
 
     async def async_step_delete_parent(self, user_input=None):
@@ -801,6 +823,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     step_id=const.OPTIONS_FLOW_STEP_ADD_CHORE,
                     data_schema=schema,
                     errors=errors,
+                    description_placeholders={
+                        const.PLACEHOLDER_DOCUMENTATION_URL: const.DOC_URL_CHORES
+                    },
                 )
 
             # Transform CFOF_* → DATA_* and build chore entity
@@ -1000,7 +1025,12 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         }
         schema = fh.build_chore_schema(kids_dict)
         return self.async_show_form(
-            step_id=const.OPTIONS_FLOW_STEP_ADD_CHORE, data_schema=schema, errors=errors
+            step_id=const.OPTIONS_FLOW_STEP_ADD_CHORE,
+            data_schema=schema,
+            errors=errors,
+            description_placeholders={
+                const.PLACEHOLDER_DOCUMENTATION_URL: const.DOC_URL_CHORES
+            },
         )
 
     async def async_step_edit_chore(self, user_input=None):
@@ -1052,6 +1082,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     step_id=const.OPTIONS_FLOW_STEP_EDIT_CHORE,
                     data_schema=schema,
                     errors=errors,
+                    description_placeholders={
+                        const.PLACEHOLDER_DOCUMENTATION_URL: const.DOC_URL_CHORES
+                    },
                 )
 
             # Transform CFOF_* → DATA_* and build merged chore entity
@@ -1501,6 +1534,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             step_id=const.OPTIONS_FLOW_STEP_EDIT_CHORE,
             data_schema=schema,
             errors=errors,
+            description_placeholders={
+                const.PLACEHOLDER_DOCUMENTATION_URL: const.DOC_URL_CHORES
+            },
         )
 
     # ----- Edit Per-Kid Due Dates for INDEPENDENT Chores -----
@@ -2560,11 +2596,22 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             const.LOGGER.error("Invalid badge type '%s'.", badge_type)
             return self.async_abort(reason=const.TRANS_KEY_CFOF_INVALID_BADGE_TYPE)
 
+        # Determine documentation URL based on badge type
+        doc_url_map = {
+            const.BADGE_TYPE_CUMULATIVE: const.DOC_URL_BADGES_CUMULATIVE,
+            const.BADGE_TYPE_ACHIEVEMENT_LINKED: const.DOC_URL_BADGES_OVERVIEW,
+            const.BADGE_TYPE_CHALLENGE_LINKED: const.DOC_URL_BADGES_OVERVIEW,
+            const.BADGE_TYPE_DAILY: const.DOC_URL_BADGES_OVERVIEW,
+            const.BADGE_TYPE_PERIODIC: const.DOC_URL_BADGES_OVERVIEW,
+            const.BADGE_TYPE_SPECIAL_OCCASION: const.DOC_URL_BADGES_OVERVIEW,
+        }
+        doc_url = doc_url_map.get(badge_type, const.DOC_URL_BADGES_OVERVIEW)
+
         return self.async_show_form(
             step_id=step_name,
             data_schema=data_schema,
             errors=errors,
-            description_placeholders=None,
+            description_placeholders={const.PLACEHOLDER_DOCUMENTATION_URL: doc_url},
             last_step=False,
         )
 
@@ -2706,6 +2753,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             step_id=const.OPTIONS_FLOW_STEP_ADD_REWARD,
             data_schema=schema,
             errors=errors,
+            description_placeholders={
+                const.PLACEHOLDER_DOCUMENTATION_URL: const.DOC_URL_REWARDS
+            },
         )
 
     async def async_step_edit_reward(self, user_input=None):
@@ -2777,6 +2827,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             step_id=const.OPTIONS_FLOW_STEP_EDIT_REWARD,
             data_schema=schema,
             errors=errors,
+            description_placeholders={
+                const.PLACEHOLDER_DOCUMENTATION_URL: const.DOC_URL_REWARDS
+            },
         )
 
     async def async_step_delete_reward(self, user_input=None):
@@ -2859,7 +2912,12 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             schema = self.add_suggested_values_to_schema(schema, user_input)
 
         return self.async_show_form(
-            step_id=const.OPTIONS_FLOW_STEP_ADD_BONUS, data_schema=schema, errors=errors
+            step_id=const.OPTIONS_FLOW_STEP_ADD_BONUS,
+            data_schema=schema,
+            errors=errors,
+            description_placeholders={
+                const.PLACEHOLDER_DOCUMENTATION_URL: const.DOC_URL_BONUSES_PENALTIES
+            },
         )
 
     async def async_step_edit_bonus(self, user_input=None):
@@ -2946,6 +3004,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             step_id=const.OPTIONS_FLOW_STEP_EDIT_BONUS,
             data_schema=schema,
             errors=errors,
+            description_placeholders={
+                const.PLACEHOLDER_DOCUMENTATION_URL: const.DOC_URL_BONUSES_PENALTIES
+            },
         )
 
     async def async_step_delete_bonus(self, user_input=None):
@@ -3033,6 +3094,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             step_id=const.OPTIONS_FLOW_STEP_ADD_PENALTY,
             data_schema=schema,
             errors=errors,
+            description_placeholders={
+                const.PLACEHOLDER_DOCUMENTATION_URL: const.DOC_URL_BONUSES_PENALTIES
+            },
         )
 
     async def async_step_edit_penalty(self, user_input=None):
@@ -3138,6 +3202,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             step_id=const.OPTIONS_FLOW_STEP_EDIT_PENALTY,
             data_schema=schema,
             errors=errors,
+            description_placeholders={
+                const.PLACEHOLDER_DOCUMENTATION_URL: const.DOC_URL_BONUSES_PENALTIES
+            },
         )
 
     async def async_step_delete_penalty(self, user_input=None):
@@ -3246,6 +3313,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             step_id=const.OPTIONS_FLOW_STEP_ADD_ACHIEVEMENT,
             data_schema=schema,
             errors=errors,
+            description_placeholders={
+                const.PLACEHOLDER_DOCUMENTATION_URL: const.DOC_URL_ACHIEVEMENTS_OVERVIEW
+            },
         )
 
     async def async_step_edit_achievement(self, user_input=None):
@@ -3387,6 +3457,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             step_id=const.OPTIONS_FLOW_STEP_EDIT_ACHIEVEMENT,
             data_schema=schema,
             errors=errors,
+            description_placeholders={
+                const.PLACEHOLDER_DOCUMENTATION_URL: const.DOC_URL_ACHIEVEMENTS_OVERVIEW
+            },
         )
 
     async def async_step_delete_achievement(self, user_input=None):
@@ -3560,6 +3633,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             step_id=const.OPTIONS_FLOW_STEP_ADD_CHALLENGE,
             data_schema=challenge_schema,
             errors=errors,
+            description_placeholders={
+                const.PLACEHOLDER_DOCUMENTATION_URL: const.DOC_URL_ACHIEVEMENTS_OVERVIEW
+            },
         )
 
     async def async_step_edit_challenge(self, user_input=None):
@@ -3760,6 +3836,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             step_id=const.OPTIONS_FLOW_STEP_EDIT_CHALLENGE,
             data_schema=challenge_schema,
             errors=errors,
+            description_placeholders={
+                const.PLACEHOLDER_DOCUMENTATION_URL: const.DOC_URL_ACHIEVEMENTS_OVERVIEW
+            },
         )
 
     async def async_step_delete_challenge(self, user_input=None):
@@ -3937,6 +4016,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             step_id="dashboard_create",
             data_schema=schema,
             errors=errors,
+            description_placeholders={
+                const.PLACEHOLDER_DOCUMENTATION_URL: const.DOC_URL_DASHBOARD_GENERATION
+            },
         )
 
     async def async_step_dashboard_delete(
@@ -4257,7 +4339,9 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         return self.async_show_form(
             step_id=const.OPTIONS_FLOW_STEP_MANAGE_GENERAL_OPTIONS,
             data_schema=general_schema,
-            description_placeholders={},
+            description_placeholders={
+                const.PLACEHOLDER_DOCUMENTATION_URL: const.DOC_URL_BACKUP_RESTORE
+            },
         )
 
     async def async_step_restore_backup(
