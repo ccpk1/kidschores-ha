@@ -4,11 +4,11 @@
     "step": {
       "intro": {
         "title": "Bienvenue sur KidsChores",
-        "description": "Cet assistant vous guidera tout au long de la configuration de KidsChores.\n\n[📖 Guide de démarrage rapide](https://github.com/ad-ha/kidschores-ha/wiki/Getting-Started:-Quick-Start)"
+        "description": "Cet assistant vous guidera tout au long de la configuration de KidsChores.\n\n[📖 Guide de démarrage rapide]({documentation_url})"
       },
       "data_recovery": {
         "title": "Options de récupération des données",
-        "description": "Données KidsChores existantes trouvées dans :\n{storage_path}\n\nFichiers de sauvegarde trouvés : {backup_count} .\n\nQue souhaitez-vous faire ?\n\n[📖 En savoir plus sur la sauvegarde et la restauration](https://github.com/ad-ha/kidschores-ha/wiki/Getting-Started:-Backup-Restore)",
+        "description": "Données KidsChores existantes trouvées dans :\n{storage_path}\n\nFichiers de sauvegarde trouvés : {backup_count} .\n\nQue souhaitez-vous faire ?\n\n[📖 En savoir plus sur la sauvegarde et la restauration]({documentation_url})",
         "data": {
           "backup_selection": "Sélectionnez une option"
         }
@@ -142,8 +142,8 @@
           "chore_labels": "Étiquettes pour organiser les tâches ménagères (ex. : « cuisine », « extérieur »). Laisser vide si non nécessaire.",
           "default_points": "Points obtenus une fois le projet terminé.",
           "assigned_kids": "Les enfants qui peuvent voir et revendiquer cette tâche.",
-          "completion_criteria": "Indépendant (chaque enfant complète séparément), Partagé pour tous (tous doivent compléter), ou Partagé en premier (le premier à revendiquer bloque les autres).",
-          "approval_reset_type": "Contrôle le moment où cette tâche se réinitialise et le nombre de fois où elle peut être effectuée pendant cette période.",
+          "completion_criteria": "Permet de contrôler la manière dont la tâche est effectuée lorsque plusieurs enfants sont concernés : suivi individuel, exécution partagée ou rotation à tour de rôle.",
+          "approval_reset_type": "Contrôle le déclenchement du cycle d'approbation de la tâche (minuit, date d'échéance, à l'achèvement ou déclenchement manuel).",
           "approval_reset_pending_claim_action": "Voici ce qui arrive aux demandes d'indemnisation toujours en attente d'approbation lors de la réinitialisation du processus d'approbation.",
           "overdue_handling_type": "Actions à entreprendre après la date d'échéance : Masquer le statut de retard, maintenir le statut de retard jusqu'à ce que la demande soit réclamée, ou réinitialiser le statut à « en attente » lors du prochain cycle d'approbation.",
           "auto_approve": "Une fois activées, les demandes sont approuvées instantanément sans validation parentale.",
@@ -167,7 +167,7 @@
       },
       "badges": {
         "title": "Ajouter un badge cumulatif",
-        "description": "Configurez les détails d'un badge cumulatif. Ces badges récompensent les enfants pour l'atteinte de certains paliers de points cumulés et permettent de mettre en place des cycles de suivi pour encourager la progression continue.",
+        "description": "Configurez les détails d'un badge cumulatif. Ces badges récompensent les enfants pour l'atteinte de seuils de points cumulés et permettent de mettre en place des cycles de maintenance pour encourager la progression continue.\n\n[📖 Guide de configuration]({documentation_url})",
         "data": {
           "badge_name": "Nom du badge",
           "badge_description": "Description du badge (facultatif)",
@@ -409,7 +409,7 @@
     "step": {
       "init": {
         "title": "Options de tâches ménagères pour les enfants",
-        "description": "Gérez les enfants, les tâches ménagères, les badges, les récompenses, les pénalités, les bonus ou terminez.\n\n📖 [Voir la documentation](https://github.com/ad-ha/kidschores-ha/wiki)",
+        "description": "Gérez les enfants, les tâches ménagères, les badges, les récompenses, les pénalités, les bonus ou terminez.\n\n[📖 Voir la documentation]({documentation_url})",
         "data": {
           "menu_selection": "Sélectionnez une option"
         }
@@ -430,7 +430,7 @@
       },
       "manage_points": {
         "title": "Modifier l'étiquette et l'icône des points",
-        "description": "Modifiez l'étiquette et l'icône utilisées pour représenter les points.\n\n📖 [Guide de configuration](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Points)",
+        "description": "Modifiez l'étiquette et l'icône utilisées pour représenter les points.\n\n📖 [Guide de configuration]({documentation_url})",
         "data": {
           "points_label": "Étiquette des points",
           "points_icon": "Icône des points"
@@ -438,7 +438,7 @@
       },
       "add_kid": {
         "title": "Ajouter un enfant",
-        "description": "Fournissez les informations concernant le nouvel enfant.\n\n📖 [Guide de configuration](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Kids-Parents)",
+        "description": "Fournissez les informations concernant le nouvel enfant.\n\n📖 [Guide de configuration]({documentation_url})",
         "data": {
           "name": "Nom de l'enfant",
           "ha_user": "Utilisateur de Home Assistant",
@@ -455,7 +455,7 @@
       },
       "add_parent": {
         "title": "Ajouter un parent",
-        "description": "Veuillez fournir les informations concernant le nouveau parent.\n\n📖 [Guide de configuration](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Kids-Parents)",
+        "description": "Veuillez fournir les informations concernant le nouveau parent.\n\n📖 [Guide de configuration]({documentation_url})",
         "data": {
           "name": "Nom du parent",
           "ha_user_id": "Utilisateur de Home Assistant",
@@ -480,7 +480,7 @@
       },
       "add_chore": {
         "title": "Ajouter une tâche",
-        "description": "Créez une nouvelle tâche avec des points, des affectations et une planification récurrente.\n\n📖 [Guide de configuration](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Chores)",
+        "description": "Créez une nouvelle tâche avec des points, des affectations et une planification récurrente.\n\n📖 [Guide de configuration]({documentation_url})",
         "data": {
           "name": "📋 Nom de la tâche",
           "chore_description": "📋 Description (facultatif)",
@@ -511,10 +511,10 @@
           "chore_labels": "Étiquettes pour organiser les tâches ménagères (ex. : « cuisine », « extérieur »). Laisser vide si non nécessaire.",
           "default_points": "Points obtenus une fois le projet terminé.",
           "assigned_kids": "Les enfants qui peuvent voir et revendiquer cette tâche.",
-          "completion_criteria": "Indépendant (chaque enfant complète séparément), Partagé pour tous (tous doivent compléter), ou Partagé en premier (le premier à revendiquer bloque les autres).",
-          "approval_reset_type": "Contrôle le moment où l'approbation de cette tâche est réinitialisée et le nombre de tâches pouvant être effectuées pendant cette période.",
-          "approval_reset_pending_claim_action": "Voici ce qui arrive aux demandes d'indemnisation toujours en attente d'approbation lors de la réinitialisation du processus d'approbation.",
-          "overdue_handling_type": "Actions à entreprendre après la date d'échéance : Masquer le statut de retard, maintenir le statut de retard jusqu'à ce que la demande soit réclamée, ou réinitialiser le statut à « en attente » lors du prochain cycle d'approbation.",
+          "completion_criteria": "Permet de contrôler la manière dont la tâche est effectuée lorsque plusieurs enfants sont concernés : suivi individuel, exécution partagée ou rotation à tour de rôle.",
+          "approval_reset_type": "Contrôle le déclenchement du cycle d'approbation de la tâche (minuit, date d'échéance, à l'achèvement ou déclenchement manuel).",
+          "approval_reset_pending_claim_action": "Contrôle ce qui arrive aux demandes non approuvées lorsque le seuil de réinitialisation des approbations est atteint.",
+          "overdue_handling_type": "Contrôle ce qui se passe lorsque la date d'échéance est dépassée et ce qu'il advient des tâches en retard à la limite de réinitialisation de l'approbation.",
           "auto_approve": "Une fois activées, les demandes sont approuvées instantanément sans validation parentale.",
           "recurring_frequency": "Fréquence de la tâche : Quotidienne, Hebdomadaire, Mensuelle, Annuelle, Personnalisée ou Aucune. Si vous sélectionnez « Quotidienne – Plusieurs fois par jour », un écran supplémentaire s’affichera pour configurer les horaires précis.",
           "custom_interval": "Nombre d'unités de temps entre les répétitions (ex. : 3 pour « toutes les 3 semaines »). Utilisé uniquement avec la fréquence personnalisée.",
@@ -537,7 +537,7 @@
       },
       "add_badge_cumulative": {
         "title": "Ajouter un badge cumulatif",
-        "description": "Configurez les détails d'un badge cumulatif. Ces badges récompensent les enfants pour l'atteinte de certains paliers de points cumulés et permettent de mettre en place des cycles de maintenance pour encourager la progression continue.\n\n📖 [Guide de configuration](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Badges-Cumulative)",
+        "description": "Configurez les détails d'un badge cumulatif. Ces badges récompensent les enfants pour l'atteinte de certains paliers de points cumulés et permettent de mettre en place des cycles de maintenance pour encourager la progression continue.\n\n📖 [Guide de configuration]({documentation_url})",
         "data": {
           "badge_name": "Nom du badge",
           "badge_description": "Description du badge (facultatif)",
@@ -587,7 +587,7 @@
       },
       "add_badge_daily": {
         "title": "Ajouter un badge quotidien",
-        "description": "Configurez les détails d'un badge quotidien. Ces badges récompensent les enfants pour avoir accompli des tâches quotidiennes ou atteint des objectifs quotidiens.\n\n📖 [Aperçu des badges](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Configurez les détails d'un badge quotidien. Ces badges récompensent les enfants pour avoir accompli des tâches quotidiennes ou atteint des objectifs quotidiens.\n\n📖 [Aperçu des badges]({documentation_url})",
         "data": {
           "badge_name": "Nom du badge",
           "badge_description": "Description du badge (facultatif)",
@@ -615,7 +615,7 @@
       },
       "add_badge_periodic": {
         "title": "Ajouter un badge périodique",
-        "description": "Configurez les détails d'un badge périodique. Ces badges récompensent les enfants qui atteignent des objectifs dans un délai défini et permettent de réinitialiser les cycles de performance.\n\n📖 [Guide de configuration](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Badges-Periodic)",
+        "description": "Configurez les détails d'un badge périodique. Ces badges récompensent les enfants qui atteignent des objectifs dans un délai défini et permettent de réinitialiser les cycles de performance.\n\n📖 [Guide de configuration]({documentation_url})",
         "data": {
           "badge_name": "Nom du badge",
           "badge_description": "Description du badge (facultatif)",
@@ -661,7 +661,7 @@
       },
       "add_badge_achievement": {
         "title": "Ajouter un badge lié à une réussite",
-        "description": "Configurez les détails d'un badge associé à une réussite. Ces badges récompensent les enfants pour la réalisation de certains objectifs.\n\n📖 [Aperçu des badges](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Configurez les détails d'un badge associé à une réussite. Ces badges récompensent les enfants pour la réalisation de certains objectifs.\n\n[📖 Aperçu des badges]({documentation_url})",
         "data": {
           "badge_name": "Nom du badge",
           "badge_description": "Description du badge (facultatif)",
@@ -685,7 +685,7 @@
       },
       "add_badge_challenge": {
         "title": "Ajouter un badge lié au défi",
-        "description": "Configurez les détails d'un badge associé à un défi. Ces badges récompensent les enfants pour la réalisation de défis spécifiques.\n\n📖 [Aperçu des badges](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Configurez les détails d'un badge associé à un défi. Ces badges récompensent les enfants pour la réalisation de défis spécifiques.\n\n[📖 Aperçu des badges]({documentation_url})",
         "data": {
           "badge_name": "Nom du badge",
           "badge_description": "Description du badge (facultatif)",
@@ -709,7 +709,7 @@
       },
       "add_badge_special": {
         "title": "Ajouter un badge pour occasion spéciale",
-        "description": "Configurez les détails d'un badge créé pour les occasions spéciales. Ces badges récompensent les enfants pour des événements comme les anniversaires ou les fêtes.\n\n📖 [Aperçu des badges](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Configurez les détails d'un badge créé pour les occasions spéciales. Ces badges récompensent les enfants pour des événements comme les anniversaires ou les fêtes.\n\n📖 [Aperçu des badges]({documentation_url})",
         "data": {
           "badge_name": "Nom du badge",
           "badge_description": "Description du badge (facultatif)",
@@ -745,7 +745,7 @@
       },
       "add_reward": {
         "title": "Ajouter une récompense",
-        "description": "Veuillez fournir les détails de la nouvelle récompense.\n\n📖 [Guide de configuration](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Rewards)",
+        "description": "Veuillez fournir les détails de la nouvelle récompense.\n\n📖 [Guide de configuration]({documentation_url})",
         "data": {
           "name": "Nom de la récompense",
           "internal_id": "ID interne",
@@ -757,7 +757,7 @@
       },
       "add_penalty": {
         "title": "Ajouter une pénalité",
-        "description": "Veuillez fournir les détails de la nouvelle sanction.\n\n📖 [Aperçu et exemples](https://github.com/ad-ha/kidschores-ha/wiki/Bonuses-&-Penalties%3A-Overview-&-Examples)",
+        "description": "Veuillez fournir les détails de la nouvelle sanction.\n\n📖 [Aperçu et exemples]({documentation_url})",
         "data": {
           "name": "Nom de la pénalité",
           "penalty_description": "Description (facultatif)",
@@ -769,7 +769,7 @@
       },
       "add_bonus": {
         "title": "Ajouter un bonus",
-        "description": "Veuillez fournir les détails concernant la nouvelle prime.\n\n📖 [Aperçu et exemples](https://github.com/ad-ha/kidschores-ha/wiki/Bonuses-&-Penalties%3A-Overview-&-Examples)",
+        "description": "Veuillez fournir les détails concernant la nouvelle prime.\n\n📖 [Aperçu et exemples]({documentation_url})",
         "data": {
           "name": "Nom du bonus",
           "bonus_description": "Description (facultatif)",
@@ -781,7 +781,7 @@
       },
       "add_achievement": {
         "title": "Définir la réussite",
-        "description": "Saisissez les détails de chaque succès.\n\n📖 [Aperçu et fonctionnalités](https://github.com/ad-ha/kidschores-ha/wiki/Challenges-&-Achievements%3A-Overview-&-Functionality)",
+        "description": "Saisissez les détails de chaque succès.\n\n[📖 Aperçu et fonctionnalités]({documentation_url})",
         "data": {
           "name": "Nom du succès",
           "description": "Description (facultatif)",
@@ -798,7 +798,7 @@
       },
       "add_challenge": {
         "title": "Définir le défi",
-        "description": "Saisissez les détails de chaque défi.\n\n📖 [Aperçu et fonctionnalités](https://github.com/ad-ha/kidschores-ha/wiki/Challenges-&-Achievements%3A-Overview-&-Functionality)",
+        "description": "Saisissez les détails de chaque défi.\n\n📖 [Aperçu et fonctionnalités]({documentation_url})",
         "data": {
           "name": "Nom du défi",
           "description": "Description (facultatif)",
@@ -817,7 +817,7 @@
       },
       "edit_kid": {
         "title": "Modifier Kid",
-        "description": "Modifier les informations de l'enfant sélectionné.\n\n📖 [Guide de configuration](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Kids-Parents)",
+        "description": "Modifier les informations de l'enfant sélectionné.\n\n📖 [Guide de configuration]({documentation_url})",
         "data": {
           "name": "Nom de l'enfant",
           "ha_user": "Utilisateur de Home Assistant",
@@ -851,7 +851,7 @@
       },
       "edit_parent": {
         "title": "Modifier le parent",
-        "description": "Modifier les détails du parent sélectionné.\n\n📖 [Guide de configuration](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Kids-Parents)",
+        "description": "Modifier les détails du parent sélectionné.\n\n📖 [Guide de configuration]({documentation_url})",
         "data": {
           "name": "Nom du parent",
           "ha_user_id": "Utilisateur de Home Assistant",
@@ -876,7 +876,7 @@
       },
       "edit_chore": {
         "title": "Modifier la tâche",
-        "description": "Modifier les détails de la tâche sélectionnée.\n\n📖 [Guide de configuration](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Chores)",
+        "description": "Modifier les détails de la tâche sélectionnée.\n\n📖 [Guide de configuration]({documentation_url})",
         "data": {
           "name": "📋 Nom de la tâche",
           "chore_description": "📋 Description (facultatif)",
@@ -908,10 +908,10 @@
           "chore_labels": "Étiquettes pour organiser les tâches ménagères (ex. : « cuisine », « extérieur »). Laisser vide si non nécessaire.",
           "default_points": "Points obtenus une fois le projet terminé.",
           "assigned_kids": "Les enfants qui peuvent voir et revendiquer cette tâche.",
-          "completion_criteria": "Indépendant (chaque enfant complète séparément), Partagé pour tous (tous doivent compléter), ou Partagé en premier (le premier à revendiquer bloque les autres).",
-          "approval_reset_type": "Contrôle le moment où l'approbation de cette tâche est réinitialisée et le nombre de tâches pouvant être effectuées pendant cette période.",
-          "approval_reset_pending_claim_action": "Lorsque l'approbation de cette tâche est réinitialisée (en fonction du délai de réinitialisation des approbations ci-dessus), qu'advient-il des demandes qui sont toujours en attente d'approbation ?",
-          "overdue_handling_type": "Actions à entreprendre après la date d'échéance : Masquer le statut de retard, maintenir le statut de retard jusqu'à ce que la demande soit réclamée, ou réinitialiser le statut à « en attente » lors du prochain cycle d'approbation.",
+          "completion_criteria": "Permet de contrôler la manière dont la tâche est effectuée lorsque plusieurs enfants sont concernés : suivi individuel, exécution partagée ou rotation à tour de rôle.",
+          "approval_reset_type": "Contrôle le déclenchement du cycle d'approbation de la tâche (minuit, date d'échéance, à l'achèvement ou déclenchement manuel).",
+          "approval_reset_pending_claim_action": "Contrôle ce qui arrive aux demandes non approuvées lorsque le seuil de réinitialisation des approbations est atteint.",
+          "overdue_handling_type": "Contrôle ce qui se passe lorsque la date d'échéance est dépassée et ce qu'il advient des tâches en retard à la limite de réinitialisation de l'approbation.",
           "auto_approve": "Une fois activées, les demandes sont approuvées instantanément sans validation parentale.",
           "recurring_frequency": "Fréquence de la tâche : Quotidienne, Hebdomadaire, Mensuelle, Annuelle, Personnalisée ou Aucune. Si vous sélectionnez « Quotidienne – Plusieurs fois par jour », un écran supplémentaire s’affichera pour configurer les horaires précis.",
           "custom_interval": "Nombre d'unités de temps entre les répétitions (ex. : 3 pour « toutes les 3 semaines »). Utilisé uniquement avec la fréquence personnalisée.",
@@ -927,7 +927,7 @@
       },
       "edit_chore_per_kid_dates": {
         "title": "Modifier les dates d'échéance par enfant : {chore_name}",
-        "description": "Définissez des dates d'échéance individuelles pour chaque enfant. Le champ « Date » du formulaire principal sert de **modèle** pour plus de simplicité : cochez la case ci-dessous pour appliquer rapidement la même date à tous les enfants, ou laissez-le vide et définissez les dates individuellement ici.\n\nLes champs sont affichés pour : {kid_names}. Laissez vide pour aucune date limite.{template_date}\n\n📖 [Guide avancé](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Chores-Advanced)",
+        "description": "Définissez des dates d'échéance individuelles pour chaque enfant. Le champ « Date » du formulaire principal sert de **modèle** pour plus de simplicité : cochez la case ci-dessous pour appliquer rapidement la même date à tous les enfants, ou laissez-le vide et définissez les dates individuellement ici.\n\nLes champs sont affichés pour : {kid_names}. Laissez vide pour aucune date limite.{template_date}\n\n📖 [Guide avancé]({documentation_url})",
         "data": {
           "apply_template_to_all": "Appliquer le modèle de date à tous les enfants"
         },
@@ -947,7 +947,7 @@
       },
       "edit_chore_per_kid_details": {
         "title": "Horaire par enfant : {chore_name}",
-        "description": "Configurez les paramètres d'horaire individuels pour chaque enfant affecté à cette tâche. Les valeurs principales du formulaire servent de **modèles** : cochez les cases pour les appliquer à tous les enfants ou personnalisez les paramètres de chaque enfant individuellement.\n\n**Remarque :** Tous les champs ci-dessous ne s'appliquent pas à toutes les tâches. Le formulaire affiche dynamiquement les options pertinentes en fonction du mode d'exécution, de la fréquence et de la présence ou non de dates d'échéance.\n\n**Format Quotidien (Plusieurs fois) :** Si cette option est affichée, saisissez 2 à 6 fois au format 24 heures, séparées par une barre verticale (|). Exemple : 08:00|17:00\n\nEnfants : {kid_names}{template_info}\n\n📖 [Guide avancé](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Chores-Advanced)",
+        "description": "Configurez les paramètres d'horaire individuels pour chaque enfant affecté à cette tâche. Les valeurs principales du formulaire servent de **modèles** : cochez les cases pour les appliquer à tous les enfants ou personnalisez les paramètres de chaque enfant individuellement.\n\n**Remarque :** Tous les champs ci-dessous ne s'appliquent pas à toutes les tâches. Le formulaire affiche dynamiquement les options pertinentes en fonction du mode d'exécution, de la fréquence et de la présence ou non de dates d'échéance.\n\n**Format Quotidien (Plusieurs fois) :** Si cette option est affichée, saisissez 2 à 6 fois au format 24 heures, séparées par une barre verticale (|). Exemple : 08:00|17:00\n\nEnfants : {kid_names}{template_info}\n\n📖 [Guide avancé]({documentation_url})",
         "data": {
           "apply_days_to_all": "Appliquer le modèle de journées à tous les enfants",
           "apply_times_to_all": "Appliquer les horaires types à tous les enfants",
@@ -961,7 +961,7 @@
       },
       "edit_badge_cumulative": {
         "title": "Modifier le badge cumulatif",
-        "description": "Configurez les détails d'un badge cumulatif. Ces badges récompensent les enfants pour l'atteinte de certains paliers de points cumulés et permettent de mettre en place des cycles de maintenance pour encourager la progression continue.\n\n📖 [Guide de configuration](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Badges-Cumulative)",
+        "description": "Configurez les détails d'un badge cumulatif. Ces badges récompensent les enfants pour l'atteinte de certains paliers de points cumulés et permettent de mettre en place des cycles de maintenance pour encourager la progression continue.\n\n📖 [Guide de configuration]({documentation_url})",
         "data": {
           "badge_name": "Nom du badge",
           "badge_description": "Description du badge (facultatif)",
@@ -1011,7 +1011,7 @@
       },
       "edit_badge_daily": {
         "title": "Modifier le badge quotidien",
-        "description": "Configurez les détails d'un badge quotidien. Ces badges récompensent les enfants pour avoir accompli des tâches quotidiennes ou atteint des objectifs quotidiens.\n\n📖 [Aperçu des badges](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Configurez les détails d'un badge quotidien. Ces badges récompensent les enfants pour avoir accompli des tâches quotidiennes ou atteint des objectifs quotidiens.\n\n📖 [Aperçu des badges]({documentation_url})",
         "data": {
           "badge_name": "Nom du badge",
           "badge_description": "Description du badge (facultatif)",
@@ -1039,7 +1039,7 @@
       },
       "edit_badge_periodic": {
         "title": "Modifier le badge périodique",
-        "description": "Configurez les détails d'un badge périodique. Ces badges récompensent les enfants qui atteignent des objectifs dans un délai défini et permettent de réinitialiser les cycles de performance.\n\n📖 [Guide de configuration](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Badges-Periodic)",
+        "description": "Configurez les détails d'un badge périodique. Ces badges récompensent les enfants qui atteignent des objectifs dans un délai défini et permettent de réinitialiser les cycles de performance.\n\n📖 [Guide de configuration]({documentation_url})",
         "data": {
           "badge_name": "Nom du badge",
           "badge_description": "Description du badge (facultatif)",
@@ -1085,7 +1085,7 @@
       },
       "edit_badge_achievement": {
         "title": "Modifier le badge lié à un succès",
-        "description": "Configurez les détails d'un badge associé à une réussite. Ces badges récompensent les enfants pour la réalisation de certains objectifs.\n\n📖 [Aperçu des badges](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Configurez les détails d'un badge associé à une réussite. Ces badges récompensent les enfants pour la réalisation de certains objectifs.\n\n📖 [Aperçu des badges]({documentation_url})",
         "data": {
           "badge_name": "Nom du badge",
           "badge_description": "Description du badge (facultatif)",
@@ -1109,7 +1109,7 @@
       },
       "edit_badge_challenge": {
         "title": "Modifier le badge lié au défi",
-        "description": "Configurez les détails d'un badge associé à un défi. Ces badges récompensent les enfants pour la réalisation de défis spécifiques.\n\n📖 [Aperçu des badges](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Configurez les détails d'un badge associé à un défi. Ces badges récompensent les enfants pour la réalisation de défis spécifiques.\n\n📖 [Aperçu des badges]({documentation_url})",
         "data": {
           "badge_name": "Nom du badge",
           "badge_description": "Description du badge (facultatif)",
@@ -1133,7 +1133,7 @@
       },
       "edit_badge_special": {
         "title": "Modifier le badge pour occasion spéciale",
-        "description": "Configurez les détails d'un badge créé pour les occasions spéciales. Ces badges récompensent les enfants pour des événements comme les anniversaires ou les fêtes.\n\n📖 [Aperçu des badges](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Configurez les détails d'un badge créé pour les occasions spéciales. Ces badges récompensent les enfants pour des événements comme les anniversaires ou les fêtes.\n\n📖 [Aperçu des badges]({documentation_url})",
         "data": {
           "badge_name": "Nom du badge",
           "badge_description": "Description du badge (facultatif)",
@@ -1169,7 +1169,7 @@
       },
       "edit_reward": {
         "title": "Modifier la récompense",
-        "description": "Modifiez les détails de la récompense sélectionnée.\n\n📖 [Guide de configuration](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Rewards)",
+        "description": "Modifiez les détails de la récompense sélectionnée.\n\n📖 [Guide de configuration]({documentation_url})",
         "data": {
           "name": "Nom de la récompense",
           "internal_id": "ID interne",
@@ -1181,7 +1181,7 @@
       },
       "edit_penalty": {
         "title": "Pénalité de modification",
-        "description": "Modifier les détails de la pénalité sélectionnée.\n\n📖 [Aperçu et exemples](https://github.com/ad-ha/kidschores-ha/wiki/Bonuses-&-Penalties%3A-Overview-&-Examples)",
+        "description": "Modifier les détails de la pénalité sélectionnée.\n\n📖 [Aperçu et exemples]({documentation_url})",
         "data": {
           "name": "Nom de la pénalité",
           "penalty_description": "Description (facultatif)",
@@ -1193,7 +1193,7 @@
       },
       "edit_bonus": {
         "title": "Bonus de modification",
-        "description": "Modifier les détails du bonus sélectionné.\n\n📖 [Aperçu et exemples](https://github.com/ad-ha/kidschores-ha/wiki/Bonuses-&-Penalties%3A-Overview-&-Examples)",
+        "description": "Modifier les détails du bonus sélectionné.\n\n📖 [Aperçu et exemples]({documentation_url})",
         "data": {
           "name": "Nom du bonus",
           "bonus_description": "Description (facultatif)",
@@ -1205,7 +1205,7 @@
       },
       "edit_achievement": {
         "title": "Définir la réussite",
-        "description": "Saisissez les détails de chaque succès.\n\n📖 [Aperçu et fonctionnalités](https://github.com/ad-ha/kidschores-ha/wiki/Challenges-&-Achievements%3A-Overview-&-Functionality)",
+        "description": "Saisissez les détails de chaque succès.\n\n📖 [Aperçu et fonctionnalités]({documentation_url})",
         "data": {
           "name": "Nom du succès",
           "description": "Description (facultatif)",
@@ -1222,7 +1222,7 @@
       },
       "edit_challenge": {
         "title": "Définir le défi",
-        "description": "Saisissez les détails de chaque défi.\n\n📖 [Aperçu et fonctionnalités](https://github.com/ad-ha/kidschores-ha/wiki/Challenges-&-Achievements%3A-Overview-&-Functionality)",
+        "description": "Saisissez les détails de chaque défi.\n\n📖 [Aperçu et fonctionnalités]({documentation_url})",
         "data": {
           "name": "Nom du défi",
           "description": "Description (facultatif)",
@@ -1298,7 +1298,7 @@
       },
       "dashboard_create": {
         "title": "Créer/Mettre à jour le tableau de bord",
-        "description": "Générez un tableau de bord KidsChores avec des onglets pour chaque enfant.\n\nChoisissez un nom pour le tableau de bord, sélectionnez les enfants à inclure et ajoutez éventuellement un onglet Admin pour la gestion parentale.\n\n[📖 Guide de création de tableau de bord](https://github.com/ad-ha/kidschores-ha/wiki/Getting-Started:-Dashboard-Generation)",
+        "description": "Générez un tableau de bord KidsChores avec des onglets pour chaque enfant.\n\nChoisissez un nom pour le tableau de bord, sélectionnez les enfants à inclure et ajoutez éventuellement un onglet Admin pour la gestion parentale.\n\n[📖 Guide de création de tableau de bord]({documentation_url})",
         "data": {
           "dashboard_name": "Nom du tableau de bord",
           "dashboard_style": "Style de tableau de bord",
@@ -1341,7 +1341,7 @@
       },
       "manage_general_options": {
         "title": "Options générales",
-        "description": "Gérez les paramètres généraux de l'intégration KidsChores.\n\n[📖 En savoir plus sur la sauvegarde et la restauration](https://github.com/ad-ha/kidschores-ha/wiki/Getting-Started:-Backup-Restore)",
+        "description": "Gérez les paramètres généraux de l'intégration KidsChores.\n\n[📖 En savoir plus sur la sauvegarde et la restauration]({documentation_url})",
         "data": {
           "points_adjust_values": "Valeurs du bouton de réglage manuel des points",
           "update_interval": "Intervalle de mise à jour",
@@ -1505,6 +1505,7 @@
       "error_daily_multi_times_too_few": "Il faut au moins deux utilisations pour une fréquence « Plusieurs fois par jour ». Pour une utilisation unique, utilisez la fréquence « Quotidienne ».",
       "error_daily_multi_times_too_many": "Un maximum de 6 fois par jour est autorisé pour la fréquence « Plusieurs fois par jour ».",
       "error_daily_multi_due_date_required": "L'option « Plusieurs fois par jour » nécessite la définition d'une date d'échéance. Cette date détermine le début de la planification, tandis que les heures définissent les plages horaires de disponibilité quotidiennes.",
+      "error_allow_steal_incompatible": "L'option « Autoriser la gestion des vols en retard » est uniquement compatible avec les tâches de rotation (rotation_simple ou rotation_smart), le type de réinitialisation « Une fois par jour » et nécessite une date d'échéance pour définir l'ouverture de la fenêtre de vol.",
       "error_at_due_date_reset_requires_due_date": "Les réinitialisations d'approbation de type « À l'échéance » (ponctuelles ou multiples) nécessitent la définition d'une date d'échéance. Sans date d'échéance, la réinitialisation de l'approbation ne sera jamais déclenchée et la tâche restera approuvée indéfiniment.",
       "error_per_kid_applicable_days_invalid": "Format des jours applicables invalide pour un ou plusieurs enfants. Les jours doivent être des nombres entiers de 0 à 6 (lundi-dimanche) sans doublons.",
       "error_per_kid_daily_multi_times_invalid": "Format horaire journalier invalide pour un ou plusieurs enfants. Utilisez le format 24 heures séparé par | (ex. : 08:00|17:00).",
@@ -1665,7 +1666,9 @@
       "options": {
         "shared_all": "Activité partagée (Tous les enfants doivent la réaliser ensemble)",
         "independent": "Indépendant (Chaque enfant remplit le formulaire individuellement)",
-        "shared_first": "Partagé en premier (la première complétion compte)"
+        "shared_first": "Partagé en premier (la première complétion compte)",
+        "rotation_simple": "Rotation simple (Réservé au support de rotation, ordre strict)",
+        "rotation_smart": "Rotation intelligente (Réservé au détenteur du tour, pondération équitable)"
       }
     },
     "approval_reset_type": {
@@ -1674,15 +1677,19 @@
         "at_midnight_multi": "Plusieurs fois par jour - Réinitialisation à minuit",
         "at_due_date_once": "Une fois par période - Réinitialisation à la date d'échéance",
         "at_due_date_multi": "Plusieurs fois par période - Réinitialisation à la date d'échéance",
-        "upon_completion": "Nombre de complétions illimité - Réinitialisation après la complétion"
+        "upon_completion": "Nombre de complétions illimité - Réinitialisation une fois la complétion terminée",
+        "manual": "Réinitialisation manuelle uniquement - Aucune réinitialisation automatique"
       }
     },
     "overdue_handling_type": {
       "options": {
-        "at_due_date": "En retard jusqu'à achèvement",
         "never_overdue": "Jamais en retard",
+        "at_due_date": "En retard jusqu'à achèvement",
         "at_due_date_clear_at_approval_reset": "En retard jusqu'à approbation Réinitialisation",
-        "at_due_date_clear_immediate_on_late": "En retard jusqu'à achèvement (Traitez immédiatement les approbations tardives)"
+        "at_due_date_clear_immediate_on_late": "En retard jusqu'à achèvement (Traitez immédiatement les approbations tardives)",
+        "at_due_date_clear_and_mark_missed": "En retard jusqu'à approbation - Réinitialisation (Marquer comme manqué)",
+        "at_due_date_mark_missed_and_lock": "Verrouiller jusqu'à approbation Réinitialiser (Empêcher les réclamations, marquer comme manqué)",
+        "at_due_date_allow_steal": "Autoriser le vol jusqu'à approbation Réinitialisation (Rotation uniquement)"
       }
     },
     "approval_reset_pending_claim_action": {
@@ -2087,22 +2094,22 @@
         },
         "completion_criteria": {
           "name": "Critères d'achèvement",
-          "description": "Modalités d'exécution de la tâche lorsque plusieurs enfants sont concernés : individuelle (chaque enfant effectue la tâche séparément), partagée (le premier enfant à terminer gagne des points) ou partagée par tous (tous les enfants doivent effectuer la tâche). Ce paramètre ne peut plus être modifié après sa création.",
+          "description": "Permet de contrôler la manière dont la tâche est effectuée lorsque plusieurs enfants sont concernés : suivi individuel, exécution partagée ou rotation à tour de rôle.",
           "example": "indépendant"
         },
         "approval_reset_type": {
           "name": "Type de réinitialisation d'approbation",
-          "description": "Lorsque la tâche est réinitialisée pour être à nouveau effectuée.",
+          "description": "Contrôle le déclenchement du cycle d'approbation de la tâche (minuit, date d'échéance, à l'achèvement ou déclenchement manuel).",
           "example": "à minuit une fois"
         },
         "pending_claims": {
           "name": "Actions en cours",
-          "description": "Que deviennent les demandes en attente lorsque la tâche est réinitialisée : hold_pending (conserver les demandes), clear_pending (supprimer les demandes) ou auto_approve_pending (approuver toutes les demandes en attente).",
+          "description": "Contrôle ce qui arrive aux demandes non approuvées lorsque le seuil de réinitialisation des approbations est atteint.",
           "example": "en attente"
         },
         "overdue_handling": {
           "name": "Traitement en retard",
-          "description": "Comment gérer cette tâche lorsqu'elle prend du retard ?",
+          "description": "Contrôle ce qui se passe lorsque la date d'échéance est dépassée et ce qu'il advient des tâches en retard à la limite de réinitialisation de l'approbation.",
           "example": "à_date_dû"
         },
         "auto_approve": {
@@ -2229,6 +2236,64 @@
         }
       }
     },
+    "set_rotation_turn": {
+      "name": "Réglage de la rotation",
+      "description": "Attribuez manuellement le tour actuel à un enfant spécifique dans le cadre d'une tâche ménagère en rotation. Fonctionne uniquement pour les tâches en rotation (rotation_simple ou rotation_smart). Utilisez l'identifiant ou le nom pour l'identification.",
+      "fields": {
+        "chore_id": {
+          "name": "ID de tâche",
+          "description": "Identifiant interne de la tâche de rotation. Facultatif si le nom de la tâche est fourni.",
+          "example": "abc123-def456-789..."
+        },
+        "chore_name": {
+          "name": "Nom de la tâche",
+          "description": "Nom de la tâche de rotation. Facultatif si chore_id est fourni.",
+          "example": "Chambre propre"
+        },
+        "kid_id": {
+          "name": "Kid ID",
+          "description": "Identifiant interne de l'enfant auquel attribuer le tour. Doit être affecté à cette tâche. Facultatif si le nom de l'enfant est fourni.",
+          "example": "xyz789-abc123-456..."
+        },
+        "kid_name": {
+          "name": "Nom de l'enfant",
+          "description": "Nom de l'enfant à qui attribuer le tour. Doit être affecté à cette tâche. Facultatif si l'identifiant de l'enfant est fourni.",
+          "example": "Alice"
+        }
+      }
+    },
+    "reset_rotation": {
+      "name": "Réinitialiser la rotation",
+      "description": "Réinitialisez le tour de rotation au premier enfant assigné. Fonctionne uniquement pour les tâches ménagères en rotation (rotation_simple ou rotation_smart). Utilisez l'identifiant ou le nom pour l'identification.",
+      "fields": {
+        "chore_id": {
+          "name": "ID de tâche",
+          "description": "Identifiant interne de la tâche de rotation à réinitialiser. Facultatif si le nom de la tâche est fourni.",
+          "example": "abc123-def456-789..."
+        },
+        "chore_name": {
+          "name": "Nom de la tâche",
+          "description": "Nom de la tâche de rotation à réinitialiser. Facultatif si chore_id est fourni.",
+          "example": "Chambre propre"
+        }
+      }
+    },
+    "open_rotation_cycle": {
+      "name": "Cycle de rotation ouvert",
+      "description": "Autoriser la dérogation au cycle de rotation pour un cycle, permettant à tout enfant désigné de prendre sa place quel que soit son tour. La dérogation est annulée après la prochaine approbation. Utiliser l'identifiant ou le nom pour l'identification.",
+      "fields": {
+        "chore_id": {
+          "name": "ID de tâche",
+          "description": "Identifiant interne de la tâche de rotation à ouvrir. Facultatif si le nom de la tâche est fourni.",
+          "example": "abc123-def456-789..."
+        },
+        "chore_name": {
+          "name": "Nom de la tâche",
+          "description": "Nom de la tâche de rotation à ouvrir. Facultatif si chore_id est fourni.",
+          "example": "Chambre propre"
+        }
+      }
+    },
     "reset_chores_to_pending_state": {
       "name": "Réinitialiser les tâches à l'état en attente",
       "description": "Réinitialisez manuellement toutes les tâches à l'état « en attente », en supprimant les demandes et les approbations."
@@ -2329,6 +2394,10 @@
           "name": "Kid ID",
           "description": "L'identifiant interne de l'enfant. Réservé aux utilisateurs avancés : utilisez plutôt kid_name.",
           "example": "abc123-def456"
+        },
+        "mark_as_missed": {
+          "name": "Marquer comme manqué",
+          "description": "Si cette option est activée, ce manquement est enregistré comme une tâche non accomplie dans les statistiques de l'enfant. Utile pour distinguer les absences volontaires des réinitialisations automatiques en cas de retard."
         }
       }
     },
@@ -2363,7 +2432,10 @@
           "none": "Aucun",
           "approved_in_part": "Approuvé (en partie)",
           "claimed_in_part": "Revendiqué (en partie)",
-          "completed_by_other": "Réalisé par d'autres"
+          "completed_by_other": "Réalisé par d'autres",
+          "waiting": "En attente (fenêtre fermée)",
+          "not_my_turn": "Ce n'est pas mon tour (rotation)",
+          "missed": "Manqué (Verrouillé)"
         },
         "state_attributes": {
           "purpose": {
@@ -2398,7 +2470,9 @@
             "state": {
               "independent": "Indépendant",
               "shared_first": "Partagé (Premier)",
-              "shared_all": "Partagé (Tous)"
+              "shared_all": "Partagé (Tous)",
+              "rotation_simple": "Rotation simple",
+              "rotation_smart": "Rotation intelligente"
             }
           },
           "approval_reset_type": {
@@ -2408,7 +2482,8 @@
               "at_midnight_multi": "À minuit (Multi)",
               "at_due_date_once": "À l'échéance (une seule fois)",
               "at_due_date_multi": "À l'échéance (Multiple)",
-              "upon_completion": "À l'achèvement"
+              "upon_completion": "À l'achèvement",
+              "manual": "Réinitialisation manuelle uniquement"
             }
           },
           "recurring_frequency": {
@@ -2546,6 +2621,20 @@
           },
           "time_until_overdue": {
             "name": "Délai restant avant l'échéance"
+          },
+          "lock_reason": {
+            "name": "Raison du verrouillage",
+            "state": {
+              "waiting": "En attente de la fenêtre d'échéance",
+              "not_my_turn": "À votre tour",
+              "missed": "Manqué"
+            }
+          },
+          "turn_kid_name": {
+            "name": "Nom de l'enfant"
+          },
+          "available_at": {
+            "name": "Disponible chez"
           }
         }
       },
@@ -3132,7 +3221,9 @@
             "state": {
               "independent": "Indépendant",
               "shared_first": "Partagé (Premier arrivé, premier servi)",
-              "shared_all": "Partagé (Tous requis)"
+              "shared_all": "Partagé (Tous requis)",
+              "rotation_simple": "Rotation simple",
+              "rotation_smart": "Rotation intelligente"
             }
           },
           "approval_reset_type": {
@@ -3142,7 +3233,8 @@
               "at_midnight_multi": "À minuit (Multi)",
               "at_due_date_once": "À l'échéance (une seule fois)",
               "at_due_date_multi": "À l'échéance (Multiple)",
-              "upon_completion": "À l'achèvement"
+              "upon_completion": "À l'achèvement",
+              "manual": "Réinitialisation manuelle uniquement"
             }
           },
           "recurring_frequency": {
@@ -3998,6 +4090,30 @@
     "not_assigned": {
       "message": "{entity} non affecté à {kid}"
     },
+    "rotation_no_turn_holder": {
+      "message": "Les tâches de rotation doivent avoir un responsable désigné."
+    },
+    "rotation_invalid_order": {
+      "message": "L'ordre de rotation doit être une liste non vide d'identifiants d'enfants."
+    },
+    "rotation_duplicate_in_order": {
+      "message": "L'ordre de rotation ne peut pas contenir d'enfants en double."
+    },
+    "rotation_unassigned_in_order": {
+      "message": "Tous les enfants, par ordre de rotation, doivent être affectés à la tâche."
+    },
+    "rotation_min_kids": {
+      "message": "Les tâches ménagères en rotation nécessitent au moins 2 enfants assignés"
+    },
+    "not_rotation": {
+      "message": "Cette tâche n'est pas en mode rotation"
+    },
+    "kid_not_assigned": {
+      "message": "L'enfant n'est pas affecté à cette tâche."
+    },
+    "no_assigned_kids": {
+      "message": "Aucun enfant n'est affecté à cette tâche."
+    },
     "insufficient_points": {
       "message": "{kid} a {current} points mais a besoin de {required} points"
     },
@@ -4105,6 +4221,12 @@
     },
     "notif_message_data_reset_item": {
       "message": "Réinitialisation des données terminée pour {item_name}. Données d'exécution effacées."
+    },
+    "notif_title_chore_missed": {
+      "message": "Tâche manquée"
+    },
+    "notif_message_chore_missed": {
+      "message": "{kid_name} a raté la corvée : {chore_name}"
     }
   }
 }

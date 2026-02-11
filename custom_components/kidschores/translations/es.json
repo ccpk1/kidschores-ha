@@ -4,11 +4,11 @@
     "step": {
       "intro": {
         "title": "Bienvenido a KidsChores",
-        "description": "Este asistente lo guiará en la configuración de KidsChores.\n\n[📖 Guía de inicio rápido](https://github.com/ad-ha/kidschores-ha/wiki/Getting-Started:-Quick-Start)"
+        "description": "Este asistente lo guiará en la configuración de KidsChores.\n\n[📖 Guía de inicio rápido]({documentation_url})"
       },
       "data_recovery": {
         "title": "Opciones de recuperación de datos",
-        "description": "Datos existentes de KidsChores encontrados en:\n{storage_path}\n\nSe encontraron {backup_count} archivos de copia de seguridad.\n\n¿Qué te gustaría hacer?\n\n[📖 Más información sobre copias de seguridad y restauración](https://github.com/ad-ha/kidschores-ha/wiki/Getting-Started:-Backup-Restore)",
+        "description": "Datos existentes de KidsChores encontrados en:\n{storage_path}\n\nSe encontraron {backup_count} archivos de copia de seguridad.\n\n¿Qué te gustaría hacer?\n\n[📖 Más información sobre copias de seguridad y restauración]({documentation_url})",
         "data": {
           "backup_selection": "Seleccionar opción"
         }
@@ -142,8 +142,8 @@
           "chore_labels": "Etiquetas para organizar tareas (p. ej., \"cocina\", \"exterior\"). Déjalo en blanco si no es necesario.",
           "default_points": "Puntos ganados al completarlo.",
           "assigned_kids": "Niños que pueden ver y reclamar esta tarea.",
-          "completion_criteria": "Independiente (cada niño lo completa por separado), Compartido todos (todos deben completarlo) o Compartido primero (primero en reclamar los bloques de los demás).",
-          "approval_reset_type": "Controla cuándo se reinicia esta tarea y cuántas finalizaciones se permiten durante ese período.",
+          "completion_criteria": "Controla cómo se completa la tarea cuando se asignan varios niños: seguimiento individual, finalización compartida o rotación por turnos.",
+          "approval_reset_type": "Controla cuándo se activa el límite del ciclo de aprobación de la tarea (medianoche, fecha de vencimiento, al finalizar o activación manual).",
           "approval_reset_pending_claim_action": "Esto es lo que sucede con las reclamaciones que aún están esperando aprobación cuando se produce el restablecimiento de la aprobación.",
           "overdue_handling_type": "Acción después de la fecha de vencimiento: Ocultar el estado de vencido, permanecer vencido hasta que se reclame o restablecer a pendiente en el próximo ciclo de aprobación.",
           "auto_approve": "Cuando esta opción está habilitada, las reclamaciones se aprueban instantáneamente sin revisión por parte de los padres.",
@@ -167,7 +167,7 @@
       },
       "badges": {
         "title": "Añadir insignia acumulativa",
-        "description": "Configura los detalles de una insignia acumulativa. Estas insignias recompensan a los niños por alcanzar los puntos de por vida y permiten ciclos de mantenimiento para fomentar el rendimiento continuo.",
+        "description": "Configura los detalles de una insignia acumulativa. Estas insignias recompensan a los niños por alcanzar los puntos de por vida y permiten ciclos de mantenimiento para fomentar el rendimiento continuo.\n\n[📖 Guía de configuración]({documentation_url})",
         "data": {
           "badge_name": "Nombre de la insignia",
           "badge_description": "Descripción de la insignia (opcional)",
@@ -409,7 +409,7 @@
     "step": {
       "init": {
         "title": "Opciones de KidsChores",
-        "description": "Administra niños, tareas, insignias, recompensas, penalizaciones, bonificaciones o finaliza.\n\n📖 [Ver documentación](https://github.com/ad-ha/kidschores-ha/wiki)",
+        "description": "Administra niños, tareas, insignias, recompensas, penalizaciones, bonificaciones o finaliza.\n\n[📖 Ver documentación]({documentation_url})",
         "data": {
           "menu_selection": "Seleccione una opción"
         }
@@ -430,7 +430,7 @@
       },
       "manage_points": {
         "title": "Editar etiqueta e icono de puntos",
-        "description": "Cambiar la etiqueta y el icono utilizados para representar puntos.\n\n📖 [Guía de configuración](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Points)",
+        "description": "Cambiar la etiqueta y el icono utilizados para representar puntos.\n\n📖 [Guía de configuración]({documentation_url})",
         "data": {
           "points_label": "Etiqueta de puntos",
           "points_icon": "Icono de puntos"
@@ -438,7 +438,7 @@
       },
       "add_kid": {
         "title": "Agregar niño",
-        "description": "Proporcione los detalles del nuevo niño.\n\n📖 [Guía de configuración](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Kids-Parents)",
+        "description": "Proporcione los detalles del nuevo niño.\n\n📖 [Guía de configuración]({documentation_url})",
         "data": {
           "name": "Nombre del niño",
           "ha_user": "Usuario de Home Assistant",
@@ -455,7 +455,7 @@
       },
       "add_parent": {
         "title": "Agregar padre",
-        "description": "Proporcione los detalles del nuevo padre.\n\n📖 [Guía de configuración](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Kids-Parents)",
+        "description": "Proporcione los detalles del nuevo padre.\n\n📖 [Guía de configuración]({documentation_url})",
         "data": {
           "name": "Nombre del padre",
           "ha_user_id": "Usuario de Home Assistant",
@@ -480,7 +480,7 @@
       },
       "add_chore": {
         "title": "Agregar tarea",
-        "description": "Crea una nueva tarea con puntos, asignaciones y un cronograma recurrente.\n\n📖 [Guía de configuración](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Chores)",
+        "description": "Crea una nueva tarea con puntos, asignaciones y un cronograma recurrente.\n\n📖 [Guía de configuración]({documentation_url})",
         "data": {
           "name": "📋 Nombre de la tarea",
           "chore_description": "📋 Descripción (opcional)",
@@ -511,10 +511,10 @@
           "chore_labels": "Etiquetas para organizar tareas (p. ej., \"cocina\", \"exterior\"). Déjalo en blanco si no es necesario.",
           "default_points": "Puntos ganados al completarlo.",
           "assigned_kids": "Niños que pueden ver y reclamar esta tarea.",
-          "completion_criteria": "Independiente (cada niño lo completa por separado), Compartido todos (todos deben completarlo) o Compartido primero (primero en reclamar los bloques de los demás).",
-          "approval_reset_type": "Controla cuándo se restablece esta aprobación de tarea y cuántas finalizaciones se permiten durante ese período.",
-          "approval_reset_pending_claim_action": "Esto es lo que sucede con las reclamaciones que aún están esperando aprobación cuando se produce el restablecimiento de la aprobación.",
-          "overdue_handling_type": "Acción después de la fecha de vencimiento: Ocultar el estado de vencido, permanecer vencido hasta que se reclame o restablecer a pendiente en el próximo ciclo de aprobación.",
+          "completion_criteria": "Controla cómo se completa la tarea cuando se asignan varios niños: seguimiento individual, finalización compartida o rotación por turnos.",
+          "approval_reset_type": "Controla cuándo se activa el límite del ciclo de aprobación de la tarea (medianoche, fecha de vencimiento, al finalizar o activación manual).",
+          "approval_reset_pending_claim_action": "Controla lo que sucede con las reclamaciones no aprobadas cuando se activa el límite de restablecimiento de aprobación.",
+          "overdue_handling_type": "Controla lo que sucede cuando pasa la fecha de vencimiento y lo que sucede con las tareas vencidas en el límite de restablecimiento de aprobación.",
           "auto_approve": "Cuando esta opción está habilitada, las reclamaciones se aprueban instantáneamente sin revisión por parte de los padres.",
           "recurring_frequency": "Frecuencia de repetición de la tarea: Diariamente, Semanalmente, Mensualmente, Anualmente, Personalizada o Ninguna. Si selecciona \"Diariamente - Varias veces al día\", aparecerá una pantalla adicional para configurar las horas específicas.",
           "custom_interval": "Número de unidades de tiempo entre repeticiones (p. ej., 3 para «cada 3 semanas»). Solo se usa con la frecuencia personalizada.",
@@ -537,7 +537,7 @@
       },
       "add_badge_cumulative": {
         "title": "Añadir insignia acumulativa",
-        "description": "Configura los detalles de una insignia acumulativa. Estas insignias recompensan a los niños por alcanzar los puntos de vida útil y permiten ciclos de mantenimiento para fomentar el rendimiento continuo.\n\n📖 [Guía de configuración](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Badges-Cumulative)",
+        "description": "Configura los detalles de una insignia acumulativa. Estas insignias recompensan a los niños por alcanzar los puntos de vida útil y permiten ciclos de mantenimiento para fomentar el rendimiento continuo.\n\n📖 [Guía de configuración]({documentation_url})",
         "data": {
           "badge_name": "Nombre de la insignia",
           "badge_description": "Descripción de la insignia (opcional)",
@@ -587,7 +587,7 @@
       },
       "add_badge_daily": {
         "title": "Agregar insignia diaria",
-        "description": "Configura los detalles de una insignia diaria. Estas insignias recompensan a los niños por completar tareas diarias o alcanzar objetivos diarios.\n\n📖 [Resumen de insignias](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Configura los detalles de una insignia diaria. Estas insignias recompensan a los niños por completar tareas diarias o alcanzar objetivos diarios.\n\n📖 [Resumen de insignias]({documentation_url})",
         "data": {
           "badge_name": "Nombre de la insignia",
           "badge_description": "Descripción de la insignia (opcional)",
@@ -615,7 +615,7 @@
       },
       "add_badge_periodic": {
         "title": "Agregar insignia periódica",
-        "description": "Configura los detalles de una insignia periódica. Estas insignias recompensan a los niños por alcanzar los umbrales dentro de un período definido y permiten ciclos de reinicio para un rendimiento continuo.\n\n📖 [Guía de configuración](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Badges-Periodic)",
+        "description": "Configura los detalles de una insignia periódica. Estas insignias recompensan a los niños por alcanzar los umbrales dentro de un período definido y permiten ciclos de reinicio para un rendimiento continuo.\n\n📖 [Guía de configuración]({documentation_url})",
         "data": {
           "badge_name": "Nombre de la insignia",
           "badge_description": "Descripción de la insignia (opcional)",
@@ -661,7 +661,7 @@
       },
       "add_badge_achievement": {
         "title": "Agregar insignia vinculada a un logro",
-        "description": "Configura los detalles de una insignia vinculada a un logro. Estas insignias recompensan a los niños por completar logros específicos.\n\n📖 [Resumen de insignias](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Configura los detalles de una insignia vinculada a un logro. Estas insignias recompensan a los niños por completar logros específicos.\n\n[📖 Resumen de insignias]({documentation_url})",
         "data": {
           "badge_name": "Nombre de la insignia",
           "badge_description": "Descripción de la insignia (opcional)",
@@ -685,7 +685,7 @@
       },
       "add_badge_challenge": {
         "title": "Agregar insignia vinculada al desafío",
-        "description": "Configura los detalles de una insignia vinculada a un desafío. Estas insignias recompensan a los niños por completar desafíos específicos.\n\n📖 [Resumen de insignias](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Configura los detalles de una insignia vinculada a un desafío. Estas insignias recompensan a los niños por completar desafíos específicos.\n\n[📖 Resumen de insignias]({documentation_url})",
         "data": {
           "badge_name": "Nombre de la insignia",
           "badge_description": "Descripción de la insignia (opcional)",
@@ -709,7 +709,7 @@
       },
       "add_badge_special": {
         "title": "Agregar insignia para ocasiones especiales",
-        "description": "Configura los detalles de una insignia creada para ocasiones especiales. Estas insignias recompensan a los niños por eventos como cumpleaños o festividades.\n\n📖 [Resumen de insignias](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Configura los detalles de una insignia creada para ocasiones especiales. Estas insignias recompensan a los niños por eventos como cumpleaños o festividades.\n\n📖 [Resumen de insignias]({documentation_url})",
         "data": {
           "badge_name": "Nombre de la insignia",
           "badge_description": "Descripción de la insignia (opcional)",
@@ -745,7 +745,7 @@
       },
       "add_reward": {
         "title": "Añadir recompensa",
-        "description": "Proporciona los detalles de la nueva recompensa.\n\n📖 [Guía de configuración](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Rewards)",
+        "description": "Proporciona los detalles de la nueva recompensa.\n\n📖 [Guía de configuración]({documentation_url})",
         "data": {
           "name": "Nombre de la recompensa",
           "internal_id": "Identificación interna",
@@ -757,7 +757,7 @@
       },
       "add_penalty": {
         "title": "Añadir penalización",
-        "description": "Proporcione los detalles de la nueva penalización.\n\n📖 [Descripción general y ejemplos](https://github.com/ad-ha/kidschores-ha/wiki/Bonuses-&-Penalties%3A-Overview-&-Examples)",
+        "description": "Proporcione los detalles de la nueva penalización.\n\n📖 [Descripción general y ejemplos]({documentation_url})",
         "data": {
           "name": "Nombre de la penalización",
           "penalty_description": "Descripción (opcional)",
@@ -769,7 +769,7 @@
       },
       "add_bonus": {
         "title": "Añadir bono",
-        "description": "Proporcione los detalles del nuevo bono.\n\n📖 [Descripción general y ejemplos](https://github.com/ad-ha/kidschores-ha/wiki/Bonuses-&-Penalties%3A-Overview-&-Examples)",
+        "description": "Proporcione los detalles del nuevo bono.\n\n📖 [Descripción general y ejemplos]({documentation_url})",
         "data": {
           "name": "Nombre del bono",
           "bonus_description": "Descripción (opcional)",
@@ -781,7 +781,7 @@
       },
       "add_achievement": {
         "title": "Definir logro",
-        "description": "Ingresa detalles para cada logro.\n\n📖 [Descripción general y funcionalidad](https://github.com/ad-ha/kidschores-ha/wiki/Challenges-&-Achievements%3A-Overview-&-Functionality)",
+        "description": "Ingresa detalles para cada logro.\n\n[📖 Descripción general y funcionalidad]({documentation_url})",
         "data": {
           "name": "Nombre del logro",
           "description": "Descripción (opcional)",
@@ -798,7 +798,7 @@
       },
       "add_challenge": {
         "title": "Definir desafío",
-        "description": "Ingresa detalles para cada desafío.\n\n📖 [Descripción general y funcionalidad](https://github.com/ad-ha/kidschores-ha/wiki/Challenges-&-Achievements%3A-Overview-&-Functionality)",
+        "description": "Ingresa detalles para cada desafío.\n\n📖 [Descripción general y funcionalidad]({documentation_url})",
         "data": {
           "name": "Nombre del desafío",
           "description": "Descripción (opcional)",
@@ -817,7 +817,7 @@
       },
       "edit_kid": {
         "title": "Editar niño",
-        "description": "Modificar los detalles del niño seleccionado.\n\n📖 [Guía de configuración](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Kids-Parents)",
+        "description": "Modificar los detalles del niño seleccionado.\n\n📖 [Guía de configuración]({documentation_url})",
         "data": {
           "name": "Nombre del niño",
           "ha_user": "Usuario de Home Assistant",
@@ -851,7 +851,7 @@
       },
       "edit_parent": {
         "title": "Editar padre",
-        "description": "Modificar los detalles del padre seleccionado.\n\n📖 [Guía de configuración](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Kids-Parents)",
+        "description": "Modificar los detalles del padre seleccionado.\n\n📖 [Guía de configuración]({documentation_url})",
         "data": {
           "name": "Nombre del padre",
           "ha_user_id": "Usuario de Home Assistant",
@@ -876,7 +876,7 @@
       },
       "edit_chore": {
         "title": "Editar tarea",
-        "description": "Modificar los detalles de la tarea seleccionada.\n\n📖 [Guía de configuración](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Chores)",
+        "description": "Modificar los detalles de la tarea seleccionada.\n\n📖 [Guía de configuración]({documentation_url})",
         "data": {
           "name": "📋 Nombre de la tarea",
           "chore_description": "📋 Descripción (opcional)",
@@ -908,10 +908,10 @@
           "chore_labels": "Etiquetas para organizar tareas (p. ej., \"cocina\", \"exterior\"). Déjalo en blanco si no es necesario.",
           "default_points": "Puntos ganados al completarlo.",
           "assigned_kids": "Niños que pueden ver y reclamar esta tarea.",
-          "completion_criteria": "Independiente (cada niño lo completa por separado), Compartido todos (todos deben completarlo) o Compartido primero (primero en reclamar los bloques de los demás).",
-          "approval_reset_type": "Controla cuándo se restablece esta aprobación de tarea y cuántas finalizaciones se permiten durante ese período.",
-          "approval_reset_pending_claim_action": "Cuando se restablece la aprobación de esta tarea (según el Tiempo de restablecimiento de aprobación mencionado anteriormente), ¿qué sucede con las reclamaciones que aún esperan aprobación?",
-          "overdue_handling_type": "Acción después de la fecha de vencimiento: ocultar el estado de vencido, permanecer vencido hasta que se reclame o restablecer a pendiente en el próximo ciclo de aprobación.",
+          "completion_criteria": "Controla cómo se completa la tarea cuando se asignan varios niños: seguimiento individual, finalización compartida o rotación por turnos.",
+          "approval_reset_type": "Controla cuándo se activa el límite del ciclo de aprobación de la tarea (medianoche, fecha de vencimiento, al finalizar o activación manual).",
+          "approval_reset_pending_claim_action": "Controla lo que sucede con las reclamaciones no aprobadas cuando se activa el límite de restablecimiento de aprobación.",
+          "overdue_handling_type": "Controla lo que sucede cuando pasa la fecha de vencimiento y lo que sucede con las tareas vencidas en el límite de restablecimiento de aprobación.",
           "auto_approve": "Cuando esta opción está habilitada, las reclamaciones se aprueban instantáneamente sin revisión por parte de los padres.",
           "recurring_frequency": "Frecuencia de repetición de la tarea: Diariamente, Semanalmente, Mensualmente, Anualmente, Personalizada o Ninguna. Si selecciona \"Diariamente - Varias veces al día\", aparecerá una pantalla adicional para configurar las horas específicas.",
           "custom_interval": "Número de unidades de tiempo entre repeticiones (p. ej., 3 para «cada 3 semanas»). Solo se usa con la frecuencia personalizada.",
@@ -927,7 +927,7 @@
       },
       "edit_chore_per_kid_dates": {
         "title": "Editar fechas de entrega por niño: {chore_name}",
-        "description": "Establezca fechas de entrega individuales para cada niño asignado. El campo de fecha en el formulario de edición principal funciona como **plantilla** para mayor comodidad: úselo para aplicar rápidamente la misma fecha a todos los niños mediante la casilla de verificación a continuación, o déjelo en blanco y establezca las fechas individualmente aquí.\n\nSe muestran los campos para: {kid_names}. Déjelo en blanco si no hay fecha límite.{template_date}\n\n📖 [Guía avanzada](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Chores-Advanced)",
+        "description": "Establezca fechas de entrega individuales para cada niño asignado. El campo de fecha en el formulario de edición principal funciona como **plantilla** para mayor comodidad: úselo para aplicar rápidamente la misma fecha a todos los niños mediante la casilla de verificación a continuación, o déjelo en blanco y establezca las fechas individualmente aquí.\n\nSe muestran los campos para: {kid_names}. Déjelo en blanco si no hay fecha límite.{template_date}\n\n📖 [Guía avanzada]({documentation_url})",
         "data": {
           "apply_template_to_all": "Aplicar fecha de plantilla a todos los niños"
         },
@@ -947,7 +947,7 @@
       },
       "edit_chore_per_kid_details": {
         "title": "Horario por niño: {chore_name}",
-        "description": "Configura los ajustes de horario individuales para cada niño asignado a esta tarea. Los valores del formulario principal funcionan como **plantillas**: usa las casillas de verificación para aplicarlos a todos los niños o personaliza la configuración de cada uno individualmente.\n\n**Nota:** No todos los campos a continuación se aplican a todas las tareas. El formulario muestra dinámicamente las opciones relevantes según el modo de finalización, la frecuencia y si se han establecido fechas de vencimiento.\n\n**Formato diario (varias):** Si se muestra, introduce de 2 a 6 horas en formato de 24 horas separadas por | (barra vertical). Ejemplo: 08:00|17:00\n\nNiños: {kid_names}{template_info}\n\n📖 [Guía avanzada](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Chores-Advanced)",
+        "description": "Configura los ajustes de horario individuales para cada niño asignado a esta tarea. Los valores del formulario principal funcionan como **plantillas**: usa las casillas de verificación para aplicarlos a todos los niños o personaliza la configuración de cada uno individualmente.\n\n**Nota:** No todos los campos a continuación se aplican a todas las tareas. El formulario muestra dinámicamente las opciones relevantes según el modo de finalización, la frecuencia y si se han establecido fechas de vencimiento.\n\n**Formato diario (varias):** Si se muestra, introduce de 2 a 6 horas en formato de 24 horas separadas por | (barra vertical). Ejemplo: 08:00|17:00\n\nNiños: {kid_names}{template_info}\n\n📖 [Guía avanzada]({documentation_url})",
         "data": {
           "apply_days_to_all": "Aplicar días de plantilla a todos los niños",
           "apply_times_to_all": "Aplicar horarios de plantilla a todos los niños",
@@ -961,7 +961,7 @@
       },
       "edit_badge_cumulative": {
         "title": "Editar insignia acumulativa",
-        "description": "Configura los detalles de una insignia acumulativa. Estas insignias recompensan a los niños por alcanzar los puntos de vida útil y permiten ciclos de mantenimiento para fomentar el rendimiento continuo.\n\n📖 [Guía de configuración](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Badges-Cumulative)",
+        "description": "Configura los detalles de una insignia acumulativa. Estas insignias recompensan a los niños por alcanzar los puntos de vida útil y permiten ciclos de mantenimiento para fomentar el rendimiento continuo.\n\n📖 [Guía de configuración]({documentation_url})",
         "data": {
           "badge_name": "Nombre de la insignia",
           "badge_description": "Descripción de la insignia (opcional)",
@@ -1011,7 +1011,7 @@
       },
       "edit_badge_daily": {
         "title": "Editar insignia diaria",
-        "description": "Configura los detalles de una insignia diaria. Estas insignias recompensan a los niños por completar tareas diarias o alcanzar objetivos diarios.\n\n📖 [Resumen de insignias](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Configura los detalles de una insignia diaria. Estas insignias recompensan a los niños por completar tareas diarias o alcanzar objetivos diarios.\n\n📖 [Resumen de insignias]({documentation_url})",
         "data": {
           "badge_name": "Nombre de la insignia",
           "badge_description": "Descripción de la insignia (opcional)",
@@ -1039,7 +1039,7 @@
       },
       "edit_badge_periodic": {
         "title": "Editar insignia periódica",
-        "description": "Configura los detalles de una insignia periódica. Estas insignias recompensan a los niños por alcanzar los umbrales dentro de un período definido y permiten ciclos de reinicio para un rendimiento continuo.\n\n📖 [Guía de configuración](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Badges-Periodic)",
+        "description": "Configura los detalles de una insignia periódica. Estas insignias recompensan a los niños por alcanzar los umbrales dentro de un período definido y permiten ciclos de reinicio para un rendimiento continuo.\n\n📖 [Guía de configuración]({documentation_url})",
         "data": {
           "badge_name": "Nombre de la insignia",
           "badge_description": "Descripción de la insignia (opcional)",
@@ -1085,7 +1085,7 @@
       },
       "edit_badge_achievement": {
         "title": "Editar insignia vinculada a logros",
-        "description": "Configura los detalles de una insignia vinculada a un logro. Estas insignias recompensan a los niños por completar logros específicos.\n\n📖 [Resumen de insignias](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Configura los detalles de una insignia vinculada a un logro. Estas insignias recompensan a los niños por completar logros específicos.\n\n📖 [Resumen de insignias]({documentation_url})",
         "data": {
           "badge_name": "Nombre de la insignia",
           "badge_description": "Descripción de la insignia (opcional)",
@@ -1109,7 +1109,7 @@
       },
       "edit_badge_challenge": {
         "title": "Editar insignia vinculada al desafío",
-        "description": "Configura los detalles de una insignia vinculada a un desafío. Estas insignias recompensan a los niños por completar desafíos específicos.\n\n📖 [Resumen de insignias](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Configura los detalles de una insignia vinculada a un desafío. Estas insignias recompensan a los niños por completar desafíos específicos.\n\n📖 [Resumen de insignias]({documentation_url})",
         "data": {
           "badge_name": "Nombre de la insignia",
           "badge_description": "Descripción de la insignia (opcional)",
@@ -1133,7 +1133,7 @@
       },
       "edit_badge_special": {
         "title": "Editar insignia para ocasiones especiales",
-        "description": "Configura los detalles de una insignia creada para ocasiones especiales. Estas insignias recompensan a los niños por eventos como cumpleaños o festividades.\n\n📖 [Resumen de insignias](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Configura los detalles de una insignia creada para ocasiones especiales. Estas insignias recompensan a los niños por eventos como cumpleaños o festividades.\n\n📖 [Resumen de insignias]({documentation_url})",
         "data": {
           "badge_name": "Nombre de la insignia",
           "badge_description": "Descripción de la insignia (opcional)",
@@ -1169,7 +1169,7 @@
       },
       "edit_reward": {
         "title": "Editar recompensa",
-        "description": "Modificar los detalles de la recompensa seleccionada.\n\n📖 [Guía de configuración](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Rewards)",
+        "description": "Modificar los detalles de la recompensa seleccionada.\n\n📖 [Guía de configuración]({documentation_url})",
         "data": {
           "name": "Nombre de la recompensa",
           "internal_id": "Identificación interna",
@@ -1181,7 +1181,7 @@
       },
       "edit_penalty": {
         "title": "Editar penalización",
-        "description": "Modificar los detalles de la penalización seleccionada.\n\n📖 [Descripción general y ejemplos](https://github.com/ad-ha/kidschores-ha/wiki/Bonuses-&-Penalties%3A-Overview-&-Examples)",
+        "description": "Modificar los detalles de la penalización seleccionada.\n\n📖 [Descripción general y ejemplos]({documentation_url})",
         "data": {
           "name": "Nombre de la penalización",
           "penalty_description": "Descripción (opcional)",
@@ -1193,7 +1193,7 @@
       },
       "edit_bonus": {
         "title": "Bonificación de edición",
-        "description": "Modificar los detalles del bono seleccionado.\n\n📖 [Descripción general y ejemplos](https://github.com/ad-ha/kidschores-ha/wiki/Bonuses-&-Penalties%3A-Overview-&-Examples)",
+        "description": "Modificar los detalles del bono seleccionado.\n\n📖 [Descripción general y ejemplos]({documentation_url})",
         "data": {
           "name": "Nombre del bono",
           "bonus_description": "Descripción (opcional)",
@@ -1205,7 +1205,7 @@
       },
       "edit_achievement": {
         "title": "Definir logro",
-        "description": "Ingresa detalles para cada logro.\n\n📖 [Descripción general y funcionalidad](https://github.com/ad-ha/kidschores-ha/wiki/Challenges-&-Achievements%3A-Overview-&-Functionality)",
+        "description": "Ingresa detalles para cada logro.\n\n📖 [Descripción general y funcionalidad]({documentation_url})",
         "data": {
           "name": "Nombre del logro",
           "description": "Descripción (opcional)",
@@ -1222,7 +1222,7 @@
       },
       "edit_challenge": {
         "title": "Definir desafío",
-        "description": "Ingresa detalles para cada desafío.\n\n📖 [Descripción general y funcionalidad](https://github.com/ad-ha/kidschores-ha/wiki/Challenges-&-Achievements%3A-Overview-&-Functionality)",
+        "description": "Ingresa detalles para cada desafío.\n\n📖 [Descripción general y funcionalidad]({documentation_url})",
         "data": {
           "name": "Nombre del desafío",
           "description": "Descripción (opcional)",
@@ -1298,7 +1298,7 @@
       },
       "dashboard_create": {
         "title": "Crear/actualizar panel de control",
-        "description": "Genera un panel de KidsChores con pestañas para cada niño.\n\nElige un nombre para el panel, selecciona los niños que deseas incluir y, opcionalmente, agrega una pestaña de Administrador para la gestión de padres.\n\n[📖 Guía para generar paneles](https://github.com/ad-ha/kidschores-ha/wiki/Getting-Started:-Dashboard-Generation)",
+        "description": "Genera un panel de KidsChores con pestañas para cada niño.\n\nElige un nombre para el panel, selecciona los niños que deseas incluir y, opcionalmente, agrega una pestaña de Administrador para la gestión de padres.\n\n[📖 Guía para generar paneles]({documentation_url})",
         "data": {
           "dashboard_name": "Nombre del tablero",
           "dashboard_style": "Estilo del tablero",
@@ -1341,7 +1341,7 @@
       },
       "manage_general_options": {
         "title": "Opciones generales",
-        "description": "Administrar la configuración general para la integración de KidsChores.\n\n[📖 Obtenga más información sobre Copia de seguridad y restauración](https://github.com/ad-ha/kidschores-ha/wiki/Getting-Started:-Backup-Restore)",
+        "description": "Administrar la configuración general para la integración de KidsChores.\n\n[📖 Obtenga más información sobre Copia de seguridad y restauración]({documentation_url})",
         "data": {
           "points_adjust_values": "Valores del botón de ajuste de puntos manual",
           "update_interval": "Intervalo de actualización",
@@ -1505,6 +1505,7 @@
       "error_daily_multi_times_too_few": "Se requieren al menos 2 veces para la frecuencia \"Varias veces al día\". Para una sola vez, use la frecuencia \"Diaria\".",
       "error_daily_multi_times_too_many": "Se permite un máximo de 6 veces por día para la frecuencia \"Varias veces por día\".",
       "error_daily_multi_due_date_required": "La frecuencia \"Varias veces al día\" requiere establecer una fecha de vencimiento. La fecha determina cuándo comienza la programación y las horas determinan los intervalos de disponibilidad diarios.",
+      "error_allow_steal_incompatible": "Permitir el manejo de robos vencidos solo es compatible con tareas de rotación (rotation_simple o rotation_smart), tipo de reinicio \"Una vez al día\" y requiere una fecha de vencimiento para definir cuándo se abre la ventana de robo.",
       "error_at_due_date_reset_requires_due_date": "Los tipos de restablecimiento de aprobación \"En fecha de vencimiento\" (Única o Múltiple) requieren que se establezca una fecha de vencimiento. Sin una fecha de vencimiento, el restablecimiento de aprobación nunca se activará y la tarea permanecerá aprobada indefinidamente.",
       "error_per_kid_applicable_days_invalid": "Formato de días aplicable no válido para uno o más niños. Los días deben ser enteros del 0 al 6 (de lunes a domingo) sin duplicados.",
       "error_per_kid_daily_multi_times_invalid": "Formato de hora diaria no válido para uno o más niños. Use el formato de 24 horas separado por | (p. ej., 08:00|17:00).",
@@ -1665,7 +1666,9 @@
       "options": {
         "shared_all": "Compartido todos (Todos los niños deben completarlo juntos)",
         "independent": "Independiente (Cada niño lo completa por su cuenta)",
-        "shared_first": "Compartido Primero (La primera finalización cuenta)"
+        "shared_first": "Compartido Primero (La primera finalización cuenta)",
+        "rotation_simple": "Rotación simple (solo titular del turno, orden estricto)",
+        "rotation_smart": "Rotación inteligente (solo para titulares de turnos, ponderación justa)"
       }
     },
     "approval_reset_type": {
@@ -1674,15 +1677,19 @@
         "at_midnight_multi": "Varias veces al día - Se reinicia a medianoche",
         "at_due_date_once": "Una vez por período - Se reinicia en la fecha de vencimiento",
         "at_due_date_multi": "Varias veces por período: se reinicia en la fecha de vencimiento",
-        "upon_completion": "Finalizaciones ilimitadas: se reinicia después de completarse"
+        "upon_completion": "Finalizaciones ilimitadas: se reinicia al finalizar",
+        "manual": "Solo reinicio manual - Sin reinicios automáticos"
       }
     },
     "overdue_handling_type": {
       "options": {
-        "at_due_date": "Vencido hasta completar",
         "never_overdue": "Nunca vencido",
+        "at_due_date": "Vencido hasta completar",
         "at_due_date_clear_at_approval_reset": "Vencido hasta restablecimiento de aprobación",
-        "at_due_date_clear_immediate_on_late": "Atrasado hasta su finalización (Liquidar aprobaciones tardías de inmediato)"
+        "at_due_date_clear_immediate_on_late": "Atrasado hasta su finalización (Liquidar aprobaciones tardías de inmediato)",
+        "at_due_date_clear_and_mark_missed": "Vencido hasta restablecimiento de aprobación (marcar como perdido)",
+        "at_due_date_mark_missed_and_lock": "Bloquear hasta restablecer la aprobación (evitar reclamos, marcar como no aprobado)",
+        "at_due_date_allow_steal": "Permitir robo hasta reinicio de aprobación (solo rotación)"
       }
     },
     "approval_reset_pending_claim_action": {
@@ -2087,22 +2094,22 @@
         },
         "completion_criteria": {
           "name": "Criterios de finalización",
-          "description": "Cómo se completa la tarea cuando se asignan varios niños: independiente (cada niño la completa por separado), compartida_primero (el primer niño que la complete gana puntos) o compartida_todos (todos los niños deben completarla). No se puede cambiar después de crearla.",
+          "description": "Controla cómo se completa la tarea cuando se asignan varios niños: seguimiento individual, finalización compartida o rotación por turnos.",
           "example": "independiente"
         },
         "approval_reset_type": {
           "name": "Tipo de restablecimiento de aprobación",
-          "description": "Cuando la tarea se reinicia para volver a completarse.",
+          "description": "Controla cuándo se activa el límite del ciclo de aprobación de la tarea (medianoche, fecha de vencimiento, al finalizar o activación manual).",
           "example": "a medianoche una vez"
         },
         "pending_claims": {
           "name": "Acción de reclamaciones pendientes",
-          "description": "¿Qué sucede con las reclamaciones pendientes cuando se reinicia la tarea?: hold_pending (mantener reclamaciones), clear_pending (eliminar reclamaciones) o auto_approve_pending (aprobar todas las pendientes).",
+          "description": "Controla lo que sucede con las reclamaciones no aprobadas cuando se activa el límite de restablecimiento de aprobación.",
           "example": "retención_pendiente"
         },
         "overdue_handling": {
           "name": "Manejo de vencimientos",
-          "description": "Cómo manejar una tarea cuando ya no es necesaria",
+          "description": "Controla lo que sucede cuando pasa la fecha de vencimiento y lo que sucede con las tareas vencidas en el límite de restablecimiento de aprobación.",
           "example": "en la fecha de vencimiento"
         },
         "auto_approve": {
@@ -2229,6 +2236,64 @@
         }
       }
     },
+    "set_rotation_turn": {
+      "name": "Establecer giro de rotación",
+      "description": "Asignar manualmente el turno actual a un niño específico en una tarea de rotación. Solo funciona con tareas de rotación (rotation_simple o rotation_smart). Usar ID o nombre para la identificación.",
+      "fields": {
+        "chore_id": {
+          "name": "Identificación de tarea",
+          "description": "ID interno de la tarea de rotación. Opcional si se proporciona chore_name.",
+          "example": "abc123-def456-789..."
+        },
+        "chore_name": {
+          "name": "Nombre de la tarea",
+          "description": "Nombre de la tarea de rotación. Opcional si se proporciona chore_id.",
+          "example": "Dormitorio limpio"
+        },
+        "kid_id": {
+          "name": "Identificación de niño",
+          "description": "ID interno del niño al que se asignará el turno. Debe estar asignado a esta tarea. Opcional si se proporciona el nombre del niño.",
+          "example": "xyz789-abc123-456..."
+        },
+        "kid_name": {
+          "name": "Nombre del niño",
+          "description": "Nombre del niño al que se asignará el turno. Debe estar asignado a esta tarea. Opcional si se proporciona el ID del niño.",
+          "example": "Alicia"
+        }
+      }
+    },
+    "reset_rotation": {
+      "name": "Restablecer rotación",
+      "description": "Restablecer el turno de rotación al primer niño asignado. Solo funciona con tareas de rotación (rotación simple o rotación inteligente). Usar ID o nombre para la identificación.",
+      "fields": {
+        "chore_id": {
+          "name": "Identificación de tarea",
+          "description": "ID interno de la tarea de rotación que se va a restablecer. Opcional si se proporciona chore_name.",
+          "example": "abc123-def456-789..."
+        },
+        "chore_name": {
+          "name": "Nombre de la tarea",
+          "description": "Nombre de la tarea de rotación que se va a restablecer. Opcional si se proporciona chore_id.",
+          "example": "Dormitorio limpio"
+        }
+      }
+    },
+    "open_rotation_cycle": {
+      "name": "Ciclo de rotación abierta",
+      "description": "Habilite la anulación del ciclo de rotación durante un ciclo, lo que permite que cualquier niño asignado pueda reclamar, independientemente del turno. La anulación se borra tras la siguiente aprobación. Use su ID o nombre para la identificación.",
+      "fields": {
+        "chore_id": {
+          "name": "Identificación de tarea",
+          "description": "ID interno de la tarea de rotación que se abrirá. Opcional si se proporciona chore_name.",
+          "example": "abc123-def456-789..."
+        },
+        "chore_name": {
+          "name": "Nombre de la tarea",
+          "description": "Nombre de la tarea de rotación que se abrirá. Opcional si se proporciona chore_id.",
+          "example": "Dormitorio limpio"
+        }
+      }
+    },
     "reset_chores_to_pending_state": {
       "name": "Restablecer tareas al estado pendiente",
       "description": "Restablecer manualmente todas las tareas al estado pendiente, eliminando reclamos y aprobaciones."
@@ -2329,6 +2394,10 @@
           "name": "Identificación de niño",
           "description": "El ID interno del niño. Solo para usuarios avanzados: use kid_name.",
           "example": "abc123-def456"
+        },
+        "mark_as_missed": {
+          "name": "Marcar como perdido",
+          "description": "Cuando es verdadero, se registra esta omisión como una tarea omitida en las estadísticas del niño. Útil para registrar omisiones intencionales, independientemente de los reinicios automáticos por retraso."
         }
       }
     },
@@ -2363,7 +2432,10 @@
           "none": "Ninguno",
           "approved_in_part": "Aprobado (parcialmente)",
           "claimed_in_part": "Reclamado (en parte)",
-          "completed_by_other": "Completado por Otros"
+          "completed_by_other": "Completado por Otros",
+          "waiting": "Esperando (Ventana de vencimiento no abierta)",
+          "not_my_turn": "No es mi turno (Rotación)",
+          "missed": "Perdido (Bloqueado)"
         },
         "state_attributes": {
           "purpose": {
@@ -2398,7 +2470,9 @@
             "state": {
               "independent": "Independiente",
               "shared_first": "Compartido (Primero)",
-              "shared_all": "Compartido (Todos)"
+              "shared_all": "Compartido (Todos)",
+              "rotation_simple": "Rotación simple",
+              "rotation_smart": "Rotación inteligente"
             }
           },
           "approval_reset_type": {
@@ -2408,7 +2482,8 @@
               "at_midnight_multi": "A medianoche (Multi)",
               "at_due_date_once": "En la fecha de vencimiento (una vez)",
               "at_due_date_multi": "En la fecha de vencimiento (múltiple)",
-              "upon_completion": "Al finalizar"
+              "upon_completion": "Al finalizar",
+              "manual": "Solo reinicio manual"
             }
           },
           "recurring_frequency": {
@@ -2546,6 +2621,20 @@
           },
           "time_until_overdue": {
             "name": "Tiempo hasta el vencimiento"
+          },
+          "lock_reason": {
+            "name": "Motivo del bloqueo",
+            "state": {
+              "waiting": "Esperando la ventana de vencimiento",
+              "not_my_turn": "No es tu turno",
+              "missed": "Omitido"
+            }
+          },
+          "turn_kid_name": {
+            "name": "Girar el nombre del niño"
+          },
+          "available_at": {
+            "name": "Disponible en"
           }
         }
       },
@@ -3132,7 +3221,9 @@
             "state": {
               "independent": "Independiente",
               "shared_first": "Compartido (Solo el primero)",
-              "shared_all": "Compartido (Todos requeridos)"
+              "shared_all": "Compartido (Todos requeridos)",
+              "rotation_simple": "Rotación simple",
+              "rotation_smart": "Rotación inteligente"
             }
           },
           "approval_reset_type": {
@@ -3142,7 +3233,8 @@
               "at_midnight_multi": "A medianoche (Multi)",
               "at_due_date_once": "En la fecha de vencimiento (una vez)",
               "at_due_date_multi": "En la fecha de vencimiento (múltiple)",
-              "upon_completion": "Al finalizar"
+              "upon_completion": "Al finalizar",
+              "manual": "Solo reinicio manual"
             }
           },
           "recurring_frequency": {
@@ -3998,6 +4090,30 @@
     "not_assigned": {
       "message": "{entity} no asignado a {kid}"
     },
+    "rotation_no_turn_holder": {
+      "message": "Las tareas de rotación deben tener un titular de turno asignado"
+    },
+    "rotation_invalid_order": {
+      "message": "El orden de rotación debe ser una lista no vacía de identificaciones de niños"
+    },
+    "rotation_duplicate_in_order": {
+      "message": "El orden de rotación no puede contener niños duplicados"
+    },
+    "rotation_unassigned_in_order": {
+      "message": "Todos los niños en orden de rotación deben ser asignados a la tarea."
+    },
+    "rotation_min_kids": {
+      "message": "Las tareas de rotación requieren al menos 2 niños asignados"
+    },
+    "not_rotation": {
+      "message": "Esta tarea no está en modo de rotación"
+    },
+    "kid_not_assigned": {
+      "message": "El niño no está asignado a esta tarea."
+    },
+    "no_assigned_kids": {
+      "message": "No hay niños asignados a esta tarea."
+    },
     "insufficient_points": {
       "message": "{kid} tiene {current} puntos pero necesita {required} puntos"
     },
@@ -4105,6 +4221,12 @@
     },
     "notif_message_data_reset_item": {
       "message": "Restablecimiento de datos completo para {item_name}. Se borraron los datos de tiempo de ejecución."
+    },
+    "notif_title_chore_missed": {
+      "message": "Tarea perdida"
+    },
+    "notif_message_chore_missed": {
+      "message": "{kid_name} se perdió la tarea: {chore_name}"
     }
   }
 }

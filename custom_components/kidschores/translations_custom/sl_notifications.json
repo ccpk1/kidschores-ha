@@ -13,7 +13,7 @@
   },
   "chore_disapproved": {
     "title": "Otroška opravila: Opravilo zavrnjeno",
-    "message": "Naloga uporabnika {kid_name} {chore_name} ni bila odobrena"
+    "message": "Tvoja opravilna naloga {chore_name} ni bila odobrena"
   },
   "chore_overdue": {
     "title": "Otroška opravila: Hišna opravila so zamujena",

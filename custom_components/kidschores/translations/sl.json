@@ -4,11 +4,11 @@
     "step": {
       "intro": {
         "title": "Dobrodošli v Otroških opravilih",
-        "description": "Ta čarovnik vas bo vodil skozi nastavitev aplikacije KidsChores.\n\n[📖 Vodnik za hiter začetek](https://github.com/ad-ha/kidschores-ha/wiki/Getting-Started:-Quick-Start)"
+        "description": "Ta čarovnik vas bo vodil skozi nastavitev aplikacije KidsChores.\n\n[📖 Vodnik za hiter začetek]({documentation_url})"
       },
       "data_recovery": {
         "title": "Možnosti obnovitve podatkov",
-        "description": "Obstoječi podatki KidsChores najdeni v:\n{storage_path}\n\nNajdenih {backup_count} varnostnih kopij datotek.\n\nKaj želite storiti?\n\n[📖 Več o varnostnem kopiranju in obnavljanju](https://github.com/ad-ha/kidschores-ha/wiki/Getting-Started:-Backup-Restore)",
+        "description": "Obstoječi podatki KidsChores najdeni v:\n{storage_path}\n\nNajdenih {backup_count} varnostnih kopij datotek.\n\nKaj želite storiti?\n\n[📖 Več o varnostnem kopiranju in obnavljanju]({documentation_url})",
         "data": {
           "backup_selection": "Izberite možnost"
         }
@@ -142,8 +142,8 @@
           "chore_labels": "Oznake za organizacijo opravil (npr. »kuhinja«, »na prostem«). Če niso potrebne, pustite prazno.",
           "default_points": "Točke, pridobljene ob zaključku.",
           "assigned_kids": "Otroci, ki lahko vidijo in prevzamejo to opravilo.",
-          "completion_criteria": "Neodvisno (vsak otrok izpolni posebej), skupno (vsi morajo izpolniti) ali skupno prvi (prvi, ki prevzame bloke drugih).",
-          "approval_reset_type": "Določa, kdaj se to opravilo ponastavi in koliko dokončanj je dovoljenih v tem obdobju.",
+          "completion_criteria": "Nadzira, kako se opravilo opravi, ko je dodeljenih več otrok: individualno sledenje, skupno dokončanje ali rotacija po vrsti.",
+          "approval_reset_type": "Določa, kdaj se sproži meja cikla odobritve opravila (polnoč, datum zapadlosti, ob zaključku ali ročno sprožitev).",
           "approval_reset_pending_claim_action": "To se zgodi z zahtevki, ki še čakajo na odobritev, ko pride do ponastavitve odobritve.",
           "overdue_handling_type": "Dejanje po datumu zapadlosti: Skrij status zapadlosti, pusti zapadlost do uveljavljanja ali ponastavi na čakanje v naslednjem ciklu odobritve.",
           "auto_approve": "Ko je omogočeno, se zahtevki takoj odobrijo brez pregleda staršev.",
@@ -167,7 +167,7 @@
       },
       "badges": {
         "title": "Dodaj kumulativno značko",
-        "description": "Konfigurirajte podrobnosti za kumulativno značko. Te značke nagrajujejo otroke za doseganje pragov točk v življenju in podpirajo vzdrževalne cikle za spodbujanje stalne uspešnosti.",
+        "description": "Konfigurirajte podrobnosti za kumulativno značko. Te značke nagrajujejo otroke za doseganje pragov točk v življenjski dobi in podpirajo vzdrževalne cikle za spodbujanje stalne uspešnosti.\n\n[📖 Vodnik za konfiguracijo]({documentation_url})",
         "data": {
           "badge_name": "Ime značke",
           "badge_description": "Opis značke (neobvezno)",
@@ -409,7 +409,7 @@
     "step": {
       "init": {
         "title": "Možnosti otroških opravil",
-        "description": "Upravljajte otroke, opravila, značke, nagrade, kazni, bonuse ali zaključek.\n\n📖 [Ogled dokumentacije](https://github.com/ad-ha/kidschores-ha/wiki)",
+        "description": "Upravljajte otroke, opravila, značke, nagrade, kazni, bonuse ali zaključek.\n\n[📖 Oglejte si dokumentacijo]({documentation_url})",
         "data": {
           "menu_selection": "Izberite možnost"
         }
@@ -430,7 +430,7 @@
       },
       "manage_points": {
         "title": "Urejanje oznake in ikone točk",
-        "description": "Spremenite oznako in ikono, ki se uporabljata za predstavitev točk.\n\n📖 [Vodnik za konfiguracijo](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Points)",
+        "description": "Spremenite oznako in ikono, ki se uporabljata za predstavitev točk.\n\n📖 [Vodnik za konfiguracijo]({documentation_url})",
         "data": {
           "points_label": "Oznaka točk",
           "points_icon": "Ikona točk"
@@ -438,7 +438,7 @@
       },
       "add_kid": {
         "title": "Dodaj otroka",
-        "description": "Navedite podrobnosti za novega otroka.\n\n📖 [Vodnik za konfiguracijo](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Kids-Parents)",
+        "description": "Navedite podrobnosti za novega otroka.\n\n📖 [Vodnik za konfiguracijo]({documentation_url})",
         "data": {
           "name": "Ime otroka",
           "ha_user": "Uporabnik domačega pomočnika",
@@ -455,7 +455,7 @@
       },
       "add_parent": {
         "title": "Dodaj starša",
-        "description": "Navedite podrobnosti za novega starša.\n\n📖 [Vodnik za konfiguracijo](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Kids-Parents)",
+        "description": "Navedite podrobnosti za novega starša.\n\n📖 [Vodnik za konfiguracijo]({documentation_url})",
         "data": {
           "name": "Ime starša",
           "ha_user_id": "Uporabnik domačega pomočnika",
@@ -480,7 +480,7 @@
       },
       "add_chore": {
         "title": "Dodaj opravilo",
-        "description": "Ustvari novo opravilo s točkami, nalogami in ponavljajočim se urnikom.\n\n📖 [Vodnik za konfiguracijo](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Chores)",
+        "description": "Ustvari novo opravilo s točkami, nalogami in ponavljajočim se urnikom.\n\n📖 [Vodnik za konfiguracijo]({documentation_url})",
         "data": {
           "name": "📋 Ime opravila",
           "chore_description": "📋 Opis (neobvezno)",
@@ -511,10 +511,10 @@
           "chore_labels": "Oznake za organizacijo opravil (npr. »kuhinja«, »na prostem«). Če niso potrebne, pustite prazno.",
           "default_points": "Točke, pridobljene ob zaključku.",
           "assigned_kids": "Otroci, ki lahko vidijo in prevzamejo to opravilo.",
-          "completion_criteria": "Neodvisno (vsak otrok izpolni posebej), skupno (vsi morajo izpolniti) ali skupno prvi (prvi, ki prevzame bloke drugih).",
-          "approval_reset_type": "Določa, kdaj se ta odobritev opravila ponastavi in koliko dokončanj je dovoljenih v tem obdobju.",
-          "approval_reset_pending_claim_action": "To se zgodi z zahtevki, ki še čakajo na odobritev, ko pride do ponastavitve odobritve.",
-          "overdue_handling_type": "Dejanje po datumu zapadlosti: Skrij status zapadlosti, pusti zapadlost do uveljavljanja ali ponastavi na čakanje v naslednjem ciklu odobritve.",
+          "completion_criteria": "Nadzira, kako se opravilo opravi, ko je dodeljenih več otrok: individualno sledenje, skupno dokončanje ali rotacija po vrsti.",
+          "approval_reset_type": "Določa, kdaj se sproži meja cikla odobritve opravila (polnoč, datum zapadlosti, ob zaključku ali ročno sprožitev).",
+          "approval_reset_pending_claim_action": "Nadzira, kaj se zgodi z neodobrenimi zahtevki, ko se sproži meja ponastavitve odobritve.",
+          "overdue_handling_type": "Nadzira, kaj se zgodi, ko rok poteče, in kaj se zgodi z zamujenimi opravili na meji ponastavitve odobritve.",
           "auto_approve": "Ko je omogočeno, se zahtevki takoj odobrijo brez pregleda staršev.",
           "recurring_frequency": "Kako pogosto se opravilo ponavlja: dnevno, tedensko, mesečno, letno, po meri ali brez. Če izberete »Dnevno – večkrat na dan«, se bo prikazal dodaten zaslon za konfiguracijo določenih časov.",
           "custom_interval": "Število časovnih enot med ponovitvami (npr. 3 za »vsake 3 tedne«). Uporablja se samo s frekvenco po meri.",
@@ -537,7 +537,7 @@
       },
       "add_badge_cumulative": {
         "title": "Dodaj kumulativno značko",
-        "description": "Konfigurirajte podrobnosti za kumulativno značko. Te značke nagrajujejo otroke za doseganje pragov točk v življenju in podpirajo vzdrževalne cikle za spodbujanje stalne uspešnosti.\n\n📖 [Vodnik za konfiguracijo](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Badges-Cumulative)",
+        "description": "Konfigurirajte podrobnosti za kumulativno značko. Te značke nagrajujejo otroke za doseganje pragov točk v življenju in podpirajo vzdrževalne cikle za spodbujanje stalne uspešnosti.\n\n📖 [Vodnik za konfiguracijo]({documentation_url})",
         "data": {
           "badge_name": "Ime značke",
           "badge_description": "Opis značke (neobvezno)",
@@ -587,7 +587,7 @@
       },
       "add_badge_daily": {
         "title": "Dodaj dnevno značko",
-        "description": "Konfigurirajte podrobnosti za dnevno značko. Te značke nagrajujejo otroke za opravljanje dnevnih nalog ali doseganje dnevnih pragov.\n\n📖 [Pregled značk](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Konfigurirajte podrobnosti za dnevno značko. Te značke nagrajujejo otroke za opravljanje dnevnih nalog ali doseganje dnevnih pragov.\n\n📖 [Pregled značk]({documentation_url})",
         "data": {
           "badge_name": "Ime značke",
           "badge_description": "Opis značke (neobvezno)",
@@ -615,7 +615,7 @@
       },
       "add_badge_periodic": {
         "title": "Dodaj periodično značko",
-        "description": "Konfigurirajte podrobnosti za periodično značko. Te značke nagrajujejo otroke za doseganje pragov v določenem časovnem obdobju in podpirajo cikle ponastavitve za stalno uspešnost.\n\n📖 [Vodnik za konfiguracijo](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Badges-Periodic)",
+        "description": "Konfigurirajte podrobnosti za periodično značko. Te značke nagrajujejo otroke za doseganje pragov v določenem časovnem obdobju in podpirajo cikle ponastavitve za stalno uspešnost.\n\n📖 [Vodnik za konfiguracijo]({documentation_url})",
         "data": {
           "badge_name": "Ime značke",
           "badge_description": "Opis značke (neobvezno)",
@@ -661,7 +661,7 @@
       },
       "add_badge_achievement": {
         "title": "Dodaj značko, povezano z dosežki",
-        "description": "Konfigurirajte podrobnosti za značko, povezano z dosežkom. Te značke nagrajujejo otroke za doseganje določenih dosežkov.\n\n📖 [Pregled značk](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Konfigurirajte podrobnosti za značko, povezano z dosežkom. Te značke nagrajujejo otroke za doseganje določenih dosežkov.\n\n[📖 Pregled značk]({documentation_url})",
         "data": {
           "badge_name": "Ime značke",
           "badge_description": "Opis značke (neobvezno)",
@@ -685,7 +685,7 @@
       },
       "add_badge_challenge": {
         "title": "Dodaj značko, povezano z izzivom",
-        "description": "Konfigurirajte podrobnosti za značko, povezano z izzivom. Te značke nagrajujejo otroke za dokončanje določenih izzivov.\n\n📖 [Pregled značk](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Konfigurirajte podrobnosti za značko, povezano z izzivom. Te značke nagrajujejo otroke za dokončanje določenih izzivov.\n\n[📖 Pregled značk]({documentation_url})",
         "data": {
           "badge_name": "Ime značke",
           "badge_description": "Opis značke (neobvezno)",
@@ -709,7 +709,7 @@
       },
       "add_badge_special": {
         "title": "Dodaj značko za posebno priložnost",
-        "description": "Konfigurirajte podrobnosti za značko, ustvarjeno za posebne priložnosti. Te značke nagrajujejo otroke za dogodke, kot so rojstni dnevi ali prazniki.\n\n📖 [Pregled značk](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Konfigurirajte podrobnosti za značko, ustvarjeno za posebne priložnosti. Te značke nagrajujejo otroke za dogodke, kot so rojstni dnevi ali prazniki.\n\n📖 [Pregled značk]({documentation_url})",
         "data": {
           "badge_name": "Ime značke",
           "badge_description": "Opis značke (neobvezno)",
@@ -745,7 +745,7 @@
       },
       "add_reward": {
         "title": "Dodaj nagrado",
-        "description": "Navedite podrobnosti za novo nagrado.\n\n📖 [Vodnik za konfiguracijo](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Rewards)",
+        "description": "Navedite podrobnosti za novo nagrado.\n\n📖 [Vodnik za konfiguracijo]({documentation_url})",
         "data": {
           "name": "Ime nagrade",
           "internal_id": "Notranja identifikacija",
@@ -757,7 +757,7 @@
       },
       "add_penalty": {
         "title": "Dodaj kazen",
-        "description": "Navedite podrobnosti za novo kazen.\n\n📖 [Pregled in primeri](https://github.com/ad-ha/kidschores-ha/wiki/Bonuses-&-Penalties%3A-Overview-&-Examples)",
+        "description": "Navedite podrobnosti za novo kazen.\n\n📖 [Pregled in primeri]({documentation_url})",
         "data": {
           "name": "Ime kazni",
           "penalty_description": "Opis (neobvezno)",
@@ -769,7 +769,7 @@
       },
       "add_bonus": {
         "title": "Dodaj bonus",
-        "description": "Navedite podrobnosti o novem bonusu.\n\n📖 [Pregled in primeri](https://github.com/ad-ha/kidschores-ha/wiki/Bonuses-&-Penalties%3A-Overview-&-Examples)",
+        "description": "Navedite podrobnosti o novem bonusu.\n\n📖 [Pregled in primeri]({documentation_url})",
         "data": {
           "name": "Ime bonusa",
           "bonus_description": "Opis (neobvezno)",
@@ -781,7 +781,7 @@
       },
       "add_achievement": {
         "title": "Definiraj dosežek",
-        "description": "Vnesite podrobnosti za vsak dosežek.\n\n📖 [Pregled in funkcionalnost](https://github.com/ad-ha/kidschores-ha/wiki/Challenges-&-Achievements%3A-Overview-&-Functionality)",
+        "description": "Vnesite podrobnosti za vsak dosežek.\n\n[📖 Pregled in funkcionalnost]({documentation_url})",
         "data": {
           "name": "Ime dosežka",
           "description": "Opis (neobvezno)",
@@ -798,7 +798,7 @@
       },
       "add_challenge": {
         "title": "Definiraj izziv",
-        "description": "Vnesite podrobnosti za vsak izziv.\n\n📖 [Pregled in funkcionalnost](https://github.com/ad-ha/kidschores-ha/wiki/Challenges-&-Achievements%3A-Overview-&-Functionality)",
+        "description": "Vnesite podrobnosti za vsak izziv.\n\n📖 [Pregled in funkcionalnost]({documentation_url})",
         "data": {
           "name": "Ime izziva",
           "description": "Opis (neobvezno)",
@@ -817,7 +817,7 @@
       },
       "edit_kid": {
         "title": "Uredi otroka",
-        "description": "Spremenite podrobnosti izbranega otroka.\n\n📖 [Vodnik za konfiguracijo](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Kids-Parents)",
+        "description": "Spremenite podrobnosti izbranega otroka.\n\n📖 [Vodnik za konfiguracijo]({documentation_url})",
         "data": {
           "name": "Ime otroka",
           "ha_user": "Uporabnik domačega pomočnika",
@@ -851,7 +851,7 @@
       },
       "edit_parent": {
         "title": "Uredi nadrejenega",
-        "description": "Spremenite podrobnosti izbranega starša.\n\n📖 [Vodnik za konfiguracijo](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Kids-Parents)",
+        "description": "Spremenite podrobnosti izbranega starša.\n\n📖 [Vodnik za konfiguracijo]({documentation_url})",
         "data": {
           "name": "Ime starša",
           "ha_user_id": "Uporabnik domačega pomočnika",
@@ -876,7 +876,7 @@
       },
       "edit_chore": {
         "title": "Uredi opravilo",
-        "description": "Spremenite podrobnosti izbranega opravila.\n\n📖 [Vodnik za konfiguracijo](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Chores)",
+        "description": "Spremenite podrobnosti izbranega opravila.\n\n📖 [Vodnik za konfiguracijo]({documentation_url})",
         "data": {
           "name": "📋 Ime opravila",
           "chore_description": "📋 Opis (neobvezno)",
@@ -908,10 +908,10 @@
           "chore_labels": "Oznake za organizacijo opravil (npr. »kuhinja«, »na prostem«). Če niso potrebne, pustite prazno.",
           "default_points": "Točke, pridobljene ob zaključku.",
           "assigned_kids": "Otroci, ki lahko vidijo in prevzamejo to opravilo.",
-          "completion_criteria": "Neodvisno (vsak otrok izpolni posebej), skupno (vsi morajo izpolniti) ali skupno prvi (prvi, ki prevzame bloke drugih).",
-          "approval_reset_type": "Določa, kdaj se ta odobritev opravila ponastavi in koliko dokončanj je dovoljenih v tem obdobju.",
-          "approval_reset_pending_claim_action": "Ko se odobritev te naloge ponastavi (na podlagi zgornjega časa ponastavitve odobritve), kaj se zgodi z zahtevki, ki še čakajo na odobritev?",
-          "overdue_handling_type": "Dejanje po datumu zapadlosti: Skrij status zapadlosti, pusti zapadlost do uveljavljanja ali ponastavi na čakanje v naslednjem ciklu odobritve.",
+          "completion_criteria": "Nadzira, kako se opravilo opravi, ko je dodeljenih več otrok: individualno sledenje, skupno dokončanje ali rotacija po vrsti.",
+          "approval_reset_type": "Določa, kdaj se sproži meja cikla odobritve opravila (polnoč, datum zapadlosti, ob zaključku ali ročno sprožitev).",
+          "approval_reset_pending_claim_action": "Nadzira, kaj se zgodi z neodobrenimi zahtevki, ko se sproži meja ponastavitve odobritve.",
+          "overdue_handling_type": "Nadzira, kaj se zgodi, ko rok poteče, in kaj se zgodi z zamujenimi opravili na meji ponastavitve odobritve.",
           "auto_approve": "Ko je omogočeno, se zahtevki takoj odobrijo brez pregleda staršev.",
           "recurring_frequency": "Kako pogosto se opravilo ponavlja: dnevno, tedensko, mesečno, letno, po meri ali brez. Če izberete »Dnevno – večkrat na dan«, se bo prikazal dodaten zaslon za konfiguracijo določenih časov.",
           "custom_interval": "Število časovnih enot med ponovitvami (npr. 3 za »vsake 3 tedne«). Uporablja se samo s frekvenco po meri.",
@@ -927,7 +927,7 @@
       },
       "edit_chore_per_kid_dates": {
         "title": "Urejanje rokov za vsakega otroka: {chore_name}",
-        "description": "Za vsakega dodeljenega otroka nastavite posamezne roke. Polje z datumom na glavnem obrazcu za urejanje služi kot **predloga** za udobje – uporabite ga za hitro uporabo istega datuma za vse otroke prek spodnjega potrditvenega polja ali pa ga pustite prazno in tukaj nastavite datume posamično.\n\nPolja so prikazana za: {kid_names}. Pustite prazno, če roka ni.{template_date}\n\n📖 [Napredni vodnik](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Chores-Advanced)",
+        "description": "Za vsakega dodeljenega otroka nastavite posamezne roke. Polje z datumom na glavnem obrazcu za urejanje služi kot **predloga** za udobje – uporabite ga za hitro uporabo istega datuma za vse otroke prek spodnjega potrditvenega polja ali pa ga pustite prazno in tukaj nastavite datume posamično.\n\nPolja so prikazana za: {kid_names}. Pustite prazno, če roka ni.{template_date}\n\n📖 [Napredni vodnik]({documentation_url})",
         "data": {
           "apply_template_to_all": "Uporabi datum predloge za vse otroke"
         },
@@ -947,7 +947,7 @@
       },
       "edit_chore_per_kid_details": {
         "title": "Razpored na otroka: {chore_name}",
-        "description": "Konfigurirajte individualne nastavitve urnika za vsakega otroka, ki mu je dodeljena ta naloga. Glavne vrednosti obrazca delujejo kot **predloge** – uporabite potrditvena polja, da jih uporabite za vse otroke, ali pa prilagodite nastavitve za vsakega otroka posebej.\n\n**Opomba:** Vsa spodnja polja ne veljajo za vsako nalogo. Obrazec dinamično prikazuje ustrezne možnosti glede na način dokončanja, pogostost in ali so nastavljeni roki.\n\n**Oblika dnevnih (več) časov:** Če je prikazano, vnesite 2–6 časov v 24-urni obliki, ločenih z | (navpično črto). Primer: 08:00|17:00\n\nOtroci: {kid_names}{template_info}\n\n📖 [Napredni vodnik](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Chores-Advanced)",
+        "description": "Konfigurirajte individualne nastavitve urnika za vsakega otroka, ki mu je dodeljena ta naloga. Glavne vrednosti obrazca delujejo kot **predloge** – uporabite potrditvena polja, da jih uporabite za vse otroke, ali pa prilagodite nastavitve za vsakega otroka posebej.\n\n**Opomba:** Vsa spodnja polja ne veljajo za vsako nalogo. Obrazec dinamično prikazuje ustrezne možnosti glede na način dokončanja, pogostost in ali so nastavljeni roki.\n\n**Oblika dnevnih (več) časov:** Če je prikazano, vnesite 2–6 časov v 24-urni obliki, ločenih z | (navpično črto). Primer: 08:00|17:00\n\nOtroci: {kid_names}{template_info}\n\n📖 [Napredni vodnik]({documentation_url})",
         "data": {
           "apply_days_to_all": "Uporabite predloge dni za vse otroke",
           "apply_times_to_all": "Uporabite predloge časov za vse otroke",
@@ -961,7 +961,7 @@
       },
       "edit_badge_cumulative": {
         "title": "Uredi skupno značko",
-        "description": "Konfigurirajte podrobnosti za kumulativno značko. Te značke nagrajujejo otroke za doseganje pragov točk v življenju in podpirajo vzdrževalne cikle za spodbujanje stalne uspešnosti.\n\n📖 [Vodnik za konfiguracijo](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Badges-Cumulative)",
+        "description": "Konfigurirajte podrobnosti za kumulativno značko. Te značke nagrajujejo otroke za doseganje pragov točk v življenju in podpirajo vzdrževalne cikle za spodbujanje stalne uspešnosti.\n\n📖 [Vodnik za konfiguracijo]({documentation_url})",
         "data": {
           "badge_name": "Ime značke",
           "badge_description": "Opis značke (neobvezno)",
@@ -1011,7 +1011,7 @@
       },
       "edit_badge_daily": {
         "title": "Uredi dnevno značko",
-        "description": "Konfigurirajte podrobnosti za dnevno značko. Te značke nagrajujejo otroke za opravljanje dnevnih nalog ali doseganje dnevnih pragov.\n\n📖 [Pregled značk](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Konfigurirajte podrobnosti za dnevno značko. Te značke nagrajujejo otroke za opravljanje dnevnih nalog ali doseganje dnevnih pragov.\n\n📖 [Pregled značk]({documentation_url})",
         "data": {
           "badge_name": "Ime značke",
           "badge_description": "Opis značke (neobvezno)",
@@ -1039,7 +1039,7 @@
       },
       "edit_badge_periodic": {
         "title": "Uredi periodično značko",
-        "description": "Konfigurirajte podrobnosti za periodično značko. Te značke nagrajujejo otroke za doseganje pragov v določenem časovnem obdobju in podpirajo cikle ponastavitve za stalno uspešnost.\n\n📖 [Vodnik za konfiguracijo](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Badges-Periodic)",
+        "description": "Konfigurirajte podrobnosti za periodično značko. Te značke nagrajujejo otroke za doseganje pragov v določenem časovnem obdobju in podpirajo cikle ponastavitve za stalno uspešnost.\n\n📖 [Vodnik za konfiguracijo]({documentation_url})",
         "data": {
           "badge_name": "Ime značke",
           "badge_description": "Opis značke (neobvezno)",
@@ -1085,7 +1085,7 @@
       },
       "edit_badge_achievement": {
         "title": "Uredi značko, povezano z dosežki",
-        "description": "Konfigurirajte podrobnosti za značko, povezano z dosežkom. Te značke nagrajujejo otroke za doseganje določenih dosežkov.\n\n📖 [Pregled značk](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Konfigurirajte podrobnosti za značko, povezano z dosežkom. Te značke nagrajujejo otroke za doseganje določenih dosežkov.\n\n📖 [Pregled značk]({documentation_url})",
         "data": {
           "badge_name": "Ime značke",
           "badge_description": "Opis značke (neobvezno)",
@@ -1109,7 +1109,7 @@
       },
       "edit_badge_challenge": {
         "title": "Uredi značko, povezano z izzivom",
-        "description": "Konfigurirajte podrobnosti za značko, povezano z izzivom. Te značke nagrajujejo otroke za dokončanje določenih izzivov.\n\n📖 [Pregled značk](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Konfigurirajte podrobnosti za značko, povezano z izzivom. Te značke nagrajujejo otroke za dokončanje določenih izzivov.\n\n📖 [Pregled značk]({documentation_url})",
         "data": {
           "badge_name": "Ime značke",
           "badge_description": "Opis značke (neobvezno)",
@@ -1133,7 +1133,7 @@
       },
       "edit_badge_special": {
         "title": "Uredi značko za posebno priložnost",
-        "description": "Konfigurirajte podrobnosti za značko, ustvarjeno za posebne priložnosti. Te značke nagrajujejo otroke za dogodke, kot so rojstni dnevi ali prazniki.\n\n📖 [Pregled značk](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Konfigurirajte podrobnosti za značko, ustvarjeno za posebne priložnosti. Te značke nagrajujejo otroke za dogodke, kot so rojstni dnevi ali prazniki.\n\n📖 [Pregled značk]({documentation_url})",
         "data": {
           "badge_name": "Ime značke",
           "badge_description": "Opis značke (neobvezno)",
@@ -1169,7 +1169,7 @@
       },
       "edit_reward": {
         "title": "Uredi nagrado",
-        "description": "Spremenite podrobnosti izbrane nagrade.\n\n📖 [Vodnik za konfiguracijo](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Rewards)",
+        "description": "Spremenite podrobnosti izbrane nagrade.\n\n📖 [Vodnik za konfiguracijo]({documentation_url})",
         "data": {
           "name": "Ime nagrade",
           "internal_id": "Notranja identifikacija",
@@ -1181,7 +1181,7 @@
       },
       "edit_penalty": {
         "title": "Uredi kazen",
-        "description": "Spremenite podrobnosti izbrane kazni.\n\n📖 [Pregled in primeri](https://github.com/ad-ha/kidschores-ha/wiki/Bonuses-&-Penalties%3A-Overview-&-Examples)",
+        "description": "Spremenite podrobnosti izbrane kazni.\n\n📖 [Pregled in primeri]({documentation_url})",
         "data": {
           "name": "Ime kazni",
           "penalty_description": "Opis (neobvezno)",
@@ -1193,7 +1193,7 @@
       },
       "edit_bonus": {
         "title": "Uredi bonus",
-        "description": "Spremenite podrobnosti izbranega bonusa.\n\n📖 [Pregled in primeri](https://github.com/ad-ha/kidschores-ha/wiki/Bonuses-&-Penalties%3A-Overview-&-Examples)",
+        "description": "Spremenite podrobnosti izbranega bonusa.\n\n📖 [Pregled in primeri]({documentation_url})",
         "data": {
           "name": "Ime bonusa",
           "bonus_description": "Opis (neobvezno)",
@@ -1205,7 +1205,7 @@
       },
       "edit_achievement": {
         "title": "Definiraj dosežek",
-        "description": "Vnesite podrobnosti za vsak dosežek.\n\n📖 [Pregled in funkcionalnost](https://github.com/ad-ha/kidschores-ha/wiki/Challenges-&-Achievements%3A-Overview-&-Functionality)",
+        "description": "Vnesite podrobnosti za vsak dosežek.\n\n📖 [Pregled in funkcionalnost]({documentation_url})",
         "data": {
           "name": "Ime dosežka",
           "description": "Opis (neobvezno)",
@@ -1222,7 +1222,7 @@
       },
       "edit_challenge": {
         "title": "Definiraj izziv",
-        "description": "Vnesite podrobnosti za vsak izziv.\n\n📖 [Pregled in funkcionalnost](https://github.com/ad-ha/kidschores-ha/wiki/Challenges-&-Achievements%3A-Overview-&-Functionality)",
+        "description": "Vnesite podrobnosti za vsak izziv.\n\n📖 [Pregled in funkcionalnost]({documentation_url})",
         "data": {
           "name": "Ime izziva",
           "description": "Opis (neobvezno)",
@@ -1298,7 +1298,7 @@
       },
       "dashboard_create": {
         "title": "Ustvari/posodobi nadzorno ploščo",
-        "description": "Ustvarite nadzorno ploščo KidsChores z zavihki za vsakega otroka.\n\nIzberite ime za nadzorno ploščo, izberite otroke, ki jih želite vključiti, in po želji dodajte zavihek Skrbnik za starševsko upravljanje.\n\n[📖 Vodnik za ustvarjanje nadzornih plošč](https://github.com/ad-ha/kidschores-ha/wiki/Getting-Started:-Dashboard-Generation)",
+        "description": "Ustvarite nadzorno ploščo KidsChores z zavihki za vsakega otroka.\n\nIzberite ime za nadzorno ploščo, izberite otroke, ki jih želite vključiti, in po želji dodajte zavihek Skrbnik za starševsko upravljanje.\n\n[📖 Vodnik za ustvarjanje nadzornih plošč]({documentation_url})",
         "data": {
           "dashboard_name": "Ime nadzorne plošče",
           "dashboard_style": "Slog nadzorne plošče",
@@ -1341,7 +1341,7 @@
       },
       "manage_general_options": {
         "title": "Splošne možnosti",
-        "description": "Upravljajte splošne nastavitve za integracijo KidsChores.\n\n[📖 Več o varnostnem kopiranju in obnavljanju](https://github.com/ad-ha/kidschores-ha/wiki/Getting-Started:-Backup-Restore)",
+        "description": "Upravljajte splošne nastavitve za integracijo KidsChores.\n\n[📖 Več o varnostnem kopiranju in obnavljanju]({documentation_url})",
         "data": {
           "points_adjust_values": "Vrednosti gumba za ročno prilagajanje točk",
           "update_interval": "Interval posodobitve",
@@ -1505,6 +1505,7 @@
       "error_daily_multi_times_too_few": "Za pogostost »Večkrat na dan« sta potrebna vsaj dvakrat. Za enkratni čas uporabite redno pogostost »Dnevno«.",
       "error_daily_multi_times_too_many": "Za frekvenco »Večkrat na dan« je dovoljenih največ 6-krat na dan.",
       "error_daily_multi_due_date_required": "Za pogostost »Večkrat na dan« je treba nastaviti rok. Datum določa začetek razporejanja, časi pa določajo okna razpoložljivosti za vsak dan.",
+      "error_allow_steal_incompatible": "Obravnava zamud pri kraji je združljiva samo z opravili rotacije (rotation_simple ali rotation_smart), vrsto ponastavitve »Enkrat na dan« in zahteva rok, ki določa, kdaj se odpre okno za krajo.",
       "error_at_due_date_reset_requires_due_date": "Za vrste ponastavitve odobritve »Ob roku« (enkrat ali večkrat) je treba nastaviti rok. Brez roka se ponastavitev odobritve ne bo nikoli sprožila in opravilo bo ostalo odobreno za nedoločen čas.",
       "error_per_kid_applicable_days_invalid": "Neveljavna veljavna oblika dni za enega ali več otrok. Dnevi morajo biti cela števila od 0 do 6 (ponedeljek–nedelja) brez dvojnikov.",
       "error_per_kid_daily_multi_times_invalid": "Neveljavna oblika dnevnega časa za enega ali več otrok. Uporabite 24-urno obliko, ločeno z znakom | (npr. 08:00|17:00).",
@@ -1665,7 +1666,9 @@
       "options": {
         "shared_all": "V skupni rabi (vsi otroci morajo izpolniti skupaj)",
         "independent": "Samostojno (vsak otrok opravi delo samostojno)",
-        "shared_first": "Deljeno prvo (šteje se prvo dokončanje)"
+        "shared_first": "Deljeno prvo (šteje se prvo dokončanje)",
+        "rotation_simple": "Preprosta rotacija (samo za imetnike zavihkov, strog vrstni red)",
+        "rotation_smart": "Pametna rotacija (samo za imetnike pravic, ponderirano glede na pravičnost)"
       }
     },
     "approval_reset_type": {
@@ -1674,15 +1677,19 @@
         "at_midnight_multi": "Večkrat na dan - Ponastavi se ob polnoči",
         "at_due_date_once": "Enkrat na obdobje - Ponastavi se ob datumu zapadlosti",
         "at_due_date_multi": "Večkrat na obdobje - Ponastavi se ob datumu zapadlosti",
-        "upon_completion": "Neomejeno dokončanj - Ponastavi se po dokončanju"
+        "upon_completion": "Neomejeno dokončanj - Ponastavi se po dokončanju",
+        "manual": "Samo ročna ponastavitev - brez samodejnih ponastavitev"
       }
     },
     "overdue_handling_type": {
       "options": {
-        "at_due_date": "Zamuja do dokončanja",
         "never_overdue": "Nikoli zamudno",
+        "at_due_date": "Zamuja do dokončanja",
         "at_due_date_clear_at_approval_reset": "Zamuda do odobritve Ponastavitev",
-        "at_due_date_clear_immediate_on_late": "Zamuda do dokončanja (takojšnje potrditev)"
+        "at_due_date_clear_immediate_on_late": "Zamuda do dokončanja (takojšnje potrditev)",
+        "at_due_date_clear_and_mark_missed": "Zamujeno do ponastavitve odobritve (označi kot zamujeno)",
+        "at_due_date_mark_missed_and_lock": "Zakleni do odobritve Ponastavi (Prepreči zahtevke, označi kot zamujene)",
+        "at_due_date_allow_steal": "Dovoli krajo do ponastavitve odobritve (samo rotacija)"
       }
     },
     "approval_reset_pending_claim_action": {
@@ -2087,22 +2094,22 @@
         },
         "completion_criteria": {
           "name": "Merila za dokončanje",
-          "description": "Kako se opravilo opravi, ko je dodeljenih več otrok: neodvisno (vsak otrok opravi posebej), deljeno_prvi (prvi otrok, ki opravi opravilo, prejme točke) ali deljeno_vse (vsi otroci morajo opraviti opravilo). Po ustvarjanju ni mogoče spremeniti.",
+          "description": "Nadzira, kako se opravilo opravi, ko je dodeljenih več otrok: individualno sledenje, skupno dokončanje ali rotacija po vrsti.",
           "example": "neodvisen"
         },
         "approval_reset_type": {
           "name": "Vrsta ponastavitve odobritve",
-          "description": "Ko se opravilo ponastavi za ponovno dokončanje.",
+          "description": "Določa, kdaj se sproži meja cikla odobritve opravila (polnoč, datum zapadlosti, ob zaključku ali ročno sprožitev).",
           "example": "enkrat_opolnoči"
         },
         "pending_claims": {
           "name": "Čakajoče ukrepanje glede zahtevkov",
-          "description": "Kaj se zgodi s čakajočimi zahtevki, ko se opravilo ponastavi: hold_pending (ohrani zahtevke), clear_pending (odstrani zahtevke) ali auto_approve_pending (odobri vse čakajoče zahtevke).",
+          "description": "Nadzira, kaj se zgodi z neodobrenimi zahtevki, ko se sproži meja ponastavitve odobritve.",
           "example": "čakanje_na_zadrževanje"
         },
         "overdue_handling": {
           "name": "Zamujeno ravnanje",
-          "description": "Kako se lotiti opravila, ko ga je treba opraviti pozneje.",
+          "description": "Nadzira, kaj se zgodi, ko rok poteče, in kaj se zgodi z zamujenimi opravili na meji ponastavitve odobritve.",
           "example": "ob_roku_"
         },
         "auto_approve": {
@@ -2229,6 +2236,64 @@
         }
       }
     },
+    "set_rotation_turn": {
+      "name": "Nastavi vrtenje",
+      "description": "Ročno dodelite trenutni nastop določenemu otroku v rotacijski nalogi. Deluje samo za rotacijske naloge (rotation_simple ali rotation_smart). Za identifikacijo uporabite ID ali ime.",
+      "fields": {
+        "chore_id": {
+          "name": "ID opravila",
+          "description": "Notranji ID rotacijskega opravila. Neobvezno, če je navedeno ime_opravila.",
+          "example": "abc123-def456-789..."
+        },
+        "chore_name": {
+          "name": "Ime opravila",
+          "description": "Ime rotacijskega opravila. Neobvezno, če je naveden chore_id.",
+          "example": "Čista spalnica"
+        },
+        "kid_id": {
+          "name": "Otroška identifikacija",
+          "description": "Notranji ID otroka, ki mu želite dodeliti nalogo. Mora biti dodeljen temu opravilu. Neobvezno, če je navedeno ime otroka.",
+          "example": "xyz789-abc123-456..."
+        },
+        "kid_name": {
+          "name": "Ime otroka",
+          "description": "Ime otroka, ki mu želite dodeliti nalogo. Mora biti dodeljen tej nalogi. Neobvezno, če je naveden kid_id.",
+          "example": "Alice"
+        }
+      }
+    },
+    "reset_rotation": {
+      "name": "Ponastavi vrtenje",
+      "description": "Ponastavi rotacijo na prvega dodeljenega otroka. Deluje samo za rotacijske naloge (rotation_simple ali rotation_smart). Za identifikacijo uporabite ID ali ime.",
+      "fields": {
+        "chore_id": {
+          "name": "ID opravila",
+          "description": "Notranji ID rotacijskega opravila, ki ga je treba ponastaviti. Neobvezno, če je navedeno ime opravila.",
+          "example": "abc123-def456-789..."
+        },
+        "chore_name": {
+          "name": "Ime opravila",
+          "description": "Ime rotacijskega opravila, ki ga želite ponastaviti. Neobvezno, če je naveden chore_id.",
+          "example": "Čista spalnica"
+        }
+      }
+    },
+    "open_rotation_cycle": {
+      "name": "Odprti rotacijski cikel",
+      "description": "Omogoči preglasitev cikla rotacije za en cikel, kar omogoča vsakemu dodeljenemu otroku, da zahteva pravico ne glede na potezo. Preglasitev se po naslednji odobritvi izbriše. Za identifikacijo uporabite ID ali ime.",
+      "fields": {
+        "chore_id": {
+          "name": "ID opravila",
+          "description": "Notranji ID rotacijskega opravila, ki ga je treba odpreti. Neobvezno, če je navedeno ime opravila.",
+          "example": "abc123-def456-789..."
+        },
+        "chore_name": {
+          "name": "Ime opravila",
+          "description": "Ime rotacijskega opravila, ki ga želite odpreti. Neobvezno, če je naveden chore_id.",
+          "example": "Čista spalnica"
+        }
+      }
+    },
     "reset_chores_to_pending_state": {
       "name": "Ponastavi opravila na stanje čakanja",
       "description": "Ročno ponastavite vsa opravila na čakajoče stanje, s čimer odstranite zahtevke in odobritve."
@@ -2329,6 +2394,10 @@
           "name": "Otroška identifikacija",
           "description": "Notranji ID otroka. Samo za napredne uporabnike – namesto tega uporabite ime_otroka.",
           "example": "abc123-def456"
+        },
+        "mark_as_missed": {
+          "name": "Označi kot zamujeno",
+          "description": "Ko je vrednost »true«, se ta preskok zabeleži kot zamujena opravila v statistiki otroka. Uporabno za sledenje namernim preskokom ločeno od samodejnih ponastavitev zaradi zamude."
         }
       }
     },
@@ -2363,7 +2432,10 @@
           "none": "Nobena",
           "approved_in_part": "Odobreno (delno)",
           "claimed_in_part": "Zahtevano (delno)",
-          "completed_by_other": "Dokončal drug"
+          "completed_by_other": "Dokončal drug",
+          "waiting": "Čakanje (okno za prijavo ni odprto)",
+          "not_my_turn": "Nisem na vrsti (rotacija)",
+          "missed": "Zgrešeno (zaklenjeno)"
         },
         "state_attributes": {
           "purpose": {
@@ -2398,7 +2470,9 @@
             "state": {
               "independent": "Neodvisen",
               "shared_first": "Deljeno (prvo)",
-              "shared_all": "Deljeno (vse)"
+              "shared_all": "Deljeno (vse)",
+              "rotation_simple": "Preprosta rotacija",
+              "rotation_smart": "Pametno vrtenje"
             }
           },
           "approval_reset_type": {
@@ -2408,7 +2482,8 @@
               "at_midnight_multi": "Ob polnoči (večkratno)",
               "at_due_date_once": "Ob datumu zapadlosti (enkrat)",
               "at_due_date_multi": "Na datum zapadlosti (več)",
-              "upon_completion": "Po zaključku"
+              "upon_completion": "Po zaključku",
+              "manual": "Samo ročna ponastavitev"
             }
           },
           "recurring_frequency": {
@@ -2546,6 +2621,20 @@
           },
           "time_until_overdue": {
             "name": "Čas do zapadlosti"
+          },
+          "lock_reason": {
+            "name": "Razlog zaklepanja",
+            "state": {
+              "waiting": "Čakanje na zapadli okvir",
+              "not_my_turn": "Nisi na vrsti",
+              "missed": "Zamujeno"
+            }
+          },
+          "turn_kid_name": {
+            "name": "Ime otroka"
+          },
+          "available_at": {
+            "name": "Na voljo na"
           }
         }
       },
@@ -3132,7 +3221,9 @@
             "state": {
               "independent": "Neodvisen",
               "shared_first": "Deljeno (samo prvo)",
-              "shared_all": "Deljeno (vse obvezno)"
+              "shared_all": "Deljeno (vse obvezno)",
+              "rotation_simple": "Preprosta rotacija",
+              "rotation_smart": "Pametno vrtenje"
             }
           },
           "approval_reset_type": {
@@ -3142,7 +3233,8 @@
               "at_midnight_multi": "Ob polnoči (večkratno)",
               "at_due_date_once": "Ob datumu zapadlosti (enkrat)",
               "at_due_date_multi": "Na datum zapadlosti (več)",
-              "upon_completion": "Po zaključku"
+              "upon_completion": "Po zaključku",
+              "manual": "Samo ročna ponastavitev"
             }
           },
           "recurring_frequency": {
@@ -3998,6 +4090,30 @@
     "not_assigned": {
       "message": "{entity} ni dodeljeno {kid}"
     },
+    "rotation_no_turn_holder": {
+      "message": "Za rotacijska opravila mora biti dodeljen nosilec izmene"
+    },
+    "rotation_invalid_order": {
+      "message": "Vrstni red rotacije mora biti seznam ID-jev otrok, ki ni prazen."
+    },
+    "rotation_duplicate_in_order": {
+      "message": "Vrstni red rotacije ne sme vsebovati podvojenih otrok"
+    },
+    "rotation_unassigned_in_order": {
+      "message": "Vsi otroci v vrstnem redu rotacije morajo biti dodeljeni opravilu"
+    },
+    "rotation_min_kids": {
+      "message": "Za rotacijska opravila sta potrebna vsaj dva dodeljena otroka"
+    },
+    "not_rotation": {
+      "message": "To opravilo ni v načinu rotacije"
+    },
+    "kid_not_assigned": {
+      "message": "Otrok ni dodeljen tej nalogi"
+    },
+    "no_assigned_kids": {
+      "message": "Noben otrok ni dodeljen tej nalogi"
+    },
     "insufficient_points": {
       "message": "{kid} ima {current} točk, vendar potrebuje {required} točk"
     },
@@ -4105,6 +4221,12 @@
     },
     "notif_message_data_reset_item": {
       "message": "Ponastavitev podatkov za {item_name}je končana. Podatki o izvajanju so izbrisani."
+    },
+    "notif_title_chore_missed": {
+      "message": "Zamujeno opravilo"
+    },
+    "notif_message_chore_missed": {
+      "message": "{kid_name} zamudil opravilo: {chore_name}"
     }
   }
 }

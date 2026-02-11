@@ -13,7 +13,7 @@
   },
   "chore_disapproved": {
     "title": "KidsChores: Tarea desaprobada",
-    "message": "La tarea {kid_name}de {chore_name} no fue aprobada"
+    "message": "Tu tarea {chore_name} no fue aprobada"
   },
   "chore_overdue": {
     "title": "KidsChores: Tareas atrasadas",

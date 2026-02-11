@@ -13,7 +13,7 @@
   },
   "chore_disapproved": {
     "title": "Kinderaufgaben: Aufgaben missbilligt",
-    "message": "{kid_name}s Aufgabe {chore_name} wurde nicht genehmigt"
+    "message": "Deine Aufgabe {chore_name} wurde nicht genehmigt"
   },
   "chore_overdue": {
     "title": "Kinderaufgaben: Überfällige Aufgabe",

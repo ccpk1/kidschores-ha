@@ -13,7 +13,7 @@
   },
   "chore_disapproved": {
     "title": "Tasques infantils: Tasca rebutjada",
-    "message": "La tasca de {kid_name} {chore_name} no ha estat aprovada"
+    "message": "La teva tasca {chore_name} no ha estat aprovada."
   },
   "chore_overdue": {
     "title": "Tasques infantils: Tasca pendent",

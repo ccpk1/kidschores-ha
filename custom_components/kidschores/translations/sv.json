@@ -4,11 +4,11 @@
     "step": {
       "intro": {
         "title": "Välkommen till KidsChores",
-        "description": "Den här guiden guidar dig genom att konfigurera KidsChores.\n\n[📖 Snabbstartsguide](https://github.com/ad-ha/kidschores-ha/wiki/Getting-Started:-Quick-Start)"
+        "description": "Den här guiden guidar dig genom att konfigurera KidsChores.\n\n[📖 Snabbstartsguide]({documentation_url})"
       },
       "data_recovery": {
         "title": "Alternativ för dataåterställning",
-        "description": "Befintlig KidsChores-data hittades i:\n{storage_path}\n\nHittade {backup_count} säkerhetskopior.\n\nVad vill du göra?\n\n[📖 Läs mer om säkerhetskopiering och återställning](https://github.com/ad-ha/kidschores-ha/wiki/Getting-Started:-Backup-Restore)",
+        "description": "Befintlig KidsChores-data hittades i:\n{storage_path}\n\nHittade {backup_count} säkerhetskopior.\n\nVad vill du göra?\n\n[📖 Läs mer om säkerhetskopiering och återställning]({documentation_url})",
         "data": {
           "backup_selection": "Välj alternativ"
         }
@@ -142,8 +142,8 @@
           "chore_labels": "Taggar för att organisera sysslor (t.ex. 'kök', 'utomhus'). Lämna tomt om det inte behövs.",
           "default_points": "Poäng intjänade när de är klara.",
           "assigned_kids": "Barn som kan se och göra anspråk på den här sysslan.",
-          "completion_criteria": "Oberoende (varje barn slutför separat), Delat med alla (alla måste slutföra) eller Delat först (först att göra anspråk på block för andra).",
-          "approval_reset_type": "Styr när den här sysslan återställs och hur många slutföranden som är tillåtna under den perioden.",
+          "completion_criteria": "Styr hur sysslan slutförs när flera barn är tilldelade: individuell spårning, delad slutförande eller turbaserad rotation.",
+          "approval_reset_type": "Styr när sysslanens godkännandecykelgräns utlöses (midnatt, förfallodatum, vid slutförande eller manuell utlösning).",
           "approval_reset_pending_claim_action": "Detta är vad som händer med anspråk som fortfarande väntar på godkännande när godkännandet återställs.",
           "overdue_handling_type": "Åtgärd efter förfallodatum: Dölj förfallet status, förbli förfallet tills det görs anspråk på det eller återställ till väntande vid nästa godkännandecykel.",
           "auto_approve": "När det är aktiverat godkänns anspråk omedelbart utan överordnad granskning.",
@@ -167,7 +167,7 @@
       },
       "badges": {
         "title": "Lägg till kumulativt märke",
-        "description": "Konfigurera detaljerna för ett kumulativt märke. Dessa märken belönar barn för att de når livstidspoängtrösklar och stöder underhållscykler för att uppmuntra kontinuerlig prestanda.",
+        "description": "Konfigurera detaljerna för ett kumulativt märke. Dessa märken belönar barn för att de når livstidspoängtrösklar och stöder underhållscykler för att uppmuntra kontinuerlig prestanda.\n\n[📖 Konfigurationsguide]({documentation_url})",
         "data": {
           "badge_name": "Märkesnamn",
           "badge_description": "Märkesbeskrivning (valfritt)",
@@ -409,7 +409,7 @@
     "step": {
       "init": {
         "title": "Alternativ för barnsysslor",
-        "description": "Hantera barn, sysslor, märken, belöningar, straff, bonusar eller avsluta.\n\n📖 [Visa dokumentation](https://github.com/ad-ha/kidschores-ha/wiki)",
+        "description": "Hantera barn, sysslor, märken, belöningar, straff, bonusar eller avsluta.\n\n[📖 Visa dokumentation]({documentation_url})",
         "data": {
           "menu_selection": "Välj ett alternativ"
         }
@@ -430,7 +430,7 @@
       },
       "manage_points": {
         "title": "Redigera poängetikett och ikon",
-        "description": "Ändra etiketten och ikonen som används för att representera punkter.\n\n📖 [Konfigurationsguide](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Points)",
+        "description": "Ändra etiketten och ikonen som används för att representera punkter.\n\n📖 [Konfigurationsguide]({documentation_url})",
         "data": {
           "points_label": "Poängetikett",
           "points_icon": "Poängikon"
@@ -438,7 +438,7 @@
       },
       "add_kid": {
         "title": "Lägg till barn",
-        "description": "Ange informationen om det nya barnet.\n\n📖 [Konfigurationsguide](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Kids-Parents)",
+        "description": "Ange informationen om det nya barnet.\n\n📖 [Konfigurationsguide]({documentation_url})",
         "data": {
           "name": "Barnets namn",
           "ha_user": "Hemassistent-användare",
@@ -455,7 +455,7 @@
       },
       "add_parent": {
         "title": "Lägg till förälder",
-        "description": "Ange informationen för den nya föräldern.\n\n📖 [Konfigurationsguide](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Kids-Parents)",
+        "description": "Ange informationen för den nya föräldern.\n\n📖 [Konfigurationsguide]({documentation_url})",
         "data": {
           "name": "Föräldernamn",
           "ha_user_id": "Hemassistent-användare",
@@ -480,7 +480,7 @@
       },
       "add_chore": {
         "title": "Lägg till syssla",
-        "description": "Skapa en ny syssla med poäng, uppgifter och återkommande schema.\n\n📖 [Konfigurationsguide](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Chores)",
+        "description": "Skapa en ny syssla med poäng, uppgifter och återkommande schema.\n\n📖 [Konfigurationsguide]({documentation_url})",
         "data": {
           "name": "📋 Namn på syssla",
           "chore_description": "📋 Beskrivning (valfritt)",
@@ -511,10 +511,10 @@
           "chore_labels": "Taggar för att organisera sysslor (t.ex. 'kök', 'utomhus'). Lämna tomt om det inte behövs.",
           "default_points": "Poäng intjänade när de är klara.",
           "assigned_kids": "Barn som kan se och göra anspråk på den här sysslan.",
-          "completion_criteria": "Oberoende (varje barn slutför separat), Delat med alla (alla måste slutföra) eller Delat först (först att göra anspråk på block för andra).",
-          "approval_reset_type": "Styr när godkännandet av denna syssla återställs och hur många slutföranden som är tillåtna under den perioden.",
-          "approval_reset_pending_claim_action": "Detta är vad som händer med anspråk som fortfarande väntar på godkännande när godkännandet återställs.",
-          "overdue_handling_type": "Åtgärd efter förfallodatum: Dölj förfallet status, förbli förfallet tills det görs anspråk på det eller återställ till väntande vid nästa godkännandecykel.",
+          "completion_criteria": "Styr hur sysslan slutförs när flera barn är tilldelade: individuell spårning, delad slutförande eller turbaserad rotation.",
+          "approval_reset_type": "Styr när sysslanens godkännandecykelgräns utlöses (midnatt, förfallodatum, vid slutförande eller manuell utlösning).",
+          "approval_reset_pending_claim_action": "Styr vad som händer med ogodkända anspråk när återställningsgränsen för godkännande utlöses.",
+          "overdue_handling_type": "Styr vad som händer när förfallodatumet passeras och vad som händer med försenade uppgifter vid gränsen för återställning av godkännande.",
           "auto_approve": "När det är aktiverat godkänns anspråk omedelbart utan överordnad granskning.",
           "recurring_frequency": "Hur ofta sysslan återkommer: Dagligen, Veckovis, Månadsvis, Årligen, Anpassad eller Ingen. Om du väljer \"Dagligen - Flera gånger per dag\" visas en ytterligare skärm för att konfigurera de specifika tiderna.",
           "custom_interval": "Antal tidsenheter mellan repetitioner (t.ex. 3 för 'var 3:e vecka'). Används endast med anpassad frekvens.",
@@ -537,7 +537,7 @@
       },
       "add_badge_cumulative": {
         "title": "Lägg till kumulativt märke",
-        "description": "Konfigurera detaljerna för ett kumulativt märke. Dessa märken belönar barn för att de når livstidspoängtrösklar och stöder underhållscykler för att uppmuntra kontinuerlig prestanda.\n\n📖 [Konfigurationsguide](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Badges-Cumulative)",
+        "description": "Konfigurera detaljerna för ett kumulativt märke. Dessa märken belönar barn för att de når livstidspoängtrösklar och stöder underhållscykler för att uppmuntra kontinuerlig prestanda.\n\n📖 [Konfigurationsguide]({documentation_url})",
         "data": {
           "badge_name": "Märkesnamn",
           "badge_description": "Märkesbeskrivning (valfritt)",
@@ -587,7 +587,7 @@
       },
       "add_badge_daily": {
         "title": "Lägg till dagligt märke",
-        "description": "Konfigurera detaljerna för en daglig badge. Dessa badges belönar barn för att de slutför dagliga uppgifter eller når dagliga tröskelvärden.\n\n📖 [Översikt över badges](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Konfigurera detaljerna för en daglig badge. Dessa badges belönar barn för att de slutför dagliga uppgifter eller når dagliga tröskelvärden.\n\n📖 [Översikt över badges]({documentation_url})",
         "data": {
           "badge_name": "Märkesnamn",
           "badge_description": "Märkesbeskrivning (valfritt)",
@@ -615,7 +615,7 @@
       },
       "add_badge_periodic": {
         "title": "Lägg till periodiskt märke",
-        "description": "Konfigurera detaljerna för en periodisk badge. Dessa badges belönar barn för att de uppfyller tröskelvärden inom en definierad tidsperiod och stöder återställningscykler för kontinuerlig prestanda.\n\n📖 [Konfigurationsguide](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Badges-Periodic)",
+        "description": "Konfigurera detaljerna för en periodisk badge. Dessa badges belönar barn för att de uppfyller tröskelvärden inom en definierad tidsperiod och stöder återställningscykler för kontinuerlig prestanda.\n\n📖 [Konfigurationsguide]({documentation_url})",
         "data": {
           "badge_name": "Märkesnamn",
           "badge_description": "Märkesbeskrivning (valfritt)",
@@ -661,7 +661,7 @@
       },
       "add_badge_achievement": {
         "title": "Lägg till prestationskopplat märke",
-        "description": "Konfigurera detaljerna för ett märke kopplat till en prestation. Dessa märken belönar barn för att de slutför specifika prestationer.\n\n📖 [Översikt över märken](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Konfigurera detaljerna för ett märke kopplat till en prestation. Dessa märken belönar barn för att de slutför specifika prestationer.\n\n[📖 Översikt över märken]({documentation_url})",
         "data": {
           "badge_name": "Märkesnamn",
           "badge_description": "Märkesbeskrivning (valfritt)",
@@ -685,7 +685,7 @@
       },
       "add_badge_challenge": {
         "title": "Lägg till utmaningskopplat märke",
-        "description": "Konfigurera detaljerna för ett märke som är kopplat till en utmaning. Dessa märken belönar barn för att de slutför specifika utmaningar.\n\n📖 [Översikt över märken](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Konfigurera detaljerna för ett märke som är kopplat till en utmaning. Dessa märken belönar barn för att de slutför specifika utmaningar.\n\n[📖 Översikt över märken]({documentation_url})",
         "data": {
           "badge_name": "Märkesnamn",
           "badge_description": "Märkesbeskrivning (valfritt)",
@@ -709,7 +709,7 @@
       },
       "add_badge_special": {
         "title": "Lägg till märke för speciella tillfällen",
-        "description": "Konfigurera detaljerna för ett märke som skapats för speciella tillfällen. Dessa märken belönar barn för händelser som födelsedagar eller högtider.\n\n📖 [Översikt över märken](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Konfigurera detaljerna för ett märke som skapats för speciella tillfällen. Dessa märken belönar barn för händelser som födelsedagar eller högtider.\n\n📖 [Översikt över märken]({documentation_url})",
         "data": {
           "badge_name": "Märkesnamn",
           "badge_description": "Märkesbeskrivning (valfritt)",
@@ -745,7 +745,7 @@
       },
       "add_reward": {
         "title": "Lägg till belöning",
-        "description": "Ange detaljerna för den nya belöningen.\n\n📖 [Konfigurationsguide](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Rewards)",
+        "description": "Ange detaljerna för den nya belöningen.\n\n📖 [Konfigurationsguide]({documentation_url})",
         "data": {
           "name": "Belöningsnamn",
           "internal_id": "Internt ID",
@@ -757,7 +757,7 @@
       },
       "add_penalty": {
         "title": "Lägg till straff",
-        "description": "Ange detaljerna för det nya straffet.\n\n📖 [Översikt och exempel](https://github.com/ad-ha/kidschores-ha/wiki/Bonuses-&-Penalties%3A-Overview-&-Examples)",
+        "description": "Ange detaljerna för det nya straffet.\n\n📖 [Översikt och exempel]({documentation_url})",
         "data": {
           "name": "Straffnamn",
           "penalty_description": "Beskrivning (valfritt)",
@@ -769,7 +769,7 @@
       },
       "add_bonus": {
         "title": "Lägg till bonus",
-        "description": "Ange detaljerna för den nya bonusen.\n\n📖 [Översikt och exempel](https://github.com/ad-ha/kidschores-ha/wiki/Bonuses-&-Penalties%3A-Overview-&-Examples)",
+        "description": "Ange detaljerna för den nya bonusen.\n\n📖 [Översikt och exempel]({documentation_url})",
         "data": {
           "name": "Bonusnamn",
           "bonus_description": "Beskrivning (valfritt)",
@@ -781,7 +781,7 @@
       },
       "add_achievement": {
         "title": "Definiera prestation",
-        "description": "Ange detaljer för varje prestation.\n\n📖 [Översikt och funktionalitet](https://github.com/ad-ha/kidschores-ha/wiki/Challenges-&-Achievements%3A-Overview-&-Functionality)",
+        "description": "Ange detaljer för varje prestation.\n\n[📖 Översikt och funktionalitet]({documentation_url})",
         "data": {
           "name": "Namn på prestation",
           "description": "Beskrivning (valfritt)",
@@ -798,7 +798,7 @@
       },
       "add_challenge": {
         "title": "Definiera utmaning",
-        "description": "Ange detaljer för varje utmaning.\n\n📖 [Översikt och funktionalitet](https://github.com/ad-ha/kidschores-ha/wiki/Challenges-&-Achievements%3A-Overview-&-Functionality)",
+        "description": "Ange detaljer för varje utmaning.\n\n📖 [Översikt och funktionalitet]({documentation_url})",
         "data": {
           "name": "Utmaningsnamn",
           "description": "Beskrivning (valfritt)",
@@ -817,7 +817,7 @@
       },
       "edit_kid": {
         "title": "Redigera barn",
-        "description": "Ändra detaljerna för det valda barnet.\n\n📖 [Konfigurationsguide](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Kids-Parents)",
+        "description": "Ändra detaljerna för det valda barnet.\n\n📖 [Konfigurationsguide]({documentation_url})",
         "data": {
           "name": "Barnets namn",
           "ha_user": "Hemassistent-användare",
@@ -851,7 +851,7 @@
       },
       "edit_parent": {
         "title": "Redigera förälder",
-        "description": "Ändra informationen för den valda föräldern.\n\n📖 [Konfigurationsguide](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Kids-Parents)",
+        "description": "Ändra informationen för den valda föräldern.\n\n📖 [Konfigurationsguide]({documentation_url})",
         "data": {
           "name": "Föräldernamn",
           "ha_user_id": "Hemassistent-användare",
@@ -876,7 +876,7 @@
       },
       "edit_chore": {
         "title": "Redigera syssla",
-        "description": "Ändra detaljerna för den valda sysslan.\n\n📖 [Konfigurationsguide](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Chores)",
+        "description": "Ändra detaljerna för den valda sysslan.\n\n📖 [Konfigurationsguide]({documentation_url})",
         "data": {
           "name": "📋 Namn på syssla",
           "chore_description": "📋 Beskrivning (valfritt)",
@@ -908,10 +908,10 @@
           "chore_labels": "Taggar för att organisera sysslor (t.ex. 'kök', 'utomhus'). Lämna tomt om det inte behövs.",
           "default_points": "Poäng intjänade när de är klara.",
           "assigned_kids": "Barn som kan se och göra anspråk på den här sysslan.",
-          "completion_criteria": "Oberoende (varje barn slutför separat), Delat med alla (alla måste slutföra) eller Delat först (först att göra anspråk på block för andra).",
-          "approval_reset_type": "Styr när godkännandet av denna syssla återställs och hur många slutföranden som är tillåtna under den perioden.",
-          "approval_reset_pending_claim_action": "När godkännandet av denna uppgift återställs (baserat på tidpunkten för återställning av godkännande ovan), vad händer med anspråk som fortfarande väntar på godkännande?",
-          "overdue_handling_type": "Åtgärd efter förfallodatum: Dölj förfallet status, förbli förfallet tills det görs anspråk på det eller återställ till väntande vid nästa godkännandecykel.",
+          "completion_criteria": "Styr hur sysslan slutförs när flera barn är tilldelade: individuell spårning, delad slutförande eller turbaserad rotation.",
+          "approval_reset_type": "Styr när sysslanens godkännandecykelgräns utlöses (midnatt, förfallodatum, vid slutförande eller manuell utlösning).",
+          "approval_reset_pending_claim_action": "Styr vad som händer med ogodkända anspråk när återställningsgränsen för godkännande utlöses.",
+          "overdue_handling_type": "Styr vad som händer när förfallodatumet passeras och vad som händer med försenade uppgifter vid gränsen för återställning av godkännande.",
           "auto_approve": "När det är aktiverat godkänns anspråk omedelbart utan överordnad granskning.",
           "recurring_frequency": "Hur ofta sysslan återkommer: Dagligen, Veckovis, Månadsvis, Årligen, Anpassad eller Ingen. Om du väljer \"Dagligen - Flera gånger per dag\" visas en ytterligare skärm för att konfigurera de specifika tiderna.",
           "custom_interval": "Antal tidsenheter mellan repetitioner (t.ex. 3 för 'var 3:e vecka'). Används endast med anpassad frekvens.",
@@ -927,7 +927,7 @@
       },
       "edit_chore_per_kid_dates": {
         "title": "Redigera förfallodatum per barn: {chore_name}",
-        "description": "Ange individuella förfallodatum för varje tilldelat barn. Datumfältet i huvudredigeringsformuläret fungerar som en **mall** för enkelhetens skull – använd det för att snabbt tillämpa samma datum på alla barn via kryssrutan nedan, eller lämna det tomt och ange datum individuellt här.\n\nFält visas för: {kid_names}. Lämna tomt om det inte finns någon deadline.{template_date}\n\n📖 [Avancerad guide](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Chores-Advanced)",
+        "description": "Ange individuella förfallodatum för varje tilldelat barn. Datumfältet i huvudredigeringsformuläret fungerar som en **mall** för enkelhetens skull – använd det för att snabbt tillämpa samma datum på alla barn via kryssrutan nedan, eller lämna det tomt och ange datum individuellt här.\n\nFält visas för: {kid_names}. Lämna tomt om det inte finns någon deadline.{template_date}\n\n📖 [Avancerad guide]({documentation_url})",
         "data": {
           "apply_template_to_all": "Använd malldatum för alla barn"
         },
@@ -947,7 +947,7 @@
       },
       "edit_chore_per_kid_details": {
         "title": "Schema per barn: {chore_name}",
-        "description": "Konfigurera individuella schemainställningar för varje barn som är tilldelat denna syssla. De huvudsakliga formulärvärdena fungerar som **mallar** – använd kryssrutorna för att tillämpa dem på alla barn eller anpassa varje barns inställningar individuellt.\n\n**Obs:** Inte alla fält nedan gäller för varje syssla. Formuläret visar dynamiskt relevanta alternativ baserat på slutförandeläge, frekvens och om förfallodatum är inställda.\n\n**Dagligt (flera) tidformat:** Om visas, ange 2–6 tider i 24-timmarsformat separerade med | (pipette). Exempel: 08:00|17:00\n\nBarn: {kid_names}{template_info}\n\n📖 [Avancerad guide](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Chores-Advanced)",
+        "description": "Konfigurera individuella schemainställningar för varje barn som är tilldelat denna syssla. De huvudsakliga formulärvärdena fungerar som **mallar** – använd kryssrutorna för att tillämpa dem på alla barn eller anpassa varje barns inställningar individuellt.\n\n**Obs:** Inte alla fält nedan gäller för varje syssla. Formuläret visar dynamiskt relevanta alternativ baserat på slutförandeläge, frekvens och om förfallodatum är inställda.\n\n**Dagligt (flera) tidformat:** Om visas, ange 2–6 tider i 24-timmarsformat separerade med | (pipette). Exempel: 08:00|17:00\n\nBarn: {kid_names}{template_info}\n\n📖 [Avancerad guide]({documentation_url})",
         "data": {
           "apply_days_to_all": "Tillämpa malldagar för alla barn",
           "apply_times_to_all": "Använd malltider för alla barn",
@@ -961,7 +961,7 @@
       },
       "edit_badge_cumulative": {
         "title": "Redigera kumulativt märke",
-        "description": "Konfigurera detaljerna för ett kumulativt märke. Dessa märken belönar barn för att de når livstidspoängtrösklar och stöder underhållscykler för att uppmuntra kontinuerlig prestanda.\n\n📖 [Konfigurationsguide](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Badges-Cumulative)",
+        "description": "Konfigurera detaljerna för ett kumulativt märke. Dessa märken belönar barn för att de når livstidspoängtrösklar och stöder underhållscykler för att uppmuntra kontinuerlig prestanda.\n\n📖 [Konfigurationsguide]({documentation_url})",
         "data": {
           "badge_name": "Märkesnamn",
           "badge_description": "Märkesbeskrivning (valfritt)",
@@ -1011,7 +1011,7 @@
       },
       "edit_badge_daily": {
         "title": "Redigera dagligt märke",
-        "description": "Konfigurera detaljerna för en daglig badge. Dessa badges belönar barn för att de slutför dagliga uppgifter eller når dagliga tröskelvärden.\n\n📖 [Översikt över badges](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Konfigurera detaljerna för en daglig badge. Dessa badges belönar barn för att de slutför dagliga uppgifter eller når dagliga tröskelvärden.\n\n📖 [Översikt över badges]({documentation_url})",
         "data": {
           "badge_name": "Märkesnamn",
           "badge_description": "Märkesbeskrivning (valfritt)",
@@ -1039,7 +1039,7 @@
       },
       "edit_badge_periodic": {
         "title": "Redigera periodiskt märke",
-        "description": "Konfigurera detaljerna för en periodisk badge. Dessa badges belönar barn för att de uppfyller tröskelvärden inom en definierad tidsperiod och stöder återställningscykler för kontinuerlig prestanda.\n\n📖 [Konfigurationsguide](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Badges-Periodic)",
+        "description": "Konfigurera detaljerna för en periodisk badge. Dessa badges belönar barn för att de uppfyller tröskelvärden inom en definierad tidsperiod och stöder återställningscykler för kontinuerlig prestanda.\n\n📖 [Konfigurationsguide]({documentation_url})",
         "data": {
           "badge_name": "Märkesnamn",
           "badge_description": "Märkesbeskrivning (valfritt)",
@@ -1085,7 +1085,7 @@
       },
       "edit_badge_achievement": {
         "title": "Redigera prestationskopplat märke",
-        "description": "Konfigurera detaljerna för ett märke kopplat till en prestation. Dessa märken belönar barn för att de slutför specifika prestationer.\n\n📖 [Översikt över märken](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Konfigurera detaljerna för ett märke kopplat till en prestation. Dessa märken belönar barn för att de slutför specifika prestationer.\n\n📖 [Översikt över märken]({documentation_url})",
         "data": {
           "badge_name": "Märkesnamn",
           "badge_description": "Märkesbeskrivning (valfritt)",
@@ -1109,7 +1109,7 @@
       },
       "edit_badge_challenge": {
         "title": "Redigera utmaningslänkat märke",
-        "description": "Konfigurera detaljerna för ett märke som är kopplat till en utmaning. Dessa märken belönar barn för att de slutför specifika utmaningar.\n\n📖 [Översikt över märken](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Konfigurera detaljerna för ett märke som är kopplat till en utmaning. Dessa märken belönar barn för att de slutför specifika utmaningar.\n\n📖 [Översikt över märken]({documentation_url})",
         "data": {
           "badge_name": "Märkesnamn",
           "badge_description": "Märkesbeskrivning (valfritt)",
@@ -1133,7 +1133,7 @@
       },
       "edit_badge_special": {
         "title": "Redigera märke för speciella tillfällen",
-        "description": "Konfigurera detaljerna för ett märke som skapats för speciella tillfällen. Dessa märken belönar barn för händelser som födelsedagar eller högtider.\n\n📖 [Översikt över märken](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Konfigurera detaljerna för ett märke som skapats för speciella tillfällen. Dessa märken belönar barn för händelser som födelsedagar eller högtider.\n\n📖 [Översikt över märken]({documentation_url})",
         "data": {
           "badge_name": "Märkesnamn",
           "badge_description": "Märkesbeskrivning (valfritt)",
@@ -1169,7 +1169,7 @@
       },
       "edit_reward": {
         "title": "Redigera belöning",
-        "description": "Ändra detaljerna för den valda belöningen.\n\n📖 [Konfigurationsguide](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Rewards)",
+        "description": "Ändra detaljerna för den valda belöningen.\n\n📖 [Konfigurationsguide]({documentation_url})",
         "data": {
           "name": "Belöningsnamn",
           "internal_id": "Internt ID",
@@ -1181,7 +1181,7 @@
       },
       "edit_penalty": {
         "title": "Redigera straff",
-        "description": "Ändra detaljerna för det valda straffet.\n\n📖 [Översikt och exempel](https://github.com/ad-ha/kidschores-ha/wiki/Bonuses-&-Penalties%3A-Overview-&-Examples)",
+        "description": "Ändra detaljerna för det valda straffet.\n\n📖 [Översikt och exempel]({documentation_url})",
         "data": {
           "name": "Straffnamn",
           "penalty_description": "Beskrivning (valfritt)",
@@ -1193,7 +1193,7 @@
       },
       "edit_bonus": {
         "title": "Redigera bonus",
-        "description": "Ändra detaljerna för den valda bonusen.\n\n📖 [Översikt och exempel](https://github.com/ad-ha/kidschores-ha/wiki/Bonuses-&-Penalties%3A-Overview-&-Examples)",
+        "description": "Ändra detaljerna för den valda bonusen.\n\n📖 [Översikt och exempel]({documentation_url})",
         "data": {
           "name": "Bonusnamn",
           "bonus_description": "Beskrivning (valfritt)",
@@ -1205,7 +1205,7 @@
       },
       "edit_achievement": {
         "title": "Definiera prestation",
-        "description": "Ange detaljer för varje prestation.\n\n📖 [Översikt och funktionalitet](https://github.com/ad-ha/kidschores-ha/wiki/Challenges-&-Achievements%3A-Overview-&-Functionality)",
+        "description": "Ange detaljer för varje prestation.\n\n📖 [Översikt och funktionalitet]({documentation_url})",
         "data": {
           "name": "Namn på prestation",
           "description": "Beskrivning (valfritt)",
@@ -1222,7 +1222,7 @@
       },
       "edit_challenge": {
         "title": "Definiera utmaning",
-        "description": "Ange detaljer för varje utmaning.\n\n📖 [Översikt och funktionalitet](https://github.com/ad-ha/kidschores-ha/wiki/Challenges-&-Achievements%3A-Overview-&-Functionality)",
+        "description": "Ange detaljer för varje utmaning.\n\n📖 [Översikt och funktionalitet]({documentation_url})",
         "data": {
           "name": "Utmaningsnamn",
           "description": "Beskrivning (valfritt)",
@@ -1298,7 +1298,7 @@
       },
       "dashboard_create": {
         "title": "Skapa/uppdatera instrumentpanel",
-        "description": "Generera en KidsChores-instrumentpanel med flikar för varje barn.\n\nVälj ett namn för instrumentpanelen, välj vilka barn som ska inkluderas och lägg eventuellt till en administratörsflik för föräldrahantering.\n\n[📖 Guide till generering av instrumentpaneler](https://github.com/ad-ha/kidschores-ha/wiki/Getting-Started:-Dashboard-Generation)",
+        "description": "Generera en KidsChores-instrumentpanel med flikar för varje barn.\n\nVälj ett namn för instrumentpanelen, välj vilka barn som ska inkluderas och lägg eventuellt till en administratörsflik för föräldrahantering.\n\n[📖 Guide till generering av instrumentpaneler]({documentation_url})",
         "data": {
           "dashboard_name": "Instrumentpanelens namn",
           "dashboard_style": "Instrumentpanelens stil",
@@ -1341,7 +1341,7 @@
       },
       "manage_general_options": {
         "title": "Allmänna alternativ",
-        "description": "Hantera allmänna inställningar för KidsChores-integrationen.\n\n[📖 Läs mer om säkerhetskopiering och återställning](https://github.com/ad-ha/kidschores-ha/wiki/Getting-Started:-Backup-Restore)",
+        "description": "Hantera allmänna inställningar för KidsChores-integrationen.\n\n[📖 Läs mer om säkerhetskopiering och återställning]({documentation_url})",
         "data": {
           "points_adjust_values": "Värden på knappen för manuell punktjustering",
           "update_interval": "Uppdateringsintervall",
@@ -1505,6 +1505,7 @@
       "error_daily_multi_times_too_few": "Minst 2 gånger krävs för frekvensen 'Flera gånger per dag'. För en enskild tid, använd vanlig frekvens 'Daglig'.",
       "error_daily_multi_times_too_many": "Maximalt 6 gånger tillåtet per dag för frekvensen 'Flera gånger per dag'.",
       "error_daily_multi_due_date_required": "Frekvensen \"Flera gånger per dag\" kräver att ett förfallodatum anges. Datumet avgör när schemaläggningen startar och tiderna avgör tillgänglighetsfönstren varje dag.",
+      "error_allow_steal_incompatible": "Tillåt hantering av försenade stjälningar är endast kompatibelt med rotationssysslor (rotation_simple eller rotation_smart), återställningstypen 'En gång per dag', och kräver ett förfallodatum för att definiera när stjälningsfönstret öppnas.",
       "error_at_due_date_reset_requires_due_date": "Godkännandeåterställningstyperna \"Vid förfallodatum\" (en gång eller flera gånger) kräver att ett förfallodatum anges. Utan ett förfallodatum kommer återställningen av godkännandet aldrig att utlösas och sysslan förblir godkänd på obestämd tid.",
       "error_per_kid_applicable_days_invalid": "Ogiltigt tillämpligt dagsformat för ett eller flera barn. Dagarna måste vara heltal 0–6 (måndag–söndag) utan dubbletter.",
       "error_per_kid_daily_multi_times_invalid": "Ogiltigt dagligt tidsformat för ett eller flera barn. Använd 24-timmarsformat avgränsat med | (t.ex. 08:00|17:00).",
@@ -1665,7 +1666,9 @@
       "options": {
         "shared_all": "Delat alla (Alla barn måste slutföra tillsammans)",
         "independent": "Självständigt (Varje barn gör sitt jobb själv)",
-        "shared_first": "Delad först (första slutförandet räknas)"
+        "shared_first": "Delad först (första slutförandet räknas)",
+        "rotation_simple": "Enkel rotation (endast turhållare, strikt ordning)",
+        "rotation_smart": "Rotation Smart (Endast turhållare, rättviseviktad)"
       }
     },
     "approval_reset_type": {
@@ -1674,15 +1677,19 @@
         "at_midnight_multi": "Flera gånger per dag - Återställs vid midnatt",
         "at_due_date_once": "En gång per period - Återställs vid förfallodatum",
         "at_due_date_multi": "Flera gånger per period - Återställs vid förfallodatum",
-        "upon_completion": "Obegränsade slutföranden - Återställs efter slutförande"
+        "upon_completion": "Obegränsat antal slutföranden - Återställs vid slutförande",
+        "manual": "Endast manuell återställning - Inga automatiska återställningar"
       }
     },
     "overdue_handling_type": {
       "options": {
-        "at_due_date": "Försenad tills klar",
         "never_overdue": "Aldrig försenad",
+        "at_due_date": "Försenad tills klar",
         "at_due_date_clear_at_approval_reset": "Försenad till godkännande Återställ",
-        "at_due_date_clear_immediate_on_late": "Försenad tills klar (Avklara sena godkännanden omedelbart)"
+        "at_due_date_clear_immediate_on_late": "Försenad tills klar (Avklara sena godkännanden omedelbart)",
+        "at_due_date_clear_and_mark_missed": "Försenad till godkännande Återställ (Markera som missad)",
+        "at_due_date_mark_missed_and_lock": "Lås tills godkännande Återställ (Förhindra anspråk, markera missad)",
+        "at_due_date_allow_steal": "Tillåt stjälning tills godkännande återställs (endast rotation)"
       }
     },
     "approval_reset_pending_claim_action": {
@@ -2087,22 +2094,22 @@
         },
         "completion_criteria": {
           "name": "Slutförandekriterier",
-          "description": "Hur sysslan slutförs när flera barn tilldelas: oberoende (varje barn slutför separat), delad_först (första barnet som slutför får poäng) eller delad_alla (alla barn måste slutföra). Kan inte ändras efter att den skapats.",
+          "description": "Styr hur sysslan slutförs när flera barn är tilldelade: individuell spårning, delad slutförande eller turbaserad rotation.",
           "example": "oberoende"
         },
         "approval_reset_type": {
           "name": "Återställningstyp för godkännande",
-          "description": "När sysslan återställs för att slutföras på nytt.",
+          "description": "Styr när sysslanens godkännandecykelgräns utlöses (midnatt, förfallodatum, vid slutförande eller manuell utlösning).",
           "example": "vid_midnatt_en_gång"
         },
         "pending_claims": {
           "name": "Väntande kravåtgärder",
-          "description": "Vad händer med väntande anspråk när rutin återställs: hold_pending (behåll anspråk), clear_pending (ta bort anspråk) eller auto_approve_pending (godkänn alla väntande).",
+          "description": "Styr vad som händer med ogodkända anspråk när återställningsgränsen för godkännande utlöses.",
           "example": "väntande_på_att_hålla"
         },
         "overdue_handling": {
           "name": "Försenad hantering",
-          "description": "Hur man hanterar sysslan när den blir försenad.",
+          "description": "Styr vad som händer när förfallodatumet passeras och vad som händer med försenade uppgifter vid gränsen för återställning av godkännande.",
           "example": "förfallodatum"
         },
         "auto_approve": {
@@ -2229,6 +2236,64 @@
         }
       }
     },
+    "set_rotation_turn": {
+      "name": "Ställ in rotation Vrid",
+      "description": "Tilldela manuellt den aktuella turen till ett specifikt barn i en rotationssyssla. Fungerar endast för rotationssysslor (rotation_simple eller rotation_smart). Använd antingen ID eller namn för identifiering.",
+      "fields": {
+        "chore_id": {
+          "name": "Sysslo-ID",
+          "description": "Internt ID för rotationsuppgiften. Valfritt om uppgiftsnamn anges.",
+          "example": "abc123-def456-789..."
+        },
+        "chore_name": {
+          "name": "Sysslanamn",
+          "description": "Namn på rotationsuppgiften. Valfritt om chore_id anges.",
+          "example": "Rent sovrum"
+        },
+        "kid_id": {
+          "name": "Barn-ID",
+          "description": "Internt ID för barnet som turen ska tilldelas. Måste tilldelas denna syssla. Valfritt om barnnamn anges.",
+          "example": "xyz789-abc123-456..."
+        },
+        "kid_name": {
+          "name": "Barnets namn",
+          "description": "Namn på barnet som turen ska tilldelas. Måste tilldelas denna syssla. Valfritt om kid_id anges.",
+          "example": "Alice"
+        }
+      }
+    },
+    "reset_rotation": {
+      "name": "Återställ rotation",
+      "description": "Återställ rotationens tur till det första tilldelade barnet. Fungerar endast för rotationssysslor (rotation_simple eller rotation_smart). Använd antingen ID eller namn för identifiering.",
+      "fields": {
+        "chore_id": {
+          "name": "Sysslo-ID",
+          "description": "Internt ID för rotationsuppgiften som ska återställas. Valfritt om uppgiftsnamn anges.",
+          "example": "abc123-def456-789..."
+        },
+        "chore_name": {
+          "name": "Sysslanamn",
+          "description": "Namn på rotationsuppgiften som ska återställas. Valfritt om chore_id anges.",
+          "example": "Rent sovrum"
+        }
+      }
+    },
+    "open_rotation_cycle": {
+      "name": "Öppen rotationscykel",
+      "description": "Aktivera åsidosättning av rotationscykel för en cykel, vilket gör att alla tilldelade barn kan göra anspråk oavsett tur. Åsidosättningen rensas efter nästa godkännande. Använd antingen ID eller namn för identifiering.",
+      "fields": {
+        "chore_id": {
+          "name": "Sysslo-ID",
+          "description": "Internt ID för rotationsuppgiften som ska öppnas. Valfritt om uppgiftsnamn anges.",
+          "example": "abc123-def456-789..."
+        },
+        "chore_name": {
+          "name": "Sysslanamn",
+          "description": "Namn på rotationsuppgiften som ska öppnas. Valfritt om chore_id anges.",
+          "example": "Rent sovrum"
+        }
+      }
+    },
     "reset_chores_to_pending_state": {
       "name": "Återställ sysslor till väntande tillstånd",
       "description": "Återställ alla sysslor manuellt till väntande tillstånd, vilket tar bort anspråk och godkännanden."
@@ -2329,6 +2394,10 @@
           "name": "Barn-ID",
           "description": "Barnets interna ID. Endast avancerade användare - använd barnets namn istället.",
           "example": "abc123-def456"
+        },
+        "mark_as_missed": {
+          "name": "Markera som missad",
+          "description": "När det är sant registreras detta överhoppade arbete som en missad syssla i barnets statistik. Användbart för att spåra avsiktliga överhoppade uppgifter separat från automatiska försenade återställningar."
         }
       }
     },
@@ -2363,7 +2432,10 @@
           "none": "Ingen",
           "approved_in_part": "Godkänd (delvis)",
           "claimed_in_part": "Anspråk (delvis)",
-          "completed_by_other": "Slutförd av Annan"
+          "completed_by_other": "Slutförd av Annan",
+          "waiting": "Väntar (förfallofönstret är inte öppet)",
+          "not_my_turn": "Inte min tur (rotation)",
+          "missed": "Missad (Låst)"
         },
         "state_attributes": {
           "purpose": {
@@ -2398,7 +2470,9 @@
             "state": {
               "independent": "Oberoende",
               "shared_first": "Delad (först)",
-              "shared_all": "Delad (alla)"
+              "shared_all": "Delad (alla)",
+              "rotation_simple": "Rotation Enkel",
+              "rotation_smart": "Rotationssmart"
             }
           },
           "approval_reset_type": {
@@ -2408,7 +2482,8 @@
               "at_midnight_multi": "Vid midnatt (flera)",
               "at_due_date_once": "Vid förfallodatum (en gång)",
               "at_due_date_multi": "Vid förfallodatum (flera)",
-              "upon_completion": "Vid färdigställande"
+              "upon_completion": "Vid färdigställande",
+              "manual": "Endast manuell återställning"
             }
           },
           "recurring_frequency": {
@@ -2546,6 +2621,20 @@
           },
           "time_until_overdue": {
             "name": "Tid till förfallodatum"
+          },
+          "lock_reason": {
+            "name": "Låsorsak",
+            "state": {
+              "waiting": "Väntar på förfallofönstret",
+              "not_my_turn": "Inte din tur",
+              "missed": "Missade"
+            }
+          },
+          "turn_kid_name": {
+            "name": "Vänd barnnamn"
+          },
+          "available_at": {
+            "name": "Tillgänglig på"
           }
         }
       },
@@ -3132,7 +3221,9 @@
             "state": {
               "independent": "Oberoende",
               "shared_first": "Delad (endast första)",
-              "shared_all": "Delat (alla obligatoriska)"
+              "shared_all": "Delat (alla obligatoriska)",
+              "rotation_simple": "Rotation Enkel",
+              "rotation_smart": "Rotationssmart"
             }
           },
           "approval_reset_type": {
@@ -3142,7 +3233,8 @@
               "at_midnight_multi": "Vid midnatt (flera)",
               "at_due_date_once": "Vid förfallodatum (en gång)",
               "at_due_date_multi": "Vid förfallodatum (flera)",
-              "upon_completion": "Vid färdigställande"
+              "upon_completion": "Vid färdigställande",
+              "manual": "Endast manuell återställning"
             }
           },
           "recurring_frequency": {
@@ -3998,6 +4090,30 @@
     "not_assigned": {
       "message": "{entity} inte tilldelad till {kid}"
     },
+    "rotation_no_turn_holder": {
+      "message": "Rotationssysslor måste ha en tilldelad turhållare"
+    },
+    "rotation_invalid_order": {
+      "message": "Rotationsordningen måste vara en lista med barn-ID:n som inte är tom"
+    },
+    "rotation_duplicate_in_order": {
+      "message": "Rotationsordningen får inte innehålla dubbletter av barn"
+    },
+    "rotation_unassigned_in_order": {
+      "message": "Alla barn i rotationsordning måste tilldelas sysslan"
+    },
+    "rotation_min_kids": {
+      "message": "Rotationssysslor kräver minst 2 tilldelade barn"
+    },
+    "not_rotation": {
+      "message": "Den här sysslan är inte i rotationsläge"
+    },
+    "kid_not_assigned": {
+      "message": "Barnet är inte tilldelat den här sysslan"
+    },
+    "no_assigned_kids": {
+      "message": "Inga barn är tilldelade denna syssla"
+    },
     "insufficient_points": {
       "message": "{kid} har {current} poäng men behöver {required} poäng"
     },
@@ -4105,6 +4221,12 @@
     },
     "notif_message_data_reset_item": {
       "message": "Dataåterställning klar för {item_name}. Körtidsdata rensad."
+    },
+    "notif_title_chore_missed": {
+      "message": "Missad syssla"
+    },
+    "notif_message_chore_missed": {
+      "message": "{kid_name} missade sysslan: {chore_name}"
     }
   }
 }

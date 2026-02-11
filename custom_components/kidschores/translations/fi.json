@@ -4,11 +4,11 @@
     "step": {
       "intro": {
         "title": "Tervetuloa KidsChores",
-        "description": "Tämä ohjattu toiminto opastaa sinua KidsChoresin määrittämisessä.\n\n[📖 Pikaopas](https://github.com/ad-ha/kidschores-ha/wiki/Getting-Started:-Quick-Start)"
+        "description": "Tämä ohjattu toiminto opastaa sinua KidsChoresin määrittämisessä.\n\n[📖 Pikaopas]({documentation_url})"
       },
       "data_recovery": {
         "title": "Tietojen palautusvaihtoehdot",
-        "description": "Aiempia KidsChores-tietoja löytyi:\n{storage_path}\n\nLöytyi {backup_count} varmuuskopiotiedostoa.\n\nMitä haluaisit tehdä?\n\n[📖 Lue lisää varmuuskopioinnista ja palautuksesta](https://github.com/ad-ha/kidschores-ha/wiki/Getting-Started:-Backup-Restore)",
+        "description": "Aiempia KidsChores-tietoja löytyi:\n{storage_path}\n\nLöytyi {backup_count} varmuuskopiotiedostoa.\n\nMitä haluaisit tehdä?\n\n[📖 Lue lisää varmuuskopioinnista ja palautuksesta]({documentation_url})",
         "data": {
           "backup_selection": "Valitse vaihtoehto"
         }
@@ -142,8 +142,8 @@
           "chore_labels": "Tagit askareiden järjestämiseen (esim. 'keittiö', 'ulkona'). Jätä tyhjäksi, jos et tarvitse.",
           "default_points": "Pisteitä ansaitaan suoritettaessa.",
           "assigned_kids": "Lapset, jotka näkevät ja voivat vaatia tämän tehtävän.",
-          "completion_criteria": "Itsenäinen (jokainen lapsi suorittaa tehtävän erikseen), Jaettu kaikki (kaikkien on suoritettava) tai Jaettu ensin (ensimmäinen, joka lunastaa muut palikoita).",
-          "approval_reset_type": "Määrittää, milloin tämä työ nollautuu ja kuinka monta suoritusta sallitaan kyseisenä aikana.",
+          "completion_criteria": "Määrittää, miten tehtävä suoritetaan, kun se on annettu useille lapsille: yksilöllinen seuranta, jaettu suoritus tai vuoropohjainen kierto.",
+          "approval_reset_type": "Ohjaa, milloin työn hyväksymissyklin raja aktivoituu (keskiyöllä, eräpäivänä, valmistuttua tai manuaalisesti).",
           "approval_reset_pending_claim_action": "Näin tapahtuu vaatimuksille, jotka odottavat edelleen hyväksyntää, kun hyväksyntä nollataan.",
           "overdue_handling_type": "Toimenpiteet eräpäivän jälkeen: Piilota myöhästymistila, pidä myöhässä, kunnes maksu vaaditaan, tai palauta odottavaan tilaan seuraavalla hyväksymisjaksolla.",
           "auto_approve": "Kun tämä on käytössä, hakemukset hyväksytään välittömästi ilman vanhempien tarkistusta.",
@@ -167,7 +167,7 @@
       },
       "badges": {
         "title": "Lisää kumulatiivinen merkki",
-        "description": "Määritä kumulatiivisen ansiomerkin tiedot. Nämä ansiomerkit palkitsevat lapsia elinikäisten pisteiden saavuttamisesta ja tukevat ylläpitosyklejä jatkuvan suorituksen kannustamiseksi.",
+        "description": "Määritä kumulatiivisen ansiomerkin tiedot. Nämä ansiomerkit palkitsevat lapsia elinikäisten pisteiden kynnysarvojen saavuttamisesta ja tukevat ylläpitosyklejä jatkuvan suorituksen kannustamiseksi.\n\n[📖 Määritysopas]({documentation_url})",
         "data": {
           "badge_name": "Merkin nimi",
           "badge_description": "Merkin kuvaus (valinnainen)",
@@ -409,7 +409,7 @@
     "step": {
       "init": {
         "title": "Lastenkotien vaihtoehdot",
-        "description": "Hallitse lapsia, askareita, ansiomerkkejä, palkintoja, rangaistuksia, bonuksia tai viimeistelyä.\n\n📖 [Näytä dokumentaatio](https://github.com/ad-ha/kidschores-ha/wiki)",
+        "description": "Hallitse lapsia, askareita, ansiomerkkejä, palkintoja, rangaistuksia, bonuksia tai viimeistelyä.\n\n[📖 Katso dokumentaatio]({documentation_url})",
         "data": {
           "menu_selection": "Valitse vaihtoehto"
         }
@@ -430,7 +430,7 @@
       },
       "manage_points": {
         "title": "Muokkaa pisteiden otsikkoa ja kuvaketta",
-        "description": "Vaihda pisteiden esittämiseen käytettyä otsikkoa ja kuvaketta.\n\n📖 [Määritysopas](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Points)",
+        "description": "Vaihda pisteiden esittämiseen käytettyä otsikkoa ja kuvaketta.\n\n📖 [Määritysopas]({documentation_url})",
         "data": {
           "points_label": "Pistemerkintä",
           "points_icon": "Pistekuvake"
@@ -438,7 +438,7 @@
       },
       "add_kid": {
         "title": "Lisää lapsi",
-        "description": "Anna uuden lapsen tiedot.\n\n📖 [Määritysopas](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Kids-Parents)",
+        "description": "Anna uuden lapsen tiedot.\n\n📖 [Määritysopas]({documentation_url})",
         "data": {
           "name": "Lapsen nimi",
           "ha_user": "Kotiavustaja-käyttäjä",
@@ -455,7 +455,7 @@
       },
       "add_parent": {
         "title": "Lisää ylätaso",
-        "description": "Anna uuden pääkäyttäjän tiedot.\n\n📖 [Määritysopas](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Kids-Parents)",
+        "description": "Anna uuden pääkäyttäjän tiedot.\n\n📖 [Määritysopas]({documentation_url})",
         "data": {
           "name": "Vanhemman nimi",
           "ha_user_id": "Kotiavustaja-käyttäjä",
@@ -480,7 +480,7 @@
       },
       "add_chore": {
         "title": "Lisää kotitehtävä",
-        "description": "Luo uusi tehtävä, joka sisältää pisteet, tehtävät ja toistuvan aikataulun.\n\n📖 [Määritysopas](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Chores)",
+        "description": "Luo uusi tehtävä, joka sisältää pisteet, tehtävät ja toistuvan aikataulun.\n\n📖 [Määritysopas]({documentation_url})",
         "data": {
           "name": "📋 Työn nimi",
           "chore_description": "📋 Kuvaus (valinnainen)",
@@ -511,10 +511,10 @@
           "chore_labels": "Tagit askareiden järjestämiseen (esim. 'keittiö', 'ulkona'). Jätä tyhjäksi, jos et tarvitse.",
           "default_points": "Pisteitä ansaitaan suoritettaessa.",
           "assigned_kids": "Lapset, jotka näkevät ja voivat vaatia tämän tehtävän.",
-          "completion_criteria": "Itsenäinen (jokainen lapsi suorittaa tehtävän erikseen), Jaettu kaikki (kaikkien on suoritettava) tai Jaettu ensin (ensimmäinen, joka lunastaa muut palikoita).",
-          "approval_reset_type": "Määrittää, milloin tämän työn hyväksyntä nollautuu ja kuinka monta suoritusta sallitaan kyseisenä aikana.",
-          "approval_reset_pending_claim_action": "Näin tapahtuu vaatimuksille, jotka odottavat edelleen hyväksyntää, kun hyväksyntä nollataan.",
-          "overdue_handling_type": "Toimenpiteet eräpäivän jälkeen: Piilota myöhästymistila, pidä myöhässä, kunnes maksu vaaditaan, tai palauta odottavaan tilaan seuraavalla hyväksymisjaksolla.",
+          "completion_criteria": "Määrittää, miten tehtävä suoritetaan, kun se on annettu useille lapsille: yksilöllinen seuranta, jaettu suoritus tai vuoropohjainen kierto.",
+          "approval_reset_type": "Ohjaa, milloin työn hyväksymissyklin raja aktivoituu (keskiyöllä, eräpäivänä, valmistuttua tai manuaalisesti).",
+          "approval_reset_pending_claim_action": "Määrittää, mitä hyväksymättömille vaatimuksille tapahtuu, kun hyväksynnän nollausraja aktivoituu.",
+          "overdue_handling_type": "Ohjaa, mitä tapahtuu, kun eräpäivä umpeutuu, ja mitä erääntyneille tehtäville tapahtuu hyväksynnän nollausrajalla.",
           "auto_approve": "Kun tämä on käytössä, hakemukset hyväksytään välittömästi ilman vanhempien tarkistusta.",
           "recurring_frequency": "Kuinka usein tehtävä toistuu: Päivittäin, Viikoittain, Kuukausittain, Vuosittain, Mukautettu tai Ei lainkaan. Jos valitset \"Päivittäin - Useita kertoja päivässä\", näkyviin tulee lisänäyttö, jossa voit määrittää tarkat ajat.",
           "custom_interval": "Toistojen välisten aikayksiköiden määrä (esim. 3, jos haluat 'joka 3 viikko'). Käytetään vain mukautetun taajuuden kanssa.",
@@ -537,7 +537,7 @@
       },
       "add_badge_cumulative": {
         "title": "Lisää kumulatiivinen merkki",
-        "description": "Määritä kumulatiivisen ansiomerkin tiedot. Nämä ansiomerkit palkitsevat lapsia elinikäisten pisteiden kynnysarvojen saavuttamisesta ja tukevat ylläpitosyklejä jatkuvan suorituskyvyn kannustamiseksi.\n\n📖 [Määritysopas](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Badges-Cumulative)",
+        "description": "Määritä kumulatiivisen ansiomerkin tiedot. Nämä ansiomerkit palkitsevat lapsia elinikäisten pisteiden kynnysarvojen saavuttamisesta ja tukevat ylläpitosyklejä jatkuvan suorituskyvyn kannustamiseksi.\n\n📖 [Määritysopas]({documentation_url})",
         "data": {
           "badge_name": "Merkin nimi",
           "badge_description": "Merkin kuvaus (valinnainen)",
@@ -587,7 +587,7 @@
       },
       "add_badge_daily": {
         "title": "Lisää päivittäinen merkki",
-        "description": "Määritä päivittäisen ansiomerkin tiedot. Nämä ansiomerkit palkitsevat lapsia päivittäisten tehtävien suorittamisesta tai päivittäisten kynnysarvojen saavuttamisesta.\n\n📖 [Ansiomerkkien yleiskatsaus](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Määritä päivittäisen ansiomerkin tiedot. Nämä ansiomerkit palkitsevat lapsia päivittäisten tehtävien suorittamisesta tai päivittäisten kynnysarvojen saavuttamisesta.\n\n📖 [Ansiomerkkien yleiskatsaus]({documentation_url})",
         "data": {
           "badge_name": "Merkin nimi",
           "badge_description": "Merkin kuvaus (valinnainen)",
@@ -615,7 +615,7 @@
       },
       "add_badge_periodic": {
         "title": "Lisää kausiluonteinen merkki",
-        "description": "Määritä säännöllisen ansiomerkin tiedot. Nämä ansiomerkit palkitsevat lapsia kynnysarvojen saavuttamisesta määritetyn ajanjakson sisällä ja tukevat jatkuvan suorituskyvyn nollaussyklejä.\n\n📖 [Määritysopas](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Badges-Periodic)",
+        "description": "Määritä säännöllisen ansiomerkin tiedot. Nämä ansiomerkit palkitsevat lapsia kynnysarvojen saavuttamisesta määritetyn ajanjakson sisällä ja tukevat jatkuvan suorituskyvyn nollaussyklejä.\n\n📖 [Määritysopas]({documentation_url})",
         "data": {
           "badge_name": "Merkin nimi",
           "badge_description": "Merkin kuvaus (valinnainen)",
@@ -661,7 +661,7 @@
       },
       "add_badge_achievement": {
         "title": "Lisää saavutuksiin liittyvä merkki",
-        "description": "Määritä saavutukseen linkitetyn ansiomerkin tiedot. Nämä ansiomerkit palkitsevat lapsia tiettyjen saavutusten suorittamisesta.\n\n📖 [Ansiomerkkien yleiskatsaus](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Määritä saavutukseen linkitetyn ansiomerkin tiedot. Nämä ansiomerkit palkitsevat lapsia tiettyjen saavutusten suorittamisesta.\n\n[📖 Ansiomerkkien yleiskatsaus]({documentation_url})",
         "data": {
           "badge_name": "Merkin nimi",
           "badge_description": "Merkin kuvaus (valinnainen)",
@@ -685,7 +685,7 @@
       },
       "add_badge_challenge": {
         "title": "Lisää haasteeseen liittyvä merkki",
-        "description": "Määritä haasteeseen linkitetyn ansiomerkin tiedot. Nämä ansiomerkit palkitsevat lapsia tiettyjen haasteiden suorittamisesta.\n\n📖 [Ansiomerkkien yleiskatsaus](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Määritä haasteeseen linkitetyn ansiomerkin tiedot. Nämä ansiomerkit palkitsevat lapsia tiettyjen haasteiden suorittamisesta.\n\n[📖 Ansiomerkkien yleiskatsaus]({documentation_url})",
         "data": {
           "badge_name": "Merkin nimi",
           "badge_description": "Merkin kuvaus (valinnainen)",
@@ -709,7 +709,7 @@
       },
       "add_badge_special": {
         "title": "Lisää erityistilaisuusmerkki",
-        "description": "Määritä erityistilaisuuksiin luodun merkin tiedot. Nämä merkit palkitsevat lapsia tapahtumista, kuten syntymäpäivistä tai juhlapyhistä.\n\n📖 [Merkkien yleiskatsaus](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Määritä erityistilaisuuksiin luodun merkin tiedot. Nämä merkit palkitsevat lapsia tapahtumista, kuten syntymäpäivistä tai juhlapyhistä.\n\n📖 [Merkkien yleiskatsaus]({documentation_url})",
         "data": {
           "badge_name": "Merkin nimi",
           "badge_description": "Merkin kuvaus (valinnainen)",
@@ -745,7 +745,7 @@
       },
       "add_reward": {
         "title": "Lisää palkinto",
-        "description": "Anna uuden palkinnon tiedot.\n\n📖 [Määritysopas](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Rewards)",
+        "description": "Anna uuden palkinnon tiedot.\n\n📖 [Määritysopas]({documentation_url})",
         "data": {
           "name": "Palkinnon nimi",
           "internal_id": "Sisäinen tunnus",
@@ -757,7 +757,7 @@
       },
       "add_penalty": {
         "title": "Lisää rangaistus",
-        "description": "Anna uuden rangaistuksen tiedot.\n\n📖 [Yleiskatsaus ja esimerkit](https://github.com/ad-ha/kidschores-ha/wiki/Bonuses-&-Penalties%3A-Overview-&-Examples)",
+        "description": "Anna uuden rangaistuksen tiedot.\n\n📖 [Yleiskatsaus ja esimerkit]({documentation_url})",
         "data": {
           "name": "Rangaistuksen nimi",
           "penalty_description": "Kuvaus (valinnainen)",
@@ -769,7 +769,7 @@
       },
       "add_bonus": {
         "title": "Lisää bonus",
-        "description": "Anna uuden bonuksen tiedot.\n\n📖 [Yleiskatsaus ja esimerkit](https://github.com/ad-ha/kidschores-ha/wiki/Bonuses-&-Penalties%3A-Overview-&-Examples)",
+        "description": "Anna uuden bonuksen tiedot.\n\n📖 [Yleiskatsaus ja esimerkit]({documentation_url})",
         "data": {
           "name": "Bonusnimi",
           "bonus_description": "Kuvaus (valinnainen)",
@@ -781,7 +781,7 @@
       },
       "add_achievement": {
         "title": "Määrittele saavutus",
-        "description": "Anna tiedot jokaisesta saavutuksesta.\n\n📖 [Yleiskatsaus ja toiminnallisuus](https://github.com/ad-ha/kidschores-ha/wiki/Challenges-&-Achievements%3A-Overview-&-Functionality)",
+        "description": "Anna tiedot jokaisesta saavutuksesta.\n\n[📖 Yleiskatsaus ja toiminnallisuus]({documentation_url})",
         "data": {
           "name": "Saavutuksen nimi",
           "description": "Kuvaus (valinnainen)",
@@ -798,7 +798,7 @@
       },
       "add_challenge": {
         "title": "Määrittele haaste",
-        "description": "Anna tiedot jokaisesta haasteesta.\n\n📖 [Yleiskatsaus ja toiminnallisuus](https://github.com/ad-ha/kidschores-ha/wiki/Challenges-&-Achievements%3A-Overview-&-Functionality)",
+        "description": "Anna tiedot jokaisesta haasteesta.\n\n📖 [Yleiskatsaus ja toiminnallisuus]({documentation_url})",
         "data": {
           "name": "Haasteen nimi",
           "description": "Kuvaus (valinnainen)",
@@ -817,7 +817,7 @@
       },
       "edit_kid": {
         "title": "Muokkaa lasta",
-        "description": "Muokkaa valitun lapsen tietoja.\n\n📖 [Määritysopas](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Kids-Parents)",
+        "description": "Muokkaa valitun lapsen tietoja.\n\n📖 [Määritysopas]({documentation_url})",
         "data": {
           "name": "Lapsen nimi",
           "ha_user": "Kotiavustaja-käyttäjä",
@@ -851,7 +851,7 @@
       },
       "edit_parent": {
         "title": "Muokkaa ylätasapainoa",
-        "description": "Muokkaa valitun pääobjektin tietoja.\n\n📖 [Määritysopas](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Kids-Parents)",
+        "description": "Muokkaa valitun pääobjektin tietoja.\n\n📖 [Määritysopas]({documentation_url})",
         "data": {
           "name": "Vanhemman nimi",
           "ha_user_id": "Kotiavustaja-käyttäjä",
@@ -876,7 +876,7 @@
       },
       "edit_chore": {
         "title": "Muokkaa tehtävää",
-        "description": "Muokkaa valitun työn tietoja.\n\n📖 [Määritysopas](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Chores)",
+        "description": "Muokkaa valitun työn tietoja.\n\n📖 [Määritysopas]({documentation_url})",
         "data": {
           "name": "📋 Työn nimi",
           "chore_description": "📋 Kuvaus (valinnainen)",
@@ -908,10 +908,10 @@
           "chore_labels": "Tagit askareiden järjestämiseen (esim. 'keittiö', 'ulkona'). Jätä tyhjäksi, jos et tarvitse.",
           "default_points": "Pisteitä ansaitaan suoritettaessa.",
           "assigned_kids": "Lapset, jotka näkevät ja voivat vaatia tämän tehtävän.",
-          "completion_criteria": "Itsenäinen (jokainen lapsi suorittaa tehtävän erikseen), Jaettu kaikki (kaikkien on suoritettava) tai Jaettu ensin (ensimmäinen, joka lunastaa muut palikoita).",
-          "approval_reset_type": "Määrittää, milloin tämän työn hyväksyntä nollautuu ja kuinka monta suoritusta sallitaan kyseisenä aikana.",
-          "approval_reset_pending_claim_action": "Kun tämän tehtävän hyväksyntä nollautuu (yllä olevan hyväksynnän nollausajan perusteella), mitä tapahtuu hyväksyntää odottaville vaatimuksille?",
-          "overdue_handling_type": "Toimenpiteet eräpäivän jälkeen: Piilota myöhästymistila, pidä myöhässä, kunnes maksu vaaditaan, tai palauta odottavaan tilaan seuraavalla hyväksymisjaksolla.",
+          "completion_criteria": "Määrittää, miten tehtävä suoritetaan, kun se on annettu useille lapsille: yksilöllinen seuranta, jaettu suoritus tai vuoropohjainen kierto.",
+          "approval_reset_type": "Ohjaa, milloin työn hyväksymissyklin raja aktivoituu (keskiyöllä, eräpäivänä, valmistuttua tai manuaalisesti).",
+          "approval_reset_pending_claim_action": "Määrittää, mitä hyväksymättömille vaatimuksille tapahtuu, kun hyväksynnän nollausraja aktivoituu.",
+          "overdue_handling_type": "Ohjaa, mitä tapahtuu, kun eräpäivä umpeutuu, ja mitä erääntyneille tehtäville tapahtuu hyväksynnän nollausrajalla.",
           "auto_approve": "Kun tämä on käytössä, hakemukset hyväksytään välittömästi ilman vanhempien tarkistusta.",
           "recurring_frequency": "Kuinka usein tehtävä toistuu: Päivittäin, Viikoittain, Kuukausittain, Vuosittain, Mukautettu tai Ei lainkaan. Jos valitset \"Päivittäin - Useita kertoja päivässä\", näkyviin tulee lisänäyttö, jossa voit määrittää tarkat ajat.",
           "custom_interval": "Toistojen välisten aikayksiköiden määrä (esim. 3, jos haluat 'joka 3 viikko'). Käytetään vain mukautetun taajuuden kanssa.",
@@ -927,7 +927,7 @@
       },
       "edit_chore_per_kid_dates": {
         "title": "Muokkaa lapsikohtaisia eräpäiviä: {chore_name}",
-        "description": "Aseta jokaiselle lapselle omat eräpäivät. Päämuokkauslomakkeen päivämääräkenttä toimii **mallina** kätevästi – käytä sitä asettaaksesi saman päivämäärän nopeasti kaikille lapsille alla olevan valintaruudun avulla tai jätä se tyhjäksi ja aseta päivämäärät erikseen tähän.\n\nKentät näytetään seuraaville: {kid_names}. Jätä tyhjäksi, jos määräaikaa ei ole.{template_date}\n\n📖 [Lisäopas](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Chores-Advanced)",
+        "description": "Aseta jokaiselle lapselle omat eräpäivät. Päämuokkauslomakkeen päivämääräkenttä toimii **mallina** kätevästi – käytä sitä asettaaksesi saman päivämäärän nopeasti kaikille lapsille alla olevan valintaruudun avulla tai jätä se tyhjäksi ja aseta päivämäärät erikseen tähän.\n\nKentät näytetään seuraaville: {kid_names}. Jätä tyhjäksi, jos määräaikaa ei ole.{template_date}\n\n📖 [Lisäopas]({documentation_url})",
         "data": {
           "apply_template_to_all": "Käytä mallipäivämäärää kaikkiin lapsiin"
         },
@@ -947,7 +947,7 @@
       },
       "edit_chore_per_kid_details": {
         "title": "Lapsikohtainen aikataulu: {chore_name}",
-        "description": "Määritä yksilölliset aikatauluasetukset jokaiselle tähän tehtävään määritetylle lapselle. Päälomakkeen arvot toimivat **mallipohjina** – käytä valintaruutuja ottaaksesi ne käyttöön kaikille lapsille tai mukauta kunkin lapsen asetuksia erikseen.\n\n**Huomautus:** Kaikki alla olevat kentät eivät koske kaikkia tehtäviä. Lomake näyttää dynaamisesti asiaankuuluvat vaihtoehdot suoritustavan, tiheyden ja sen perusteella, onko määräpäiviä asetettu.\n\n**Päivittäinen (useita) aikoja -muoto:** Jos näkyvissä, anna 2–6 aikaa 24 tunnin muodossa erotettuna pystyviivalla |. Esimerkki: 08:00|17:00\n\nLapset: {kid_names}{template_info}\n\n📖 [Lisäopas](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Chores-Advanced)",
+        "description": "Määritä yksilölliset aikatauluasetukset jokaiselle tähän tehtävään määritetylle lapselle. Päälomakkeen arvot toimivat **mallipohjina** – käytä valintaruutuja ottaaksesi ne käyttöön kaikille lapsille tai mukauta kunkin lapsen asetuksia erikseen.\n\n**Huomautus:** Kaikki alla olevat kentät eivät koske kaikkia tehtäviä. Lomake näyttää dynaamisesti asiaankuuluvat vaihtoehdot suoritustavan, tiheyden ja sen perusteella, onko määräpäiviä asetettu.\n\n**Päivittäinen (useita) aikoja -muoto:** Jos näkyvissä, anna 2–6 aikaa 24 tunnin muodossa erotettuna pystyviivalla |. Esimerkki: 08:00|17:00\n\nLapset: {kid_names}{template_info}\n\n📖 [Lisäopas]({documentation_url})",
         "data": {
           "apply_days_to_all": "Käytä mallipäiviä kaikille lapsille",
           "apply_times_to_all": "Käytä malliaikoja kaikille lapsille",
@@ -961,7 +961,7 @@
       },
       "edit_badge_cumulative": {
         "title": "Muokkaa kumulatiivista arvomerkkiä",
-        "description": "Määritä kumulatiivisen ansiomerkin tiedot. Nämä ansiomerkit palkitsevat lapsia elinikäisten pisteiden kynnysarvojen saavuttamisesta ja tukevat ylläpitosyklejä jatkuvan suorituskyvyn kannustamiseksi.\n\n📖 [Määritysopas](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Badges-Cumulative)",
+        "description": "Määritä kumulatiivisen ansiomerkin tiedot. Nämä ansiomerkit palkitsevat lapsia elinikäisten pisteiden kynnysarvojen saavuttamisesta ja tukevat ylläpitosyklejä jatkuvan suorituskyvyn kannustamiseksi.\n\n📖 [Määritysopas]({documentation_url})",
         "data": {
           "badge_name": "Merkin nimi",
           "badge_description": "Merkin kuvaus (valinnainen)",
@@ -1011,7 +1011,7 @@
       },
       "edit_badge_daily": {
         "title": "Muokkaa päivittäistä merkkiä",
-        "description": "Määritä päivittäisen ansiomerkin tiedot. Nämä ansiomerkit palkitsevat lapsia päivittäisten tehtävien suorittamisesta tai päivittäisten kynnysarvojen saavuttamisesta.\n\n📖 [Ansiomerkkien yleiskatsaus](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Määritä päivittäisen ansiomerkin tiedot. Nämä ansiomerkit palkitsevat lapsia päivittäisten tehtävien suorittamisesta tai päivittäisten kynnysarvojen saavuttamisesta.\n\n📖 [Ansiomerkkien yleiskatsaus]({documentation_url})",
         "data": {
           "badge_name": "Merkin nimi",
           "badge_description": "Merkin kuvaus (valinnainen)",
@@ -1039,7 +1039,7 @@
       },
       "edit_badge_periodic": {
         "title": "Muokkaa kausiluonteista arvomerkkiä",
-        "description": "Määritä säännöllisen ansiomerkin tiedot. Nämä ansiomerkit palkitsevat lapsia kynnysarvojen saavuttamisesta määritetyn ajanjakson sisällä ja tukevat jatkuvan suorituskyvyn nollaussyklejä.\n\n📖 [Määritysopas](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Badges-Periodic)",
+        "description": "Määritä säännöllisen ansiomerkin tiedot. Nämä ansiomerkit palkitsevat lapsia kynnysarvojen saavuttamisesta määritetyn ajanjakson sisällä ja tukevat jatkuvan suorituskyvyn nollaussyklejä.\n\n📖 [Määritysopas]({documentation_url})",
         "data": {
           "badge_name": "Merkin nimi",
           "badge_description": "Merkin kuvaus (valinnainen)",
@@ -1085,7 +1085,7 @@
       },
       "edit_badge_achievement": {
         "title": "Muokkaa saavutukseen liittyvää merkkiä",
-        "description": "Määritä saavutukseen linkitetyn ansiomerkin tiedot. Nämä ansiomerkit palkitsevat lapsia tiettyjen saavutusten suorittamisesta.\n\n📖 [Ansiomerkkien yleiskatsaus](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Määritä saavutukseen linkitetyn ansiomerkin tiedot. Nämä ansiomerkit palkitsevat lapsia tiettyjen saavutusten suorittamisesta.\n\n📖 [Ansiomerkkien yleiskatsaus]({documentation_url})",
         "data": {
           "badge_name": "Merkin nimi",
           "badge_description": "Merkin kuvaus (valinnainen)",
@@ -1109,7 +1109,7 @@
       },
       "edit_badge_challenge": {
         "title": "Muokkaa haasteeseen linkitettyä arvomerkkiä",
-        "description": "Määritä haasteeseen linkitetyn ansiomerkin tiedot. Nämä ansiomerkit palkitsevat lapsia tiettyjen haasteiden suorittamisesta.\n\n📖 [Ansiomerkkien yleiskatsaus](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Määritä haasteeseen linkitetyn ansiomerkin tiedot. Nämä ansiomerkit palkitsevat lapsia tiettyjen haasteiden suorittamisesta.\n\n📖 [Ansiomerkkien yleiskatsaus]({documentation_url})",
         "data": {
           "badge_name": "Merkin nimi",
           "badge_description": "Merkin kuvaus (valinnainen)",
@@ -1133,7 +1133,7 @@
       },
       "edit_badge_special": {
         "title": "Muokkaa erityistilaisuusmerkkiä",
-        "description": "Määritä erityistilaisuuksiin luodun merkin tiedot. Nämä merkit palkitsevat lapsia tapahtumista, kuten syntymäpäivistä tai juhlapyhistä.\n\n📖 [Merkkien yleiskatsaus](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Määritä erityistilaisuuksiin luodun merkin tiedot. Nämä merkit palkitsevat lapsia tapahtumista, kuten syntymäpäivistä tai juhlapyhistä.\n\n📖 [Merkkien yleiskatsaus]({documentation_url})",
         "data": {
           "badge_name": "Merkin nimi",
           "badge_description": "Merkin kuvaus (valinnainen)",
@@ -1169,7 +1169,7 @@
       },
       "edit_reward": {
         "title": "Muokkaa palkintoa",
-        "description": "Muokkaa valitun palkinnon tietoja.\n\n📖 [Määritysopas](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Rewards)",
+        "description": "Muokkaa valitun palkinnon tietoja.\n\n📖 [Määritysopas]({documentation_url})",
         "data": {
           "name": "Palkinnon nimi",
           "internal_id": "Sisäinen tunnus",
@@ -1181,7 +1181,7 @@
       },
       "edit_penalty": {
         "title": "Muokkaa rangaistusta",
-        "description": "Muokkaa valitun rangaistuksen tietoja.\n\n📖 [Yleiskatsaus ja esimerkit](https://github.com/ad-ha/kidschores-ha/wiki/Bonuses-&-Penalties%3A-Overview-&-Examples)",
+        "description": "Muokkaa valitun rangaistuksen tietoja.\n\n📖 [Yleiskatsaus ja esimerkit]({documentation_url})",
         "data": {
           "name": "Rangaistuksen nimi",
           "penalty_description": "Kuvaus (valinnainen)",
@@ -1193,7 +1193,7 @@
       },
       "edit_bonus": {
         "title": "Muokkaa bonusta",
-        "description": "Muokkaa valitun bonuksen tietoja.\n\n📖 [Yleiskatsaus ja esimerkit](https://github.com/ad-ha/kidschores-ha/wiki/Bonuses-&-Penalties%3A-Overview-&-Examples)",
+        "description": "Muokkaa valitun bonuksen tietoja.\n\n📖 [Yleiskatsaus ja esimerkit]({documentation_url})",
         "data": {
           "name": "Bonusnimi",
           "bonus_description": "Kuvaus (valinnainen)",
@@ -1205,7 +1205,7 @@
       },
       "edit_achievement": {
         "title": "Määrittele saavutus",
-        "description": "Anna tiedot jokaisesta saavutuksesta.\n\n📖 [Yleiskatsaus ja toiminnallisuus](https://github.com/ad-ha/kidschores-ha/wiki/Challenges-&-Achievements%3A-Overview-&-Functionality)",
+        "description": "Anna tiedot jokaisesta saavutuksesta.\n\n📖 [Yleiskatsaus ja toiminnallisuus]({documentation_url})",
         "data": {
           "name": "Saavutuksen nimi",
           "description": "Kuvaus (valinnainen)",
@@ -1222,7 +1222,7 @@
       },
       "edit_challenge": {
         "title": "Määrittele haaste",
-        "description": "Anna tiedot jokaisesta haasteesta.\n\n📖 [Yleiskatsaus ja toiminnallisuus](https://github.com/ad-ha/kidschores-ha/wiki/Challenges-&-Achievements%3A-Overview-&-Functionality)",
+        "description": "Anna tiedot jokaisesta haasteesta.\n\n📖 [Yleiskatsaus ja toiminnallisuus]({documentation_url})",
         "data": {
           "name": "Haasteen nimi",
           "description": "Kuvaus (valinnainen)",
@@ -1298,7 +1298,7 @@
       },
       "dashboard_create": {
         "title": "Luo/Päivitä kojelauta",
-        "description": "Luo KidsChores-koontinäyttö, jossa on välilehdet jokaiselle lapselle.\n\nValitse koontinäytölle nimi, valitse sisällytettävät lapset ja lisää halutessasi Järjestelmänvalvoja-välilehti vanhempien hallintaa varten.\n\n[📖 Koontinäytön luontiopas](https://github.com/ad-ha/kidschores-ha/wiki/Getting-Started:-Dashboard-Generation)",
+        "description": "Luo KidsChores-koontinäyttö, jossa on välilehdet jokaiselle lapselle.\n\nValitse koontinäytölle nimi, valitse sisällytettävät lapset ja lisää halutessasi Järjestelmänvalvoja-välilehti vanhempien hallintaa varten.\n\n[📖 Koontinäytön luontiopas]({documentation_url})",
         "data": {
           "dashboard_name": "Kojelaudan nimi",
           "dashboard_style": "Kojelaudan tyyli",
@@ -1341,7 +1341,7 @@
       },
       "manage_general_options": {
         "title": "Yleiset asetukset",
-        "description": "Hallinnoi KidsChores-integraation yleisiä asetuksia.\n\n[📖 Lue lisää varmuuskopioinnista ja palautuksesta](https://github.com/ad-ha/kidschores-ha/wiki/Getting-Started:-Backup-Restore)",
+        "description": "Hallinnoi KidsChores-integraation yleisiä asetuksia.\n\n[📖 Lue lisää varmuuskopioinnista ja palautuksesta]({documentation_url})",
         "data": {
           "points_adjust_values": "Manuaalisten pisteiden säätöpainikkeiden arvot",
           "update_interval": "Päivitysväli",
@@ -1505,6 +1505,7 @@
       "error_daily_multi_times_too_few": "Useita kertoja päivässä -tiheydelle vaaditaan vähintään kaksi kertaa. Yhden kerran tapauksessa käytä tavallista Päivittäistä-tiheyttä.",
       "error_daily_multi_times_too_many": "Enintään kuusi kertaa päivässä sallitaan 'Useita kertoja päivässä' -tiheydellä.",
       "error_daily_multi_due_date_required": "Useita kertoja päivässä -tiheys edellyttää määräpäivän asettamista. Päivämäärä määrittää aikataulutuksen aloituspäivän ja ajat määrittävät kunkin päivän saatavuusikkunat.",
+      "error_allow_steal_incompatible": "Salli varastaa -myöhästymiskäsittely on yhteensopiva vain rotaatiotöiden (rotation_simple tai rotation_smart) kanssa, joiden nollaustyyppi on 'Kerran päivässä', ja se vaatii määräpäivän varausikkunan avautumisen määrittämiseksi.",
       "error_at_due_date_reset_requires_due_date": "Eräpäivänä tapahtuvat hyväksynnän nollaustyypit (kerran tai useita kertoja) edellyttävät eräpäivän asettamista. Ilman eräpäivää hyväksynnän nollaus ei koskaan käynnisty ja työ pysyy hyväksyttynä toistaiseksi.",
       "error_per_kid_applicable_days_invalid": "Yhdelle tai useammalle lapselle on virheellinen päivien muoto. Päivien on oltava kokonaislukuja 0–6 (maanantai–sunnuntai) ilman kaksoiskappaleita.",
       "error_per_kid_daily_multi_times_invalid": "Yhden tai useamman lapsen päivittäisen kellonajan muoto on virheellinen. Käytä 24-tunnin muotoa ja erota se merkillä | (esim. 08:00|17:00).",
@@ -1665,7 +1666,9 @@
       "options": {
         "shared_all": "Jaettu kaikille (Kaikkien lasten on suoritettava yhdessä)",
         "independent": "Itsenäinen (jokainen lapsi suorittaa tehtävän itsenäisesti)",
-        "shared_first": "Jaettu ensin (ensimmäinen suoritus lasketaan)"
+        "shared_first": "Jaettu ensin (ensimmäinen suoritus lasketaan)",
+        "rotation_simple": "Yksinkertainen kierto (vain vuoronpitäjä, tarkka järjestys)",
+        "rotation_smart": "Rotation Smart (vain vuoronpitäjä, reiluuspainotteinen)"
       }
     },
     "approval_reset_type": {
@@ -1674,15 +1677,19 @@
         "at_midnight_multi": "Useita kertoja päivässä - Nollautuu keskiyöllä",
         "at_due_date_once": "Kerran kuukaudessa - Nollautuu eräpäivänä",
         "at_due_date_multi": "Useita kertoja jaksossa - Nollautuu eräpäivänä",
-        "upon_completion": "Rajoittamaton määrä suorituksia - Nollautuu suorituksen jälkeen"
+        "upon_completion": "Rajoittamaton määrä suorituksia - Nollautuu suorituksen jälkeen",
+        "manual": "Vain manuaalinen nollaus - Ei automaattisia nollauksia"
       }
     },
     "overdue_handling_type": {
       "options": {
-        "at_due_date": "Myöhässä, kunnes valmis",
         "never_overdue": "Ei koskaan myöhässä",
+        "at_due_date": "Myöhässä, kunnes valmis",
         "at_due_date_clear_at_approval_reset": "Myöhässä, kunnes hyväksyntä on voimassa",
-        "at_due_date_clear_immediate_on_late": "Myöhässä, kunnes valmis (tyhjennä myöhästyneet hyväksynnät välittömästi)"
+        "at_due_date_clear_immediate_on_late": "Myöhässä, kunnes valmis (tyhjennä myöhästyneet hyväksynnät välittömästi)",
+        "at_due_date_clear_and_mark_missed": "Myöhässä, kunnes hyväksyntä on palautettu (Merkitse ohitetuksi)",
+        "at_due_date_mark_missed_and_lock": "Lukitse hyväksyntään asti Nollaa (Estä hakemukset, merkitse ohitetuksi)",
+        "at_due_date_allow_steal": "Salli varastaminen hyväksynnän nollaukseen asti (vain rotaatio)"
       }
     },
     "approval_reset_pending_claim_action": {
@@ -2087,22 +2094,22 @@
         },
         "completion_criteria": {
           "name": "Suorituskriteerit",
-          "description": "Miten tehtävä suoritetaan, kun siihen on määritetty useita lapsia: itsenäinen (jokainen lapsi suorittaa sen erikseen), jaettu_ensimmäinen (ensimmäisenä tehtävän suorittanut lapsi ansaitsee pisteitä) tai jaettu_kaikki (kaikkien lasten on suoritettava tehtävä). Tätä ei voi muuttaa luomisen jälkeen.",
+          "description": "Määrittää, miten tehtävä suoritetaan, kun se on annettu useille lapsille: yksilöllinen seuranta, jaettu suoritus tai vuoropohjainen kierto.",
           "example": "itsenäinen"
         },
         "approval_reset_type": {
           "name": "Hyväksynnän nollaustyyppi",
-          "description": "Kun tehtävä nollautuu uudelleen suoritettavaksi.",
+          "description": "Ohjaa, milloin työn hyväksymissyklin raja aktivoituu (keskiyöllä, eräpäivänä, valmistuttua tai manuaalisesti).",
           "example": "keskiyöllä"
         },
         "pending_claims": {
           "name": "Vireillä olevat korvauskäsittelyt",
-          "description": "Mitä tapahtuu odottaville vaatimuksille, kun työ nollautuu: hold_pending (säilytä vaatimukset), clear_pending (poista vaatimukset) tai auto_approve_pending (hyväksyy kaikki odottavat).",
+          "description": "Määrittää, mitä hyväksymättömille vaatimuksille tapahtuu, kun hyväksynnän nollausraja aktivoituu.",
           "example": "odotustilassa"
         },
         "overdue_handling": {
           "name": "Myöhästyneiden käsittely",
-          "description": "Miten hoitaa kotityöt, kun ne tulevat myöhässä.",
+          "description": "Ohjaa, mitä tapahtuu, kun eräpäivä umpeutuu, ja mitä erääntyneille tehtäville tapahtuu hyväksynnän nollausrajalla.",
           "example": "eräpäivä"
         },
         "auto_approve": {
@@ -2229,6 +2236,64 @@
         }
       }
     },
+    "set_rotation_turn": {
+      "name": "Aseta kierto Käännös",
+      "description": "Määritä manuaalisesti nykyinen vuoro tietylle lapselle rotaatiotehtävässä. Toimii vain rotaatiotehtävissä (rotation_simple tai rotation_smart). Käytä joko tunnusta tai nimeä tunnistamiseen.",
+      "fields": {
+        "chore_id": {
+          "name": "Työn tunnus",
+          "description": "Rotaatiotyön sisäinen tunniste. Valinnainen, jos chore_name on annettu.",
+          "example": "abc123-def456-789..."
+        },
+        "chore_name": {
+          "name": "Työn nimi",
+          "description": "Rotaatiotyön nimi. Valinnainen, jos chore_id on annettu.",
+          "example": "Puhdas makuuhuone"
+        },
+        "kid_id": {
+          "name": "Lapsen tunnus",
+          "description": "Vuorolle määritettävän lapsen sisäinen tunniste. Täytyy määrittää tälle tehtävälle. Valinnainen, jos lapsen_nimi on annettu.",
+          "example": "xyz789-abc123-456..."
+        },
+        "kid_name": {
+          "name": "Lapsen nimi",
+          "description": "Vuorolle määritettävän lapsen nimi. Täytyy määrittää tälle tehtävälle. Valinnainen, jos lapsen_tunnus on annettu.",
+          "example": "Alice"
+        }
+      }
+    },
+    "reset_rotation": {
+      "name": "Nollaa kierto",
+      "description": "Palauta rotaatiovuoro ensimmäiselle määrätylle lapselle. Toimii vain rotaatiotehtäville (rotation_simple tai rotation_smart). Käytä joko tunnusta tai nimeä tunnistautumiseen.",
+      "fields": {
+        "chore_id": {
+          "name": "Työn tunnus",
+          "description": "Nollattavan rotaatiotyön sisäinen tunnus. Valinnainen, jos chore_name on annettu.",
+          "example": "abc123-def456-789..."
+        },
+        "chore_name": {
+          "name": "Työn nimi",
+          "description": "Nollattavan rotaatiotyön nimi. Valinnainen, jos chore_id on annettu.",
+          "example": "Puhdas makuuhuone"
+        }
+      }
+    },
+    "open_rotation_cycle": {
+      "name": "Avoin kiertosykli",
+      "description": "Ota käyttöön kiertosyklin ohitus yhdeksi sykliksi, jolloin kuka tahansa määrätty lapsi voi lunastaa paikan vuorostaan riippumatta. Ohitus poistuu käytöstä seuraavan hyväksynnän jälkeen. Käytä joko henkilötunnusta tai nimeä tunnistautumiseen.",
+      "fields": {
+        "chore_id": {
+          "name": "Työn tunnus",
+          "description": "Avattavan rotaatiotyön sisäinen tunnus. Valinnainen, jos chore_name on annettu.",
+          "example": "abc123-def456-789..."
+        },
+        "chore_name": {
+          "name": "Työn nimi",
+          "description": "Avattavan rotaatiotyön nimi. Valinnainen, jos chore_id on annettu.",
+          "example": "Puhdas makuuhuone"
+        }
+      }
+    },
     "reset_chores_to_pending_state": {
       "name": "Palauta tehtävät odottavaan tilaan",
       "description": "Palauta kaikki tehtävät manuaalisesti odottavaan tilaan, poistaen vaatimukset ja hyväksynnät."
@@ -2329,6 +2394,10 @@
           "name": "Lapsen tunnus",
           "description": "Lapsen sisäinen tunniste. Vain kokeneille käyttäjille - käytä sen sijaan lapsen_nimeä.",
           "example": "abc123-def456"
+        },
+        "mark_as_missed": {
+          "name": "Merkitse ohitetuksi",
+          "description": "Kun arvo on true, tämä ohitus kirjataan lapsen tilastoihin väliin jääneenä kotitehtävänä. Hyödyllinen tahallisten ohitusten seuraamiseen erikseen automaattisista myöhästyneiden nollausten tapahtumista."
         }
       }
     },
@@ -2363,7 +2432,10 @@
           "none": "Ei mitään",
           "approved_in_part": "Hyväksytty (osittain)",
           "claimed_in_part": "Väitetty (osittain)",
-          "completed_by_other": "Muun suorittama"
+          "completed_by_other": "Muun suorittama",
+          "waiting": "Odotetaan (eräaika ei ole auki)",
+          "not_my_turn": "Ei minun vuoroni (kierto)",
+          "missed": "Menetetty (lukittu)"
         },
         "state_attributes": {
           "purpose": {
@@ -2398,7 +2470,9 @@
             "state": {
               "independent": "Itsenäinen",
               "shared_first": "Jaettu (ensimmäinen)",
-              "shared_all": "Jaettu (kaikki)"
+              "shared_all": "Jaettu (kaikki)",
+              "rotation_simple": "Yksinkertainen kierto",
+              "rotation_smart": "Älykäs pyöritys"
             }
           },
           "approval_reset_type": {
@@ -2408,7 +2482,8 @@
               "at_midnight_multi": "Keskiyöllä (moni)",
               "at_due_date_once": "Eräpäivänä (kerran)",
               "at_due_date_multi": "Eräpäivänä (useita)",
-              "upon_completion": "Valmistuttuaan"
+              "upon_completion": "Valmistuttuaan",
+              "manual": "Vain manuaalinen nollaus"
             }
           },
           "recurring_frequency": {
@@ -2546,6 +2621,20 @@
           },
           "time_until_overdue": {
             "name": "Myöhästymisaika"
+          },
+          "lock_reason": {
+            "name": "Lukituksen syy",
+            "state": {
+              "waiting": "Odotetaan eräpäivää",
+              "not_my_turn": "Ei sinun vuorosi",
+              "missed": "Jäi väliin"
+            }
+          },
+          "turn_kid_name": {
+            "name": "Käännä lapsen nimi"
+          },
+          "available_at": {
+            "name": "Saatavilla osoitteessa"
           }
         }
       },
@@ -3132,7 +3221,9 @@
             "state": {
               "independent": "Itsenäinen",
               "shared_first": "Jaettu (vain ensimmäinen)",
-              "shared_all": "Jaettu (kaikki pakollisia)"
+              "shared_all": "Jaettu (kaikki pakollisia)",
+              "rotation_simple": "Yksinkertainen kierto",
+              "rotation_smart": "Älykäs pyöritys"
             }
           },
           "approval_reset_type": {
@@ -3142,7 +3233,8 @@
               "at_midnight_multi": "Keskiyöllä (moni)",
               "at_due_date_once": "Eräpäivänä (kerran)",
               "at_due_date_multi": "Eräpäivänä (useita)",
-              "upon_completion": "Valmistuttuaan"
+              "upon_completion": "Valmistuttuaan",
+              "manual": "Vain manuaalinen nollaus"
             }
           },
           "recurring_frequency": {
@@ -3998,6 +4090,30 @@
     "not_assigned": {
       "message": "{entity} ei ole liitetty {kid}:een"
     },
+    "rotation_no_turn_holder": {
+      "message": "Vuorottelutehtäville on oltava määrätty vuoronpitäjä"
+    },
+    "rotation_invalid_order": {
+      "message": "Rotaatiojärjestyksen on oltava ei-tyhjä luettelo lasten ID-tunnuksista"
+    },
+    "rotation_duplicate_in_order": {
+      "message": "Kiertojärjestys ei voi sisältää kaksoiskappaleita lapsiluokissa"
+    },
+    "rotation_unassigned_in_order": {
+      "message": "Kaikki vuorojärjestyksessä olevat lapset on määrättävä tehtävään"
+    },
+    "rotation_min_kids": {
+      "message": "Kiertotehtävät vaativat vähintään kaksi nimettyä lasta"
+    },
+    "not_rotation": {
+      "message": "Tämä työ ei ole rotaatiotilassa"
+    },
+    "kid_not_assigned": {
+      "message": "Lapselle ei ole määrätty tätä tehtävää"
+    },
+    "no_assigned_kids": {
+      "message": "Tähän tehtävään ei ole määrätty lapsia"
+    },
     "insufficient_points": {
       "message": "{kid} :lla on {current} pistettä, mutta hän tarvitsee {required} pistettä"
     },
@@ -4105,6 +4221,12 @@
     },
     "notif_message_data_reset_item": {
       "message": "Datan nollaus valmis kohteelle {item_name}. Suorituksenaikaiset tiedot tyhjennetty."
+    },
+    "notif_title_chore_missed": {
+      "message": "Kotityön tekemättä jättäminen"
+    },
+    "notif_message_chore_missed": {
+      "message": "{kid_name} jätti tehtävän väliin: {chore_name}"
     }
   }
 }
