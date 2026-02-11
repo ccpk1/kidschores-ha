@@ -13,7 +13,7 @@
   },
   "chore_disapproved": {
     "title": "KidsChores: Kotitehtävä hylätty",
-    "message": "{kid_name}:n tehtävää {chore_name} ei hyväksytty"
+    "message": "Työtehtävääsi {chore_name} ei hyväksytty"
   },
   "chore_overdue": {
     "title": "KidsChores: Kotiapu myöhässä",

@@ -13,7 +13,7 @@
   },
   "chore_disapproved": {
     "title": "Domáce práce pre deti: Domáce práce zamietnuté",
-    "message": "Úloha od {kid_name} {chore_name} nebola schválená"
+    "message": "Vaša úloha {chore_name} nebola schválená"
   },
   "chore_overdue": {
     "title": "Detské domáce práce: Domáce práce po termíne",

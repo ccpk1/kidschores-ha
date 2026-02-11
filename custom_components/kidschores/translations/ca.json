@@ -4,18 +4,18 @@
     "step": {
       "intro": {
         "title": "Benvinguts a KidsChores",
-        "description": "Aquest assistent us guiarà a través de la configuració de KidsChores.\n\n[📖 Guia d'inici ràpid](https://github.com/ad-ha/kidschores-ha/wiki/Getting-Started:-Quick-Start)"
+        "description": "Aquest assistent us guiarà a través de la configuració de KidsChores.\n\n[📖 Guia d'inici ràpid]({documentation_url})"
       },
       "data_recovery": {
         "title": "Opcions de recuperació de dades",
-        "description": "Dades de KidsChores existents trobades a:\n{storage_path}\n\nS'han trobat {backup_count} fitxers de còpia de seguretat.\n\nQuè vols fer?\n\n[📖 Més informació sobre Còpia de seguretat i restauració](https://github.com/ad-ha/kidschores-ha/wiki/Getting-Started:-Backup-Restore)",
+        "description": "Dades de KidsChores existents trobades a:\n{storage_path}\n\nS'han trobat {backup_count} fitxers de còpia de seguretat.\n\nQuè vols fer?\n\n[📖 Més informació sobre Còpia de seguretat i restauració]({documentation_url})",
         "data": {
           "backup_selection": "Selecciona l'opció"
         }
       },
       "paste_json_input": {
         "title": "Importa dades JSON",
-        "description": "Enganxa el contingut JSON complet des de:\n\n• Un fitxer de dades KidsChores (kidschores_data)\n• Una descàrrega de diagnòstics\n\nEl sistema detectarà i desembolicarà automàticament el format segons calgui. S'admeten tant els formats d'emmagatzematge en brut com els d'exportació de diagnòstics.",
+        "description": "Enganxa el contingut JSON complet des de:\n\n• Un fitxer de dades KidsChores (kidschores_data)\n• Una descàrrega de diagnòstics\n\nEl sistema detectarà automàticament el format i el descomprimirà segons sigui necessari. S'admeten tant les dades d'emmagatzematge sense processar com els formats d'exportació de diagnòstics.",
         "data": {
           "json_data": "Dades JSON"
         },
@@ -142,8 +142,8 @@
           "chore_labels": "Etiquetes per organitzar les tasques (per exemple, \"cuina\", \"exterior\"). Deixeu-ho en blanc si no és necessari.",
           "default_points": "Punts guanyats en completar-se.",
           "assigned_kids": "Nens que poden veure i reclamar aquesta tasca.",
-          "completion_criteria": "Independent (cada nen ho completa per separat), Compartit Tot (tots ho han de completar) o Compartit Primer (el primer a reclamar els blocs dels altres).",
-          "approval_reset_type": "Controla quan es reinicia aquesta tasca i quantes finalitzacions es permeten durant aquest període.",
+          "completion_criteria": "Controla com es completa la tasca quan s'assignen diversos nens: seguiment individual, finalització compartida o rotació per torns.",
+          "approval_reset_type": "Controla quan s'activa el límit del cicle d'aprovació de la tasca (mitjanit, data de venciment, en finalitzar-se o activació manual).",
           "approval_reset_pending_claim_action": "Això és el que passa amb les reclamacions que encara estan pendents d'aprovació quan es produeix el restabliment de l'aprovació.",
           "overdue_handling_type": "Acció després de la data de venciment: Amaga l'estat de venciment, mantén el venciment fins que es reclama o restableix-lo a pendent en el següent cicle d'aprovació.",
           "auto_approve": "Quan estan habilitades, les reclamacions s'aproven instantàniament sense la revisió dels pares.",
@@ -167,7 +167,7 @@
       },
       "badges": {
         "title": "Afegeix una insígnia acumulativa",
-        "description": "Configura els detalls d'una insígnia acumulativa. Aquestes insígnies recompensen els nens per assolir els llindars de punts de per vida i donen suport als cicles de manteniment per fomentar el rendiment continu.",
+        "description": "Configureu els detalls d'una insígnia acumulativa. Aquestes insígnies recompensen els nens per assolir els llindars de punts de per vida i donen suport als cicles de manteniment per fomentar el rendiment continu.\n\n[📖 Guia de configuració]({documentation_url})",
         "data": {
           "badge_name": "Nom de la insígnia",
           "badge_description": "Descripció de la insígnia (opcional)",
@@ -409,7 +409,7 @@
     "step": {
       "init": {
         "title": "Opcions de tasques infantils",
-        "description": "Gestiona els nens, les tasques, les insígnies, les recompenses, les penalitzacions, les bonificacions o els acabats.\n\n📖 [Veure la documentació](https://github.com/ad-ha/kidschores-ha/wiki)",
+        "description": "Gestiona els nens, les tasques, les insígnies, les recompenses, les penalitzacions, les bonificacions o els acabats.\n\n[📖 Veure la documentació]({documentation_url})",
         "data": {
           "menu_selection": "Selecciona una opció"
         }
@@ -430,7 +430,7 @@
       },
       "manage_points": {
         "title": "Edita l'etiqueta i la icona dels punts",
-        "description": "Canvia l'etiqueta i la icona que s'utilitzen per representar punts.\n\n📖 [Guia de configuració](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Points)",
+        "description": "Canvia l'etiqueta i la icona que s'utilitzen per representar punts.\n\n📖 [Guia de configuració]({documentation_url})",
         "data": {
           "points_label": "Etiqueta de punts",
           "points_icon": "Icona de punts"
@@ -438,7 +438,7 @@
       },
       "add_kid": {
         "title": "Afegeix un nen/a",
-        "description": "Proporcioneu els detalls per al nouvingut.\n\n📖 [Guia de configuració](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Kids-Parents)",
+        "description": "Proporcioneu els detalls per al nouvingut.\n\n📖 [Guia de configuració]({documentation_url})",
         "data": {
           "name": "Nom del nen/a",
           "ha_user": "Usuari de l'Assistent de la Llar",
@@ -455,7 +455,7 @@
       },
       "add_parent": {
         "title": "Afegeix un pare",
-        "description": "Proporcioneu els detalls del nou pare.\n\n📖 [Guia de configuració](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Kids-Parents)",
+        "description": "Proporcioneu els detalls del nou pare.\n\n📖 [Guia de configuració]({documentation_url})",
         "data": {
           "name": "Nom del pare/mare",
           "ha_user_id": "Usuari de l'Assistent de la Llar",
@@ -480,7 +480,7 @@
       },
       "add_chore": {
         "title": "Afegeix una tasca",
-        "description": "Crea una nova tasca amb punts, assignacions i un horari recurrent.\n\n📖 [Guia de configuració](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Chores)",
+        "description": "Crea una nova tasca amb punts, assignacions i un horari recurrent.\n\n📖 [Guia de configuració]({documentation_url})",
         "data": {
           "name": "📋 Nom de la tasca",
           "chore_description": "📋 Descripció (opcional)",
@@ -511,10 +511,10 @@
           "chore_labels": "Etiquetes per organitzar les tasques (per exemple, \"cuina\", \"exterior\"). Deixeu-ho en blanc si no és necessari.",
           "default_points": "Punts guanyats en completar-se.",
           "assigned_kids": "Nens que poden veure i reclamar aquesta tasca.",
-          "completion_criteria": "Independent (cada nen ho completa per separat), Compartit Tot (tots ho han de completar) o Compartit Primer (el primer a reclamar els blocs dels altres).",
-          "approval_reset_type": "Controla quan es restableix l'aprovació d'aquesta tasca i quantes finalitzacions es permeten durant aquest període.",
-          "approval_reset_pending_claim_action": "Això és el que passa amb les reclamacions que encara estan pendents d'aprovació quan es produeix el restabliment de l'aprovació.",
-          "overdue_handling_type": "Acció després de la data de venciment: Amaga l'estat de venciment, mantén el venciment fins que es reclama o restableix-lo a pendent en el següent cicle d'aprovació.",
+          "completion_criteria": "Controla com es completa la tasca quan s'assignen diversos nens: seguiment individual, finalització compartida o rotació per torns.",
+          "approval_reset_type": "Controla quan s'activa el límit del cicle d'aprovació de la tasca (mitjanit, data de venciment, en finalitzar-se o activació manual).",
+          "approval_reset_pending_claim_action": "Controla què passa amb les reclamacions no aprovades quan s'activa el límit de restabliment d'aprovació.",
+          "overdue_handling_type": "Controla què passa quan passa la data de venciment i què passa amb les tasques endarrerides al límit de restabliment de l'aprovació.",
           "auto_approve": "Quan estan habilitades, les reclamacions s'aproven instantàniament sense la revisió dels pares.",
           "recurring_frequency": "Freqüència amb què es repeteix la tasca: Diàriament, Setmanalment, Mensualment, Anualment, Personalitzat o Cap. Si seleccioneu \"Diàriament: diverses vegades al dia\", apareixerà una pantalla addicional per configurar les hores específiques.",
           "custom_interval": "Nombre d'unitats de temps entre repeticions (per exemple, 3 per a \"cada 3 setmanes\"). Només s'utilitza amb la freqüència personalitzada.",
@@ -537,7 +537,7 @@
       },
       "add_badge_cumulative": {
         "title": "Afegeix una insígnia acumulativa",
-        "description": "Configura els detalls d'una insígnia acumulativa. Aquestes insígnies recompensen els nens per assolir els llindars de punts de per vida i donen suport als cicles de manteniment per fomentar el rendiment continu.\n\n📖 [Guia de configuració](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Badges-Cumulative)",
+        "description": "Configura els detalls d'una insígnia acumulativa. Aquestes insígnies recompensen els nens per assolir els llindars de punts de per vida i donen suport als cicles de manteniment per fomentar el rendiment continu.\n\n📖 [Guia de configuració]({documentation_url})",
         "data": {
           "badge_name": "Nom de la insígnia",
           "badge_description": "Descripció de la insígnia (opcional)",
@@ -587,7 +587,7 @@
       },
       "add_badge_daily": {
         "title": "Afegeix una insígnia diària",
-        "description": "Configura els detalls d'una insígnia diària. Aquestes insígnies recompensen els nens per completar les tasques diàries o assolir els llindars diaris.\n\n📖 [Visió general de les insígnies](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Configura els detalls d'una insígnia diària. Aquestes insígnies recompensen els nens per completar les tasques diàries o assolir els llindars diaris.\n\n📖 [Visió general de les insígnies]({documentation_url})",
         "data": {
           "badge_name": "Nom de la insígnia",
           "badge_description": "Descripció de la insígnia (opcional)",
@@ -615,7 +615,7 @@
       },
       "add_badge_periodic": {
         "title": "Afegeix una insígnia periòdica",
-        "description": "Configureu els detalls d'una insígnia periòdica. Aquestes insígnies recompensen els nens per assolir els llindars dins d'un període de temps definit i admeten cicles de reinici per a un rendiment continu.\n\n📖 [Guia de configuració](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Badges-Periodic)",
+        "description": "Configureu els detalls d'una insígnia periòdica. Aquestes insígnies recompensen els nens per assolir els llindars dins d'un període de temps definit i admeten cicles de reinici per a un rendiment continu.\n\n📖 [Guia de configuració]({documentation_url})",
         "data": {
           "badge_name": "Nom de la insígnia",
           "badge_description": "Descripció de la insígnia (opcional)",
@@ -661,7 +661,7 @@
       },
       "add_badge_achievement": {
         "title": "Afegeix una insígnia vinculada a un assoliment",
-        "description": "Configura els detalls d'una insígnia vinculada a un assoliment. Aquestes insígnies recompensen els nens per completar assoliments específics.\n\n📖 [Visió general de les insígnies](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Configura els detalls d'una insígnia vinculada a un assoliment. Aquestes insígnies recompensen els nens per completar assoliments específics.\n\n[📖 Visió general de les insígnies]({documentation_url})",
         "data": {
           "badge_name": "Nom de la insígnia",
           "badge_description": "Descripció de la insígnia (opcional)",
@@ -685,7 +685,7 @@
       },
       "add_badge_challenge": {
         "title": "Afegeix una insígnia vinculada al repte",
-        "description": "Configura els detalls d'una insígnia vinculada a un repte. Aquestes insígnies recompensen els nens per completar reptes específics.\n\n📖 [Visió general de les insígnies](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Configura els detalls d'una insígnia vinculada a un repte. Aquestes insígnies recompensen els nens per completar reptes específics.\n\n[📖 Visió general de les insígnies]({documentation_url})",
         "data": {
           "badge_name": "Nom de la insígnia",
           "badge_description": "Descripció de la insígnia (opcional)",
@@ -709,7 +709,7 @@
       },
       "add_badge_special": {
         "title": "Afegeix una insígnia per a ocasions especials",
-        "description": "Configura els detalls d'una insígnia creada per a ocasions especials. Aquestes insígnies recompensen els nens per esdeveniments com ara aniversaris o festius.\n\n📖 [Visió general de les insígnies](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Configura els detalls d'una insígnia creada per a ocasions especials. Aquestes insígnies recompensen els nens per esdeveniments com ara aniversaris o festius.\n\n📖 [Visió general de les insígnies]({documentation_url})",
         "data": {
           "badge_name": "Nom de la insígnia",
           "badge_description": "Descripció de la insígnia (opcional)",
@@ -745,7 +745,7 @@
       },
       "add_reward": {
         "title": "Afegeix una recompensa",
-        "description": "Proporcioneu els detalls de la nova recompensa.\n\n📖 [Guia de configuració](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Rewards)",
+        "description": "Proporcioneu els detalls de la nova recompensa.\n\n📖 [Guia de configuració]({documentation_url})",
         "data": {
           "name": "Nom de la recompensa",
           "internal_id": "ID intern",
@@ -757,7 +757,7 @@
       },
       "add_penalty": {
         "title": "Afegeix penalització",
-        "description": "Proporcioneu els detalls de la nova penalització.\n\n📖 [Visió general i exemples](https://github.com/ad-ha/kidschores-ha/wiki/Bonuses-&-Penalties%3A-Overview-&-Examples)",
+        "description": "Proporcioneu els detalls de la nova penalització.\n\n📖 [Visió general i exemples]({documentation_url})",
         "data": {
           "name": "Nom de la penalització",
           "penalty_description": "Descripció (opcional)",
@@ -769,7 +769,7 @@
       },
       "add_bonus": {
         "title": "Afegeix una bonificació",
-        "description": "Proporcioneu els detalls de la nova bonificació.\n\n📖 [Visió general i exemples](https://github.com/ad-ha/kidschores-ha/wiki/Bonuses-&-Penalties%3A-Overview-&-Examples)",
+        "description": "Proporcioneu els detalls de la nova bonificació.\n\n📖 [Visió general i exemples]({documentation_url})",
         "data": {
           "name": "Nom de la bonificació",
           "bonus_description": "Descripció (opcional)",
@@ -781,7 +781,7 @@
       },
       "add_achievement": {
         "title": "Definir assoliment",
-        "description": "Introdueix els detalls de cada assoliment.\n\n📖 [Visió general i funcionalitat](https://github.com/ad-ha/kidschores-ha/wiki/Challenges-&-Achievements%3A-Overview-&-Functionality)",
+        "description": "Introdueix els detalls de cada assoliment.\n\n[📖 Informació general i funcionalitat]({documentation_url})",
         "data": {
           "name": "Nom de l'assoliment",
           "description": "Descripció (opcional)",
@@ -798,7 +798,7 @@
       },
       "add_challenge": {
         "title": "Defineix el repte",
-        "description": "Introdueix els detalls de cada repte.\n\n📖 [Visió general i funcionalitat](https://github.com/ad-ha/kidschores-ha/wiki/Challenges-&-Achievements%3A-Overview-&-Functionality)",
+        "description": "Introdueix els detalls de cada repte.\n\n📖 [Visió general i funcionalitat]({documentation_url})",
         "data": {
           "name": "Nom del repte",
           "description": "Descripció (opcional)",
@@ -817,7 +817,7 @@
       },
       "edit_kid": {
         "title": "Edita el nen/a",
-        "description": "Modifiqueu els detalls del nen seleccionat.\n\n📖 [Guia de configuració](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Kids-Parents)",
+        "description": "Modifiqueu els detalls del nen seleccionat.\n\n📖 [Guia de configuració]({documentation_url})",
         "data": {
           "name": "Nom del nen/a",
           "ha_user": "Usuari de l'Assistent de la Llar",
@@ -851,7 +851,7 @@
       },
       "edit_parent": {
         "title": "Edita el pare",
-        "description": "Modifiqueu els detalls del pare seleccionat.\n\n📖 [Guia de configuració](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Kids-Parents)",
+        "description": "Modifiqueu els detalls del pare seleccionat.\n\n📖 [Guia de configuració]({documentation_url})",
         "data": {
           "name": "Nom del pare/mare",
           "ha_user_id": "Usuari de l'Assistent de la Llar",
@@ -876,7 +876,7 @@
       },
       "edit_chore": {
         "title": "Edita la tasca",
-        "description": "Modifiqueu els detalls de la tasca seleccionada.\n\n📖 [Guia de configuració](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Chores)",
+        "description": "Modifiqueu els detalls de la tasca seleccionada.\n\n📖 [Guia de configuració]({documentation_url})",
         "data": {
           "name": "📋 Nom de la tasca",
           "chore_description": "📋 Descripció (opcional)",
@@ -908,10 +908,10 @@
           "chore_labels": "Etiquetes per organitzar les tasques (per exemple, \"cuina\", \"exterior\"). Deixeu-ho en blanc si no és necessari.",
           "default_points": "Punts guanyats en completar-se.",
           "assigned_kids": "Nens que poden veure i reclamar aquesta tasca.",
-          "completion_criteria": "Independent (cada nen ho completa per separat), Compartit Tot (tots ho han de completar) o Compartit Primer (el primer a reclamar els blocs dels altres).",
-          "approval_reset_type": "Controla quan es restableix l'aprovació d'aquesta tasca i quantes finalitzacions es permeten durant aquest període.",
-          "approval_reset_pending_claim_action": "Quan l'aprovació d'aquesta tasca es restableix (segons el Temps de restabliment de l'aprovació anterior), què passa amb les reclamacions que encara estan pendents d'aprovació?",
-          "overdue_handling_type": "Acció després de la data de venciment: Amaga l'estat de venciment, mantén el venciment fins que es reclama o restableix-lo a pendent en el següent cicle d'aprovació.",
+          "completion_criteria": "Controla com es completa la tasca quan s'assignen diversos nens: seguiment individual, finalització compartida o rotació per torns.",
+          "approval_reset_type": "Controla quan s'activa el límit del cicle d'aprovació de la tasca (mitjanit, data de venciment, en finalitzar-se o activació manual).",
+          "approval_reset_pending_claim_action": "Controla què passa amb les reclamacions no aprovades quan s'activa el límit de restabliment d'aprovació.",
+          "overdue_handling_type": "Controla què passa quan passa la data de venciment i què passa amb les tasques endarrerides al límit de restabliment de l'aprovació.",
           "auto_approve": "Quan estan habilitades, les reclamacions s'aproven instantàniament sense la revisió dels pares.",
           "recurring_frequency": "Freqüència amb què es repeteix la tasca: Diàriament, Setmanalment, Mensualment, Anualment, Personalitzat o Cap. Si seleccioneu \"Diàriament: diverses vegades al dia\", apareixerà una pantalla addicional per configurar les hores específiques.",
           "custom_interval": "Nombre d'unitats de temps entre repeticions (per exemple, 3 per a \"cada 3 setmanes\"). Només s'utilitza amb la freqüència personalitzada.",
@@ -927,7 +927,7 @@
       },
       "edit_chore_per_kid_dates": {
         "title": "Edita les dates de venciment per nen/a: {chore_name}",
-        "description": "Establiu dates de venciment individuals per a cada nen assignat. El camp de data del formulari d'edició principal actua com a **plantilla** per comoditat: utilitzeu-lo per aplicar ràpidament la mateixa data a tots els nens mitjançant la casella de selecció següent o deixeu-lo en blanc i definiu les dates individualment aquí.\n\nEs mostren camps per a: {kid_names}. Deixeu-ho en blanc si no hi ha data límit.{template_date}\n\n📖 [Guia avançada](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Chores-Advanced)",
+        "description": "Establiu dates de venciment individuals per a cada nen assignat. El camp de data del formulari d'edició principal actua com a **plantilla** per comoditat: utilitzeu-lo per aplicar ràpidament la mateixa data a tots els nens mitjançant la casella de selecció següent o deixeu-lo en blanc i definiu les dates individualment aquí.\n\nEs mostren camps per a: {kid_names}. Deixeu-ho en blanc si no hi ha data límit.{template_date}\n\n📖 [Guia avançada]({documentation_url})",
         "data": {
           "apply_template_to_all": "Aplica la data de la plantilla a tots els nens"
         },
@@ -947,7 +947,7 @@
       },
       "edit_chore_per_kid_details": {
         "title": "Horari per nen: {chore_name}",
-        "description": "Configureu la configuració de la programació individual per a cada nen assignat a aquesta tasca. Els valors principals del formulari actuen com a **plantilles**: utilitzeu les caselles de selecció per aplicar-los a tots els nens o personalitzeu la configuració de cada nen individualment.\n\n**Nota:** No tots els camps següents s'apliquen a totes les tasques. El formulari mostra dinàmicament les opcions rellevants en funció del mode de finalització, la freqüència i si hi ha dates de venciment definides.\n\n**Format d'hores diàries (múltiples):** Si es mostra, introduïu de 2 a 6 hores en format de 24 hores separades per | (barra vertical). Exemple: 08:00|17:00\n\nNens: {kid_names}{template_info}\n\n📖 [Guia avançada](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Chores-Advanced)",
+        "description": "Configureu la configuració de la programació individual per a cada nen assignat a aquesta tasca. Els valors principals del formulari actuen com a **plantilles**: utilitzeu les caselles de selecció per aplicar-los a tots els nens o personalitzeu la configuració de cada nen individualment.\n\n**Nota:** No tots els camps següents s'apliquen a totes les tasques. El formulari mostra dinàmicament les opcions rellevants en funció del mode de finalització, la freqüència i si hi ha dates de venciment definides.\n\n**Format d'hores diàries (múltiples):** Si es mostra, introduïu de 2 a 6 hores en format de 24 hores separades per | (barra vertical). Exemple: 08:00|17:00\n\nNens: {kid_names}{template_info}\n\n📖 [Guia avançada]({documentation_url})",
         "data": {
           "apply_days_to_all": "Aplica els dies de plantilla a tots els nens",
           "apply_times_to_all": "Aplica els horaris de plantilla a tots els nens",
@@ -961,7 +961,7 @@
       },
       "edit_badge_cumulative": {
         "title": "Edita la insígnia acumulativa",
-        "description": "Configura els detalls d'una insígnia acumulativa. Aquestes insígnies recompensen els nens per assolir els llindars de punts de per vida i donen suport als cicles de manteniment per fomentar el rendiment continu.\n\n📖 [Guia de configuració](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Badges-Cumulative)",
+        "description": "Configura els detalls d'una insígnia acumulativa. Aquestes insígnies recompensen els nens per assolir els llindars de punts de per vida i donen suport als cicles de manteniment per fomentar el rendiment continu.\n\n📖 [Guia de configuració]({documentation_url})",
         "data": {
           "badge_name": "Nom de la insígnia",
           "badge_description": "Descripció de la insígnia (opcional)",
@@ -1011,7 +1011,7 @@
       },
       "edit_badge_daily": {
         "title": "Edita la insígnia diària",
-        "description": "Configura els detalls d'una insígnia diària. Aquestes insígnies recompensen els nens per completar les tasques diàries o assolir els llindars diaris.\n\n📖 [Visió general de les insígnies](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Configura els detalls d'una insígnia diària. Aquestes insígnies recompensen els nens per completar les tasques diàries o assolir els llindars diaris.\n\n📖 [Visió general de les insígnies]({documentation_url})",
         "data": {
           "badge_name": "Nom de la insígnia",
           "badge_description": "Descripció de la insígnia (opcional)",
@@ -1039,7 +1039,7 @@
       },
       "edit_badge_periodic": {
         "title": "Edita la insígnia periòdica",
-        "description": "Configureu els detalls d'una insígnia periòdica. Aquestes insígnies recompensen els nens per assolir els llindars dins d'un període de temps definit i admeten cicles de reinici per a un rendiment continu.\n\n📖 [Guia de configuració](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Badges-Periodic)",
+        "description": "Configureu els detalls d'una insígnia periòdica. Aquestes insígnies recompensen els nens per assolir els llindars dins d'un període de temps definit i admeten cicles de reinici per a un rendiment continu.\n\n📖 [Guia de configuració]({documentation_url})",
         "data": {
           "badge_name": "Nom de la insígnia",
           "badge_description": "Descripció de la insígnia (opcional)",
@@ -1085,7 +1085,7 @@
       },
       "edit_badge_achievement": {
         "title": "Edita la insígnia vinculada a l'assoliment",
-        "description": "Configura els detalls d'una insígnia vinculada a un assoliment. Aquestes insígnies recompensen els nens per completar assoliments específics.\n\n📖 [Visió general de les insígnies](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Configura els detalls d'una insígnia vinculada a un assoliment. Aquestes insígnies recompensen els nens per completar assoliments específics.\n\n📖 [Visió general de les insígnies]({documentation_url})",
         "data": {
           "badge_name": "Nom de la insígnia",
           "badge_description": "Descripció de la insígnia (opcional)",
@@ -1109,7 +1109,7 @@
       },
       "edit_badge_challenge": {
         "title": "Edita la insígnia vinculada al repte",
-        "description": "Configura els detalls d'una insígnia vinculada a un repte. Aquestes insígnies recompensen els nens per completar reptes específics.\n\n📖 [Visió general de les insígnies](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Configura els detalls d'una insígnia vinculada a un repte. Aquestes insígnies recompensen els nens per completar reptes específics.\n\n📖 [Visió general de les insígnies]({documentation_url})",
         "data": {
           "badge_name": "Nom de la insígnia",
           "badge_description": "Descripció de la insígnia (opcional)",
@@ -1133,7 +1133,7 @@
       },
       "edit_badge_special": {
         "title": "Edita la insígnia per a ocasions especials",
-        "description": "Configura els detalls d'una insígnia creada per a ocasions especials. Aquestes insígnies recompensen els nens per esdeveniments com ara aniversaris o festius.\n\n📖 [Visió general de les insígnies](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Configura els detalls d'una insígnia creada per a ocasions especials. Aquestes insígnies recompensen els nens per esdeveniments com ara aniversaris o festius.\n\n📖 [Visió general de les insígnies]({documentation_url})",
         "data": {
           "badge_name": "Nom de la insígnia",
           "badge_description": "Descripció de la insígnia (opcional)",
@@ -1169,7 +1169,7 @@
       },
       "edit_reward": {
         "title": "Edita la recompensa",
-        "description": "Modifiqueu els detalls de la recompensa seleccionada.\n\n📖 [Guia de configuració](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Rewards)",
+        "description": "Modifiqueu els detalls de la recompensa seleccionada.\n\n📖 [Guia de configuració]({documentation_url})",
         "data": {
           "name": "Nom de la recompensa",
           "internal_id": "ID intern",
@@ -1181,7 +1181,7 @@
       },
       "edit_penalty": {
         "title": "Edita la penalització",
-        "description": "Modifiqueu els detalls de la penalització seleccionada.\n\n📖 [Visió general i exemples](https://github.com/ad-ha/kidschores-ha/wiki/Bonuses-&-Penalties%3A-Overview-&-Examples)",
+        "description": "Modifiqueu els detalls de la penalització seleccionada.\n\n📖 [Visió general i exemples]({documentation_url})",
         "data": {
           "name": "Nom de la penalització",
           "penalty_description": "Descripció (opcional)",
@@ -1193,7 +1193,7 @@
       },
       "edit_bonus": {
         "title": "Edita la bonificació",
-        "description": "Modifiqueu els detalls del bonus seleccionat.\n\n📖 [Visió general i exemples](https://github.com/ad-ha/kidschores-ha/wiki/Bonuses-&-Penalties%3A-Overview-&-Examples)",
+        "description": "Modifiqueu els detalls del bonus seleccionat.\n\n📖 [Visió general i exemples]({documentation_url})",
         "data": {
           "name": "Nom de la bonificació",
           "bonus_description": "Descripció (opcional)",
@@ -1205,7 +1205,7 @@
       },
       "edit_achievement": {
         "title": "Definir assoliment",
-        "description": "Introdueix els detalls de cada assoliment.\n\n📖 [Visió general i funcionalitat](https://github.com/ad-ha/kidschores-ha/wiki/Challenges-&-Achievements%3A-Overview-&-Functionality)",
+        "description": "Introdueix els detalls de cada assoliment.\n\n📖 [Visió general i funcionalitat]({documentation_url})",
         "data": {
           "name": "Nom de l'assoliment",
           "description": "Descripció (opcional)",
@@ -1222,7 +1222,7 @@
       },
       "edit_challenge": {
         "title": "Defineix el repte",
-        "description": "Introdueix els detalls de cada repte.\n\n📖 [Visió general i funcionalitat](https://github.com/ad-ha/kidschores-ha/wiki/Challenges-&-Achievements%3A-Overview-&-Functionality)",
+        "description": "Introdueix els detalls de cada repte.\n\n📖 [Visió general i funcionalitat]({documentation_url})",
         "data": {
           "name": "Nom del repte",
           "description": "Descripció (opcional)",
@@ -1298,7 +1298,7 @@
       },
       "dashboard_create": {
         "title": "Crear/Actualitzar el tauler de control",
-        "description": "Genera un tauler de control de KidsChores amb pestanyes per a cada nen.\n\nTria un nom per al tauler de control, selecciona els nens que vulguis incloure i, opcionalment, afegeix una pestanya d'administració per a la gestió dels pares.\n\n[📖 Guia de generació de taulers de control](https://github.com/ad-ha/kidschores-ha/wiki/Getting-Started:-Dashboard-Generation)",
+        "description": "Genera un tauler de control de KidsChores amb pestanyes per a cada nen.\n\nTria un nom per al tauler de control, selecciona els nens que vulguis incloure i, opcionalment, afegeix una pestanya d'administració per a la gestió dels pares.\n\n[📖 Guia de generació de taulers de control]({documentation_url})",
         "data": {
           "dashboard_name": "Nom del tauler de control",
           "dashboard_style": "Estil del tauler de control",
@@ -1341,7 +1341,7 @@
       },
       "manage_general_options": {
         "title": "Opcions generals",
-        "description": "Gestiona la configuració general per a la integració de KidsChores.\n\n[📖 Més informació sobre Còpia de seguretat i restauració](https://github.com/ad-ha/kidschores-ha/wiki/Getting-Started:-Backup-Restore)",
+        "description": "Gestiona la configuració general per a la integració de KidsChores.\n\n[📖 Més informació sobre Còpia de seguretat i restauració]({documentation_url})",
         "data": {
           "points_adjust_values": "Valors del botó d'ajust manual de punts",
           "update_interval": "Interval d'actualització",
@@ -1505,6 +1505,7 @@
       "error_daily_multi_times_too_few": "Calen com a mínim 2 vegades per a la freqüència \"Diverses vegades al dia\". Per a una sola vegada, utilitzeu la freqüència \"Diària\" habitual.",
       "error_daily_multi_times_too_many": "Màxim de 6 vegades per dia per a la freqüència \"Diverses vegades per dia\".",
       "error_daily_multi_due_date_required": "La freqüència de \"Diverses vegades al dia\" requereix que s'estableixi una data de venciment. La data determina quan comença la programació i els horaris determinen les finestres de disponibilitat cada dia.",
+      "error_allow_steal_incompatible": "Permetre la gestió de retards de robatori només és compatible amb les tasques de rotació (rotation_simple o rotation_smart), tipus de restabliment \"Un cop al dia\" i requereix una data de venciment per definir quan s'obre la finestra de robatori.",
       "error_at_due_date_reset_requires_due_date": "Els tipus de restabliment d'aprovació \"A la data de venciment\" (Una o Múltiple) requereixen que s'estableixi una data de venciment. Sense una data de venciment, el restabliment d'aprovació no s'activarà mai i la tasca romandrà aprovada indefinidament.",
       "error_per_kid_applicable_days_invalid": "Format de dies aplicable no vàlid per a un o més fills. Els dies han de ser nombres enters del 0 al 6 (de dilluns a diumenge) sense duplicats.",
       "error_per_kid_daily_multi_times_invalid": "Format d'hora diària no vàlid per a un o més nens. Utilitzeu el format de 24 hores separat per | (p. ex., 08:00|17:00).",
@@ -1665,7 +1666,9 @@
       "options": {
         "shared_all": "Compartir tot (tots els nens han de completar junts)",
         "independent": "Independent (cada nen ho completa sol)",
-        "shared_first": "Primer compartit (recompte de la primera finalització)"
+        "shared_first": "Primer compartit (recompte de la primera finalització)",
+        "rotation_simple": "Rotació simple (només titular de torn, ordre estricte)",
+        "rotation_smart": "Rotació intel·ligent (només per al titular del torn, ponderat per la justícia)"
       }
     },
     "approval_reset_type": {
@@ -1674,15 +1677,19 @@
         "at_midnight_multi": "Diverses vegades al dia: es reinicia a mitjanit",
         "at_due_date_once": "Un cop per període: es reinicia a la data de venciment",
         "at_due_date_multi": "Diverses vegades per període: es reinicia a la data de venciment",
-        "upon_completion": "Finalitzacions il·limitades: es reinicia després de la finalització"
+        "upon_completion": "Finalitzacions il·limitades: es reinicia en completar-se",
+        "manual": "Només restabliment manual - Sense restabliments automàtics"
       }
     },
     "overdue_handling_type": {
       "options": {
-        "at_due_date": "Endarrerit fins a completar-se",
         "never_overdue": "Mai endarrerit",
+        "at_due_date": "Endarrerit fins a completar-se",
         "at_due_date_clear_at_approval_reset": "Endarrerit fins a restabliment d'aprovació",
-        "at_due_date_clear_immediate_on_late": "Endarrerit fins a completar-se (esborrar les aprovacions tardanes immediatament)"
+        "at_due_date_clear_immediate_on_late": "Endarrerit fins a completar-se (esborrar les aprovacions tardanes immediatament)",
+        "at_due_date_clear_and_mark_missed": "Reinici de l'aprovació endarrerit (marcar com a perdut)",
+        "at_due_date_mark_missed_and_lock": "Bloqueja fins a aprovació Restableix (impedeix reclamacions, marca com a perdudes)",
+        "at_due_date_allow_steal": "Permetre robar fins que es restableixi l'aprovació (només per rotació)"
       }
     },
     "approval_reset_pending_claim_action": {
@@ -2087,22 +2094,22 @@
         },
         "completion_criteria": {
           "name": "Criteris de finalització",
-          "description": "Com es completa la tasca quan s'assignen diversos nens: independent (cada nen la completa per separat), shared_first (el primer nen que la completa guanya punts) o shared_all (tots els nens han de completar-la). No es pot canviar després de la creació.",
+          "description": "Controla com es completa la tasca quan s'assignen diversos nens: seguiment individual, finalització compartida o rotació per torns.",
           "example": "independent"
         },
         "approval_reset_type": {
           "name": "Tipus de restabliment d'aprovació",
-          "description": "Quan la tasca es reinicia per tornar-la a completar.",
+          "description": "Controla quan s'activa el límit del cicle d'aprovació de la tasca (mitjanit, data de venciment, en finalitzar-se o activació manual).",
           "example": "a mitjanit_una vegada"
         },
         "pending_claims": {
           "name": "Acció de reclamacions pendents",
-          "description": "Què passa amb les reclamacions pendents quan la tasca es reinicia: hold_pending (conserva les reclamacions), clear_pending (elimina les reclamacions) o auto_approve_pending (aprova totes les pendents).",
+          "description": "Controla què passa amb les reclamacions no aprovades quan s'activa el límit de restabliment d'aprovació.",
           "example": "espera_pendent"
         },
         "overdue_handling": {
           "name": "Gestió de venciments",
-          "description": "Com gestionar la tasca quan es fa endarrerida.",
+          "description": "Controla què passa quan passa la data de venciment i què passa amb les tasques endarrerides al límit de restabliment de l'aprovació.",
           "example": "data_de_venciment"
         },
         "auto_approve": {
@@ -2229,6 +2236,64 @@
         }
       }
     },
+    "set_rotation_turn": {
+      "name": "Estableix el gir de rotació",
+      "description": "Assigna manualment el torn actual a un nen específic en una tasca de rotació. Només funciona per a tasques de rotació (rotation_simple o rotation_smart). Utilitza l'ID o el nom per a la identificació.",
+      "fields": {
+        "chore_id": {
+          "name": "ID de la tasca",
+          "description": "ID intern de la tasca de rotació. Opcional si es proporciona chore_name.",
+          "example": "abc123-def456-789..."
+        },
+        "chore_name": {
+          "name": "Nom de la tasca",
+          "description": "Nom de la tasca de rotació. Opcional si es proporciona chore_id.",
+          "example": "Dormitori net"
+        },
+        "kid_id": {
+          "name": "ID de nen",
+          "description": "ID intern del nen a qui assignar el torn. S'ha d'assignar a aquesta tasca. Opcional si es proporciona kid_name.",
+          "example": "xyz789-abc123-456..."
+        },
+        "kid_name": {
+          "name": "Nom del nen/a",
+          "description": "Nom del nen a qui s'assigna el torn. S'ha d'assignar a aquesta tasca. Opcional si es proporciona kid_id.",
+          "example": "Alícia"
+        }
+      }
+    },
+    "reset_rotation": {
+      "name": "Restableix la rotació",
+      "description": "Restableix el torn de rotació al primer nen assignat. Només funciona per a tasques de rotació (rotation_simple o rotation_smart). Utilitza l'ID o el nom per a la identificació.",
+      "fields": {
+        "chore_id": {
+          "name": "ID de la tasca",
+          "description": "ID intern de la tasca de rotació que es restablirà. Opcional si es proporciona chore_name.",
+          "example": "abc123-def456-789..."
+        },
+        "chore_name": {
+          "name": "Nom de la tasca",
+          "description": "Nom de la tasca de rotació que es restablirà. Opcional si es proporciona chore_id.",
+          "example": "Dormitori net"
+        }
+      }
+    },
+    "open_rotation_cycle": {
+      "name": "Cicle de rotació oberta",
+      "description": "Habilita la modificació del cicle de rotació durant un cicle, permetent que qualsevol nen assignat reclami el torn independentment del torn. La modificació s'esborra després de la propera aprovació. Utilitza l'ID o el nom per a la identificació.",
+      "fields": {
+        "chore_id": {
+          "name": "ID de la tasca",
+          "description": "ID intern de la tasca de rotació que s'obrirà. Opcional si es proporciona chore_name.",
+          "example": "abc123-def456-789..."
+        },
+        "chore_name": {
+          "name": "Nom de la tasca",
+          "description": "Nom de la tasca de rotació que s'obrirà. Opcional si es proporciona chore_id.",
+          "example": "Dormitori net"
+        }
+      }
+    },
     "reset_chores_to_pending_state": {
       "name": "Restableix les tasques a l'estat pendent",
       "description": "Restableix manualment totes les tasques a l'estat pendent, eliminant reclamacions i aprovacions."
@@ -2329,6 +2394,10 @@
           "name": "ID de nen",
           "description": "L'ID intern del nen. Només per a usuaris avançats: feu servir kid_name en comptes d'això.",
           "example": "abc123-def456"
+        },
+        "mark_as_missed": {
+          "name": "Marca com a perdut",
+          "description": "Quan és cert, registra aquesta omissió com una tasca perduda a les estadístiques del nen. Útil per fer un seguiment de les omissions intencionades per separat dels reinicis automàtics endarrerits."
         }
       }
     },
@@ -2363,7 +2432,10 @@
           "none": "Cap",
           "approved_in_part": "Aprovat (en part)",
           "claimed_in_part": "Reclamat (en part)",
-          "completed_by_other": "Completat per altres"
+          "completed_by_other": "Completat per altres",
+          "waiting": "Esperant (finestra de venciment no oberta)",
+          "not_my_turn": "No és el meu torn (rotació)",
+          "missed": "Perdut (Bloquejat)"
         },
         "state_attributes": {
           "purpose": {
@@ -2398,7 +2470,9 @@
             "state": {
               "independent": "Independent",
               "shared_first": "Compartit (Primer)",
-              "shared_all": "Compartit (Tot)"
+              "shared_all": "Compartit (Tot)",
+              "rotation_simple": "Rotació simple",
+              "rotation_smart": "Rotació intel·ligent"
             }
           },
           "approval_reset_type": {
@@ -2408,7 +2482,8 @@
               "at_midnight_multi": "A mitjanit (Multi)",
               "at_due_date_once": "A la data de venciment (una vegada)",
               "at_due_date_multi": "A la data de venciment (múltiple)",
-              "upon_completion": "En completar-se"
+              "upon_completion": "En completar-se",
+              "manual": "Només restabliment manual"
             }
           },
           "recurring_frequency": {
@@ -2546,6 +2621,20 @@
           },
           "time_until_overdue": {
             "name": "Temps fins al venciment"
+          },
+          "lock_reason": {
+            "name": "Motiu del bloqueig",
+            "state": {
+              "waiting": "Esperant la finestra de venciment",
+              "not_my_turn": "No és el teu torn",
+              "missed": "Perdut"
+            }
+          },
+          "turn_kid_name": {
+            "name": "Canvia el nom del nen"
+          },
+          "available_at": {
+            "name": "Disponible a"
           }
         }
       },
@@ -3132,7 +3221,9 @@
             "state": {
               "independent": "Independent",
               "shared_first": "Compartit (només el primer)",
-              "shared_all": "Compartit (tot obligatori)"
+              "shared_all": "Compartit (tot obligatori)",
+              "rotation_simple": "Rotació simple",
+              "rotation_smart": "Rotació intel·ligent"
             }
           },
           "approval_reset_type": {
@@ -3142,7 +3233,8 @@
               "at_midnight_multi": "A mitjanit (Multi)",
               "at_due_date_once": "A la data de venciment (una vegada)",
               "at_due_date_multi": "A la data de venciment (múltiple)",
-              "upon_completion": "En completar-se"
+              "upon_completion": "En completar-se",
+              "manual": "Només restabliment manual"
             }
           },
           "recurring_frequency": {
@@ -3998,6 +4090,30 @@
     "not_assigned": {
       "message": "{entity} no assignat a {kid}"
     },
+    "rotation_no_turn_holder": {
+      "message": "Les tasques de rotació han de tenir un torn assignat"
+    },
+    "rotation_invalid_order": {
+      "message": "L'ordre de rotació ha de ser una llista no buida d'identificadors infantils."
+    },
+    "rotation_duplicate_in_order": {
+      "message": "L'ordre de rotació no pot contenir fills duplicats"
+    },
+    "rotation_unassigned_in_order": {
+      "message": "Tots els nens per ordre de rotació han de ser assignats a la tasca"
+    },
+    "rotation_min_kids": {
+      "message": "Les tasques de rotació requereixen almenys 2 nens assignats"
+    },
+    "not_rotation": {
+      "message": "Aquesta tasca no està en mode de rotació"
+    },
+    "kid_not_assigned": {
+      "message": "El nen no té aquesta tasca assignada"
+    },
+    "no_assigned_kids": {
+      "message": "No hi ha nens assignats a aquesta tasca"
+    },
     "insufficient_points": {
       "message": "{kid} té {current} punts però necessita {required} punts"
     },
@@ -4105,6 +4221,12 @@
     },
     "notif_message_data_reset_item": {
       "message": "Restabliment de dades complet per a {item_name}. Dades d'execució esborrades."
+    },
+    "notif_title_chore_missed": {
+      "message": "Tasca perduda"
+    },
+    "notif_message_chore_missed": {
+      "message": "{kid_name} no he pogut fer la feina: {chore_name}"
     }
   }
 }

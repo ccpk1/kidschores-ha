@@ -13,7 +13,7 @@
   },
   "chore_disapproved": {
     "title": "KidsChores: Klusjes afgekeurd",
-    "message": "De taak van {kid_name} {chore_name} werd niet goedgekeurd"
+    "message": "Je taak {chore_name} is niet goedgekeurd"
   },
   "chore_overdue": {
     "title": "KidsChores: Klusjes die al lang hadden moeten gebeuren",

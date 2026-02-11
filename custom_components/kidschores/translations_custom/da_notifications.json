@@ -13,7 +13,7 @@
   },
   "chore_disapproved": {
     "title": "Børneopgaver: Huslige pligter ikke godkendt",
-    "message": "{kid_name}s opgave {chore_name} blev ikke godkendt"
+    "message": "Din opgave {chore_name} blev ikke godkendt"
   },
   "chore_overdue": {
     "title": "Børneopgaver: Forsinkede opgaver",

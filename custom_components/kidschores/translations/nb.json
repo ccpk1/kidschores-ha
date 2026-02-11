@@ -4,11 +4,11 @@
     "step": {
       "intro": {
         "title": "Velkommen til KidsChores",
-        "description": "Denne veiviseren vil veilede deg gjennom oppsettet av KidsChores.\n\n[📖 Hurtigstartveiledning](https://github.com/ad-ha/kidschores-ha/wiki/Getting-Started:-Quick-Start)"
+        "description": "Denne veiviseren vil veilede deg gjennom oppsettet av KidsChores.\n\n[📖 Hurtigstartveiledning]({documentation_url})"
       },
       "data_recovery": {
         "title": "Alternativer for datagjenoppretting",
-        "description": "Eksisterende KidsChores-data funnet i:\n{storage_path}\n\nFant {backup_count} sikkerhetskopifiler.\n\nHva vil du gjøre?\n\n[📖 Lær mer om sikkerhetskopiering og gjenoppretting](https://github.com/ad-ha/kidschores-ha/wiki/Getting-Started:-Backup-Restore)",
+        "description": "Eksisterende KidsChores-data funnet i:\n{storage_path}\n\nFant {backup_count} sikkerhetskopifiler.\n\nHva vil du gjøre?\n\n[📖 Lær mer om sikkerhetskopiering og gjenoppretting]({documentation_url})",
         "data": {
           "backup_selection": "Velg alternativ"
         }
@@ -142,8 +142,8 @@
           "chore_labels": "Tagger for å organisere gjøremål (f.eks. «kjøkken», «ute»). La stå tomt hvis det ikke er nødvendig.",
           "default_points": "Poeng opptjent når fullført.",
           "assigned_kids": "Barn som kan se og gjøre krav på denne oppgaven.",
-          "completion_criteria": "Uavhengig (hvert barn fullfører separat), Delt alle (alle må fullføre) eller Delt først (først til å gjøre krav på blokker for andre).",
-          "approval_reset_type": "Kontrollerer når denne gjøremålet tilbakestilles og hvor mange fullføringer som er tillatt i løpet av den perioden.",
+          "completion_criteria": "Styrer hvordan gjøremålet fullføres når flere barn er tildelt: individuell sporing, delt fullføring eller turbasert rotasjon.",
+          "approval_reset_type": "Styrer når grensen for godkjenningssyklusen for gjøremålet utløses (midnatt, forfallsdato, ved fullføring eller manuell utløser).",
           "approval_reset_pending_claim_action": "Dette er hva som skjer med krav som fortsatt venter på godkjenning når godkjenningen tilbakestilles.",
           "overdue_handling_type": "Handling etter forfallsdato: Skjul forfalt status, forbli forfalt til det kreves på, eller tilbakestill til venter ved neste godkjenningssyklus.",
           "auto_approve": "Når det er aktivert, godkjennes krav umiddelbart uten foreldrevurdering.",
@@ -167,7 +167,7 @@
       },
       "badges": {
         "title": "Legg til kumulativt merke",
-        "description": "Konfigurer detaljene for et kumulativt merke. Disse merkene belønner barn for å nå livstidspoenggrenser og støtter vedlikeholdssykluser for å oppmuntre til kontinuerlig ytelse.",
+        "description": "Konfigurer detaljene for et kumulativt merke. Disse merkene belønner barn for å nå livstidspoenggrenser og støtter vedlikeholdssykluser for å oppmuntre til kontinuerlig ytelse.\n\n[📖 Konfigurasjonsveiledning]({documentation_url})",
         "data": {
           "badge_name": "Merkenavn",
           "badge_description": "Beskrivelse av merke (valgfritt)",
@@ -409,7 +409,7 @@
     "step": {
       "init": {
         "title": "Alternativer for barnearbeid",
-        "description": "Administrer barn, gjøremål, merker, belønninger, straffer, bonuser eller fullfør.\n\n📖 [Vis dokumentasjon](https://github.com/ad-ha/kidschores-ha/wiki)",
+        "description": "Administrer barn, gjøremål, merker, belønninger, straffer, bonuser eller fullfør.\n\n[📖 Vis dokumentasjon]({documentation_url})",
         "data": {
           "menu_selection": "Velg et alternativ"
         }
@@ -430,7 +430,7 @@
       },
       "manage_points": {
         "title": "Rediger poengetikett og -ikon",
-        "description": "Endre etiketten og ikonet som brukes til å representere punkter.\n\n📖 [Konfigurasjonsveiledning](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Points)",
+        "description": "Endre etiketten og ikonet som brukes til å representere punkter.\n\n📖 [Konfigurasjonsveiledning]({documentation_url})",
         "data": {
           "points_label": "Poengetikett",
           "points_icon": "Poengikon"
@@ -438,7 +438,7 @@
       },
       "add_kid": {
         "title": "Legg til barn",
-        "description": "Oppgi detaljene for det nye barnet.\n\n📖 [Konfigurasjonsveiledning](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Kids-Parents)",
+        "description": "Oppgi detaljene for det nye barnet.\n\n📖 [Konfigurasjonsveiledning]({documentation_url})",
         "data": {
           "name": "Barnenavn",
           "ha_user": "Hjemmeassistentbruker",
@@ -455,7 +455,7 @@
       },
       "add_parent": {
         "title": "Legg til forelder",
-        "description": "Oppgi detaljene for den nye forelderen.\n\n📖 [Konfigurasjonsveiledning](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Kids-Parents)",
+        "description": "Oppgi detaljene for den nye forelderen.\n\n📖 [Konfigurasjonsveiledning]({documentation_url})",
         "data": {
           "name": "Foreldres navn",
           "ha_user_id": "Hjemmeassistentbruker",
@@ -480,7 +480,7 @@
       },
       "add_chore": {
         "title": "Legg til husarbeid",
-        "description": "Opprett en ny gjøremålsoppgave med poeng, oppgaver og en regelmessig tidsplan.\n\n📖 [Konfigurasjonsveiledning](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Chores)",
+        "description": "Opprett en ny gjøremålsoppgave med poeng, oppgaver og en regelmessig tidsplan.\n\n📖 [Konfigurasjonsveiledning]({documentation_url})",
         "data": {
           "name": "📋 Navn på gjøremål",
           "chore_description": "📋 Beskrivelse (valgfritt)",
@@ -511,10 +511,10 @@
           "chore_labels": "Tagger for å organisere gjøremål (f.eks. «kjøkken», «ute»). La stå tomt hvis det ikke er nødvendig.",
           "default_points": "Poeng opptjent når fullført.",
           "assigned_kids": "Barn som kan se og gjøre krav på denne oppgaven.",
-          "completion_criteria": "Uavhengig (hvert barn fullfører separat), Delt alle (alle må fullføre) eller Delt først (først til å gjøre krav på blokker for andre).",
-          "approval_reset_type": "Kontrollerer når denne godkjenningen av gjøremålet tilbakestilles og hvor mange fullføringer som er tillatt i løpet av den perioden.",
-          "approval_reset_pending_claim_action": "Dette er hva som skjer med krav som fortsatt venter på godkjenning når godkjenningen tilbakestilles.",
-          "overdue_handling_type": "Handling etter forfallsdato: Skjul forfalt status, forbli forfalt til det kreves på, eller tilbakestill til venter ved neste godkjenningssyklus.",
+          "completion_criteria": "Styrer hvordan gjøremålet fullføres når flere barn er tildelt: individuell sporing, delt fullføring eller turbasert rotasjon.",
+          "approval_reset_type": "Styrer når grensen for godkjenningssyklusen for gjøremålet utløses (midnatt, forfallsdato, ved fullføring eller manuell utløser).",
+          "approval_reset_pending_claim_action": "Kontrollerer hva som skjer med ikke-godkjente krav når grensen for tilbakestilling av godkjenning utløses.",
+          "overdue_handling_type": "Kontrollerer hva som skjer når forfallsdatoen er over, og hva som skjer med forsinkede gjøremål ved grensen for tilbakestilling av godkjenning.",
           "auto_approve": "Når det er aktivert, godkjennes krav umiddelbart uten foreldrevurdering.",
           "recurring_frequency": "Hvor ofte gjøremålet gjentas: Daglig, Ukentlig, Månedlig, Årlig, Tilpasset eller Ingen. Hvis du velger «Daglig – Flere ganger per dag», vises et ekstra skjermbilde for å konfigurere de spesifikke tidspunktene.",
           "custom_interval": "Antall tidsenheter mellom repetisjoner (f.eks. 3 for «hver 3. uke»). Brukes kun med tilpasset frekvens.",
@@ -537,7 +537,7 @@
       },
       "add_badge_cumulative": {
         "title": "Legg til kumulativt merke",
-        "description": "Konfigurer detaljene for et kumulativt merke. Disse merkene belønner barn for å nå livstidspoengterskler og støtter vedlikeholdssykluser for å oppmuntre til kontinuerlig ytelse.\n\n📖 [Konfigurasjonsveiledning](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Badges-Cumulative)",
+        "description": "Konfigurer detaljene for et kumulativt merke. Disse merkene belønner barn for å nå livstidspoengterskler og støtter vedlikeholdssykluser for å oppmuntre til kontinuerlig ytelse.\n\n📖 [Konfigurasjonsveiledning]({documentation_url})",
         "data": {
           "badge_name": "Merkenavn",
           "badge_description": "Beskrivelse av merke (valgfritt)",
@@ -587,7 +587,7 @@
       },
       "add_badge_daily": {
         "title": "Legg til daglig merke",
-        "description": "Konfigurer detaljene for et daglig merke. Disse merkene belønner barn for å fullføre daglige oppgaver eller nå daglige terskler.\n\n📖 [Oversikt over merker](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Konfigurer detaljene for et daglig merke. Disse merkene belønner barn for å fullføre daglige oppgaver eller nå daglige terskler.\n\n📖 [Oversikt over merker]({documentation_url})",
         "data": {
           "badge_name": "Merkenavn",
           "badge_description": "Beskrivelse av merke (valgfritt)",
@@ -615,7 +615,7 @@
       },
       "add_badge_periodic": {
         "title": "Legg til periodisk merke",
-        "description": "Konfigurer detaljene for et periodisk merke. Disse merkene belønner barn for å nå terskler innenfor en definert tidsperiode og støtter tilbakestillingssykluser for kontinuerlig ytelse.\n\n📖 [Konfigurasjonsveiledning](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Badges-Periodic)",
+        "description": "Konfigurer detaljene for et periodisk merke. Disse merkene belønner barn for å nå terskler innenfor en definert tidsperiode og støtter tilbakestillingssykluser for kontinuerlig ytelse.\n\n📖 [Konfigurasjonsveiledning]({documentation_url})",
         "data": {
           "badge_name": "Merkenavn",
           "badge_description": "Beskrivelse av merke (valgfritt)",
@@ -661,7 +661,7 @@
       },
       "add_badge_achievement": {
         "title": "Legg til prestasjonsrelatert merke",
-        "description": "Konfigurer detaljene for et merke knyttet til en prestasjon. Disse merkene belønner barn for å fullføre spesifikke prestasjoner.\n\n📖 [Oversikt over merker](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Konfigurer detaljene for et merke knyttet til en prestasjon. Disse merkene belønner barn for å fullføre spesifikke prestasjoner.\n\n[📖 Merkeoversikt]({documentation_url})",
         "data": {
           "badge_name": "Merkenavn",
           "badge_description": "Beskrivelse av merke (valgfritt)",
@@ -685,7 +685,7 @@
       },
       "add_badge_challenge": {
         "title": "Legg til et merke knyttet til utfordringen",
-        "description": "Konfigurer detaljene for et merke knyttet til en utfordring. Disse merkene belønner barn for å fullføre spesifikke utfordringer.\n\n📖 [Oversikt over merker](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Konfigurer detaljene for et merke knyttet til en utfordring. Disse merkene belønner barn for å fullføre spesifikke utfordringer.\n\n[📖 Merkeoversikt]({documentation_url})",
         "data": {
           "badge_name": "Merkenavn",
           "badge_description": "Beskrivelse av merke (valgfritt)",
@@ -709,7 +709,7 @@
       },
       "add_badge_special": {
         "title": "Legg til merke for spesielle anledninger",
-        "description": "Konfigurer detaljene for et merke laget for spesielle anledninger. Disse merkene belønner barn for arrangementer som bursdager eller høytider.\n\n📖 [Oversikt over merker](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Konfigurer detaljene for et merke laget for spesielle anledninger. Disse merkene belønner barn for arrangementer som bursdager eller høytider.\n\n📖 [Oversikt over merker]({documentation_url})",
         "data": {
           "badge_name": "Merkenavn",
           "badge_description": "Beskrivelse av merke (valgfritt)",
@@ -745,7 +745,7 @@
       },
       "add_reward": {
         "title": "Legg til belønning",
-        "description": "Oppgi detaljene for den nye belønningen.\n\n📖 [Konfigurasjonsveiledning](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Rewards)",
+        "description": "Oppgi detaljene for den nye belønningen.\n\n📖 [Konfigurasjonsveiledning]({documentation_url})",
         "data": {
           "name": "Belønningsnavn",
           "internal_id": "Intern ID",
@@ -757,7 +757,7 @@
       },
       "add_penalty": {
         "title": "Legg til straff",
-        "description": "Oppgi detaljene for den nye straffen.\n\n📖 [Oversikt og eksempler](https://github.com/ad-ha/kidschores-ha/wiki/Bonuses-&-Penalties%3A-Overview-&-Examples)",
+        "description": "Oppgi detaljene for den nye straffen.\n\n📖 [Oversikt og eksempler]({documentation_url})",
         "data": {
           "name": "Navn på straff",
           "penalty_description": "Beskrivelse (valgfritt)",
@@ -769,7 +769,7 @@
       },
       "add_bonus": {
         "title": "Legg til bonus",
-        "description": "Oppgi detaljene for den nye bonusen.\n\n📖 [Oversikt og eksempler](https://github.com/ad-ha/kidschores-ha/wiki/Bonuses-&-Penalties%3A-Overview-&-Examples)",
+        "description": "Oppgi detaljene for den nye bonusen.\n\n📖 [Oversikt og eksempler]({documentation_url})",
         "data": {
           "name": "Bonusnavn",
           "bonus_description": "Beskrivelse (valgfritt)",
@@ -781,7 +781,7 @@
       },
       "add_achievement": {
         "title": "Definer prestasjon",
-        "description": "Skriv inn detaljer for hver prestasjon.\n\n📖 [Oversikt og funksjonalitet](https://github.com/ad-ha/kidschores-ha/wiki/Challenges-&-Achievements%3A-Overview-&-Functionality)",
+        "description": "Skriv inn detaljer for hver prestasjon.\n\n[📖 Oversikt og funksjonalitet]({documentation_url})",
         "data": {
           "name": "Navn på prestasjon",
           "description": "Beskrivelse (valgfritt)",
@@ -798,7 +798,7 @@
       },
       "add_challenge": {
         "title": "Definer utfordring",
-        "description": "Skriv inn detaljer for hver utfordring.\n\n📖 [Oversikt og funksjonalitet](https://github.com/ad-ha/kidschores-ha/wiki/Challenges-&-Achievements%3A-Overview-&-Functionality)",
+        "description": "Skriv inn detaljer for hver utfordring.\n\n📖 [Oversikt og funksjonalitet]({documentation_url})",
         "data": {
           "name": "Utfordringsnavn",
           "description": "Beskrivelse (valgfritt)",
@@ -817,7 +817,7 @@
       },
       "edit_kid": {
         "title": "Rediger barn",
-        "description": "Endre detaljene for det valgte barnet.\n\n📖 [Konfigurasjonsveiledning](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Kids-Parents)",
+        "description": "Endre detaljene for det valgte barnet.\n\n📖 [Konfigurasjonsveiledning]({documentation_url})",
         "data": {
           "name": "Barnenavn",
           "ha_user": "Hjemmeassistentbruker",
@@ -851,7 +851,7 @@
       },
       "edit_parent": {
         "title": "Rediger overordnet",
-        "description": "Endre detaljene for den valgte forelderen.\n\n📖 [Konfigurasjonsveiledning](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Kids-Parents)",
+        "description": "Endre detaljene for den valgte forelderen.\n\n📖 [Konfigurasjonsveiledning]({documentation_url})",
         "data": {
           "name": "Foreldres navn",
           "ha_user_id": "Hjemmeassistentbruker",
@@ -876,7 +876,7 @@
       },
       "edit_chore": {
         "title": "Rediger gjøremål",
-        "description": "Endre detaljene for den valgte gjøremålet.\n\n📖 [Konfigurasjonsveiledning](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Chores)",
+        "description": "Endre detaljene for den valgte gjøremålet.\n\n📖 [Konfigurasjonsveiledning]({documentation_url})",
         "data": {
           "name": "📋 Navn på gjøremål",
           "chore_description": "📋 Beskrivelse (valgfritt)",
@@ -908,10 +908,10 @@
           "chore_labels": "Tagger for å organisere gjøremål (f.eks. «kjøkken», «ute»). La stå tomt hvis det ikke er nødvendig.",
           "default_points": "Poeng opptjent når fullført.",
           "assigned_kids": "Barn som kan se og gjøre krav på denne oppgaven.",
-          "completion_criteria": "Uavhengig (hvert barn fullfører separat), Delt alle (alle må fullføre) eller Delt først (først til å gjøre krav på blokker for andre).",
-          "approval_reset_type": "Kontrollerer når denne godkjenningen av gjøremålet tilbakestilles og hvor mange fullføringer som er tillatt i løpet av den perioden.",
-          "approval_reset_pending_claim_action": "Når godkjenningen av denne gjøremålet tilbakestilles (basert på tidspunktet for tilbakestilling av godkjenning ovenfor), hva skjer med krav som fortsatt venter på godkjenning?",
-          "overdue_handling_type": "Handling etter forfallsdato: Skjul forfalt status, forbli forfalt til det kreves på, eller tilbakestill til venter ved neste godkjenningssyklus.",
+          "completion_criteria": "Styrer hvordan gjøremålet fullføres når flere barn er tildelt: individuell sporing, delt fullføring eller turbasert rotasjon.",
+          "approval_reset_type": "Styrer når grensen for godkjenningssyklusen for gjøremålet utløses (midnatt, forfallsdato, ved fullføring eller manuell utløser).",
+          "approval_reset_pending_claim_action": "Kontrollerer hva som skjer med ikke-godkjente krav når grensen for tilbakestilling av godkjenning utløses.",
+          "overdue_handling_type": "Kontrollerer hva som skjer når forfallsdatoen er over, og hva som skjer med forsinkede gjøremål ved grensen for tilbakestilling av godkjenning.",
           "auto_approve": "Når det er aktivert, godkjennes krav umiddelbart uten foreldrevurdering.",
           "recurring_frequency": "Hvor ofte gjøremålet gjentas: Daglig, Ukentlig, Månedlig, Årlig, Tilpasset eller Ingen. Hvis du velger «Daglig – Flere ganger per dag», vises et ekstra skjermbilde for å konfigurere de spesifikke tidspunktene.",
           "custom_interval": "Antall tidsenheter mellom repetisjoner (f.eks. 3 for «hver 3. uke»). Brukes kun med tilpasset frekvens.",
@@ -927,7 +927,7 @@
       },
       "edit_chore_per_kid_dates": {
         "title": "Rediger forfallsdatoer per barn: {chore_name}",
-        "description": "Angi individuelle forfallsdatoer for hvert tildelte barn. Datofeltet på hovedredigeringsskjemaet fungerer som en **mal** for enkelhets skyld – bruk det til å raskt bruke samme dato for alle barn via avmerkingsboksen nedenfor, eller la det stå tomt og angi datoer individuelt her.\n\nFelt vises for: {kid_names}. La stå tomt hvis det ikke er noen frist.{template_date}\n\n📖 [Avansert veiledning](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Chores-Advanced)",
+        "description": "Angi individuelle forfallsdatoer for hvert tildelte barn. Datofeltet på hovedredigeringsskjemaet fungerer som en **mal** for enkelhets skyld – bruk det til å raskt bruke samme dato for alle barn via avmerkingsboksen nedenfor, eller la det stå tomt og angi datoer individuelt her.\n\nFelt vises for: {kid_names}. La stå tomt hvis det ikke er noen frist.{template_date}\n\n📖 [Avansert veiledning]({documentation_url})",
         "data": {
           "apply_template_to_all": "Bruk maldato for alle barn"
         },
@@ -947,7 +947,7 @@
       },
       "edit_chore_per_kid_details": {
         "title": "Tidsplan per barn: {chore_name}",
-        "description": "Konfigurer individuelle timeplaninnstillinger for hvert barn som er tildelt denne gjøremålet. Hovedskjemaverdiene fungerer som **maler** – bruk avmerkingsboksene for å bruke dem på alle barn, eller tilpass hvert barns innstillinger individuelt.\n\n**Merk:** Ikke alle feltene nedenfor gjelder for alle gjøremål. Skjemaet viser dynamisk relevante alternativer basert på fullføringsmodus, hyppighet og om forfallsdatoer er angitt.\n\n**Daglig (fler) tidformat:** Hvis vist, skriv inn 2–6 tider i 24-timersformat atskilt med | (linje). Eksempel: 08:00|17:00\n\nBarn: {kid_names}{template_info}\n\n📖 [Avansert veiledning](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Chores-Advanced)",
+        "description": "Konfigurer individuelle timeplaninnstillinger for hvert barn som er tildelt denne gjøremålet. Hovedskjemaverdiene fungerer som **maler** – bruk avmerkingsboksene for å bruke dem på alle barn, eller tilpass hvert barns innstillinger individuelt.\n\n**Merk:** Ikke alle feltene nedenfor gjelder for alle gjøremål. Skjemaet viser dynamisk relevante alternativer basert på fullføringsmodus, hyppighet og om forfallsdatoer er angitt.\n\n**Daglig (fler) tidformat:** Hvis vist, skriv inn 2–6 tider i 24-timersformat atskilt med | (linje). Eksempel: 08:00|17:00\n\nBarn: {kid_names}{template_info}\n\n📖 [Avansert veiledning]({documentation_url})",
         "data": {
           "apply_days_to_all": "Bruk maldager på alle barn",
           "apply_times_to_all": "Bruk maltider for alle barn",
@@ -961,7 +961,7 @@
       },
       "edit_badge_cumulative": {
         "title": "Rediger kumulativt merke",
-        "description": "Konfigurer detaljene for et kumulativt merke. Disse merkene belønner barn for å nå livstidspoengterskler og støtter vedlikeholdssykluser for å oppmuntre til kontinuerlig ytelse.\n\n📖 [Konfigurasjonsveiledning](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Badges-Cumulative)",
+        "description": "Konfigurer detaljene for et kumulativt merke. Disse merkene belønner barn for å nå livstidspoengterskler og støtter vedlikeholdssykluser for å oppmuntre til kontinuerlig ytelse.\n\n📖 [Konfigurasjonsveiledning]({documentation_url})",
         "data": {
           "badge_name": "Merkenavn",
           "badge_description": "Beskrivelse av merke (valgfritt)",
@@ -1011,7 +1011,7 @@
       },
       "edit_badge_daily": {
         "title": "Rediger daglig merke",
-        "description": "Konfigurer detaljene for et daglig merke. Disse merkene belønner barn for å fullføre daglige oppgaver eller nå daglige terskler.\n\n📖 [Oversikt over merker](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Konfigurer detaljene for et daglig merke. Disse merkene belønner barn for å fullføre daglige oppgaver eller nå daglige terskler.\n\n📖 [Oversikt over merker]({documentation_url})",
         "data": {
           "badge_name": "Merkenavn",
           "badge_description": "Beskrivelse av merke (valgfritt)",
@@ -1039,7 +1039,7 @@
       },
       "edit_badge_periodic": {
         "title": "Rediger periodisk merke",
-        "description": "Konfigurer detaljene for et periodisk merke. Disse merkene belønner barn for å nå terskler innenfor en definert tidsperiode og støtter tilbakestillingssykluser for kontinuerlig ytelse.\n\n📖 [Konfigurasjonsveiledning](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Badges-Periodic)",
+        "description": "Konfigurer detaljene for et periodisk merke. Disse merkene belønner barn for å nå terskler innenfor en definert tidsperiode og støtter tilbakestillingssykluser for kontinuerlig ytelse.\n\n📖 [Konfigurasjonsveiledning]({documentation_url})",
         "data": {
           "badge_name": "Merkenavn",
           "badge_description": "Beskrivelse av merke (valgfritt)",
@@ -1085,7 +1085,7 @@
       },
       "edit_badge_achievement": {
         "title": "Rediger merke knyttet til prestasjoner",
-        "description": "Konfigurer detaljene for et merke knyttet til en prestasjon. Disse merkene belønner barn for å fullføre spesifikke prestasjoner.\n\n📖 [Oversikt over merker](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Konfigurer detaljene for et merke knyttet til en prestasjon. Disse merkene belønner barn for å fullføre spesifikke prestasjoner.\n\n📖 [Oversikt over merker]({documentation_url})",
         "data": {
           "badge_name": "Merkenavn",
           "badge_description": "Beskrivelse av merke (valgfritt)",
@@ -1109,7 +1109,7 @@
       },
       "edit_badge_challenge": {
         "title": "Rediger merke knyttet til utfordringen",
-        "description": "Konfigurer detaljene for et merke knyttet til en utfordring. Disse merkene belønner barn for å fullføre spesifikke utfordringer.\n\n📖 [Oversikt over merker](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Konfigurer detaljene for et merke knyttet til en utfordring. Disse merkene belønner barn for å fullføre spesifikke utfordringer.\n\n📖 [Oversikt over merker]({documentation_url})",
         "data": {
           "badge_name": "Merkenavn",
           "badge_description": "Beskrivelse av merke (valgfritt)",
@@ -1133,7 +1133,7 @@
       },
       "edit_badge_special": {
         "title": "Rediger merke for spesielle anledninger",
-        "description": "Konfigurer detaljene for et merke laget for spesielle anledninger. Disse merkene belønner barn for arrangementer som bursdager eller høytider.\n\n📖 [Oversikt over merker](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Konfigurer detaljene for et merke laget for spesielle anledninger. Disse merkene belønner barn for arrangementer som bursdager eller høytider.\n\n📖 [Oversikt over merker]({documentation_url})",
         "data": {
           "badge_name": "Merkenavn",
           "badge_description": "Beskrivelse av merke (valgfritt)",
@@ -1169,7 +1169,7 @@
       },
       "edit_reward": {
         "title": "Rediger belønning",
-        "description": "Endre detaljene for den valgte belønningen.\n\n📖 [Konfigurasjonsveiledning](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Rewards)",
+        "description": "Endre detaljene for den valgte belønningen.\n\n📖 [Konfigurasjonsveiledning]({documentation_url})",
         "data": {
           "name": "Belønningsnavn",
           "internal_id": "Intern ID",
@@ -1181,7 +1181,7 @@
       },
       "edit_penalty": {
         "title": "Rediger straff",
-        "description": "Endre detaljene for den valgte straffen.\n\n📖 [Oversikt og eksempler](https://github.com/ad-ha/kidschores-ha/wiki/Bonuses-&-Penalties%3A-Overview-&-Examples)",
+        "description": "Endre detaljene for den valgte straffen.\n\n📖 [Oversikt og eksempler]({documentation_url})",
         "data": {
           "name": "Navn på straff",
           "penalty_description": "Beskrivelse (valgfritt)",
@@ -1193,7 +1193,7 @@
       },
       "edit_bonus": {
         "title": "Rediger bonus",
-        "description": "Endre detaljene for den valgte bonusen.\n\n📖 [Oversikt og eksempler](https://github.com/ad-ha/kidschores-ha/wiki/Bonuses-&-Penalties%3A-Overview-&-Examples)",
+        "description": "Endre detaljene for den valgte bonusen.\n\n📖 [Oversikt og eksempler]({documentation_url})",
         "data": {
           "name": "Bonusnavn",
           "bonus_description": "Beskrivelse (valgfritt)",
@@ -1205,7 +1205,7 @@
       },
       "edit_achievement": {
         "title": "Definer prestasjon",
-        "description": "Skriv inn detaljer for hver prestasjon.\n\n📖 [Oversikt og funksjonalitet](https://github.com/ad-ha/kidschores-ha/wiki/Challenges-&-Achievements%3A-Overview-&-Functionality)",
+        "description": "Skriv inn detaljer for hver prestasjon.\n\n📖 [Oversikt og funksjonalitet]({documentation_url})",
         "data": {
           "name": "Navn på prestasjon",
           "description": "Beskrivelse (valgfritt)",
@@ -1222,7 +1222,7 @@
       },
       "edit_challenge": {
         "title": "Definer utfordring",
-        "description": "Skriv inn detaljer for hver utfordring.\n\n📖 [Oversikt og funksjonalitet](https://github.com/ad-ha/kidschores-ha/wiki/Challenges-&-Achievements%3A-Overview-&-Functionality)",
+        "description": "Skriv inn detaljer for hver utfordring.\n\n📖 [Oversikt og funksjonalitet]({documentation_url})",
         "data": {
           "name": "Utfordringsnavn",
           "description": "Beskrivelse (valgfritt)",
@@ -1298,7 +1298,7 @@
       },
       "dashboard_create": {
         "title": "Opprett/oppdater dashbord",
-        "description": "Generer et KidsChores-dashbord med faner for hvert barn.\n\nVelg et navn for dashbordet, velg barna som skal inkluderes, og legg eventuelt til en administratorfane for foreldreadministrasjon.\n\n[📖 Veiledning for generering av dashbord](https://github.com/ad-ha/kidschores-ha/wiki/Getting-Started:-Dashboard-Generation)",
+        "description": "Generer et KidsChores-dashbord med faner for hvert barn.\n\nVelg et navn for dashbordet, velg barna som skal inkluderes, og legg eventuelt til en administratorfane for foreldreadministrasjon.\n\n[📖 Veiledning for generering av dashbord]({documentation_url})",
         "data": {
           "dashboard_name": "Navn på dashbord",
           "dashboard_style": "Dashbordstil",
@@ -1341,7 +1341,7 @@
       },
       "manage_general_options": {
         "title": "Generelle alternativer",
-        "description": "Administrer generelle innstillinger for KidsChores-integrasjonen.\n\n[📖 Lær mer om sikkerhetskopiering og gjenoppretting](https://github.com/ad-ha/kidschores-ha/wiki/Getting-Started:-Backup-Restore)",
+        "description": "Administrer generelle innstillinger for KidsChores-integrasjonen.\n\n[📖 Lær mer om sikkerhetskopiering og gjenoppretting]({documentation_url})",
         "data": {
           "points_adjust_values": "Verdier for manuell punktjusteringsknapp",
           "update_interval": "Oppdateringsintervall",
@@ -1505,6 +1505,7 @@
       "error_daily_multi_times_too_few": "Minst to ganger kreves for frekvensen «Flere ganger per dag». For én gang, bruk vanlig frekvens «Daglig».",
       "error_daily_multi_times_too_many": "Maksimalt 6 ganger tillatt per dag for frekvensen «Flere ganger per dag».",
       "error_daily_multi_due_date_required": "Frekvensen «Flere ganger per dag» krever at det angis en forfallsdato. Datoen bestemmer når planleggingen starter, og tidspunktene bestemmer tilgjengelighetsvinduene hver dag.",
+      "error_allow_steal_incompatible": "Tillat håndtering av forfalt stjeling er bare kompatibel med rotasjonsoppgaver (rotation_simple eller rotation_smart) av tilbakestillingstypen «Én gang per dag», og krever en forfallsdato for å definere når stjelingsvinduet åpnes.",
       "error_at_due_date_reset_requires_due_date": "Godkjenningsnullstillingstypene «Ved forfallsdato» (én eller flere) krever at det angis en forfallsdato. Uten en forfallsdato vil tilbakestillingen av godkjenningen aldri utløses, og gjøremålet vil forbli godkjent på ubestemt tid.",
       "error_per_kid_applicable_days_invalid": "Ugyldig dagsformat for ett eller flere barn. Dager må være heltall 0–6 (mandag–søndag) uten duplikater.",
       "error_per_kid_daily_multi_times_invalid": "Ugyldig format for daglige klokkeslett for ett eller flere barn. Bruk 24-timersformat atskilt med | (f.eks. 08:00|17:00).",
@@ -1665,7 +1666,9 @@
       "options": {
         "shared_all": "Delt alle (Alle barn må fullføre sammen)",
         "independent": "Selvstendig (hvert barn fullfører på egenhånd)",
-        "shared_first": "Delt først (første fullføring teller)"
+        "shared_first": "Delt først (første fullføring teller)",
+        "rotation_simple": "Enkel rotasjon (kun turholder, streng rekkefølge)",
+        "rotation_smart": "Rotasjonssmart (kun turholder, rettferdighetsvektet)"
       }
     },
     "approval_reset_type": {
@@ -1674,15 +1677,19 @@
         "at_midnight_multi": "Flere ganger per dag – Tilbakestilles ved midnatt",
         "at_due_date_once": "Én gang per periode – Tilbakestilles ved forfallsdato",
         "at_due_date_multi": "Flere ganger per periode - Tilbakestilles ved forfallsdato",
-        "upon_completion": "Ubegrenset antall fullføringer – Tilbakestilles etter fullføring"
+        "upon_completion": "Ubegrenset antall fullføringer - Tilbakestilles ved fullføring",
+        "manual": "Kun manuell tilbakestilling – ingen automatisk tilbakestilling"
       }
     },
     "overdue_handling_type": {
       "options": {
-        "at_due_date": "Forsinket til fullført",
         "never_overdue": "Aldri for sent",
+        "at_due_date": "Forsinket til fullført",
         "at_due_date_clear_at_approval_reset": "Forfalt til godkjenning Tilbakestilling",
-        "at_due_date_clear_immediate_on_late": "Forsinket til fullført (fjern forsinkede godkjenninger umiddelbart)"
+        "at_due_date_clear_immediate_on_late": "Forsinket til fullført (fjern forsinkede godkjenninger umiddelbart)",
+        "at_due_date_clear_and_mark_missed": "Forfalt til godkjenning Tilbakestill (Marker som savnet)",
+        "at_due_date_mark_missed_and_lock": "Lås til godkjenning Tilbakestill (Forhindre krav, merk som bommet)",
+        "at_due_date_allow_steal": "Tillat stjeling til godkjenning tilbakestilles (kun rotasjon)"
       }
     },
     "approval_reset_pending_claim_action": {
@@ -2087,22 +2094,22 @@
         },
         "completion_criteria": {
           "name": "Fullføringskriterier",
-          "description": "Hvordan gjøremålet fullføres når flere barn er tildelt: uavhengig (hvert barn fullfører separat), delt_først (det første barnet som fullfører får poeng) eller delt_alle (alle barn må fullføre). Kan ikke endres etter opprettelse.",
+          "description": "Styrer hvordan gjøremålet fullføres når flere barn er tildelt: individuell sporing, delt fullføring eller turbasert rotasjon.",
           "example": "selvstendig"
         },
         "approval_reset_type": {
           "name": "Godkjenningsnullstillingstype",
-          "description": "Når gjøremålet tilbakestilles for ny fullføring.",
+          "description": "Styrer når grensen for godkjenningssyklusen for gjøremålet utløses (midnatt, forfallsdato, ved fullføring eller manuell utløser).",
           "example": "ved midnatt én gang"
         },
         "pending_claims": {
           "name": "Avventende kravhandling",
-          "description": "Hva skjer med ventende krav når gjøremålet tilbakestilles: hold_pending (behold krav), clear_pending (fjern krav) eller auto_approve_pending (godkjenn alle ventende).",
+          "description": "Kontrollerer hva som skjer med ikke-godkjente krav når grensen for tilbakestilling av godkjenning utløses.",
           "example": "ventende_på_venter"
         },
         "overdue_handling": {
           "name": "Forsinket håndtering",
-          "description": "Hvordan håndtere gjøremålet når det blir for sent.",
+          "description": "Kontrollerer hva som skjer når forfallsdatoen er over, og hva som skjer med forsinkede gjøremål ved grensen for tilbakestilling av godkjenning.",
           "example": "forfallsdato"
         },
         "auto_approve": {
@@ -2229,6 +2236,64 @@
         }
       }
     },
+    "set_rotation_turn": {
+      "name": "Angi rotasjon Sving",
+      "description": "Tildel manuelt gjeldende tur til et bestemt barn i en rotasjonsoppgave. Fungerer bare for rotasjonsoppgaver (rotasjon_enkel eller rotasjon_smart). Bruk enten ID eller navn for identifikasjon.",
+      "fields": {
+        "chore_id": {
+          "name": "Gjørmåls-ID",
+          "description": "Intern ID for rotasjonsoppgaven. Valgfritt hvis oppgavenavn er oppgitt.",
+          "example": "abc123-def456-789..."
+        },
+        "chore_name": {
+          "name": "Navn på gjøremål",
+          "description": "Navn på rotasjonsoppgaven. Valgfritt hvis chore_id er oppgitt.",
+          "example": "Rent soverom"
+        },
+        "kid_id": {
+          "name": "Barne-ID",
+          "description": "Intern ID til barnet som turen skal tilordnes. Må tilordnes denne gjøremålet. Valgfritt hvis barnenavn er oppgitt.",
+          "example": "xyz789-abc123-456..."
+        },
+        "kid_name": {
+          "name": "Barnenavn",
+          "description": "Navnet på barnet som skal tildeles turen. Må tildeles denne gjøremålet. Valgfritt hvis kid_id er oppgitt.",
+          "example": "Alice"
+        }
+      }
+    },
+    "reset_rotation": {
+      "name": "Tilbakestill rotasjon",
+      "description": "Tilbakestill rotasjonstur til det første tildelte barnet. Fungerer bare for rotasjonsoppgaver (rotasjon_simple eller rotasjon_smart). Bruk enten ID eller navn for identifikasjon.",
+      "fields": {
+        "chore_id": {
+          "name": "Gjørmåls-ID",
+          "description": "Intern ID for rotasjonsoppgaven som skal tilbakestilles. Valgfritt hvis oppgavenavn er oppgitt.",
+          "example": "abc123-def456-789..."
+        },
+        "chore_name": {
+          "name": "Navn på gjøremål",
+          "description": "Navn på rotasjonsoppgaven som skal tilbakestilles. Valgfritt hvis chore_id er oppgitt.",
+          "example": "Rent soverom"
+        }
+      }
+    },
+    "open_rotation_cycle": {
+      "name": "Åpen rotasjonssyklus",
+      "description": "Aktiver overstyring av rotasjonssyklus for én syklus, slik at ethvert tildelt barn kan gjøre krav på plass uavhengig av tur. Overstyringen fjernes etter neste godkjenning. Bruk enten ID eller navn for identifikasjon.",
+      "fields": {
+        "chore_id": {
+          "name": "Gjørmåls-ID",
+          "description": "Intern ID for rotasjonsoppgaven som skal åpnes. Valgfritt hvis oppgavenavn er oppgitt.",
+          "example": "abc123-def456-789..."
+        },
+        "chore_name": {
+          "name": "Navn på gjøremål",
+          "description": "Navn på rotasjonsoppgaven som skal åpnes. Valgfritt hvis chore_id er oppgitt.",
+          "example": "Rent soverom"
+        }
+      }
+    },
     "reset_chores_to_pending_state": {
       "name": "Tilbakestill gjøremål til ventende tilstand",
       "description": "Tilbakestill alle gjøremål manuelt til ventende status, og fjern krav og godkjenninger."
@@ -2329,6 +2394,10 @@
           "name": "Barne-ID",
           "description": "Barnets interne ID. Kun for avanserte brukere – bruk barnets navn i stedet.",
           "example": "abc123-def456"
+        },
+        "mark_as_missed": {
+          "name": "Merk som tapt",
+          "description": "Når dette er sant, registreres dette hoppet som en manglende gjøremål i barnets statistikk. Nyttig for å spore bevisste hoppene separat fra automatiske forsinkede tilbakestillinger."
         }
       }
     },
@@ -2363,7 +2432,10 @@
           "none": "Ingen",
           "approved_in_part": "Godkjent (delvis)",
           "claimed_in_part": "Gjorde krav på (delvis)",
-          "completed_by_other": "Fullført av Annen"
+          "completed_by_other": "Fullført av Annen",
+          "waiting": "Venter (fristvinduet er ikke åpent)",
+          "not_my_turn": "Ikke min tur (rotasjon)",
+          "missed": "Mistet (Låst)"
         },
         "state_attributes": {
           "purpose": {
@@ -2398,7 +2470,9 @@
             "state": {
               "independent": "Selvstendig",
               "shared_first": "Delt (først)",
-              "shared_all": "Delt (alle)"
+              "shared_all": "Delt (alle)",
+              "rotation_simple": "Rotasjon Enkel",
+              "rotation_smart": "Rotasjonssmart"
             }
           },
           "approval_reset_type": {
@@ -2408,7 +2482,8 @@
               "at_midnight_multi": "Ved midnatt (fler)",
               "at_due_date_once": "Ved forfallsdato (én gang)",
               "at_due_date_multi": "Ved forfallsdato (flere)",
-              "upon_completion": "Ved ferdigstillelse"
+              "upon_completion": "Ved ferdigstillelse",
+              "manual": "Kun manuell tilbakestilling"
             }
           },
           "recurring_frequency": {
@@ -2546,6 +2621,20 @@
           },
           "time_until_overdue": {
             "name": "Tid til forfall"
+          },
+          "lock_reason": {
+            "name": "Årsak til låsing",
+            "state": {
+              "waiting": "Venter på forfallsvinduet",
+              "not_my_turn": "Ikke din tur",
+              "missed": "Gå glipp av"
+            }
+          },
+          "turn_kid_name": {
+            "name": "Slå barnets navn"
+          },
+          "available_at": {
+            "name": "Tilgjengelig på"
           }
         }
       },
@@ -3132,7 +3221,9 @@
             "state": {
               "independent": "Selvstendig",
               "shared_first": "Delt (kun første)",
-              "shared_all": "Delt (alle obligatoriske)"
+              "shared_all": "Delt (alle obligatoriske)",
+              "rotation_simple": "Rotasjon Enkel",
+              "rotation_smart": "Rotasjonssmart"
             }
           },
           "approval_reset_type": {
@@ -3142,7 +3233,8 @@
               "at_midnight_multi": "Ved midnatt (fler)",
               "at_due_date_once": "Ved forfallsdato (én gang)",
               "at_due_date_multi": "Ved forfallsdato (flere)",
-              "upon_completion": "Ved ferdigstillelse"
+              "upon_completion": "Ved ferdigstillelse",
+              "manual": "Kun manuell tilbakestilling"
             }
           },
           "recurring_frequency": {
@@ -3998,6 +4090,30 @@
     "not_assigned": {
       "message": "{entity} ikke tilordnet {kid}"
     },
+    "rotation_no_turn_holder": {
+      "message": "Rotasjonsoppgaver må ha en tildelt turholder"
+    },
+    "rotation_invalid_order": {
+      "message": "Rotasjonsrekkefølgen må ikke være en tom liste over barne-ID-er"
+    },
+    "rotation_duplicate_in_order": {
+      "message": "Rotasjonsrekkefølgen kan ikke inneholde dupliserte barn"
+    },
+    "rotation_unassigned_in_order": {
+      "message": "Alle barn i rotasjonsrekkefølge må tildeles gjøremålet"
+    },
+    "rotation_min_kids": {
+      "message": "Rotasjonsarbeid krever minst to tildelte barn"
+    },
+    "not_rotation": {
+      "message": "Denne gjøremålet er ikke i rotasjonsmodus"
+    },
+    "kid_not_assigned": {
+      "message": "Barnet er ikke tildelt denne gjøremålet"
+    },
+    "no_assigned_kids": {
+      "message": "Ingen barn er tildelt denne oppgaven"
+    },
     "insufficient_points": {
       "message": "{kid} har {current} poeng, men trenger {required} poeng"
     },
@@ -4105,6 +4221,12 @@
     },
     "notif_message_data_reset_item": {
       "message": "Datatilbakestilling fullført for {item_name}. Kjøretidsdata slettet."
+    },
+    "notif_title_chore_missed": {
+      "message": "Gjøremål mislyktes"
+    },
+    "notif_message_chore_missed": {
+      "message": "{kid_name} bommet på gjøremålet: {chore_name}"
     }
   }
 }

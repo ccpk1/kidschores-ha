@@ -13,7 +13,7 @@
   },
   "chore_disapproved": {
     "title": "Barnsysslor: Syssla ogillad",
-    "message": "{kid_name}s syssla {chore_name} godkändes inte"
+    "message": "Din syssla {chore_name} godkändes inte"
   },
   "chore_overdue": {
     "title": "Barnsysslor: Sysslor försenade",

@@ -4,11 +4,11 @@
     "step": {
       "intro": {
         "title": "Willkommen bei KidsChore",
-        "description": "Dieser Assistent führt Sie durch die Einrichtung von KidsChores.\n\n[📖 Schnellstartanleitung](https://github.com/ad-ha/kidschores-ha/wiki/Getting-Started:-Quick-Start)"
+        "description": "Dieser Assistent führt Sie durch die Einrichtung von KidsChores.\n\n[📖 Schnellstartanleitung]({documentation_url})"
       },
       "data_recovery": {
         "title": "Optionen zur Datenwiederherstellung",
-        "description": "Vorhandene KidsChores-Daten gefunden in:\n{storage_path}\n\n {backup_count} Sicherungsdateien gefunden.\n\nWas möchten Sie tun?\n\n[📖 Mehr über Sicherung & Wiederherstellung erfahren](https://github.com/ad-ha/kidschores-ha/wiki/Getting-Started:-Backup-Restore)",
+        "description": "Vorhandene KidsChores-Daten gefunden in:\n{storage_path}\n\n {backup_count} Sicherungsdateien gefunden.\n\nWas möchten Sie tun?\n\n[📖 Mehr über Sicherung & Wiederherstellung erfahren]({documentation_url})",
         "data": {
           "backup_selection": "Option auswählen"
         }
@@ -142,8 +142,8 @@
           "chore_labels": "Schlagwörter zur Organisation von Aufgaben (z. B. „Küche“, „Garten“). Felder leer lassen, falls nicht benötigt.",
           "default_points": "Punkte werden nach Abschluss gutgeschrieben.",
           "assigned_kids": "Kinder, die diese Aufgabe sehen und übernehmen können.",
-          "completion_criteria": "Unabhängig (jedes Kind bearbeitet die Aufgabe separat), Gemeinsam für alle (alle müssen die Aufgabe bearbeiten) oder Gemeinsam als Erster (wer zuerst kommt, mahlt zuerst) blockiert die anderen.",
-          "approval_reset_type": "Steuert, wann diese Aufgabe zurückgesetzt wird und wie viele Abschlüsse während dieses Zeitraums zulässig sind.",
+          "completion_criteria": "Steuert, wie die Aufgabe erledigt wird, wenn mehrere Kinder ihr zugewiesen wurden: individuelle Nachverfolgung, gemeinsame Erledigung oder wechselseitige Rotation.",
+          "approval_reset_type": "Steuert, wann die Genehmigungszyklusgrenze der Aufgabe ausgelöst wird (Mitternacht, Fälligkeitsdatum, nach Abschluss oder manueller Auslöser).",
           "approval_reset_pending_claim_action": "Dies geschieht mit Anträgen, die noch auf Genehmigung warten, wenn der Genehmigungs-Reset erfolgt.",
           "overdue_handling_type": "Vorgehensweise nach Ablauf der Frist: Überfälligen Status ausblenden, überfällig bis zur Inanspruchnahme beibehalten oder im nächsten Genehmigungszyklus auf ausstehend zurücksetzen.",
           "auto_approve": "Wenn diese Funktion aktiviert ist, werden Anträge sofort und ohne Überprüfung durch die Eltern genehmigt.",
@@ -167,7 +167,7 @@
       },
       "badges": {
         "title": "Kumulatives Abzeichen hinzufügen",
-        "description": "Konfigurieren Sie die Details für ein kumulatives Abzeichen. Diese Abzeichen belohnen Kinder für das Erreichen bestimmter Punktzahlen im Laufe ihrer Lebenszeit und unterstützen Wartungszyklen, um die kontinuierliche Leistung zu fördern.",
+        "description": "Konfigurieren Sie die Details für ein kumulatives Abzeichen. Diese Abzeichen belohnen Kinder für das Erreichen bestimmter Punktzahlen und unterstützen Wartungszyklen, um die kontinuierliche Leistung zu fördern.\n\n[📖 Konfigurationsanleitung]({documentation_url})",
         "data": {
           "badge_name": "Abzeichenname",
           "badge_description": "Abzeichenbeschreibung (optional)",
@@ -409,7 +409,7 @@
     "step": {
       "init": {
         "title": "Optionen für Kinderaufgaben",
-        "description": "Verwalte Kinder, Aufgaben, Abzeichen, Belohnungen, Strafen, Boni oder beende die Aufgabe.\n\n📖 [Dokumentation ansehen](https://github.com/ad-ha/kidschores-ha/wiki)",
+        "description": "Verwalte Kinder, Aufgaben, Abzeichen, Belohnungen, Strafen, Boni oder beende die Aufgabe.\n\n[📖 Dokumentation ansehen]({documentation_url})",
         "data": {
           "menu_selection": "Wählen Sie eine Option aus"
         }
@@ -430,7 +430,7 @@
       },
       "manage_points": {
         "title": "Punkte bearbeiten Beschriftung & Symbol",
-        "description": "Ändern Sie die Bezeichnung und das Symbol für die Punkte.\n\n📖 [Konfigurationsanleitung](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Points)",
+        "description": "Ändern Sie die Bezeichnung und das Symbol für die Punkte.\n\n📖 [Konfigurationsanleitung]({documentation_url})",
         "data": {
           "points_label": "Punktebezeichnung",
           "points_icon": "Punkte-Symbol"
@@ -438,7 +438,7 @@
       },
       "add_kid": {
         "title": "Kind hinzufügen",
-        "description": "Geben Sie die Daten für das neue Kind an.\n\n📖 [Konfigurationsanleitung](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Kids-Parents)",
+        "description": "Geben Sie die Daten für das neue Kind an.\n\n📖 [Konfigurationsanleitung]({documentation_url})",
         "data": {
           "name": "Kindername",
           "ha_user": "Home Assistant-Nutzer",
@@ -455,7 +455,7 @@
       },
       "add_parent": {
         "title": "Übergeordnetes Element hinzufügen",
-        "description": "Geben Sie die Details für das neue übergeordnete Element an.\n\n📖 [Konfigurationsanleitung](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Kids-Parents)",
+        "description": "Geben Sie die Details für das neue übergeordnete Element an.\n\n📖 [Konfigurationsanleitung]({documentation_url})",
         "data": {
           "name": "Name des Elternteils",
           "ha_user_id": "Home Assistant-Nutzer",
@@ -480,7 +480,7 @@
       },
       "add_chore": {
         "title": "Aufgabe hinzufügen",
-        "description": "Erstelle eine neue Aufgabe mit Punkten, Zuweisungen und einem wiederkehrenden Zeitplan.\n\n📖 [Konfigurationsanleitung](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Chores)",
+        "description": "Erstelle eine neue Aufgabe mit Punkten, Zuweisungen und einem wiederkehrenden Zeitplan.\n\n📖 [Konfigurationsanleitung]({documentation_url})",
         "data": {
           "name": "📋 Name der Aufgabe",
           "chore_description": "📋 Beschreibung (optional)",
@@ -511,10 +511,10 @@
           "chore_labels": "Schlagwörter zur Organisation von Aufgaben (z. B. „Küche“, „Garten“). Felder leer lassen, falls nicht benötigt.",
           "default_points": "Punkte werden nach Abschluss gutgeschrieben.",
           "assigned_kids": "Kinder, die diese Aufgabe sehen und übernehmen können.",
-          "completion_criteria": "Unabhängig (jedes Kind bearbeitet die Aufgabe separat), Gemeinsam für alle (alle müssen die Aufgabe bearbeiten) oder Gemeinsam als Erster (wer zuerst kommt, mahlt zuerst) blockiert die anderen.",
-          "approval_reset_type": "Steuert, wann diese Aufgabengenehmigung zurückgesetzt wird und wie viele Abschlüsse während dieses Zeitraums zulässig sind.",
-          "approval_reset_pending_claim_action": "Dies geschieht mit Anträgen, die noch auf Genehmigung warten, wenn der Genehmigungs-Reset erfolgt.",
-          "overdue_handling_type": "Vorgehensweise nach Ablauf der Frist: Überfälligen Status ausblenden, überfällig bis zur Inanspruchnahme beibehalten oder im nächsten Genehmigungszyklus auf ausstehend zurücksetzen.",
+          "completion_criteria": "Steuert, wie die Aufgabe erledigt wird, wenn mehrere Kinder ihr zugewiesen wurden: individuelle Nachverfolgung, gemeinsame Erledigung oder wechselseitige Rotation.",
+          "approval_reset_type": "Steuert, wann die Genehmigungszyklusgrenze der Aufgabe ausgelöst wird (Mitternacht, Fälligkeitsdatum, nach Abschluss oder manueller Auslöser).",
+          "approval_reset_pending_claim_action": "Steuert, was mit nicht genehmigten Anträgen geschieht, wenn die Genehmigungs-Reset-Grenze ausgelöst wird.",
+          "overdue_handling_type": "Steuert, was passiert, wenn der Fälligkeitstermin überschritten ist, und was mit überfälligen Aufgaben beim Zurücksetzen des Genehmigungsstatus geschieht.",
           "auto_approve": "Wenn diese Funktion aktiviert ist, werden Anträge sofort und ohne Überprüfung durch die Eltern genehmigt.",
           "recurring_frequency": "Wie oft die Aufgabe wiederholt werden soll: Täglich, Wöchentlich, Monatlich, Jährlich, Benutzerdefiniert oder Keine. Wenn Sie „Täglich – Mehrmals pro Tag“ auswählen, erscheint ein zusätzliches Fenster, in dem Sie die genauen Zeiten festlegen können.",
           "custom_interval": "Anzahl der Zeiteinheiten zwischen den Wiederholungen (z. B. 3 für „alle 3 Wochen“). Wird nur bei benutzerdefinierter Frequenz verwendet.",
@@ -537,7 +537,7 @@
       },
       "add_badge_cumulative": {
         "title": "Kumulatives Abzeichen hinzufügen",
-        "description": "Konfigurieren Sie die Details für ein kumulatives Abzeichen. Diese Abzeichen belohnen Kinder für das Erreichen bestimmter Punktzahlen und unterstützen Wartungszyklen, um die kontinuierliche Leistung zu fördern.\n\n📖 [Konfigurationsanleitung](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Badges-Cumulative)",
+        "description": "Konfigurieren Sie die Details für ein kumulatives Abzeichen. Diese Abzeichen belohnen Kinder für das Erreichen bestimmter Punktzahlen und unterstützen Wartungszyklen, um die kontinuierliche Leistung zu fördern.\n\n📖 [Konfigurationsanleitung]({documentation_url})",
         "data": {
           "badge_name": "Abzeichenname",
           "badge_description": "Abzeichenbeschreibung (optional)",
@@ -587,7 +587,7 @@
       },
       "add_badge_daily": {
         "title": "Tägliches Abzeichen hinzufügen",
-        "description": "Konfiguriere die Details für ein tägliches Abzeichen. Diese Abzeichen belohnen Kinder für das Erledigen täglicher Aufgaben oder das Erreichen täglicher Ziele.\n\n📖 [Abzeichenübersicht](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Konfiguriere die Details für ein tägliches Abzeichen. Diese Abzeichen belohnen Kinder für das Erledigen täglicher Aufgaben oder das Erreichen täglicher Ziele.\n\n📖 [Abzeichenübersicht]({documentation_url})",
         "data": {
           "badge_name": "Abzeichenname",
           "badge_description": "Abzeichenbeschreibung (optional)",
@@ -615,7 +615,7 @@
       },
       "add_badge_periodic": {
         "title": "Periodisches Abzeichen hinzufügen",
-        "description": "Konfigurieren Sie die Details für ein periodisches Abzeichen. Diese Abzeichen belohnen Kinder für das Erreichen bestimmter Schwellenwerte innerhalb eines festgelegten Zeitraums und unterstützen Reset-Zyklen zur kontinuierlichen Leistungssteigerung.\n\n📖 [Konfigurationsanleitung](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Badges-Periodic)",
+        "description": "Konfigurieren Sie die Details für ein periodisches Abzeichen. Diese Abzeichen belohnen Kinder für das Erreichen bestimmter Schwellenwerte innerhalb eines festgelegten Zeitraums und unterstützen Reset-Zyklen zur kontinuierlichen Leistungssteigerung.\n\n📖 [Konfigurationsanleitung]({documentation_url})",
         "data": {
           "badge_name": "Abzeichenname",
           "badge_description": "Abzeichenbeschreibung (optional)",
@@ -661,7 +661,7 @@
       },
       "add_badge_achievement": {
         "title": "Füge ein mit einer Errungenschaft verknüpftes Abzeichen hinzu",
-        "description": "Konfiguriere die Details für ein Abzeichen, das mit einer Leistung verknüpft ist. Diese Abzeichen belohnen Kinder für das Erreichen bestimmter Leistungen.\n\n📖 [Abzeichenübersicht](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Konfigurieren Sie die Details für ein Abzeichen, das mit einer Leistung verknüpft ist. Diese Abzeichen belohnen Kinder für das Erreichen bestimmter Ziele.\n\n[📖 Abzeichenübersicht]({documentation_url})",
         "data": {
           "badge_name": "Abzeichenname",
           "badge_description": "Abzeichenbeschreibung (optional)",
@@ -685,7 +685,7 @@
       },
       "add_badge_challenge": {
         "title": "Füge ein mit der Herausforderung verknüpftes Abzeichen hinzu",
-        "description": "Konfiguriere die Details für ein Abzeichen, das mit einer Herausforderung verknüpft ist. Diese Abzeichen belohnen Kinder für das Abschließen bestimmter Herausforderungen.\n\n📖 [Abzeichenübersicht](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Konfiguriere die Details für ein Abzeichen, das mit einer Herausforderung verknüpft ist. Diese Abzeichen belohnen Kinder für das Abschließen bestimmter Herausforderungen.\n\n[📖 Abzeichenübersicht]({documentation_url})",
         "data": {
           "badge_name": "Abzeichenname",
           "badge_description": "Abzeichenbeschreibung (optional)",
@@ -709,7 +709,7 @@
       },
       "add_badge_special": {
         "title": "Füge das Abzeichen für besondere Anlässe hinzu.",
-        "description": "Konfigurieren Sie die Details für ein Abzeichen, das für besondere Anlässe erstellt wurde. Mit diesen Abzeichen werden Kinder für Ereignisse wie Geburtstage oder Feiertage belohnt.\n\n📖 [Abzeichenübersicht](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Konfigurieren Sie die Details für ein Abzeichen, das für besondere Anlässe erstellt wurde. Mit diesen Abzeichen werden Kinder für Ereignisse wie Geburtstage oder Feiertage belohnt.\n\n📖 [Abzeichenübersicht]({documentation_url})",
         "data": {
           "badge_name": "Abzeichenname",
           "badge_description": "Abzeichenbeschreibung (optional)",
@@ -745,7 +745,7 @@
       },
       "add_reward": {
         "title": "Belohnung hinzufügen",
-        "description": "Geben Sie die Details für die neue Belohnung an.\n\n📖 [Konfigurationsanleitung](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Rewards)",
+        "description": "Geben Sie die Details für die neue Belohnung an.\n\n📖 [Konfigurationsanleitung]({documentation_url})",
         "data": {
           "name": "Name der Belohnung",
           "internal_id": "Interne ID",
@@ -757,7 +757,7 @@
       },
       "add_penalty": {
         "title": "Strafe hinzufügen",
-        "description": "Geben Sie die Details für die neue Strafe an.\n\n📖 [Übersicht & Beispiele](https://github.com/ad-ha/kidschores-ha/wiki/Bonuses-&-Penalties%3A-Overview-&-Examples)",
+        "description": "Geben Sie die Details für die neue Strafe an.\n\n📖 [Übersicht & Beispiele]({documentation_url})",
         "data": {
           "name": "Strafbezeichnung",
           "penalty_description": "Beschreibung (optional)",
@@ -769,7 +769,7 @@
       },
       "add_bonus": {
         "title": "Bonus hinzufügen",
-        "description": "Geben Sie die Details zum neuen Bonus an.\n\n📖 [Übersicht & Beispiele](https://github.com/ad-ha/kidschores-ha/wiki/Bonuses-&-Penalties%3A-Overview-&-Examples)",
+        "description": "Geben Sie die Details zum neuen Bonus an.\n\n📖 [Übersicht & Beispiele]({documentation_url})",
         "data": {
           "name": "Bonusname",
           "bonus_description": "Beschreibung (optional)",
@@ -781,7 +781,7 @@
       },
       "add_achievement": {
         "title": "Leistung definieren",
-        "description": "Geben Sie Details zu jedem Erfolg ein.\n\n📖 [Übersicht & Funktionalität](https://github.com/ad-ha/kidschores-ha/wiki/Challenges-&-Achievements%3A-Overview-&-Functionality)",
+        "description": "Geben Sie Details zu jedem Erfolg ein.\n\n[📖 Übersicht & Funktionalität]({documentation_url})",
         "data": {
           "name": "Name der Errungenschaft",
           "description": "Beschreibung (optional)",
@@ -798,7 +798,7 @@
       },
       "add_challenge": {
         "title": "Herausforderung definieren",
-        "description": "Gib die Details für jede Herausforderung ein.\n\n📖 [Übersicht & Funktionalität](https://github.com/ad-ha/kidschores-ha/wiki/Challenges-&-Achievements%3A-Overview-&-Functionality)",
+        "description": "Gib die Details für jede Herausforderung ein.\n\n📖 [Übersicht & Funktionalität]({documentation_url})",
         "data": {
           "name": "Name der Herausforderung",
           "description": "Beschreibung (optional)",
@@ -817,7 +817,7 @@
       },
       "edit_kid": {
         "title": "Edit Kid",
-        "description": "Ändern Sie die Details des ausgewählten Kindes.\n\n📖 [Konfigurationsanleitung](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Kids-Parents)",
+        "description": "Ändern Sie die Details des ausgewählten Kindes.\n\n📖 [Konfigurationsanleitung]({documentation_url})",
         "data": {
           "name": "Kindername",
           "ha_user": "Home Assistant-Nutzer",
@@ -851,7 +851,7 @@
       },
       "edit_parent": {
         "title": "Übergeordneten Artikel bearbeiten",
-        "description": "Ändern Sie die Details des ausgewählten übergeordneten Elements.\n\n📖 [Konfigurationsanleitung](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Kids-Parents)",
+        "description": "Ändern Sie die Details des ausgewählten übergeordneten Elements.\n\n📖 [Konfigurationsanleitung]({documentation_url})",
         "data": {
           "name": "Name des Elternteils",
           "ha_user_id": "Home Assistant-Nutzer",
@@ -876,7 +876,7 @@
       },
       "edit_chore": {
         "title": "Bearbeitungsaufgabe",
-        "description": "Ändern Sie die Details der ausgewählten Aufgabe.\n\n📖 [Konfigurationsanleitung](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Chores)",
+        "description": "Ändern Sie die Details der ausgewählten Aufgabe.\n\n📖 [Konfigurationsanleitung]({documentation_url})",
         "data": {
           "name": "📋 Name der Aufgabe",
           "chore_description": "📋 Beschreibung (optional)",
@@ -908,10 +908,10 @@
           "chore_labels": "Schlagwörter zur Organisation von Aufgaben (z. B. „Küche“, „Garten“). Felder leer lassen, falls nicht benötigt.",
           "default_points": "Punkte werden nach Abschluss gutgeschrieben.",
           "assigned_kids": "Kinder, die diese Aufgabe sehen und übernehmen können.",
-          "completion_criteria": "Unabhängig (jedes Kind bearbeitet die Aufgabe separat), Gemeinsam für alle (alle müssen die Aufgabe bearbeiten) oder Gemeinsam als Erster (wer zuerst kommt, mahlt zuerst) blockiert die anderen.",
-          "approval_reset_type": "Steuert, wann diese Aufgabengenehmigung zurückgesetzt wird und wie viele Abschlüsse während dieses Zeitraums zulässig sind.",
-          "approval_reset_pending_claim_action": "Was geschieht mit Anträgen, die noch auf Genehmigung warten, wenn die Genehmigung dieser Aufgabe zurückgesetzt wird (basierend auf dem oben genannten Zeitpunkt für die Zurücksetzung der Genehmigung)?",
-          "overdue_handling_type": "Vorgehensweise nach Ablauf der Frist: Überfälligen Status ausblenden, überfällig bis zur Inanspruchnahme beibehalten oder im nächsten Genehmigungszyklus auf ausstehend zurücksetzen.",
+          "completion_criteria": "Steuert, wie die Aufgabe erledigt wird, wenn mehrere Kinder ihr zugewiesen wurden: individuelle Nachverfolgung, gemeinsame Erledigung oder wechselseitige Rotation.",
+          "approval_reset_type": "Steuert, wann die Genehmigungszyklusgrenze der Aufgabe ausgelöst wird (Mitternacht, Fälligkeitsdatum, nach Abschluss oder manueller Auslöser).",
+          "approval_reset_pending_claim_action": "Steuert, was mit nicht genehmigten Anträgen geschieht, wenn die Genehmigungs-Reset-Grenze ausgelöst wird.",
+          "overdue_handling_type": "Steuert, was passiert, wenn der Fälligkeitstermin überschritten ist, und was mit überfälligen Aufgaben beim Zurücksetzen des Genehmigungsstatus geschieht.",
           "auto_approve": "Wenn diese Funktion aktiviert ist, werden Anträge sofort und ohne Überprüfung durch die Eltern genehmigt.",
           "recurring_frequency": "Wie oft die Aufgabe wiederholt werden soll: Täglich, Wöchentlich, Monatlich, Jährlich, Benutzerdefiniert oder Keine. Wenn Sie „Täglich – Mehrmals pro Tag“ auswählen, erscheint ein zusätzliches Fenster, in dem Sie die genauen Zeiten festlegen können.",
           "custom_interval": "Anzahl der Zeiteinheiten zwischen den Wiederholungen (z. B. 3 für „alle 3 Wochen“). Wird nur bei benutzerdefinierter Frequenz verwendet.",
@@ -927,7 +927,7 @@
       },
       "edit_chore_per_kid_dates": {
         "title": "Bearbeiten Sie die Fälligkeitstermine pro Kind: {chore_name}",
-        "description": "Legen Sie für jedes zugewiesene Kind einen individuellen Abgabetermin fest. Das Datumsfeld im Hauptbearbeitungsformular dient als **Vorlage** – verwenden Sie es, um allen Kindern über das Kontrollkästchen unten schnell dasselbe Datum zuzuweisen, oder lassen Sie es leer und legen Sie die Termine hier individuell fest.\n\nFelder werden angezeigt für: {kid_names}. Für keine Frist leer lassen.{template_date}\n\n📖 [Erweiterte Anleitung](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Chores-Advanced)",
+        "description": "Legen Sie für jedes zugewiesene Kind einen individuellen Abgabetermin fest. Das Datumsfeld im Hauptbearbeitungsformular dient als **Vorlage** – verwenden Sie es, um allen Kindern über das Kontrollkästchen unten schnell dasselbe Datum zuzuweisen, oder lassen Sie es leer und legen Sie die Termine hier individuell fest.\n\nFelder werden angezeigt für: {kid_names}. Für keine Frist leer lassen.{template_date}\n\n📖 [Erweiterte Anleitung]({documentation_url})",
         "data": {
           "apply_template_to_all": "Vorlagedatum auf alle Kinder anwenden"
         },
@@ -947,7 +947,7 @@
       },
       "edit_chore_per_kid_details": {
         "title": "Zeitplan pro Kind: {chore_name}",
-        "description": "Konfigurieren Sie individuelle Zeitplaneinstellungen für jedes Kind, dem diese Aufgabe zugewiesen ist. Die Hauptformularwerte dienen als **Vorlagen** – verwenden Sie die Kontrollkästchen, um sie auf alle Kinder anzuwenden, oder passen Sie die Einstellungen für jedes Kind individuell an.\n\n**Hinweis:** Nicht alle unten stehenden Felder gelten für jede Aufgabe. Das Formular zeigt dynamisch relevante Optionen basierend auf der Ausführungsart, der Häufigkeit und den festgelegten Fälligkeitsterminen an.\n\n**Tägliches (Mehrere) Zeitformat:** Geben Sie, falls angezeigt, 2–6 Zeiten im 24-Stunden-Format, getrennt durch | (Pipe), ein. Beispiel: 08:00|17:00\n\nKinder: {kid_names}{template_info}\n\n📖 [Erweiterte Anleitung](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Chores-Advanced)",
+        "description": "Konfigurieren Sie individuelle Zeitplaneinstellungen für jedes Kind, dem diese Aufgabe zugewiesen ist. Die Hauptformularwerte dienen als **Vorlagen** – verwenden Sie die Kontrollkästchen, um sie auf alle Kinder anzuwenden, oder passen Sie die Einstellungen für jedes Kind individuell an.\n\n**Hinweis:** Nicht alle unten stehenden Felder gelten für jede Aufgabe. Das Formular zeigt dynamisch relevante Optionen basierend auf der Ausführungsart, der Häufigkeit und den festgelegten Fälligkeitsterminen an.\n\n**Tägliches (Mehrere) Zeitformat:** Geben Sie, falls angezeigt, 2–6 Zeiten im 24-Stunden-Format, getrennt durch | (Pipe), ein. Beispiel: 08:00|17:00\n\nKinder: {kid_names}{template_info}\n\n📖 [Erweiterte Anleitung]({documentation_url})",
         "data": {
           "apply_days_to_all": "Wende die vorgegebenen Tage auf alle Kinder an",
           "apply_times_to_all": "Die vorgegebenen Zeiten auf alle Kinder anwenden",
@@ -961,7 +961,7 @@
       },
       "edit_badge_cumulative": {
         "title": "Bearbeiten Sie das kumulative Abzeichen",
-        "description": "Konfigurieren Sie die Details für ein kumulatives Abzeichen. Diese Abzeichen belohnen Kinder für das Erreichen bestimmter Punktzahlen und unterstützen Wartungszyklen, um die kontinuierliche Leistung zu fördern.\n\n📖 [Konfigurationsanleitung](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Badges-Cumulative)",
+        "description": "Konfigurieren Sie die Details für ein kumulatives Abzeichen. Diese Abzeichen belohnen Kinder für das Erreichen bestimmter Punktzahlen und unterstützen Wartungszyklen, um die kontinuierliche Leistung zu fördern.\n\n📖 [Konfigurationsanleitung]({documentation_url})",
         "data": {
           "badge_name": "Abzeichenname",
           "badge_description": "Abzeichenbeschreibung (optional)",
@@ -1011,7 +1011,7 @@
       },
       "edit_badge_daily": {
         "title": "Tägliches Abzeichen bearbeiten",
-        "description": "Konfiguriere die Details für ein tägliches Abzeichen. Diese Abzeichen belohnen Kinder für das Erledigen täglicher Aufgaben oder das Erreichen täglicher Ziele.\n\n📖 [Abzeichenübersicht](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Konfiguriere die Details für ein tägliches Abzeichen. Diese Abzeichen belohnen Kinder für das Erledigen täglicher Aufgaben oder das Erreichen täglicher Ziele.\n\n📖 [Abzeichenübersicht]({documentation_url})",
         "data": {
           "badge_name": "Abzeichenname",
           "badge_description": "Abzeichenbeschreibung (optional)",
@@ -1039,7 +1039,7 @@
       },
       "edit_badge_periodic": {
         "title": "Periodisches Abzeichen bearbeiten",
-        "description": "Konfigurieren Sie die Details für ein periodisches Abzeichen. Diese Abzeichen belohnen Kinder für das Erreichen bestimmter Schwellenwerte innerhalb eines festgelegten Zeitraums und unterstützen Reset-Zyklen zur kontinuierlichen Leistungssteigerung.\n\n📖 [Konfigurationsanleitung](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Badges-Periodic)",
+        "description": "Konfigurieren Sie die Details für ein periodisches Abzeichen. Diese Abzeichen belohnen Kinder für das Erreichen bestimmter Schwellenwerte innerhalb eines festgelegten Zeitraums und unterstützen Reset-Zyklen zur kontinuierlichen Leistungssteigerung.\n\n📖 [Konfigurationsanleitung]({documentation_url})",
         "data": {
           "badge_name": "Abzeichenname",
           "badge_description": "Abzeichenbeschreibung (optional)",
@@ -1085,7 +1085,7 @@
       },
       "edit_badge_achievement": {
         "title": "Bearbeiten Sie das mit einer Errungenschaft verknüpfte Abzeichen",
-        "description": "Konfiguriere die Details für ein Abzeichen, das mit einer Leistung verknüpft ist. Diese Abzeichen belohnen Kinder für das Erreichen bestimmter Leistungen.\n\n📖 [Abzeichenübersicht](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Konfiguriere die Details für ein Abzeichen, das mit einer Leistung verknüpft ist. Diese Abzeichen belohnen Kinder für das Erreichen bestimmter Leistungen.\n\n📖 [Abzeichenübersicht]({documentation_url})",
         "data": {
           "badge_name": "Abzeichenname",
           "badge_description": "Abzeichenbeschreibung (optional)",
@@ -1109,7 +1109,7 @@
       },
       "edit_badge_challenge": {
         "title": "Bearbeitungsherausforderung – Verknüpftes Abzeichen",
-        "description": "Konfiguriere die Details für ein Abzeichen, das mit einer Herausforderung verknüpft ist. Diese Abzeichen belohnen Kinder für das Abschließen bestimmter Herausforderungen.\n\n📖 [Abzeichenübersicht](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Konfiguriere die Details für ein Abzeichen, das mit einer Herausforderung verknüpft ist. Diese Abzeichen belohnen Kinder für das Abschließen bestimmter Herausforderungen.\n\n📖 [Abzeichenübersicht]({documentation_url})",
         "data": {
           "badge_name": "Abzeichenname",
           "badge_description": "Abzeichenbeschreibung (optional)",
@@ -1133,7 +1133,7 @@
       },
       "edit_badge_special": {
         "title": "Abzeichen für besondere Anlässe bearbeiten",
-        "description": "Konfigurieren Sie die Details für ein Abzeichen, das für besondere Anlässe erstellt wurde. Mit diesen Abzeichen werden Kinder für Ereignisse wie Geburtstage oder Feiertage belohnt.\n\n📖 [Abzeichenübersicht](https://github.com/ad-ha/kidschores-ha/wiki/Advanced%3A-Badges-Overview)",
+        "description": "Konfigurieren Sie die Details für ein Abzeichen, das für besondere Anlässe erstellt wurde. Mit diesen Abzeichen werden Kinder für Ereignisse wie Geburtstage oder Feiertage belohnt.\n\n📖 [Abzeichenübersicht]({documentation_url})",
         "data": {
           "badge_name": "Abzeichenname",
           "badge_description": "Abzeichenbeschreibung (optional)",
@@ -1169,7 +1169,7 @@
       },
       "edit_reward": {
         "title": "Bearbeitungsbelohnung",
-        "description": "Ändern Sie die Details der ausgewählten Belohnung.\n\n📖 [Konfigurationsanleitung](https://github.com/ad-ha/kidschores-ha/wiki/Configuration%3A-Rewards)",
+        "description": "Ändern Sie die Details der ausgewählten Belohnung.\n\n📖 [Konfigurationsanleitung]({documentation_url})",
         "data": {
           "name": "Name der Belohnung",
           "internal_id": "Interne ID",
@@ -1181,7 +1181,7 @@
       },
       "edit_penalty": {
         "title": "Bearbeitungsstrafe",
-        "description": "Ändern Sie die Details der ausgewählten Strafe.\n\n📖 [Übersicht & Beispiele](https://github.com/ad-ha/kidschores-ha/wiki/Bonuses-&-Penalties%3A-Overview-&-Examples)",
+        "description": "Ändern Sie die Details der ausgewählten Strafe.\n\n📖 [Übersicht & Beispiele]({documentation_url})",
         "data": {
           "name": "Strafbezeichnung",
           "penalty_description": "Beschreibung (optional)",
@@ -1193,7 +1193,7 @@
       },
       "edit_bonus": {
         "title": "Bonusmaterial bearbeiten",
-        "description": "Ändern Sie die Details des ausgewählten Bonus.\n\n📖 [Übersicht & Beispiele](https://github.com/ad-ha/kidschores-ha/wiki/Bonuses-&-Penalties%3A-Overview-&-Examples)",
+        "description": "Ändern Sie die Details des ausgewählten Bonus.\n\n📖 [Übersicht & Beispiele]({documentation_url})",
         "data": {
           "name": "Bonusname",
           "bonus_description": "Beschreibung (optional)",
@@ -1205,7 +1205,7 @@
       },
       "edit_achievement": {
         "title": "Leistung definieren",
-        "description": "Geben Sie Details zu jedem Erfolg ein.\n\n📖 [Übersicht & Funktionalität](https://github.com/ad-ha/kidschores-ha/wiki/Challenges-&-Achievements%3A-Overview-&-Functionality)",
+        "description": "Geben Sie Details zu jedem Erfolg ein.\n\n📖 [Übersicht & Funktionalität]({documentation_url})",
         "data": {
           "name": "Name der Errungenschaft",
           "description": "Beschreibung (optional)",
@@ -1222,7 +1222,7 @@
       },
       "edit_challenge": {
         "title": "Herausforderung definieren",
-        "description": "Gib die Details für jede Herausforderung ein.\n\n📖 [Übersicht & Funktionalität](https://github.com/ad-ha/kidschores-ha/wiki/Challenges-&-Achievements%3A-Overview-&-Functionality)",
+        "description": "Gib die Details für jede Herausforderung ein.\n\n📖 [Übersicht & Funktionalität]({documentation_url})",
         "data": {
           "name": "Name der Herausforderung",
           "description": "Beschreibung (optional)",
@@ -1298,7 +1298,7 @@
       },
       "dashboard_create": {
         "title": "Dashboard erstellen/aktualisieren",
-        "description": "Erstelle ein KidsChores-Dashboard mit Registerkarten für jedes Kind.\n\nWähle einen Namen für das Dashboard, die Kinder aus, die einbezogen werden sollen, und füge optional eine Admin-Registerkarte für die Elternverwaltung hinzu.\n\n[📖 Anleitung zur Dashboard-Erstellung](https://github.com/ad-ha/kidschores-ha/wiki/Getting-Started:-Dashboard-Generation)",
+        "description": "Erstelle ein KidsChores-Dashboard mit Registerkarten für jedes Kind.\n\nWähle einen Namen für das Dashboard, die Kinder aus, die einbezogen werden sollen, und füge optional eine Admin-Registerkarte für die Elternverwaltung hinzu.\n\n[📖 Anleitung zur Dashboard-Erstellung]({documentation_url})",
         "data": {
           "dashboard_name": "Dashboard-Name",
           "dashboard_style": "Dashboard-Stil",
@@ -1341,7 +1341,7 @@
       },
       "manage_general_options": {
         "title": "Allgemeine Optionen",
-        "description": "Allgemeine Einstellungen für die KidsChores-Integration verwalten.\n\n[📖 Mehr über Backup & Wiederherstellung erfahren](https://github.com/ad-ha/kidschores-ha/wiki/Getting-Started:-Backup-Restore)",
+        "description": "Allgemeine Einstellungen für die KidsChores-Integration verwalten.\n\n[📖 Mehr über Backup & Wiederherstellung erfahren]({documentation_url})",
         "data": {
           "points_adjust_values": "Werte der Schaltfläche für die manuelle Punktjustierung",
           "update_interval": "Aktualisierungsintervall",
@@ -1505,6 +1505,7 @@
       "error_daily_multi_times_too_few": "Für die Häufigkeit „Mehrmals täglich“ sind mindestens zwei Wiederholungen erforderlich. Für eine einmalige Wiederholung verwenden Sie die reguläre Häufigkeit „Täglich“.",
       "error_daily_multi_times_too_many": "Bei der Frequenz „Mehrmals täglich“ sind maximal 6 Mal pro Tag zulässig.",
       "error_daily_multi_due_date_required": "Die Frequenz „Mehrmals täglich“ erfordert die Festlegung eines Fälligkeitsdatums. Das Datum bestimmt den Beginn der Planung, und die Uhrzeiten legen die täglichen Verfügbarkeitsfenster fest.",
+      "error_allow_steal_incompatible": "Die Option „Überfällige Bearbeitung von Diebstahl-Aufträgen zulassen“ ist nur mit Rotationsaufgaben (rotation_simple oder rotation_smart) und dem Rücksetzungstyp „Einmal täglich“ kompatibel und erfordert ein Fälligkeitsdatum, um festzulegen, wann das Diebstahl-Fenster geöffnet wird.",
       "error_at_due_date_reset_requires_due_date": "Genehmigungszurücksetzungen vom Typ „Zum Fälligkeitsdatum“ (einmalig oder mehrfach) erfordern die Festlegung eines Fälligkeitsdatums. Ohne ein Fälligkeitsdatum wird die Genehmigungszurücksetzung nicht ausgelöst und die Aufgabe bleibt unbegrenzt genehmigt.",
       "error_per_kid_applicable_days_invalid": "Ungültiges Format für die Wochentage eines oder mehrerer Kinder. Die Wochentage müssen ganze Zahlen von 0 bis 6 (Montag bis Sonntag) sein und dürfen keine Duplikate enthalten.",
       "error_per_kid_daily_multi_times_invalid": "Ungültiges Format für die Tageszeiten eines oder mehrerer Kinder. Bitte verwenden Sie das 24-Stunden-Format, getrennt durch | (z. B. 08:00|17:00).",
@@ -1665,7 +1666,9 @@
       "options": {
         "shared_all": "Gemeinsame Aufgabe (Alle Kinder müssen sie gemeinsam bearbeiten)",
         "independent": "Selbstständig (Jedes Kind bearbeitet die Aufgabe alleine)",
-        "shared_first": "Gemeinsamer erster Platz (Erster Abschluss zählt)"
+        "shared_first": "Gemeinsamer erster Platz (Erster Abschluss zählt)",
+        "rotation_simple": "Einfache Drehung (nur Drehhalter, strikte Reihenfolge einhalten)",
+        "rotation_smart": "Rotation Smart (nur für Turnholder, Fairness-gewichtet)"
       }
     },
     "approval_reset_type": {
@@ -1674,15 +1677,19 @@
         "at_midnight_multi": "Mehrmals täglich – Rücksetzung um Mitternacht",
         "at_due_date_once": "Einmal pro Periode - Wird zum Fälligkeitsdatum zurückgesetzt",
         "at_due_date_multi": "Mehrmals pro Periode - Wird zum Fälligkeitsdatum zurückgesetzt",
-        "upon_completion": "Unbegrenzte Abschlüsse – Wird nach Abschluss zurückgesetzt"
+        "upon_completion": "Unbegrenzte Abschlüsse – Wird nach Abschluss zurückgesetzt",
+        "manual": "Nur manuelles Zurücksetzen – keine automatischen Rücksetzungen"
       }
     },
     "overdue_handling_type": {
       "options": {
-        "at_due_date": "Überfällig bis zur Fertigstellung",
         "never_overdue": "Nie überfällig",
+        "at_due_date": "Überfällig bis zur Fertigstellung",
         "at_due_date_clear_at_approval_reset": "Überfällig bis zur Genehmigung – Zurücksetzen",
-        "at_due_date_clear_immediate_on_late": "Überfällig bis zur Fertigstellung (Verspätete Genehmigungen sofort bearbeiten)"
+        "at_due_date_clear_immediate_on_late": "Überfällig bis zur Fertigstellung (Verspätete Genehmigungen sofort bearbeiten)",
+        "at_due_date_clear_and_mark_missed": "Überfällig bis zur Genehmigung (Als verpasst markieren)",
+        "at_due_date_mark_missed_and_lock": "Sperre bis zur Genehmigung zurücksetzen (Ansprüche verhindern, als verpasst markieren)",
+        "at_due_date_allow_steal": "Stehlen erlauben bis zur Genehmigung (nur Rotation)"
       }
     },
     "approval_reset_pending_claim_action": {
@@ -2087,22 +2094,22 @@
         },
         "completion_criteria": {
           "name": "Abschlusskriterien",
-          "description": "So wird die Aufgabe erledigt, wenn mehrere Kinder ihr zugewiesen wurden: unabhängig (jedes Kind erledigt sie separat), gemeinsam_zuerst (das erste Kind, das die Aufgabe erledigt, erhält Punkte) oder gemeinsam_alle (alle Kinder müssen die Aufgabe erledigen). Kann nach der Erstellung nicht mehr geändert werden.",
+          "description": "Steuert, wie die Aufgabe erledigt wird, wenn mehrere Kinder ihr zugewiesen wurden: individuelle Nachverfolgung, gemeinsame Erledigung oder wechselseitige Rotation.",
           "example": "unabhängig"
         },
         "approval_reset_type": {
           "name": "Genehmigungs-Reset-Typ",
-          "description": "Wenn die Aufgabe zur erneuten Ausführung zurückgesetzt wird.",
+          "description": "Steuert, wann die Genehmigungszyklusgrenze der Aufgabe ausgelöst wird (Mitternacht, Fälligkeitsdatum, nach Abschluss oder manueller Auslöser).",
           "example": "um Mitternacht"
         },
         "pending_claims": {
           "name": "Anhängige Schadensregulierung",
-          "description": "Was passiert mit ausstehenden Ansprüchen, wenn die Aufgabe zurückgesetzt wird: hold_pending (Ansprüche behalten), clear_pending (Ansprüche entfernen) oder auto_approve_pending (alle ausstehenden Ansprüche genehmigen).",
+          "description": "Steuert, was mit nicht genehmigten Anträgen geschieht, wenn die Genehmigungs-Reset-Grenze ausgelöst wird.",
           "example": "hold_pending"
         },
         "overdue_handling": {
           "name": "Überfällige Bearbeitung",
-          "description": "Wie man mit der Aufgabe umgeht, wenn sie überfällig ist.",
+          "description": "Steuert, was passiert, wenn der Fälligkeitstermin überschritten ist, und was mit überfälligen Aufgaben beim Zurücksetzen des Genehmigungsstatus geschieht.",
           "example": "at_due_date"
         },
         "auto_approve": {
@@ -2229,6 +2236,64 @@
         }
       }
     },
+    "set_rotation_turn": {
+      "name": "Drehrichtung einstellen",
+      "description": "Weisen Sie die aktuelle Aufgabe manuell einem bestimmten Kind in einer Rotationsaufgabe zu. Funktioniert nur für Rotationsaufgaben (rotation_simple oder rotation_smart). Verwenden Sie entweder die ID oder den Namen zur Identifizierung.",
+      "fields": {
+        "chore_id": {
+          "name": "Aufgaben-ID",
+          "description": "Interne ID der Rotationsaufgabe. Optional, falls chore_name angegeben ist.",
+          "example": "abc123-def456-789..."
+        },
+        "chore_name": {
+          "name": "Aufgabenname",
+          "description": "Name der Rotationsaufgabe. Optional, falls chore_id angegeben ist.",
+          "example": "Sauberes Schlafzimmer"
+        },
+        "kid_id": {
+          "name": "Kinder-ID",
+          "description": "Interne ID des Kindes, dem die Aufgabe zugewiesen werden soll. Muss dieser Aufgabe zugewiesen werden. Optional, falls kid_name angegeben ist.",
+          "example": "xyz789-abc123-456..."
+        },
+        "kid_name": {
+          "name": "Kindername",
+          "description": "Name des Kindes, dem die Aufgabe zugewiesen werden soll. Muss dieser Aufgabe zugewiesen werden. Optional, falls kid_id angegeben ist.",
+          "example": "Alice"
+        }
+      }
+    },
+    "reset_rotation": {
+      "name": "Rotation zurücksetzen",
+      "description": "Die Rotation wird auf das erste zugewiesene Kind zurückgesetzt. Funktioniert nur für Rotationsaufgaben (rotation_simple oder rotation_smart). Zur Identifizierung kann entweder die ID oder der Name verwendet werden.",
+      "fields": {
+        "chore_id": {
+          "name": "Aufgaben-ID",
+          "description": "Interne ID der zurückzusetzenden Rotationsaufgabe. Optional, falls chore_name angegeben ist.",
+          "example": "abc123-def456-789..."
+        },
+        "chore_name": {
+          "name": "Aufgabenname",
+          "description": "Name der zurückzusetzenden Rotationsaufgabe. Optional, falls chore_id angegeben ist.",
+          "example": "Sauberes Schlafzimmer"
+        }
+      }
+    },
+    "open_rotation_cycle": {
+      "name": "Offener Rotationszyklus",
+      "description": "Aktivieren Sie die Rotationszyklus-Überschreibung für einen Zyklus, sodass jedes zugewiesene Kind unabhängig von der Reihenfolge Ansprüche geltend machen kann. Die Überschreibung wird nach der nächsten Genehmigung aufgehoben. Verwenden Sie entweder die ID oder den Namen zur Identifizierung.",
+      "fields": {
+        "chore_id": {
+          "name": "Aufgaben-ID",
+          "description": "Interne ID der zu öffnenden Rotationsaufgabe. Optional, falls chore_name angegeben ist.",
+          "example": "abc123-def456-789..."
+        },
+        "chore_name": {
+          "name": "Aufgabenname",
+          "description": "Name der zu öffnenden Rotationsaufgabe. Optional, falls chore_id angegeben ist.",
+          "example": "Sauberes Schlafzimmer"
+        }
+      }
+    },
     "reset_chores_to_pending_state": {
       "name": "Aufgaben auf den Status „Ausstehend“ zurücksetzen",
       "description": "Alle Aufgaben wurden manuell auf den Status „Ausstehend“ zurückgesetzt, wodurch Ansprüche und Genehmigungen entfernt wurden."
@@ -2329,6 +2394,10 @@
           "name": "Kinder-ID",
           "description": "Die interne ID des Kindes. Nur für fortgeschrittene Benutzer – bitte stattdessen kid_name verwenden.",
           "example": "abc123-def456"
+        },
+        "mark_as_missed": {
+          "name": "Als verpasst markieren",
+          "description": "Wenn dies zutrifft, wird dieser Auslassungspunkt als versäumte Aufgabe in der Statistik des Kindes erfasst. Dies ist nützlich, um absichtliche Auslassungen getrennt von automatischen Rücksetzungen aufgrund überfälliger Aufgaben zu verfolgen."
         }
       }
     },
@@ -2363,7 +2432,10 @@
           "none": "Keiner",
           "approved_in_part": "Genehmigt (teilweise)",
           "claimed_in_part": "Beansprucht (teilweise)",
-          "completed_by_other": "Ausgefüllt von Anderen"
+          "completed_by_other": "Ausgefüllt von Anderen",
+          "waiting": "Warten (Terminfenster nicht geöffnet)",
+          "not_my_turn": "Nicht meine Runde (Rotation)",
+          "missed": "Verpasst (gesperrt)"
         },
         "state_attributes": {
           "purpose": {
@@ -2398,7 +2470,9 @@
             "state": {
               "independent": "Unabhängig",
               "shared_first": "Gemeinsam (Erste)",
-              "shared_all": "Gemeinsam (Alle)"
+              "shared_all": "Gemeinsam (Alle)",
+              "rotation_simple": "Einfache Rotation",
+              "rotation_smart": "Rotation Smart"
             }
           },
           "approval_reset_type": {
@@ -2408,7 +2482,8 @@
               "at_midnight_multi": "Um Mitternacht (Multi)",
               "at_due_date_once": "Zum Fälligkeitstermin (einmalig)",
               "at_due_date_multi": "Zum Fälligkeitstermin (Mehrere)",
-              "upon_completion": "Nach Fertigstellung"
+              "upon_completion": "Nach Fertigstellung",
+              "manual": "Nur manuelle Rückstellung"
             }
           },
           "recurring_frequency": {
@@ -2546,6 +2621,20 @@
           },
           "time_until_overdue": {
             "name": "Zeit bis zur Überfälligkeit"
+          },
+          "lock_reason": {
+            "name": "Sperrgrund",
+            "state": {
+              "waiting": "Warten auf das Fälligkeitsfenster",
+              "not_my_turn": "Du bist nicht dran.",
+              "missed": "Verpasst"
+            }
+          },
+          "turn_kid_name": {
+            "name": "Kindnamen"
+          },
+          "available_at": {
+            "name": "Verfügbar bei"
           }
         }
       },
@@ -3132,7 +3221,9 @@
             "state": {
               "independent": "Unabhängig",
               "shared_first": "Gemeinsam (nur beim ersten Mal)",
-              "shared_all": "Gemeinsam (Alle erforderlich)"
+              "shared_all": "Gemeinsam (Alle erforderlich)",
+              "rotation_simple": "Einfache Rotation",
+              "rotation_smart": "Rotation Smart"
             }
           },
           "approval_reset_type": {
@@ -3142,7 +3233,8 @@
               "at_midnight_multi": "Um Mitternacht (Multi)",
               "at_due_date_once": "Zum Fälligkeitstermin (einmalig)",
               "at_due_date_multi": "Zum Fälligkeitstermin (Mehrere)",
-              "upon_completion": "Nach Fertigstellung"
+              "upon_completion": "Nach Fertigstellung",
+              "manual": "Nur manuelle Rückstellung"
             }
           },
           "recurring_frequency": {
@@ -3998,6 +4090,30 @@
     "not_assigned": {
       "message": "{entity} nicht zugewiesen an {kid}"
     },
+    "rotation_no_turn_holder": {
+      "message": "Für die Rotationsaufgaben muss ein/e Verantwortliche/r zugewiesen werden."
+    },
+    "rotation_invalid_order": {
+      "message": "Die Rotationsreihenfolge muss eine nicht leere Liste von Kinder-IDs sein."
+    },
+    "rotation_duplicate_in_order": {
+      "message": "Die Rotationsreihenfolge darf keine doppelten Kinder enthalten."
+    },
+    "rotation_unassigned_in_order": {
+      "message": "Alle Kinder müssen der Reihe nach in der Reihenfolge ihrer Bearbeitung der Aufgabe zugeteilt werden."
+    },
+    "rotation_min_kids": {
+      "message": "Für die Rotation der Aufgaben werden mindestens 2 Kinder benötigt."
+    },
+    "not_rotation": {
+      "message": "Diese Aufgabe ist nicht im Rotationsmodus."
+    },
+    "kid_not_assigned": {
+      "message": "Dem Kind ist diese Aufgabe nicht zugeteilt."
+    },
+    "no_assigned_kids": {
+      "message": "Diese Aufgabe ist keinem Kind zugeteilt."
+    },
     "insufficient_points": {
       "message": "{kid} hat {current} Punkte, benötigt aber {required} Punkte"
     },
@@ -4105,6 +4221,12 @@
     },
     "notif_message_data_reset_item": {
       "message": "Datenreset für {item_name}abgeschlossen. Laufzeitdaten gelöscht."
+    },
+    "notif_title_chore_missed": {
+      "message": "Aufgabe versäumt"
+    },
+    "notif_message_chore_missed": {
+      "message": "{kid_name} hat die Aufgabe verpasst: {chore_name}"
     }
   }
 }
