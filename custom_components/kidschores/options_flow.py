@@ -309,13 +309,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     )
                 }
             ),
-            description_placeholders=cast(
-                "dict[str, str]",
-                {
-                    const.OPTIONS_FLOW_PLACEHOLDER_ENTITY_TYPE: self._entity_type,
-                    const.OPTIONS_FLOW_PLACEHOLDER_ACTION: self._action,
-                },
-            ),
+            description_placeholders={
+                const.OPTIONS_FLOW_PLACEHOLDER_ENTITY_TYPE: self._entity_type or "",
+                const.OPTIONS_FLOW_PLACEHOLDER_ACTION: self._action or "",
+            },
         )
 
     # ----------------------------------------------------------------------------------
@@ -1751,6 +1748,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         description_placeholders = {
             "chore_name": chore_name,
             "kid_names": kid_list_text,
+            const.PLACEHOLDER_DOCUMENTATION_URL: const.DOC_URL_CHORES_ADVANCED,
         }
 
         # Add template date info if available (shows in description)
@@ -2128,6 +2126,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 "chore_name": chore_name,
                 "kid_names": kid_list_text,
                 "template_info": template_info,
+                const.PLACEHOLDER_DOCUMENTATION_URL: const.DOC_URL_CHORES_ADVANCED,
             },
         )
 

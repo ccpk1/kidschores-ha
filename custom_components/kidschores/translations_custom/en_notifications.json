@@ -1,120 +1,137 @@
 {
-  "chore_assigned": {
-    "title": "KidsChores: New Chore",
-    "message": "New chore {chore_name} was assigned to you! Due: {due_date}"
+  "_comment_kid_section": "══════════════════════════════════════════════════════════════════",
+  "_comment_kid_desc": "KID NOTIFICATIONS: Gamified, second-person, encouraging tone with emojis. NO 'KidsChores:' prefix.",
+  "_comment_kid_footer": "══════════════════════════════════════════════════════════════════",
+
+  "chore_approved_kid": {
+    "title": "🎉 Chore Approved!",
+    "message": "{chore_name} approved! You earned {points} points"
   },
-  "chore_claimed": {
-    "title": "KidsChores: Chore Claimed",
-    "message": "{kid_name} claimed chore {chore_name}"
+  "chore_disapproved_kid": {
+    "title": "↩️ Chore Returned",
+    "message": "{chore_name} needs more work."
   },
-  "chore_approved": {
-    "title": "KidsChores: Chore Approved",
-    "message": "{kid_name}: {chore_name} approved! +{points} points"
+  "chore_overdue_kid": {
+    "title": "⏰ Chore Overdue",
+    "message": "{chore_name} is overdue! Complete it now to earn {points} points"
   },
-  "chore_disapproved": {
-    "title": "KidsChores: Chore Disapproved",
-    "message": "Your chore {chore_name} was not approved"
+  "chore_missed_kid": {
+    "title": "😔 Chore Expired",
+    "message": "{chore_name} expired without completion."
   },
-  "chore_overdue": {
-    "title": "KidsChores: Chore Overdue",
-    "message": "{kid_name}: {chore_name} is overdue! Due date was {due_date}"
+  "chore_due_reminder_kid": {
+    "title": "⏰ Chore Reminder",
+    "message": "{chore_name} is due in {minutes} minutes! Worth {points} points"
   },
-  "chore_due_soon": {
-    "title": "⏰ Chore Due Soon!",
-    "message": "{chore_name} is due in {minutes} minutes (+{points}pts)"
+  "chore_due_window_kid": {
+    "title": "🎯 Chore Now Due",
+    "message": "{chore_name} is now due! Complete within {hours} hour(s) to earn {points} points"
   },
-  "chore_due_reminder": {
-    "title": "⏰ Chore Due Soon!",
-    "message": "{chore_name} is due in {minutes} minutes (+{points}pts)"
+  "reward_approved_kid": {
+    "title": "🎉 Reward Approved!",
+    "message": "{reward_name} approved!"
   },
-  "chore_due_window": {
-    "title": "🔔 Chore Now Due",
-    "message": "{chore_name} is now due! Complete it within {hours} hour(s) to earn {points} points"
-  },
-  "chore_reminder": {
-    "title": "KidsChores: Reminder for Pending Chore",
-    "message": "Reminder: Chore {chore_name} claimed by {kid_name} is waiting for approval"
-  },
-  "reward_claimed_kid": {
-    "title": "KidsChores: Reward Claimed",
-    "message": "You claimed reward {reward_name} for {points} points!"
-  },
-  "reward_claimed_parent": {
-    "title": "KidsChores: Reward Claimed",
-    "message": "{kid_name} claimed reward {reward_name} for {points} points"
-  },
-  "reward_approved": {
-    "title": "KidsChores: Reward Approved",
-    "message": "Reward {reward_name} approved!"
-  },
-  "reward_disapproved": {
-    "title": "KidsChores: Reward Disapproved",
-    "message": "Reward {reward_name} was not approved"
-  },
-  "reward_reminder": {
-    "title": "KidsChores: Reminder for Pending Reward",
-    "message": "Reminder: Reward {reward_name} claimed by {kid_name} is waiting for approval"
+  "reward_disapproved_kid": {
+    "title": "💭 Reward Request Returned",
+    "message": "{reward_name} wasn't approved this time."
   },
   "badge_earned_kid": {
-    "title": "KidsChores: Badge Earned",
+    "title": "🥇 Badge Earned!",
     "message": "You earned the {badge_name} badge!"
   },
-  "badge_earned_parent": {
-    "title": "KidsChores: Badge Earned",
-    "message": "{kid_name} earned the {badge_name} badge!"
-  },
   "achievement_earned_kid": {
-    "title": "KidsChores: Achievement Earned",
-    "message": "You earned achievement {achievement_name}!"
-  },
-  "achievement_earned_parent": {
-    "title": "KidsChores: Achievement Earned",
-    "message": "{kid_name} earned achievement {achievement_name}!"
+    "title": "🏆 Achievement Earned!",
+    "message": "You earned {achievement_name}! Keep up the great work"
   },
   "challenge_completed_kid": {
-    "title": "KidsChores: Challenge Completed",
-    "message": "You completed challenge {challenge_name}!"
+    "title": "🏁 Challenge Complete!",
+    "message": "You completed {challenge_name}! Keep up the great work"
+  },
+  "penalty_applied_kid": {
+    "title": "⚠️ Penalty Applied",
+    "message": "{penalty_name}: {points} points deducted. Let's get back on track!"
+  },
+  "bonus_applied_kid": {
+    "title": "⭐ Bonus Applied!",
+    "message": "{bonus_name}: You earned {points} bonus points! Great job"
+  },
+
+  "_comment_parent_section": "══════════════════════════════════════════════════════════════════",
+  "_comment_parent_desc": "PARENT NOTIFICATIONS: Informative, third-person, actionable. Format: '{kid_name}: Action'. NO 'KidsChores:' prefix.",
+  "_comment_parent_footer": "══════════════════════════════════════════════════════════════════",
+
+  "chore_claimed_parent": {
+    "title": "✋ {kid_name}: Chore Claimed",
+    "message": "{kid_name} claimed {chore_name} and is working on it now"
+  },
+  "chore_reminder_parent": {
+    "title": "⏰ {kid_name}: Approval Needed",
+    "message": "Reminder: {chore_name} claimed by {kid_name} is waiting for your review"
+  },
+  "chore_overdue_parent": {
+    "title": "⚠️ {kid_name}: Chore Overdue",
+    "message": "{kid_name}'s chore {chore_name} is overdue (due: {due_date})"
+  },
+  "pending_chores_parent": {
+    "title": "📋 {kid_name}: {count} Pending",
+    "message": "{count} chores awaiting review. Latest: {latest_chore} (+{points} pts)"
+  },
+  "reward_claimed_parent": {
+    "title": "🎁 {kid_name}: Reward Request",
+    "message": "{kid_name} requested {reward_name} for {points} points"
+  },
+  "reward_reminder_parent": {
+    "title": "⏰ {kid_name}: Reward Pending",
+    "message": "Reminder: {reward_name} requested by {kid_name} is waiting for your approval"
+  },
+  "badge_earned_parent": {
+    "title": "🏆 {kid_name}: Badge Earned",
+    "message": "{kid_name} earned the {badge_name} badge!"
+  },
+  "achievement_earned_parent": {
+    "title": "⭐ {kid_name}: Achievement",
+    "message": "{kid_name} earned {achievement_name}"
   },
   "challenge_completed_parent": {
-    "title": "KidsChores: Challenge Completed",
-    "message": "{kid_name} completed challenge {challenge_name}!"
+    "title": "🎯 {kid_name}: Challenge Done",
+    "message": "{kid_name} completed {challenge_name}"
   },
-  "penalty_applied": {
-    "title": "KidsChores: Penalty Applied",
-    "message": "Penalty {penalty_name} applied: -{points} points"
+
+  "_comment_system_section": "══════════════════════════════════════════════════════════════════",
+  "_comment_system_desc": "SYSTEM/ADMIN NOTIFICATIONS: Data management operations",
+  "_comment_system_footer": "══════════════════════════════════════════════════════════════════",
+
+  "data_reset": {
+    "title": "🔄 KidsChores: Data Reset",
+    "message": "System data has been reset"
   },
-  "bonus_applied": {
-    "title": "KidsChores: Bonus Applied",
-    "message": "Bonus {bonus_name} applied: +{points} points"
+  "data_reset_global": {
+    "title": "🔄 KidsChores: Full Reset",
+    "message": "All system data has been reset to defaults"
   },
-  "pending_chores": {
-    "title": "KidsChores: {kid_name}",
-    "message": "{count} chores pending (latest: {latest_chore} +{points}pts)"
+  "data_reset_kid": {
+    "title": "🔄 KidsChores: Kid Reset",
+    "message": "Data reset for {kid_name}"
   },
-  "status_update": {
-    "title": "✅ KidsChores",
-    "message": "Status updated"
+  "data_reset_item_type": {
+    "title": "🔄 KidsChores: {item_type} Reset",
+    "message": "All {item_type} data has been reset"
   },
-  "chore_approved_status": {
-    "title": "✅ KidsChores",
-    "message": "{chore_name} approved by {parent_name}"
+  "data_reset_item": {
+    "title": "🔄 KidsChores: Item Reset",
+    "message": "{item_type} '{item_name}' has been reset"
   },
-  "chore_disapproved_status": {
-    "title": "❌ KidsChores",
-    "message": "{chore_name} disapproved by {parent_name}"
-  },
-  "reward_approved_status": {
-    "title": "✅ KidsChores",
-    "message": "{reward_name} reward approved"
-  },
+
+  "_comment_actions_section": "══════════════════════════════════════════════════════════════════",
+  "_comment_actions_desc": "NOTIFICATION ACTION BUTTONS: Softer, more encouraging language",
+  "_comment_actions_footer": "══════════════════════════════════════════════════════════════════",
+
   "actions": {
-    "approve": "Approve",
-    "claim": "✋ Claim Now",
-    "complete": "Complete",
-    "disapprove": "Disapprove",
-    "remind_30": "Remind in 30 min",
-    "skip": "Skip",
-    "approve_latest": "✅ Approve Latest",
-    "review_all": "👀 Review All"
+    "approve": "✅ Approve",
+    "claim": "✋ I Did It!",
+    "complete": "✅ Complete",
+    "disapprove": "↩️ Disapprove",
+    "remind_30": "⏰ Remind in 30m",
+    "skip": "⏭️ Skip"
   }
 }

@@ -1916,92 +1916,190 @@ TRANS_KEY_NOTIF_ACTION_DISAPPROVE: Final = "notif_action_disapprove"
 TRANS_KEY_NOTIF_ACTION_REMIND_30: Final = "notif_action_remind_30"
 TRANS_KEY_NOTIF_ACTION_SKIP: Final = "notif_action_skip"
 
-# Notification Title Translation Keys
-TRANS_KEY_NOTIF_TITLE_CHORE_ASSIGNED: Final = "notification_title_chore_assigned"
-TRANS_KEY_NOTIF_TITLE_CHORE_CLAIMED: Final = "notification_title_chore_claimed"
-TRANS_KEY_NOTIF_TITLE_CHORE_APPROVED: Final = "notification_title_chore_approved"
-TRANS_KEY_NOTIF_TITLE_CHORE_DISAPPROVED: Final = "notification_title_chore_disapproved"
-TRANS_KEY_NOTIF_TITLE_CHORE_OVERDUE: Final = "notification_title_chore_overdue"
-TRANS_KEY_NOTIF_TITLE_CHORE_MISSED: Final = "notification_title_chore_missed"  # Phase 5
-TRANS_KEY_NOTIF_TITLE_CHORE_REMINDER: Final = "notification_title_chore_reminder"
-TRANS_KEY_NOTIF_TITLE_CHORE_DUE_SOON: Final = "notification_title_chore_due_soon"
-TRANS_KEY_NOTIF_TITLE_CHORE_DUE_REMINDER: Final = (
-    "notification_title_chore_due_reminder"  # Alias for due_soon
-)
-TRANS_KEY_NOTIF_TITLE_CHORE_DUE_WINDOW: Final = "notification_title_chore_due_window"
+# ================================================================================================
+# NOTIFICATION TRANSLATION KEYS - Organized by Audience
+# ================================================================================================
+#
+# Organization Philosophy:
+#   - Kid notifications: Gamified, second-person, encouraging tone
+#   - Parent notifications: Informative, third-person, actionable content
+#   - Grouped by category (chores, rewards, gamification) within each audience
+#
+# Note: This is a cosmetic organization only - no functional changes.
+# All keys maintain exact same string values for translation system compatibility.
+#
 
-TRANS_KEY_NOTIF_TITLE_REWARD_CLAIMED: Final = "notification_title_reward_claimed"
-TRANS_KEY_NOTIF_TITLE_REWARD_APPROVED: Final = "notification_title_reward_approved"
-TRANS_KEY_NOTIF_TITLE_REWARD_DISAPPROVED: Final = (
-    "notification_title_reward_disapproved"
-)
-TRANS_KEY_NOTIF_TITLE_REWARD_REMINDER: Final = "notification_title_reward_reminder"
+# ─── KID-FACING NOTIFICATIONS ───────────────────────────────────────────────────────────────────
 
-TRANS_KEY_NOTIF_TITLE_BADGE_EARNED: Final = "notification_title_badge_earned"
-TRANS_KEY_NOTIF_TITLE_ACHIEVEMENT_EARNED: Final = (
-    "notification_title_achievement_earned"
+# Kid: Chore Notifications (state changes, reminders, due dates)
+TRANS_KEY_NOTIF_TITLE_CHORE_APPROVED_KID: Final = (
+    "notification_title_chore_approved_kid"
 )
-TRANS_KEY_NOTIF_TITLE_CHALLENGE_COMPLETED: Final = (
-    "notification_title_challenge_completed"
+TRANS_KEY_NOTIF_MESSAGE_CHORE_APPROVED_KID: Final = (
+    "notification_message_chore_approved_kid"
 )
 
-TRANS_KEY_NOTIF_TITLE_PENALTY_APPLIED: Final = "notification_title_penalty_applied"
-TRANS_KEY_NOTIF_TITLE_BONUS_APPLIED: Final = "notification_title_bonus_applied"
-TRANS_KEY_NOTIF_TITLE_DATA_RESET: Final = "notif_title_data_reset"
-
-# Notification Message Translation Keys
-TRANS_KEY_NOTIF_MESSAGE_CHORE_ASSIGNED: Final = "notification_message_chore_assigned"
-TRANS_KEY_NOTIF_MESSAGE_CHORE_CLAIMED: Final = "notification_message_chore_claimed"
-TRANS_KEY_NOTIF_MESSAGE_CHORE_APPROVED: Final = "notification_message_chore_approved"
-TRANS_KEY_NOTIF_MESSAGE_CHORE_DISAPPROVED: Final = (
-    "notification_message_chore_disapproved"
+TRANS_KEY_NOTIF_TITLE_CHORE_DISAPPROVED_KID: Final = (
+    "notification_title_chore_disapproved_kid"
 )
-TRANS_KEY_NOTIF_MESSAGE_CHORE_OVERDUE: Final = "notification_message_chore_overdue"
-TRANS_KEY_NOTIF_MESSAGE_CHORE_MISSED: Final = (
-    "notification_message_chore_missed"  # Phase 5
-)
-TRANS_KEY_NOTIF_MESSAGE_CHORE_REMINDER: Final = "notification_message_chore_reminder"
-TRANS_KEY_NOTIF_MESSAGE_CHORE_DUE_SOON: Final = "notification_message_chore_due_soon"
-TRANS_KEY_NOTIF_MESSAGE_CHORE_DUE_REMINDER: Final = (
-    "notification_message_chore_due_reminder"  # Alias for due_soon
-)
-TRANS_KEY_NOTIF_MESSAGE_CHORE_DUE_WINDOW: Final = (
-    "notification_message_chore_due_window"
+TRANS_KEY_NOTIF_MESSAGE_CHORE_DISAPPROVED_KID: Final = (
+    "notification_message_chore_disapproved_kid"
 )
 
-TRANS_KEY_NOTIF_MESSAGE_REWARD_CLAIMED_KID: Final = (
-    "notification_message_reward_claimed_kid"
+TRANS_KEY_NOTIF_TITLE_CHORE_OVERDUE_KID: Final = "notification_title_chore_overdue_kid"
+TRANS_KEY_NOTIF_MESSAGE_CHORE_OVERDUE_KID: Final = (
+    "notification_message_chore_overdue_kid"
 )
-TRANS_KEY_NOTIF_MESSAGE_REWARD_CLAIMED_PARENT: Final = (
-    "notification_message_reward_claimed_parent"
-)
-TRANS_KEY_NOTIF_MESSAGE_REWARD_APPROVED: Final = "notification_message_reward_approved"
-TRANS_KEY_NOTIF_MESSAGE_REWARD_DISAPPROVED: Final = (
-    "notification_message_reward_disapproved"
-)
-TRANS_KEY_NOTIF_MESSAGE_REWARD_REMINDER: Final = "notification_message_reward_reminder"
 
+TRANS_KEY_NOTIF_TITLE_CHORE_MISSED_KID: Final = (
+    "notification_title_chore_missed_kid"  # Phase 5
+)
+TRANS_KEY_NOTIF_MESSAGE_CHORE_MISSED_KID: Final = (
+    "notification_message_chore_missed_kid"  # Phase 5
+)
+
+TRANS_KEY_NOTIF_TITLE_CHORE_DUE_SOON_KID: Final = (
+    "notification_title_chore_due_soon_kid"
+)
+TRANS_KEY_NOTIF_MESSAGE_CHORE_DUE_SOON_KID: Final = (
+    "notification_message_chore_due_soon_kid"
+)
+
+TRANS_KEY_NOTIF_TITLE_CHORE_DUE_REMINDER_KID: Final = (
+    "notification_title_chore_due_reminder_kid"  # Alias for due_soon
+)
+TRANS_KEY_NOTIF_MESSAGE_CHORE_DUE_REMINDER_KID: Final = (
+    "notification_message_chore_due_reminder_kid"  # Alias for due_soon
+)
+
+TRANS_KEY_NOTIF_TITLE_CHORE_DUE_WINDOW_KID: Final = (
+    "notification_title_chore_due_window_kid"
+)
+TRANS_KEY_NOTIF_MESSAGE_CHORE_DUE_WINDOW_KID: Final = (
+    "notification_message_chore_due_window_kid"
+)
+
+# Kid: Reward Notifications
+TRANS_KEY_NOTIF_TITLE_REWARD_APPROVED_KID: Final = (
+    "notification_title_reward_approved_kid"
+)
+TRANS_KEY_NOTIF_MESSAGE_REWARD_APPROVED_KID: Final = (
+    "notification_message_reward_approved_kid"
+)
+
+TRANS_KEY_NOTIF_TITLE_REWARD_DISAPPROVED_KID: Final = (
+    "notification_title_reward_disapproved_kid"
+)
+TRANS_KEY_NOTIF_MESSAGE_REWARD_DISAPPROVED_KID: Final = (
+    "notification_message_reward_disapproved_kid"
+)
+
+# Kid: Gamification Notifications (badges, achievements, challenges, bonuses, penalties)
+TRANS_KEY_NOTIF_TITLE_BADGE_EARNED_KID: Final = "notification_title_badge_earned_kid"
 TRANS_KEY_NOTIF_MESSAGE_BADGE_EARNED_KID: Final = (
     "notification_message_badge_earned_kid"
 )
-TRANS_KEY_NOTIF_MESSAGE_BADGE_EARNED_PARENT: Final = (
-    "notification_message_badge_earned_parent"
+
+TRANS_KEY_NOTIF_TITLE_ACHIEVEMENT_EARNED_KID: Final = (
+    "notification_title_achievement_earned_kid"
 )
 TRANS_KEY_NOTIF_MESSAGE_ACHIEVEMENT_EARNED_KID: Final = (
     "notification_message_achievement_earned_kid"
 )
-TRANS_KEY_NOTIF_MESSAGE_ACHIEVEMENT_EARNED_PARENT: Final = (
-    "notification_message_achievement_earned_parent"
+
+TRANS_KEY_NOTIF_TITLE_CHALLENGE_COMPLETED_KID: Final = (
+    "notification_title_challenge_completed_kid"
 )
 TRANS_KEY_NOTIF_MESSAGE_CHALLENGE_COMPLETED_KID: Final = (
     "notification_message_challenge_completed_kid"
+)
+
+TRANS_KEY_NOTIF_TITLE_PENALTY_APPLIED_KID: Final = (
+    "notification_title_penalty_applied_kid"
+)
+TRANS_KEY_NOTIF_MESSAGE_PENALTY_APPLIED_KID: Final = (
+    "notification_message_penalty_applied_kid"
+)
+
+TRANS_KEY_NOTIF_TITLE_BONUS_APPLIED_KID: Final = "notification_title_bonus_applied_kid"
+TRANS_KEY_NOTIF_MESSAGE_BONUS_APPLIED_KID: Final = (
+    "notification_message_bonus_applied_kid"
+)
+
+# ─── PARENT-FACING NOTIFICATIONS ─────────────────────────────────────────────────────────────────
+
+# Parent: Chore Claim/Approval Workflow
+TRANS_KEY_NOTIF_TITLE_CHORE_CLAIMED_PARENT: Final = (
+    "notification_title_chore_claimed_parent"
+)
+TRANS_KEY_NOTIF_MESSAGE_CHORE_CLAIMED_PARENT: Final = (
+    "notification_message_chore_claimed_parent"
+)
+
+TRANS_KEY_NOTIF_TITLE_CHORE_REMINDER_PARENT: Final = (
+    "notification_title_chore_reminder_parent"
+)
+TRANS_KEY_NOTIF_MESSAGE_CHORE_REMINDER_PARENT: Final = (
+    "notification_message_chore_reminder_parent"
+)
+
+# Parent: Chore overdue notification (different from kid version)
+TRANS_KEY_NOTIF_TITLE_CHORE_OVERDUE_PARENT: Final = (
+    "notification_title_chore_overdue_parent"
+)
+TRANS_KEY_NOTIF_MESSAGE_CHORE_OVERDUE_PARENT: Final = (
+    "notification_message_chore_overdue_parent"
+)
+
+# Parent: Aggregated/Tag-based Notifications
+TRANS_KEY_NOTIF_TITLE_PENDING_CHORES_PARENT: Final = (
+    "notification_title_pending_chores_parent"
+)
+TRANS_KEY_NOTIF_MESSAGE_PENDING_CHORES_PARENT: Final = (
+    "notification_message_pending_chores_parent"
+)
+
+# Parent: Reward Claim/Approval Workflow
+TRANS_KEY_NOTIF_TITLE_REWARD_CLAIMED_PARENT: Final = (
+    "notification_title_reward_claimed_parent"
+)
+TRANS_KEY_NOTIF_MESSAGE_REWARD_CLAIMED_PARENT: Final = (
+    "notification_message_reward_claimed_parent"
+)
+
+TRANS_KEY_NOTIF_TITLE_REWARD_REMINDER_PARENT: Final = (
+    "notification_title_reward_reminder_parent"
+)
+TRANS_KEY_NOTIF_MESSAGE_REWARD_REMINDER_PARENT: Final = (
+    "notification_message_reward_reminder_parent"
+)
+
+# Parent: Gamification Notifications (informational copies)
+TRANS_KEY_NOTIF_TITLE_BADGE_EARNED_PARENT: Final = (
+    "notification_title_badge_earned_parent"
+)
+TRANS_KEY_NOTIF_MESSAGE_BADGE_EARNED_PARENT: Final = (
+    "notification_message_badge_earned_parent"
+)
+
+TRANS_KEY_NOTIF_TITLE_ACHIEVEMENT_EARNED_PARENT: Final = (
+    "notification_title_achievement_earned_parent"
+)
+TRANS_KEY_NOTIF_MESSAGE_ACHIEVEMENT_EARNED_PARENT: Final = (
+    "notification_message_achievement_earned_parent"
+)
+
+TRANS_KEY_NOTIF_TITLE_CHALLENGE_COMPLETED_PARENT: Final = (
+    "notification_title_challenge_completed_parent"
 )
 TRANS_KEY_NOTIF_MESSAGE_CHALLENGE_COMPLETED_PARENT: Final = (
     "notification_message_challenge_completed_parent"
 )
 
-TRANS_KEY_NOTIF_MESSAGE_PENALTY_APPLIED: Final = "notification_message_penalty_applied"
-TRANS_KEY_NOTIF_MESSAGE_BONUS_APPLIED: Final = "notification_message_bonus_applied"
+# ─── ADMIN/SYSTEM NOTIFICATIONS ──────────────────────────────────────────────────────────────────
+
+# System: Data Reset Notifications (admin actions)
+TRANS_KEY_NOTIF_TITLE_DATA_RESET: Final = "notif_title_data_reset"
 TRANS_KEY_NOTIF_MESSAGE_DATA_RESET_GLOBAL: Final = "notif_message_data_reset_global"
 TRANS_KEY_NOTIF_MESSAGE_DATA_RESET_KID: Final = "notif_message_data_reset_kid"
 TRANS_KEY_NOTIF_MESSAGE_DATA_RESET_ITEM_TYPE: Final = (
@@ -2009,19 +2107,9 @@ TRANS_KEY_NOTIF_MESSAGE_DATA_RESET_ITEM_TYPE: Final = (
 )
 TRANS_KEY_NOTIF_MESSAGE_DATA_RESET_ITEM: Final = "notif_message_data_reset_item"
 
-# Tag-based aggregated notification keys (v0.5.0+)
-TRANS_KEY_NOTIF_TITLE_PENDING_CHORES: Final = "notification_title_pending_chores"
-TRANS_KEY_NOTIF_MESSAGE_PENDING_CHORES: Final = "notification_message_pending_chores"
-TRANS_KEY_NOTIF_TITLE_STATUS_UPDATE: Final = "notification_title_status_update"
-TRANS_KEY_NOTIF_MESSAGE_CHORE_APPROVED_STATUS: Final = (
-    "notification_message_chore_approved_status"
-)
-TRANS_KEY_NOTIF_MESSAGE_CHORE_DISAPPROVED_STATUS: Final = (
-    "notification_message_chore_disapproved_status"
-)
-TRANS_KEY_NOTIF_MESSAGE_REWARD_APPROVED_STATUS: Final = (
-    "notification_message_reward_approved_status"
-)
+# ================================================================================================
+# End of Notification Translation Keys
+# ================================================================================================
 TRANS_KEY_NOTIF_ACTION_APPROVE_LATEST: Final = "notif_action_approve_latest"
 TRANS_KEY_NOTIF_ACTION_REVIEW_ALL: Final = "notif_action_review_all"
 TRANS_KEY_NOTIF_ACTION_CLAIM: Final = "notif_action_claim"

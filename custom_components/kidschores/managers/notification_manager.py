@@ -1594,8 +1594,8 @@ class NotificationManager(BaseManager):
             extra_data = self.build_extra_data(kid_id, chore_id=chore_id)
             await self.notify_parents_translated(
                 kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_REMINDER,
-                message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_REMINDER,
+                title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_REMINDER_PARENT,
+                message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_REMINDER_PARENT,
                 message_data={
                     "chore_name": chore_info.get(
                         const.DATA_CHORE_NAME, const.DISPLAY_UNNAMED_CHORE
@@ -1638,8 +1638,8 @@ class NotificationManager(BaseManager):
             reward_name = reward_info.get(const.DATA_REWARD_NAME, "the reward")
             await self.notify_parents_translated(
                 kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_REWARD_REMINDER,
-                message_key=const.TRANS_KEY_NOTIF_MESSAGE_REWARD_REMINDER,
+                title_key=const.TRANS_KEY_NOTIF_TITLE_REWARD_REMINDER_PARENT,
+                message_key=const.TRANS_KEY_NOTIF_MESSAGE_REWARD_REMINDER_PARENT,
                 message_data={
                     "reward_name": reward_name,
                     "kid_name": kid_info.get(const.DATA_KID_NAME, "A kid"),
@@ -1695,7 +1695,7 @@ class NotificationManager(BaseManager):
         self.hass.async_create_task(
             self.notify_kid_translated(
                 kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_BADGE_EARNED,
+                title_key=const.TRANS_KEY_NOTIF_TITLE_BADGE_EARNED_KID,
                 message_key=const.TRANS_KEY_NOTIF_MESSAGE_BADGE_EARNED_KID,
                 message_data={"badge_name": badge_name},
                 extra_data=extra_data,
@@ -1706,7 +1706,7 @@ class NotificationManager(BaseManager):
         self.hass.async_create_task(
             self.notify_parents_translated(
                 kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_BADGE_EARNED,
+                title_key=const.TRANS_KEY_NOTIF_TITLE_BADGE_EARNED_PARENT,
                 message_key=const.TRANS_KEY_NOTIF_MESSAGE_BADGE_EARNED_PARENT,
                 message_data={"kid_name": kid_name, "badge_name": badge_name},
                 extra_data=extra_data,
@@ -1754,7 +1754,7 @@ class NotificationManager(BaseManager):
         self.hass.async_create_task(
             self.notify_kid_translated(
                 kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_ACHIEVEMENT_EARNED,
+                title_key=const.TRANS_KEY_NOTIF_TITLE_ACHIEVEMENT_EARNED_KID,
                 message_key=const.TRANS_KEY_NOTIF_MESSAGE_ACHIEVEMENT_EARNED_KID,
                 message_data={"achievement_name": achievement_name},
                 extra_data=extra_data,
@@ -1765,7 +1765,7 @@ class NotificationManager(BaseManager):
         self.hass.async_create_task(
             self.notify_parents_translated(
                 kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_ACHIEVEMENT_EARNED,
+                title_key=const.TRANS_KEY_NOTIF_TITLE_ACHIEVEMENT_EARNED_PARENT,
                 message_key=const.TRANS_KEY_NOTIF_MESSAGE_ACHIEVEMENT_EARNED_PARENT,
                 message_data={
                     "kid_name": kid_name,
@@ -1813,7 +1813,7 @@ class NotificationManager(BaseManager):
         self.hass.async_create_task(
             self.notify_kid_translated(
                 kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_CHALLENGE_COMPLETED,
+                title_key=const.TRANS_KEY_NOTIF_TITLE_CHALLENGE_COMPLETED_KID,
                 message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHALLENGE_COMPLETED_KID,
                 message_data={"challenge_name": challenge_name},
                 extra_data=extra_data,
@@ -1824,7 +1824,7 @@ class NotificationManager(BaseManager):
         self.hass.async_create_task(
             self.notify_parents_translated(
                 kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_CHALLENGE_COMPLETED,
+                title_key=const.TRANS_KEY_NOTIF_TITLE_CHALLENGE_COMPLETED_PARENT,
                 message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHALLENGE_COMPLETED_PARENT,
                 message_data={"kid_name": kid_name, "challenge_name": challenge_name},
                 extra_data=extra_data,
@@ -1905,8 +1905,8 @@ class NotificationManager(BaseManager):
             self.hass.async_create_task(
                 self.notify_parents_translated(
                     kid_id,
-                    title_key=const.TRANS_KEY_NOTIF_TITLE_PENDING_CHORES,
-                    message_key=const.TRANS_KEY_NOTIF_MESSAGE_PENDING_CHORES,
+                    title_key=const.TRANS_KEY_NOTIF_TITLE_PENDING_CHORES_PARENT,
+                    message_key=const.TRANS_KEY_NOTIF_MESSAGE_PENDING_CHORES_PARENT,
                     message_data={
                         "kid_name": kid_name,
                         "count": pending_count,
@@ -1924,8 +1924,8 @@ class NotificationManager(BaseManager):
             self.hass.async_create_task(
                 self.notify_parents_translated(
                     kid_id,
-                    title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_CLAIMED,
-                    message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_CLAIMED,
+                    title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_CLAIMED_PARENT,
+                    message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_CLAIMED_PARENT,
                     message_data={
                         "kid_name": kid_name,
                         "chore_name": chore_name,
@@ -2001,7 +2001,7 @@ class NotificationManager(BaseManager):
         self.hass.async_create_task(
             self.notify_parents_translated(
                 kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_REWARD_CLAIMED,
+                title_key=const.TRANS_KEY_NOTIF_TITLE_REWARD_CLAIMED_PARENT,
                 message_key=const.TRANS_KEY_NOTIF_MESSAGE_REWARD_CLAIMED_PARENT,
                 message_data={
                     "kid_name": kid_name,
@@ -2041,8 +2041,8 @@ class NotificationManager(BaseManager):
         self.hass.async_create_task(
             self.notify_kid_translated(
                 kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_REWARD_APPROVED,
-                message_key=const.TRANS_KEY_NOTIF_MESSAGE_REWARD_APPROVED,
+                title_key=const.TRANS_KEY_NOTIF_TITLE_REWARD_APPROVED_KID,
+                message_key=const.TRANS_KEY_NOTIF_MESSAGE_REWARD_APPROVED_KID,
                 message_data={"reward_name": reward_name},
                 extra_data=extra_data,
             )
@@ -2083,8 +2083,8 @@ class NotificationManager(BaseManager):
         self.hass.async_create_task(
             self.notify_kid_translated(
                 kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_REWARD_DISAPPROVED,
-                message_key=const.TRANS_KEY_NOTIF_MESSAGE_REWARD_DISAPPROVED,
+                title_key=const.TRANS_KEY_NOTIF_TITLE_REWARD_DISAPPROVED_KID,
+                message_key=const.TRANS_KEY_NOTIF_MESSAGE_REWARD_DISAPPROVED_KID,
                 message_data={"reward_name": reward_name},
                 extra_data=extra_data,
             )
@@ -2125,8 +2125,8 @@ class NotificationManager(BaseManager):
         self.hass.async_create_task(
             self.notify_kid_translated(
                 kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_DISAPPROVED,
-                message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_DISAPPROVED,
+                title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_DISAPPROVED_KID,
+                message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_DISAPPROVED_KID,
                 message_data={"chore_name": chore_name},
                 extra_data=extra_data,
             )
@@ -2215,8 +2215,8 @@ class NotificationManager(BaseManager):
         self.hass.async_create_task(
             self.notify_kid_translated(
                 kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_BONUS_APPLIED,
-                message_key=const.TRANS_KEY_NOTIF_MESSAGE_BONUS_APPLIED,
+                title_key=const.TRANS_KEY_NOTIF_TITLE_BONUS_APPLIED_KID,
+                message_key=const.TRANS_KEY_NOTIF_MESSAGE_BONUS_APPLIED_KID,
                 message_data={"bonus_name": bonus_name, "points": points},
                 extra_data=extra_data,
             )
@@ -2249,8 +2249,8 @@ class NotificationManager(BaseManager):
         self.hass.async_create_task(
             self.notify_kid_translated(
                 kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_PENALTY_APPLIED,
-                message_key=const.TRANS_KEY_NOTIF_MESSAGE_PENALTY_APPLIED,
+                title_key=const.TRANS_KEY_NOTIF_TITLE_PENALTY_APPLIED_KID,
+                message_key=const.TRANS_KEY_NOTIF_MESSAGE_PENALTY_APPLIED_KID,
                 message_data={"penalty_name": penalty_name, "points": points},
                 extra_data=extra_data,
             )
@@ -2310,8 +2310,8 @@ class NotificationManager(BaseManager):
         self.hass.async_create_task(
             self.notify_kid_translated(
                 kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_DUE_WINDOW,
-                message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_DUE_WINDOW,
+                title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_DUE_WINDOW_KID,
+                message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_DUE_WINDOW_KID,
                 message_data={
                     "chore_name": chore_name,
                     "hours": hours,
@@ -2377,12 +2377,12 @@ class NotificationManager(BaseManager):
             )
             return
 
-        # Notify kid with claim action (using legacy translation keys for backward compatibility)
+        # Notify kid with claim action
         self.hass.async_create_task(
             self.notify_kid_translated(
                 kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_DUE_SOON,
-                message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_DUE_SOON,
+                title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_DUE_REMINDER_KID,
+                message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_DUE_REMINDER_KID,
                 message_data={
                     "chore_name": chore_name,
                     "minutes": minutes,
@@ -2498,8 +2498,8 @@ class NotificationManager(BaseManager):
         self.hass.async_create_task(
             self.notify_kid_translated(
                 target_kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_OVERDUE,
-                message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_OVERDUE,
+                title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_OVERDUE_KID,
+                message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_OVERDUE_KID,
                 message_data={
                     "kid_name": kid_name,
                     "chore_name": chore_name,
@@ -2536,8 +2536,8 @@ class NotificationManager(BaseManager):
         self.hass.async_create_task(
             self.notify_parents_translated(
                 target_kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_OVERDUE,
-                message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_OVERDUE,
+                title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_OVERDUE_PARENT,
+                message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_OVERDUE_PARENT,
                 message_data={
                     "kid_name": original_kid_name,  # Use original kid name from payload
                     "chore_name": chore_name,
@@ -2623,8 +2623,8 @@ class NotificationManager(BaseManager):
         self.hass.async_create_task(
             self.notify_kid_translated(
                 kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_MISSED,
-                message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_MISSED,
+                title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_MISSED_KID,
+                message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_MISSED_KID,
                 message_data={
                     "kid_name": kid_name,
                     "chore_name": chore_name,
@@ -2658,8 +2658,8 @@ class NotificationManager(BaseManager):
         self.hass.async_create_task(
             self.notify_parents_translated(
                 kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_MISSED,
-                message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_MISSED,
+                title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_MISSED_KID,
+                message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_MISSED_KID,
                 message_data={
                     "kid_name": kid_name_payload,
                     "chore_name": chore_name,

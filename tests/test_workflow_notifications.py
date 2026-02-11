@@ -670,10 +670,10 @@ class TestDueDateReminders:
         ):
             await coordinator.chore_manager._on_periodic_update({})
 
-        # Verify reminder was sent
-        assert len(kid_notifications) > 0, "No due-soon reminder was sent"
+        # Verify reminder was sent (Phase 2: renamed due_soon → chore_due_reminder)
+        assert len(kid_notifications) > 0, "No due-reminder notification was sent"
         assert kid_notifications[0]["kid_id"] == kid_id
-        assert "due_soon" in kid_notifications[0]["title_key"].lower()
+        assert "chore_due_reminder" in kid_notifications[0]["title_key"].lower()
 
     @pytest.mark.asyncio
     async def test_due_soon_reminder_not_duplicated(
