@@ -1289,6 +1289,31 @@ def validate_chore_data(
             )
             return errors
 
+    # === V-03: Rotation requires ≥ 2 assigned kids ===
+    rotation_criteria = {
+        const.COMPLETION_CRITERIA_ROTATION_SIMPLE,
+        const.COMPLETION_CRITERIA_ROTATION_SMART,
+    }
+    if completion_criteria in rotation_criteria:
+        if len(assigned_kids) < 2:
+            errors[const.CFOP_ERROR_ASSIGNED_KIDS] = (
+                const.TRANS_KEY_ERROR_ROTATION_MIN_KIDS
+            )
+            return errors
+
+    # === V-05: at_due_date_allow_steal compatibility ===
+    if overdue_handling == const.OVERDUE_HANDLING_AT_DUE_DATE_ALLOW_STEAL:
+        # Must be a rotation chore
+        if (
+            completion_criteria not in rotation_criteria
+            or approval_reset != const.APPROVAL_RESET_AT_MIDNIGHT_ONCE
+            or not due_date_raw
+        ):
+            errors[const.CFOP_ERROR_OVERDUE_RESET_COMBO] = (
+                const.TRANS_KEY_CFOF_ERROR_ALLOW_STEAL_INCOMPATIBLE
+            )
+            return errors
+
     return errors
 
 
@@ -1535,8 +1560,8 @@ def build_chore(
                 const.COMPLETION_CRITERIA_INDEPENDENT,
             ),
             # Rotation tracking (v0.5.0 Chore Logic)
-            const.DATA_CHORE_ROTATION_TURN_HOLDER: get_field(
-                const.DATA_CHORE_ROTATION_TURN_HOLDER,
+            const.DATA_CHORE_ROTATION_CURRENT_KID_ID: get_field(
+                const.DATA_CHORE_ROTATION_CURRENT_KID_ID,
                 (
                     assigned_kids_value[0]
                     if (
@@ -1551,24 +1576,9 @@ def build_chore(
                     else None
                 ),
             ),
-            const.DATA_CHORE_ROTATION_ORDER: get_field(
-                const.DATA_CHORE_ROTATION_ORDER,
-                (
-                    list(assigned_kids_value)
-                    if (
-                        is_create
-                        and assigned_kids_value
-                        and completion_criteria_value
-                        in (
-                            const.COMPLETION_CRITERIA_ROTATION_SIMPLE,
-                            const.COMPLETION_CRITERIA_ROTATION_SMART,
-                        )
-                    )
-                    else []
-                ),
-            ),
-            const.DATA_CHORE_ROTATION_OVERRIDE_EXPIRES: get_field(
-                const.DATA_CHORE_ROTATION_OVERRIDE_EXPIRES, None
+            # rotation_order removed - unused field, assigned_kids defines order
+            const.DATA_CHORE_ROTATION_CYCLE_OVERRIDE: get_field(
+                const.DATA_CHORE_ROTATION_CYCLE_OVERRIDE, False
             ),
         },
     )

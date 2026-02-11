@@ -414,7 +414,6 @@ skip_chore_due_date:
       selector:
         boolean:
 
-
 remove_awarded_badges:
   name: "Remove Awarded Badges"
   description: >
@@ -918,6 +917,77 @@ delete_chore:
       name: "Chore Name"
       description: "Name of the chore to delete."
       example: "Clean Room"
+      required: false
+      selector:
+        text:
+
+set_rotation_turn:
+  name: "Set Rotation Turn"
+  description: "Manually assign the current turn to a specific kid in a rotation chore. Only works for rotation chores (rotation_simple or rotation_smart). Use either ID or name for identification."
+  fields:
+    chore_id:
+      name: "Chore ID"
+      description: "Internal ID of the rotation chore. Optional if chore_name is provided."
+      example: "abc123-def456-789..."
+      required: false
+      selector:
+        text:
+    chore_name:
+      name: "Chore Name"
+      description: "Name of the rotation chore. Optional if chore_id is provided."
+      example: "Clean Bedroom"
+      required: false
+      selector:
+        text:
+    kid_id:
+      name: "Kid ID"
+      description: "Internal ID of the kid to assign the turn to. Must be assigned to this chore. Optional if kid_name is provided."
+      example: "xyz789-abc123-456..."
+      required: false
+      selector:
+        text:
+    kid_name:
+      name: "Kid Name"
+      description: "Name of the kid to assign the turn to. Must be assigned to this chore. Optional if kid_id is provided."
+      example: "Alice"
+      required: false
+      selector:
+        text:
+
+reset_rotation:
+  name: "Reset Rotation"
+  description: "Reset rotation turn to the first assigned kid. Only works for rotation chores (rotation_simple or rotation_smart). Use either ID or name for identification."
+  fields:
+    chore_id:
+      name: "Chore ID"
+      description: "Internal ID of the rotation chore to reset. Optional if chore_name is provided."
+      example: "abc123-def456-789..."
+      required: false
+      selector:
+        text:
+    chore_name:
+      name: "Chore Name"
+      description: "Name of the rotation chore to reset. Optional if chore_id is provided."
+      example: "Clean Bedroom"
+      required: false
+      selector:
+        text:
+
+open_rotation_cycle:
+  name: "Open Rotation Cycle"
+  description: "Enable rotation cycle override for one cycle, allowing any assigned kid to claim regardless of turn. Override clears after next approval. Use either ID or name for identification."
+  fields:
+    chore_id:
+      name: "Chore ID"
+      description: "Internal ID of the rotation chore to open. Optional if chore_name is provided."
+      example: "abc123-def456-789..."
+      required: false
+      selector:
+        text:
+    chore_name:
+      name: "Chore Name"
+      description: "Name of the rotation chore to open. Optional if chore_id is provided."
+      example: "Clean Bedroom"
       required: false
       selector:
         text:

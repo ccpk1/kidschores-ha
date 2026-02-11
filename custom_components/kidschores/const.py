@@ -613,7 +613,7 @@ CFOF_CHORES_INPUT_APPLY_TIMES_TO_ALL: Final = "apply_times_to_all"  # PKAD-2026-
 CFOF_CHORES_INPUT_AUTO_APPROVE: Final = "auto_approve"
 CFOF_CHORES_INPUT_SHOW_ON_CALENDAR: Final = "show_on_calendar"
 CFOF_CHORES_INPUT_NOTIFICATIONS: Final = "chore_notifications"
-CFOF_CHORES_INPUT_ROTATION_ORDER: Final = "rotation_order"  # v0.5.0
+# rotation_order removed - unused field, assigned_kids defines order
 
 # BADGES
 CFOF_BADGES_INPUT_ASSIGNED_KIDS: Final = "assigned_kids"
@@ -1414,9 +1414,10 @@ DATA_CHORE_SHOW_ON_CALENDAR: Final = "show_on_calendar"
 DATA_CHORE_COMPLETION_CRITERIA: Final = "completion_criteria"
 
 # Rotation tracking (v0.5.0 Chore Logic)
-DATA_CHORE_ROTATION_TURN_HOLDER: Final = "rotation_turn_holder"  # kid_id
-DATA_CHORE_ROTATION_ORDER: Final = "rotation_order"  # list[kid_id]
-DATA_CHORE_ROTATION_OVERRIDE_EXPIRES: Final = "rotation_override_expires"  # ISO dt
+DATA_CHORE_ROTATION_CURRENT_KID_ID: Final = (
+    "rotation_current_kid_id"  # UUID of current turn holder
+)
+DATA_CHORE_ROTATION_CYCLE_OVERRIDE: Final = "rotation_cycle_override"  # Boolean: temp allow any kid to claim (cleared on advancement)
 
 DATA_CHORE_PER_KID_DUE_DATES: Final = "per_kid_due_dates"
 DATA_CHORE_PER_KID_APPLICABLE_DAYS: Final = "per_kid_applicable_days"  # PKAD-2026-001
@@ -1436,8 +1437,8 @@ COMPLETION_CRITERIA_SHARED_FIRST: Final = "shared_first"
 COMPLETION_CRITERIA_ROTATION_SIMPLE: Final = "rotation_simple"
 COMPLETION_CRITERIA_ROTATION_SMART: Final = "rotation_smart"
 COMPLETION_CRITERIA_OPTIONS: Final = [
-    {"value": COMPLETION_CRITERIA_SHARED, "label": "shared_all"},
     {"value": COMPLETION_CRITERIA_INDEPENDENT, "label": "independent"},
+    {"value": COMPLETION_CRITERIA_SHARED, "label": "shared_all"},
     {"value": COMPLETION_CRITERIA_SHARED_FIRST, "label": "shared_first"},
     {"value": COMPLETION_CRITERIA_ROTATION_SIMPLE, "label": "rotation_simple"},
     {"value": COMPLETION_CRITERIA_ROTATION_SMART, "label": "rotation_smart"},
@@ -1481,15 +1482,15 @@ OVERDUE_HANDLING_AT_DUE_DATE_ALLOW_STEAL: Final = (
     "at_due_date_allow_steal"  # v0.5.0: Rotation steal window (7th type, D-06 revised)
 )
 OVERDUE_HANDLING_TYPE_OPTIONS: Final = [
-    {"value": OVERDUE_HANDLING_AT_DUE_DATE, "label": "at_due_date"},
     {"value": OVERDUE_HANDLING_NEVER_OVERDUE, "label": "never_overdue"},
-    {
-        "value": OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_AT_APPROVAL_RESET,
-        "label": "at_due_date_clear_at_approval_reset",
-    },
+    {"value": OVERDUE_HANDLING_AT_DUE_DATE, "label": "at_due_date"},
     {
         "value": OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_IMMEDIATE_ON_LATE,
         "label": "at_due_date_clear_immediate_on_late",
+    },
+    {
+        "value": OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_AT_APPROVAL_RESET,
+        "label": "at_due_date_clear_at_approval_reset",
     },
     {
         "value": OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_AND_MARK_MISSED,
@@ -1514,14 +1515,16 @@ APPROVAL_RESET_PENDING_CLAIM_HOLD: Final = "hold_pending"
 APPROVAL_RESET_PENDING_CLAIM_CLEAR: Final = "clear_pending"
 APPROVAL_RESET_PENDING_CLAIM_AUTO_APPROVE: Final = "auto_approve_pending"
 APPROVAL_RESET_PENDING_CLAIM_ACTION_OPTIONS: Final = [
-    {"value": APPROVAL_RESET_PENDING_CLAIM_HOLD, "label": "hold_pending"},
-    {"value": APPROVAL_RESET_PENDING_CLAIM_CLEAR, "label": "clear_pending"},
     {
         "value": APPROVAL_RESET_PENDING_CLAIM_AUTO_APPROVE,
         "label": "auto_approve_pending",
     },
+    {"value": APPROVAL_RESET_PENDING_CLAIM_CLEAR, "label": "clear_pending"},
+    {"value": APPROVAL_RESET_PENDING_CLAIM_HOLD, "label": "hold_pending"},
 ]
-DEFAULT_APPROVAL_RESET_PENDING_CLAIM_ACTION: Final = APPROVAL_RESET_PENDING_CLAIM_CLEAR
+DEFAULT_APPROVAL_RESET_PENDING_CLAIM_ACTION: Final = (
+    APPROVAL_RESET_PENDING_CLAIM_AUTO_APPROVE
+)
 
 DATA_CHORE_STATE: Final = "state"
 DATA_CHORE_TIMESTAMP: Final = "timestamp"
@@ -2132,10 +2135,7 @@ ATTR_BADGE_AWARDS: Final = "awards"
 ATTR_BONUS_BUTTON_EID: Final = "bonus_button_eid"
 ATTR_CAN_APPROVE: Final = "can_approve"
 ATTR_CAN_CLAIM: Final = "can_claim"
-# Rotation UI attributes (v0.5.0 Chore Logic)
-ATTR_ROTATION_TURN_HOLDER: Final = "rotation_turn_holder"
-ATTR_ROTATION_ORDER: Final = "rotation_order"
-ATTR_ROTATION_OVERRIDE_ACTIVE: Final = "rotation_override_active"
+# Rotation UI attributes removed - not exposed in entity attributes
 ATTR_CLAIMED_BY: Final = "claimed_by"
 ATTR_COMPLETED_BY: Final = "completed_by"
 ATTR_ASSIGNED_KIDS: Final = "assigned_kids"
@@ -2376,6 +2376,11 @@ ATTR_CHORE_DUE_DATE: Final = "due_date"
 ATTR_CHORE_IS_TODAY_AM: Final = "is_today_am"
 ATTR_CHORE_LABELS: Final = "labels"
 ATTR_CHORE_PRIMARY_GROUP: Final = "primary_group"
+
+# Phase 4: Rotation and availability dashboard attributes
+ATTR_CHORE_LOCK_REASON: Final = "lock_reason"
+ATTR_CHORE_TURN_KID_NAME: Final = "turn_kid_name"
+ATTR_CHORE_AVAILABLE_AT: Final = "available_at"
 
 # Common attributes for chores and rewards in dashboard helper
 ATTR_EID: Final = "eid"
@@ -2642,6 +2647,10 @@ SERVICE_RESET_OVERDUE_CHORES: Final = "reset_overdue_chores"
 SERVICE_RESET_TRANSACTIONAL_DATA: Final = "reset_transactional_data"
 SERVICE_SET_CHORE_DUE_DATE: Final = "set_chore_due_date"
 SERVICE_SKIP_CHORE_DUE_DATE: Final = "skip_chore_due_date"
+# Phase 3 Step 7 - Rotation management services (v0.5.0)
+SERVICE_SET_ROTATION_TURN: Final = "set_rotation_turn"
+SERVICE_RESET_ROTATION: Final = "reset_rotation"
+SERVICE_OPEN_ROTATION_CYCLE: Final = "open_rotation_cycle"
 SERVICE_MANAGE_SHADOW_LINK: Final = "manage_shadow_link"
 SERVICE_UPDATE_CHORE: Final = "update_chore"
 SERVICE_UPDATE_REWARD: Final = "update_reward"
@@ -3035,9 +3044,18 @@ TRANS_KEY_ERROR_ROTATION_NO_TURN_HOLDER: Final = "rotation_no_turn_holder"
 TRANS_KEY_ERROR_ROTATION_INVALID_ORDER: Final = "rotation_invalid_order"
 TRANS_KEY_ERROR_ROTATION_DUPLICATE_IN_ORDER: Final = "rotation_duplicate_in_order"
 TRANS_KEY_ERROR_ROTATION_UNASSIGNED_IN_ORDER: Final = "rotation_unassigned_in_order"
-TRANS_KEY_SERVICE_ADVANCE_ROTATION: Final = "advance_rotation"
-TRANS_KEY_SERVICE_OVERRIDE_ROTATION_TURN: Final = "override_rotation_turn"
-TRANS_KEY_SERVICE_CLEAR_ROTATION_OVERRIDE: Final = "clear_rotation_override"
+TRANS_KEY_ERROR_ROTATION_MIN_KIDS: Final = (
+    "rotation_min_kids"  # Rotation chores require at least 2 assigned kids
+)
+# Phase 3 Step 7 - Rotation management service error keys (v0.5.0)
+TRANS_KEY_ERROR_NOT_ROTATION: Final = "not_rotation"  # Chore is not in rotation mode
+TRANS_KEY_ERROR_KID_NOT_ASSIGNED: Final = (
+    "kid_not_assigned"  # Kid not assigned to this chore
+)
+TRANS_KEY_ERROR_NO_ASSIGNED_KIDS: Final = (
+    "no_assigned_kids"  # No kids assigned to chore
+)
+# Translation keys for non-existent services removed (advance_rotation, clear_rotation_override)
 
 TRANS_KEY_ERROR_COMPLETION_CRITERIA_IMMUTABLE: Final = (
     "completion_criteria_immutable"  # REMOVED in D-11: criteria IS mutable
@@ -3163,6 +3181,8 @@ CFOP_ERROR_DAILY_MULTI_DUE_DATE: Final = "due_date"  # Uses due_date field
 CFOP_ERROR_AT_DUE_DATE_RESET_REQUIRES_DUE_DATE: Final = (
     "due_date"  # AT_DUE_DATE_* reset types require due date
 )
+# v0.5.0: Additional validation error field mappings
+CFOP_ERROR_COMPLETION_CRITERIA: Final = "completion_criteria"
 
 
 # ------------------------------------------------------------------------------------------------
@@ -3322,6 +3342,8 @@ TRANS_KEY_CFOF_ERROR_DAILY_MULTI_TIMES_TOO_FEW: Final = (
 TRANS_KEY_CFOF_ERROR_DAILY_MULTI_TIMES_TOO_MANY: Final = (
     "error_daily_multi_times_too_many"
 )
+# v0.5.0: V-05 validation error - steal mechanic compatibility
+TRANS_KEY_CFOF_ERROR_ALLOW_STEAL_INCOMPATIBLE: Final = "error_allow_steal_incompatible"  # V-05: steal requires rotation + at_midnight_once + due_date
 TRANS_KEY_CFOF_ERROR_DAILY_MULTI_DUE_DATE_REQUIRED: Final = (
     "error_daily_multi_due_date_required"
 )
@@ -3624,6 +3646,8 @@ NOTIFY_TAG_TYPE_PENDING = "pending"  # Pending chore approvals
 NOTIFY_TAG_TYPE_REWARDS = "rewards"  # Reward claims pending
 NOTIFY_TAG_TYPE_SYSTEM = "system"  # System notifications (achievements, etc.)
 NOTIFY_TAG_TYPE_STATUS = "status"  # Status update replacements
+NOTIFY_TAG_TYPE_OVERDUE = "overdue"  # Overdue chore notifications
+NOTIFY_TAG_TYPE_DUE_WINDOW = "due_window"  # Due window chore notifications
 
 
 # ------------------------------------------------------------------------------------------------

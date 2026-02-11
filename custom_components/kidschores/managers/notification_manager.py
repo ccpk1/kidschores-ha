@@ -181,6 +181,8 @@ class NotificationManager(BaseManager):
             const.SIGNAL_SUFFIX_CHORE_DUE_REMINDER, self._handle_chore_due_reminder
         )
         self.listen(const.SIGNAL_SUFFIX_CHORE_OVERDUE, self._handle_chore_overdue)
+        # Phase 3 Step 9: Missed lock notification (v0.5.0)
+        self.listen(const.SIGNAL_SUFFIX_CHORE_MISSED, self._handle_chore_missed)
 
         # DELETED events - clear ghost notifications (Phase 7.3.7)
         self.listen(const.SIGNAL_SUFFIX_CHORE_DELETED, self._handle_chore_deleted)
@@ -885,7 +887,12 @@ class NotificationManager(BaseManager):
         # Build notification tag if tag_type provided
         notification_tag = None
         if tag_type:
-            identifiers = tag_identifiers if tag_identifiers else (kid_id,)
+            # Multi-instance support: always include entry_id as first identifier
+            base_identifiers = (self.entry_id,)
+            if tag_identifiers:
+                identifiers = (*base_identifiers, *tag_identifiers)
+            else:
+                identifiers = (*base_identifiers, kid_id)
             notification_tag = self.build_notification_tag(tag_type, *identifiers)
             const.LOGGER.debug(
                 "Using notification tag '%s' for kid %s",
@@ -1109,7 +1116,12 @@ class NotificationManager(BaseManager):
         # Build notification tag if tag_type provided
         notification_tag = None
         if tag_type:
-            identifiers = tag_identifiers if tag_identifiers else (kid_id,)
+            # Multi-instance support: always include entry_id as first identifier
+            base_identifiers = (self.entry_id,)
+            if tag_identifiers:
+                identifiers = (*base_identifiers, *tag_identifiers)
+            else:
+                identifiers = (*base_identifiers, kid_id)
             notification_tag = self.build_notification_tag(tag_type, *identifiers)
             const.LOGGER.debug(
                 "Using notification tag '%s' for identifiers %s",
@@ -1394,8 +1406,10 @@ class NotificationManager(BaseManager):
             tag_type: Tag type constant (e.g., NOTIFY_TAG_TYPE_STATUS)
             item_id: The Chore/Reward Item ID (UUID) to include in the tag
         """
-        # Build the tag for this item
-        notification_tag = self.build_notification_tag(tag_type, item_id, kid_id)
+        # Build the tag for this item (multi-instance support: entry_id, item_id, kid_id)
+        notification_tag = self.build_notification_tag(
+            tag_type, self.entry_id, item_id, kid_id
+        )
 
         const.LOGGER.debug(
             "Clearing notification with tag '%s' for kid '%s'",
@@ -1470,7 +1484,9 @@ class NotificationManager(BaseManager):
             )
             return
 
-        service_name = kid_info[const.DATA_KID_MOBILE_NOTIFY_SERVICE]
+        service_name = kid_info[const.DATA_KID_MOBILE_NOTIFY_SERVICE].removeprefix(
+            "notify."
+        )
 
         service_data: dict[str, Any] = {
             "message": "clear_notification",
@@ -1927,10 +1943,10 @@ class NotificationManager(BaseManager):
         # Auto-clear: Remove overdue and due window notifications for kid
         # when they claim the chore (v0.5.0+ auto-clearing functionality)
         overdue_tag = self.build_notification_tag(
-            const.NOTIFY_TAG_TYPE_OVERDUE, chore_id
+            const.NOTIFY_TAG_TYPE_OVERDUE, self.entry_id, chore_id, kid_id
         )
         due_window_tag = self.build_notification_tag(
-            const.NOTIFY_TAG_TYPE_DUE_WINDOW, chore_id
+            const.NOTIFY_TAG_TYPE_DUE_WINDOW, self.entry_id, chore_id, kid_id
         )
 
         self.hass.async_create_task(
@@ -2159,10 +2175,10 @@ class NotificationManager(BaseManager):
 
         # Clear overdue/due window notifications for kid
         overdue_tag = self.build_notification_tag(
-            const.NOTIFY_TAG_TYPE_OVERDUE, chore_id
+            const.NOTIFY_TAG_TYPE_OVERDUE, self.entry_id, chore_id, kid_id
         )
         due_window_tag = self.build_notification_tag(
-            const.NOTIFY_TAG_TYPE_DUE_WINDOW, chore_id
+            const.NOTIFY_TAG_TYPE_DUE_WINDOW, self.entry_id, chore_id, kid_id
         )
 
         self.hass.async_create_task(
@@ -2266,6 +2282,20 @@ class NotificationManager(BaseManager):
         if not kid_id or not chore_id:
             return
 
+        # Phase 3 Step 9: Filter rotation chores - only notify turn-holder
+        chore_info: ChoreData | None = self.coordinator.chores_data.get(chore_id)
+        if chore_info and ChoreEngine.is_rotation_mode(chore_info):
+            current_turn_kid = chore_info.get(const.DATA_CHORE_ROTATION_CURRENT_KID_ID)
+            if current_turn_kid != kid_id:
+                const.LOGGER.debug(
+                    "NotificationManager: Skipping due window notification for rotation chore=%s "
+                    "(not_my_turn: current turn is kid=%s, not %s)",
+                    chore_name,
+                    current_turn_kid,
+                    kid_id,
+                )
+                return
+
         # Schedule-Lock: Check if already notified this period
         if not self._should_send_chore_notification(kid_id, chore_id, "due_start"):
             const.LOGGER.debug(
@@ -2323,6 +2353,20 @@ class NotificationManager(BaseManager):
         if not kid_id or not chore_id:
             return
 
+        # Phase 3 Step 9: Filter rotation chores - only notify turn-holder
+        chore_info: ChoreData | None = self.coordinator.chores_data.get(chore_id)
+        if chore_info and ChoreEngine.is_rotation_mode(chore_info):
+            current_turn_kid = chore_info.get(const.DATA_CHORE_ROTATION_CURRENT_KID_ID)
+            if current_turn_kid != kid_id:
+                const.LOGGER.debug(
+                    "NotificationManager: Skipping due reminder notification for rotation chore=%s "
+                    "(not_my_turn: current turn is kid=%s, not %s)",
+                    chore_name,
+                    current_turn_kid,
+                    kid_id,
+                )
+                return
+
         # Schedule-Lock: Check if already notified this period
         if not self._should_send_chore_notification(kid_id, chore_id, "due_reminder"):
             const.LOGGER.debug(
@@ -2362,6 +2406,8 @@ class NotificationManager(BaseManager):
     def _handle_chore_overdue(self, payload: dict[str, Any]) -> None:
         """Handle CHORE_OVERDUE event - notify kid and parents with actions.
 
+        For rotation chores, notifies ALL assigned kids (steal mechanic).
+        For regular chores, notifies only the target kid.
         Uses Schedule-Lock pattern to prevent duplicate notifications within same period.
 
         Args:
@@ -2394,10 +2440,166 @@ class NotificationManager(BaseManager):
             )
             return
 
+        # For rotation chores, notify ALL assigned kids (steal mechanic)
+        # For regular chores, notify only the original kid
+        if chore_info and ChoreEngine.is_rotation_mode(chore_info):
+            kids_assigned = chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
+            const.LOGGER.debug(
+                "NotificationManager: Rotation chore overdue - notifying all %d assigned kids",
+                len(kids_assigned),
+            )
+
+            # Send to all assigned kids
+            for target_kid_id in kids_assigned:
+                self._send_overdue_notification_to_kid(
+                    target_kid_id, chore_id, chore_name, due_date, payload
+                )
+        else:
+            # Regular chore - send to original kid only
+            self._send_overdue_notification_to_kid(
+                kid_id, chore_id, chore_name, due_date, payload
+            )
+
+    def _send_overdue_notification_to_kid(
+        self,
+        target_kid_id: str,
+        chore_id: str,
+        chore_name: str,
+        due_date: str,
+        payload: dict[str, Any],
+    ) -> None:
+        """Send overdue notification to a specific kid with Schedule-Lock protection."""
         # Schedule-Lock: Check if already notified this period
-        if not self._should_send_chore_notification(kid_id, chore_id, "overdue"):
+        if not self._should_send_chore_notification(target_kid_id, chore_id, "overdue"):
             const.LOGGER.debug(
                 "NotificationManager: Suppressing overdue notification (Schedule-Lock) "
+                "for chore=%s to kid=%s",
+                chore_name,
+                target_kid_id,
+            )
+            return
+
+        # Get kid's language for datetime formatting
+        kid_info: KidData = cast(
+            "KidData", self.coordinator.kids_data.get(target_kid_id, {})
+        )
+        kid_language = kid_info.get(
+            const.DATA_KID_DASHBOARD_LANGUAGE, self.hass.config.language
+        )
+
+        # Convert UTC ISO string to local datetime for display
+        due_dt = dt_to_utc(due_date) if due_date else None
+        formatted_due_date = dt_format_short(due_dt, language=kid_language)
+
+        # Get kid's name for notification message
+        kid_name = kid_info.get(const.DATA_KID_NAME, "Unknown Kid")
+
+        # Notify kid with claim action (using tag for smart replacement)
+        self.hass.async_create_task(
+            self.notify_kid_translated(
+                target_kid_id,
+                title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_OVERDUE,
+                message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_OVERDUE,
+                message_data={
+                    "kid_name": kid_name,
+                    "chore_name": chore_name,
+                    "due_date": formatted_due_date,
+                },
+                actions=self.build_claim_action(target_kid_id, chore_id, self.entry_id),
+                tag_type=const.NOTIFY_TAG_TYPE_STATUS,
+                tag_identifiers=(chore_id, target_kid_id),
+            )
+        )
+
+        # Build parent actions
+        parent_actions: list[dict[str, str]] = []
+        parent_actions.extend(self.build_complete_action(target_kid_id, chore_id))
+        parent_actions.extend(self.build_skip_action(target_kid_id, chore_id))
+        parent_actions.extend(self.build_remind_action(target_kid_id, chore_id))
+
+        # Get kid name from payload (ChoreManager always provides it)
+        original_kid_name = payload.get("kid_name", "")
+        if not original_kid_name:
+            const.LOGGER.error(
+                "CHORE_OVERDUE notification missing kid_name in payload for target_kid=%s, chore_id=%s",
+                target_kid_id,
+                chore_id,
+            )
+            return
+
+        # Get parent's language for datetime formatting
+        # Note: notify_parents_translated handles per-parent language internally,
+        # but we format with system default here since the message_data is shared
+        parent_language = self.hass.config.language
+        formatted_due_date_parent = dt_format_short(due_dt, language=parent_language)
+
+        self.hass.async_create_task(
+            self.notify_parents_translated(
+                target_kid_id,
+                title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_OVERDUE,
+                message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_OVERDUE,
+                message_data={
+                    "kid_name": original_kid_name,  # Use original kid name from payload
+                    "chore_name": chore_name,
+                    "due_date": formatted_due_date_parent,
+                },
+                actions=parent_actions,
+                tag_type=const.NOTIFY_TAG_TYPE_STATUS,
+                tag_identifiers=(chore_id, target_kid_id),
+            )
+        )
+
+        # Record notification sent (persists to storage)
+        self._record_chore_notification_sent(target_kid_id, chore_id, "overdue")
+
+        const.LOGGER.debug(
+            "NotificationManager: Sent overdue notification for chore=%s to kid=%s and parents",
+            chore_name,
+            target_kid_id,
+        )
+
+    @callback
+    def _handle_chore_missed(self, payload: dict[str, Any]) -> None:
+        """Handle CHORE_MISSED event - notify kid and parents when chore locked due to missed.
+
+        Phase 3 Step 9 (v0.5.0): Missed lock notifications
+        Triggered when rotation chore with at_due_date_mark_missed_and_lock reaches due date.
+        Uses overdue notification flag (notify_on_overdue) to gate both overdue and missed.
+
+        Args:
+            payload: Event data containing kid_id, chore_id, chore_name, due_date
+        """
+        kid_id = payload.get("kid_id", "")
+        chore_id = payload.get("chore_id", "")
+        chore_name = payload.get("chore_name", "Unknown Chore")
+        due_date = payload.get("due_date", "")
+
+        if not kid_id or not chore_id:
+            return
+
+        # Check if overdue notifications are enabled (gates both overdue and missed)
+        chore_info: ChoreData | None = self.coordinator.chores_data.get(chore_id)
+        if not chore_info:
+            const.LOGGER.warning(
+                "Chore ID '%s' not found during missed notification check",
+                chore_id,
+            )
+            return
+
+        if not chore_info.get(
+            const.DATA_CHORE_NOTIFY_ON_OVERDUE,
+            const.DEFAULT_NOTIFY_ON_OVERDUE,
+        ):
+            const.LOGGER.debug(
+                "Missed notifications disabled for Chore ID '%s' (notify_on_overdue=False). Skipping",
+                chore_id,
+            )
+            return
+
+        # Schedule-Lock: Check if already notified this period
+        if not self._should_send_chore_notification(kid_id, chore_id, "missed"):
+            const.LOGGER.debug(
+                "NotificationManager: Suppressing missed notification (Schedule-Lock) "
                 "for chore=%s to kid=%s",
                 chore_name,
                 kid_id,
@@ -2417,52 +2619,49 @@ class NotificationManager(BaseManager):
         # Get kid's name for notification message
         kid_name = kid_info.get(const.DATA_KID_NAME, "Unknown Kid")
 
-        # Notify kid with claim action (using tag for smart replacement)
+        # Notify kid (NO claim action - chore is locked)
         self.hass.async_create_task(
             self.notify_kid_translated(
                 kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_OVERDUE,
-                message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_OVERDUE,
+                title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_MISSED,
+                message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_MISSED,
                 message_data={
                     "kid_name": kid_name,
                     "chore_name": chore_name,
                     "due_date": formatted_due_date,
                 },
-                actions=self.build_claim_action(kid_id, chore_id, self.entry_id),
+                actions=None,  # No actions - chore is locked
                 tag_type=const.NOTIFY_TAG_TYPE_STATUS,
                 tag_identifiers=(chore_id, kid_id),
             )
         )
 
-        # Build parent actions
+        # Build parent actions (complete/skip still available for parents)
         parent_actions: list[dict[str, str]] = []
         parent_actions.extend(self.build_complete_action(kid_id, chore_id))
         parent_actions.extend(self.build_skip_action(kid_id, chore_id))
-        parent_actions.extend(self.build_remind_action(kid_id, chore_id))
 
         # Get kid name from payload (ChoreManager always provides it)
-        kid_name = payload.get("kid_name", "")
-        if not kid_name:
+        kid_name_payload = payload.get("kid_name", "")
+        if not kid_name_payload:
             const.LOGGER.error(
-                "CHORE_OVERDUE notification missing kid_name in payload for kid_id=%s, chore_id=%s",
+                "CHORE_MISSED notification missing kid_name in payload for kid_id=%s, chore_id=%s",
                 kid_id,
                 chore_id,
             )
             return
 
-        # Get parent's language for datetime formatting
-        # Note: notify_parents_translated handles per-parent language internally,
-        # but we format with system default here since the message_data is shared
+        # Format due date for parents
         parent_language = self.hass.config.language
         formatted_due_date_parent = dt_format_short(due_dt, language=parent_language)
 
         self.hass.async_create_task(
             self.notify_parents_translated(
                 kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_OVERDUE,
-                message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_OVERDUE,
+                title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_MISSED,
+                message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_MISSED,
                 message_data={
-                    "kid_name": kid_name,
+                    "kid_name": kid_name_payload,
                     "chore_name": chore_name,
                     "due_date": formatted_due_date_parent,
                 },
@@ -2473,10 +2672,10 @@ class NotificationManager(BaseManager):
         )
 
         # Record notification sent (persists to storage)
-        self._record_chore_notification_sent(kid_id, chore_id, "overdue")
+        self._record_chore_notification_sent(kid_id, chore_id, "missed")
 
         const.LOGGER.debug(
-            "NotificationManager: Sent overdue notification for chore=%s to kid=%s and parents",
+            "NotificationManager: Sent missed notification for chore=%s to kid=%s and parents",
             chore_name,
             kid_id,
         )

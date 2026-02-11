@@ -281,6 +281,8 @@ _COMPLETION_CRITERIA_VALUES = [
     const.COMPLETION_CRITERIA_INDEPENDENT,
     const.COMPLETION_CRITERIA_SHARED_FIRST,
     const.COMPLETION_CRITERIA_SHARED,
+    const.COMPLETION_CRITERIA_ROTATION_SIMPLE,
+    const.COMPLETION_CRITERIA_ROTATION_SMART,
 ]
 
 _APPROVAL_RESET_VALUES = [
@@ -351,11 +353,14 @@ CREATE_CHORE_SCHEMA = vol.Schema(
 )
 
 # NOTE: Either chore_id OR name must be provided (resolved in handler)
-# completion_criteria is NOT allowed in update (immutable after creation)
+# completion_criteria IS allowed in update (mutable, with transition handling in Manager)
 UPDATE_CHORE_SCHEMA = vol.Schema(
     {
         vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_ID): cv.string,
         vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_NAME): cv.string,
+        vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_COMPLETION_CRITERIA): vol.In(
+            _COMPLETION_CRITERIA_VALUES
+        ),
         vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_ASSIGNED_KIDS): vol.All(
             cv.ensure_list, [cv.string]
         ),
@@ -431,6 +436,40 @@ _SERVICE_TO_REWARD_DATA_MAPPING: dict[str, str] = {
     const.SERVICE_FIELD_REWARD_CRUD_ICON: const.DATA_REWARD_ICON,
     const.SERVICE_FIELD_REWARD_CRUD_LABELS: const.DATA_REWARD_LABELS,
 }
+
+# ==============================================================================
+# ROTATION MANAGEMENT SCHEMAS (Phase 3 Step 7 - v0.5.0)
+# ==============================================================================
+
+# Set rotation turn to specific kid
+SET_ROTATION_TURN_SCHEMA = vol.Schema(
+    {
+        # Either chore_id OR chore_name required
+        vol.Optional(const.SERVICE_FIELD_CHORE_ID): cv.string,
+        vol.Optional(const.SERVICE_FIELD_CHORE_NAME): cv.string,
+        # Either kid_id OR kid_name required
+        vol.Optional(const.SERVICE_FIELD_KID_ID): cv.string,
+        vol.Optional(const.SERVICE_FIELD_KID_NAME): cv.string,
+    }
+)
+
+# Reset rotation to first assigned kid
+RESET_ROTATION_SCHEMA = vol.Schema(
+    {
+        # Either chore_id OR chore_name required
+        vol.Optional(const.SERVICE_FIELD_CHORE_ID): cv.string,
+        vol.Optional(const.SERVICE_FIELD_CHORE_NAME): cv.string,
+    }
+)
+
+# Open rotation cycle (allow any kid to claim once)
+OPEN_ROTATION_CYCLE_SCHEMA = vol.Schema(
+    {
+        # Either chore_id OR chore_name required
+        vol.Optional(const.SERVICE_FIELD_CHORE_ID): cv.string,
+        vol.Optional(const.SERVICE_FIELD_CHORE_NAME): cv.string,
+    }
+)
 
 
 def _map_service_to_data_keys(
@@ -727,7 +766,7 @@ def async_setup_services(hass: HomeAssistant):
         - name: User-friendly, looks up ID by name (recommended)
         - id: Direct UUID for advanced automation use
 
-        IMPORTANT: completion_criteria cannot be changed after creation.
+        Supports criteria transitions with automatic field cleanup via Manager.
 
         Args:
             call: Service call with chore identifier and optional update fields
@@ -780,13 +819,6 @@ def async_setup_services(hass: HomeAssistant):
             )
 
         existing_chore = coordinator.chores_data[chore_id]
-
-        # Block completion_criteria changes (immutable after creation)
-        if const.SERVICE_FIELD_CHORE_CRUD_COMPLETION_CRITERIA in call.data:
-            raise HomeAssistantError(
-                translation_domain=const.DOMAIN,
-                translation_key=const.TRANS_KEY_ERROR_COMPLETION_CRITERIA_IMMUTABLE,
-            )
 
         # Build data input, excluding name if it was used for lookup
         service_data = dict(call.data)
@@ -1018,19 +1050,45 @@ def async_setup_services(hass: HomeAssistant):
         coordinator = _get_coordinator_by_entry_id(hass, entry_id)
         user_id = call.context.user_id
         parent_name = call.data[const.FIELD_PARENT_NAME]
-        kid_name = call.data[const.FIELD_KID_NAME]
-        chore_name = call.data[const.FIELD_CHORE_NAME]
         points_awarded = call.data.get(const.FIELD_POINTS_AWARDED)
 
-        # Map kid_name and chore_name to internal_ids
-        try:
-            kid_id = get_item_id_or_raise(coordinator, const.ENTITY_TYPE_KID, kid_name)
-            chore_id = get_item_id_or_raise(
-                coordinator, const.ENTITY_TYPE_CHORE, chore_name
-            )
-        except HomeAssistantError as err:
-            const.LOGGER.warning("Approve Chore: %s", err)
-            raise
+        # Resolve kid_id (either from kid_id or kid_name)
+        kid_id = call.data.get(const.SERVICE_FIELD_KID_ID)
+        kid_name = call.data.get(const.SERVICE_FIELD_KID_NAME)
+
+        if not kid_id and not kid_name:
+            raise HomeAssistantError("Either kid_id or kid_name must be provided")
+
+        if kid_name and not kid_id:
+            try:
+                kid_id = get_item_id_or_raise(
+                    coordinator, const.ENTITY_TYPE_KID, kid_name
+                )
+            except HomeAssistantError as err:
+                const.LOGGER.warning("Approve Chore: %s", err)
+                raise
+
+        # Resolve chore_id (either from chore_id or chore_name)
+        chore_id = call.data.get(const.SERVICE_FIELD_CHORE_ID)
+        chore_name = call.data.get(const.SERVICE_FIELD_CHORE_NAME)
+
+        if not chore_id and not chore_name:
+            raise HomeAssistantError("Either chore_id or chore_name must be provided")
+
+        if chore_name and not chore_id:
+            try:
+                chore_id = get_item_id_or_raise(
+                    coordinator, const.ENTITY_TYPE_CHORE, chore_name
+                )
+            except HomeAssistantError as err:
+                const.LOGGER.warning("Approve Chore: %s", err)
+                raise
+
+        # Ensure IDs are resolved (type safety)
+        if not kid_id:
+            raise HomeAssistantError("Could not resolve kid_id")
+        if not chore_id:
+            raise HomeAssistantError("Could not resolve chore_id")
 
         # Check if user is authorized
         if user_id and not await is_user_authorized_for_global_action(
@@ -2068,6 +2126,150 @@ def async_setup_services(hass: HomeAssistant):
     )
 
     # ==========================================================================
+    # ROTATION MANAGEMENT SERVICE HANDLERS (Phase 3 Step 7 - v0.5.0)
+    # ==========================================================================
+
+    async def handle_set_rotation_turn(call: ServiceCall) -> None:
+        """Set rotation turn to a specific kid."""
+        entry_id = get_first_kidschores_entry(hass)
+        if not entry_id:
+            const.LOGGER.warning("Set Rotation Turn: No KidsChores entry found")
+            return
+
+        coordinator = _get_coordinator_by_entry_id(hass, entry_id)
+
+        # Resolve chore_id (either from chore_id or chore_name)
+        chore_id = call.data.get(const.SERVICE_FIELD_CHORE_ID)
+        chore_name = call.data.get(const.SERVICE_FIELD_CHORE_NAME)
+
+        if not chore_id and not chore_name:
+            raise HomeAssistantError("Either chore_id or chore_name must be provided")
+
+        if chore_name and not chore_id:
+            try:
+                chore_id = get_item_id_or_raise(
+                    coordinator, const.ENTITY_TYPE_CHORE, chore_name
+                )
+            except HomeAssistantError as err:
+                const.LOGGER.warning("Set Rotation Turn: %s", err)
+                raise
+
+        if not chore_id:
+            raise HomeAssistantError("Could not resolve chore_id")
+
+        # Resolve kid_id (either from kid_id or kid_name)
+        kid_id = call.data.get(const.SERVICE_FIELD_KID_ID)
+        kid_name = call.data.get(const.SERVICE_FIELD_KID_NAME)
+
+        if not kid_id and not kid_name:
+            raise HomeAssistantError("Either kid_id or kid_name must be provided")
+
+        if kid_name and not kid_id:
+            try:
+                kid_id = get_item_id_or_raise(
+                    coordinator, const.ENTITY_TYPE_KID, kid_name
+                )
+            except HomeAssistantError as err:
+                const.LOGGER.warning("Set Rotation Turn: %s", err)
+                raise
+
+        if not kid_id:
+            raise HomeAssistantError("Could not resolve kid_id")
+
+        # Delegate to ChoreManager
+        await coordinator.chore_manager.set_rotation_turn(chore_id, kid_id)
+
+        # Refresh coordinator to update entity states
+        await coordinator.async_request_refresh()
+
+    async def handle_reset_rotation(call: ServiceCall) -> None:
+        """Reset rotation to first assigned kid."""
+        entry_id = get_first_kidschores_entry(hass)
+        if not entry_id:
+            const.LOGGER.warning("Reset Rotation: No KidsChores entry found")
+            return
+
+        coordinator = _get_coordinator_by_entry_id(hass, entry_id)
+
+        # Resolve chore_id (either from chore_id or chore_name)
+        chore_id = call.data.get(const.SERVICE_FIELD_CHORE_ID)
+        chore_name = call.data.get(const.SERVICE_FIELD_CHORE_NAME)
+
+        if not chore_id and not chore_name:
+            raise HomeAssistantError("Either chore_id or chore_name must be provided")
+
+        if chore_name and not chore_id:
+            try:
+                chore_id = get_item_id_or_raise(
+                    coordinator, const.ENTITY_TYPE_CHORE, chore_name
+                )
+            except HomeAssistantError as err:
+                const.LOGGER.warning("Reset Rotation: %s", err)
+                raise
+
+        if not chore_id:
+            raise HomeAssistantError("Could not resolve chore_id")
+
+        # Delegate to ChoreManager
+        await coordinator.chore_manager.reset_rotation(chore_id)
+
+        # Refresh coordinator to update entity states
+        await coordinator.async_request_refresh()
+
+    async def handle_open_rotation_cycle(call: ServiceCall) -> None:
+        """Open rotation cycle - allow any kid to claim once."""
+        entry_id = get_first_kidschores_entry(hass)
+        if not entry_id:
+            const.LOGGER.warning("Open Rotation Cycle: No KidsChores entry found")
+            return
+
+        coordinator = _get_coordinator_by_entry_id(hass, entry_id)
+
+        # Resolve chore_id (either from chore_id or chore_name)
+        chore_id = call.data.get(const.SERVICE_FIELD_CHORE_ID)
+        chore_name = call.data.get(const.SERVICE_FIELD_CHORE_NAME)
+
+        if not chore_id and not chore_name:
+            raise HomeAssistantError("Either chore_id or chore_name must be provided")
+
+        if chore_name and not chore_id:
+            try:
+                chore_id = get_item_id_or_raise(
+                    coordinator, const.ENTITY_TYPE_CHORE, chore_name
+                )
+            except HomeAssistantError as err:
+                const.LOGGER.warning("Open Rotation Cycle: %s", err)
+                raise
+
+        if not chore_id:
+            raise HomeAssistantError("Could not resolve chore_id")
+
+        # Delegate to ChoreManager
+        await coordinator.chore_manager.open_rotation_cycle(chore_id)
+        await coordinator.async_request_refresh()
+
+    hass.services.async_register(
+        const.DOMAIN,
+        const.SERVICE_SET_ROTATION_TURN,
+        handle_set_rotation_turn,
+        schema=SET_ROTATION_TURN_SCHEMA,
+    )
+
+    hass.services.async_register(
+        const.DOMAIN,
+        const.SERVICE_RESET_ROTATION,
+        handle_reset_rotation,
+        schema=RESET_ROTATION_SCHEMA,
+    )
+
+    hass.services.async_register(
+        const.DOMAIN,
+        const.SERVICE_OPEN_ROTATION_CYCLE,
+        handle_open_rotation_cycle,
+        schema=OPEN_ROTATION_CYCLE_SCHEMA,
+    )
+
+    # ==========================================================================
     # RESET SERVICE HANDLERS
     # ==========================================================================
 
@@ -2208,6 +2410,10 @@ async def async_unload_services(hass: HomeAssistant) -> None:
         const.SERVICE_REMOVE_AWARDED_BADGES,
         const.SERVICE_SET_CHORE_DUE_DATE,
         const.SERVICE_SKIP_CHORE_DUE_DATE,
+        # Phase 3 Step 7 - Rotation management services (v0.5.0)
+        const.SERVICE_SET_ROTATION_TURN,
+        const.SERVICE_RESET_ROTATION,
+        const.SERVICE_OPEN_ROTATION_CYCLE,
     ]
 
     for service in services:

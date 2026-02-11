@@ -641,10 +641,8 @@ class ChoreEngine:
 
         # P3 — Rotation: not this kid's turn
         if ChoreEngine.is_rotation_mode(chore_data):
-            current_turn = chore_data.get(const.DATA_CHORE_ROTATION_TURN_HOLDER)
-            override = (
-                chore_data.get(const.DATA_CHORE_ROTATION_OVERRIDE_EXPIRES) is not None
-            )
+            current_turn = chore_data.get(const.DATA_CHORE_ROTATION_CURRENT_KID_ID)
+            override = chore_data.get(const.DATA_CHORE_ROTATION_CYCLE_OVERRIDE, False)
 
             if kid_id != current_turn and not override:
                 overdue_handling = chore_data.get(
@@ -920,20 +918,23 @@ class ChoreEngine:
     @staticmethod
     def calculate_next_turn_smart(
         assigned_kids: list[str],
-        approved_counts: dict[str, int],
-        last_approved_timestamps: dict[str, str | None],
+        completed_counts: dict[str, int],
+        last_completed_timestamps: dict[str, str | None],
     ) -> str:
         """Calculate next turn for rotation_smart (fairness-weighted).
 
         Sorts kids by:
-        1. Ascending approved count (fewest completions first)
-        2. Ascending last_approved timestamp (oldest first, None = never = first)
+        1. Ascending completion count (fewest completions first)
+        2. Ascending last_completed timestamp (oldest work date first, None = never = first)
         3. List-order position (tie-breaker)
+
+        Uses completed counts (work done) and last_completed timestamps (work dates)
+        for fair rotation based on actual work performed, not parent approval delays.
 
         Args:
             assigned_kids: Ordered list of kid UUIDs assigned to the chore
-            approved_counts: Dict mapping kid_id -> approval count for this chore
-            last_approved_timestamps: Dict mapping kid_id -> ISO timestamp or None
+            completed_counts: Dict mapping kid_id -> completion count for this chore
+            last_completed_timestamps: Dict mapping kid_id -> last_completed ISO timestamp or None
 
         Returns:
             UUID of the kid who should get the next turn
@@ -943,8 +944,8 @@ class ChoreEngine:
             return assigned_kids[0] if assigned_kids else ""
 
         def sort_key(kid_id: str) -> tuple[int, str, int]:
-            count = approved_counts.get(kid_id, 0)
-            timestamp = last_approved_timestamps.get(kid_id)
+            count = completed_counts.get(kid_id, 0)
+            timestamp = last_completed_timestamps.get(kid_id)
             # None sorts first (never completed)
             timestamp_str = timestamp if timestamp is not None else ""
             position = assigned_kids.index(kid_id)
@@ -987,13 +988,13 @@ class ChoreEngine:
         if not old_is_rotation and new_is_rotation:
             assigned_kids = chore_data.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
             if assigned_kids:
-                changes[const.DATA_CHORE_ROTATION_TURN_HOLDER] = assigned_kids[0]
-            changes[const.DATA_CHORE_ROTATION_OVERRIDE_EXPIRES] = None
+                changes[const.DATA_CHORE_ROTATION_CURRENT_KID_ID] = assigned_kids[0]
+            changes[const.DATA_CHORE_ROTATION_CYCLE_OVERRIDE] = False
 
         # Rotation → non-rotation: Clear rotation fields
         elif old_is_rotation and not new_is_rotation:
-            changes[const.DATA_CHORE_ROTATION_TURN_HOLDER] = None
-            changes[const.DATA_CHORE_ROTATION_OVERRIDE_EXPIRES] = None
+            changes[const.DATA_CHORE_ROTATION_CURRENT_KID_ID] = None
+            changes[const.DATA_CHORE_ROTATION_CYCLE_OVERRIDE] = False
 
         # Rotation → different rotation: Keep existing turn (no reset)
 

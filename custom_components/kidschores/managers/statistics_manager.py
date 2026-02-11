@@ -2105,3 +2105,98 @@ class StatisticsManager(BaseManager):
         self._cache_timers[kid_id] = self.hass.loop.call_later(
             CACHE_REFRESH_DEBOUNCE_SECONDS, _do_refresh
         )
+
+    # ==========================================================================
+    # PUBLIC QUERY METHODS (Phase 3 Step 8 - v0.5.0 Smart Rotation)
+    # ==========================================================================
+
+    def get_chore_completed_counts(
+        self, chore_id: str, kid_ids: list[str]
+    ) -> dict[str, int]:
+        """Get all-time completed counts for a specific chore across multiple kids.
+
+        Used by ChoreManager._advance_rotation() for smart rotation fairness.
+        Returns cumulative completed counts (work done) from all_time period bucket.
+        This ensures fair rotation based on actual work performed, not parent
+        approval delays.
+
+        Args:
+            chore_id: The chore's internal ID
+            kid_ids: List of kid internal IDs to query
+
+        Returns:
+            Dictionary mapping kid_id -> all_time_completed_count
+            Kids with no completions return 0
+        """
+        result: dict[str, int] = {}
+
+        for kid_id in kid_ids:
+            kid_info = self._get_kid(kid_id)
+            if not kid_info:
+                result[kid_id] = 0
+                continue
+
+            # Navigate to per-chore period data
+            chore_data = kid_info.get(const.DATA_KID_CHORE_DATA, {})
+            kid_chore_data = chore_data.get(chore_id, {})
+            periods = kid_chore_data.get(const.DATA_KID_CHORE_DATA_PERIODS, {})
+
+            # Get all_time bucket (nested structure: periods["all_time"]["all_time"])
+            all_time_container = periods.get(
+                const.DATA_KID_CHORE_DATA_PERIODS_ALL_TIME, {}
+            )
+            all_time_data = all_time_container.get(const.PERIOD_ALL_TIME, {})
+
+            # Extract completed count (work done)
+            completed_count = all_time_data.get(
+                const.DATA_KID_CHORE_DATA_PERIOD_COMPLETED, 0
+            )
+            result[kid_id] = int(completed_count)
+
+        const.LOGGER.debug(
+            "StatisticsManager.get_chore_completed_counts: chore=%s, results=%s",
+            chore_id,
+            result,
+        )
+        return result
+
+    def get_chore_last_completed_timestamps(
+        self, chore_id: str, kid_ids: list[str]
+    ) -> dict[str, str | None]:
+        """Get last completion timestamps for a specific chore across multiple kids.
+
+        Used by ChoreManager._advance_rotation() for smart rotation tie-breaking.
+        Uses last_completed (work date) not last_approved (parent action date)
+        for fair rotation based on when kids actually did the work.
+
+        Args:
+            chore_id: The chore's internal ID
+            kid_ids: List of kid internal IDs to query
+
+        Returns:
+            Dictionary mapping kid_id -> last_completed ISO timestamp or None
+        """
+        result: dict[str, str | None] = {}
+
+        for kid_id in kid_ids:
+            kid_info = self._get_kid(kid_id)
+            if not kid_info:
+                result[kid_id] = None
+                continue
+
+            # Navigate to per-chore data
+            chore_data = kid_info.get(const.DATA_KID_CHORE_DATA, {})
+            kid_chore_data = chore_data.get(chore_id, {})
+
+            # Get last_completed timestamp (when kid did the work)
+            last_completed = kid_chore_data.get(
+                const.DATA_KID_CHORE_DATA_LAST_COMPLETED
+            )
+            result[kid_id] = last_completed
+
+        const.LOGGER.debug(
+            "StatisticsManager.get_chore_last_completed_timestamps: chore=%s, results=%s",
+            chore_id,
+            result,
+        )
+        return result

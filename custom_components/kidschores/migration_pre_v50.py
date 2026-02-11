@@ -1063,10 +1063,10 @@ class PreV50Migrator:
         const.LOGGER.info("PreV50Migrator: Schema 44 migration complete")
 
     def _backfill_rotation_fields(self) -> None:
-        """Add rotation_turn_holder, rotation_order, rotation_override_expires to all chores.
+        """Add rotation_current_kid_id and rotation_cycle_override to all chores.
 
-        For existing rotation_* chores: initialize turn_holder and order if not present.
-        For non-rotation chores: add fields as None/empty (clean data model).
+        For existing rotation_* chores: initialize current_kid_id if not present.
+        For non-rotation chores: add fields as None/False (clean data model).
         """
         const.LOGGER.info(
             "PreV50Migrator: Backfilling rotation fields for v0.5.0 Chore Logic"
@@ -1088,23 +1088,20 @@ class PreV50Migrator:
             assigned_kids = chore_data.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
 
             # Add fields if missing (backward compat)
-            if const.DATA_CHORE_ROTATION_TURN_HOLDER not in chore_data:
+            if const.DATA_CHORE_ROTATION_CURRENT_KID_ID not in chore_data:
                 if is_rotation and assigned_kids:
-                    chore_data[const.DATA_CHORE_ROTATION_TURN_HOLDER] = assigned_kids[0]
+                    chore_data[const.DATA_CHORE_ROTATION_CURRENT_KID_ID] = (
+                        assigned_kids[0]
+                    )
                     initialized_rotation_count += 1
                 else:
-                    chore_data[const.DATA_CHORE_ROTATION_TURN_HOLDER] = None
+                    chore_data[const.DATA_CHORE_ROTATION_CURRENT_KID_ID] = None
                 backfilled_count += 1
 
-            if const.DATA_CHORE_ROTATION_ORDER not in chore_data:
-                if is_rotation and assigned_kids:
-                    chore_data[const.DATA_CHORE_ROTATION_ORDER] = list(assigned_kids)
-                else:
-                    chore_data[const.DATA_CHORE_ROTATION_ORDER] = []
-                backfilled_count += 1
+            # rotation_order removed - unused field, assigned_kids defines order
 
-            if const.DATA_CHORE_ROTATION_OVERRIDE_EXPIRES not in chore_data:
-                chore_data[const.DATA_CHORE_ROTATION_OVERRIDE_EXPIRES] = None
+            if const.DATA_CHORE_ROTATION_CYCLE_OVERRIDE not in chore_data:
+                chore_data[const.DATA_CHORE_ROTATION_CYCLE_OVERRIDE] = False
                 backfilled_count += 1
 
         const.LOGGER.info(

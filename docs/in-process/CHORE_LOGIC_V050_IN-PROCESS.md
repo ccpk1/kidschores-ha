@@ -5,7 +5,7 @@
 - **Name / Code**: Chore Logic v0.5.0 — Due Window Claim Restrictions + Advanced Rotation
 - **Target release / milestone**: v0.5.0 (Schema v44 — extended in-place, no bump)
 - **Owner / driver(s)**: KidsChores core team
-- **Status**: Phase 1 in-progress — design pivot applied (Rotation v2, 2 types + steal-as-overdue)
+- **Status**: Phase 3 complete (100%), **Phase 4 COMPLETE (100%)**
 
 ---
 
@@ -172,13 +172,13 @@ This is a **7th overdue handling type** (not a completion criteria). It controls
 
 ## Summary & immediate steps
 
-| Phase / Step                      | Description                                                      | % complete | Quick notes                                                             |
-| --------------------------------- | ---------------------------------------------------------------- | ---------- | ----------------------------------------------------------------------- |
-| Phase 1 – Foundation              | Constants, types, validation rules (no schema migration)         | 100%       | ✅ COMPLETE — rotation_steal removed, allow_steal added, all tests pass |
-| Phase 2 – Engine & State Machine  | 8-tier FSM, claim restrictions, rotation resolution              | 0%         | Core logic; ready to start                                              |
-| Phase 3 – Manager Orchestration   | Rotation advancement, missed lock, scanner updates, new services | 0%         | Depends on Phase 2 engine                                               |
-| Phase 4 – UX & Dashboard Contract | UI Manager attributes, flow helpers, notification wiring         | 0%         | Depends on Phase 3 signals                                              |
-| Phase 5 – Testing & Validation    | Full test coverage for all new paths                             | 0%         | Service-based + engine unit tests                                       |
+| Phase / Step                      | Description                                                      | % complete | Quick notes                                                                                                          |
+| --------------------------------- | ---------------------------------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------- |
+| Phase 1 – Foundation              | Constants, types, validation rules (no schema migration)         | 100%       | ✅ COMPLETE — rotation_steal removed, allow_steal added, all tests pass                                              |
+| Phase 2 – Engine & State Machine  | 8-tier FSM, claim restrictions, rotation resolution              | 100%       | ✅ COMPLETE — Logic adapters, FSM, claim restrictions (1257/1257 tests)                                              |
+| Phase 3 – Manager Orchestration   | Rotation advancement, missed lock, scanner updates, new services | 100%       | ✅ COMPLETE — All 10 steps done: services, notifications, stats                                                      |
+| Phase 4 – UX & Dashboard Contract | UI Manager attributes, flow helpers, notification wiring         | 100%       | ✅ **COMPLETE** — All 4 steps done (dashboard helper 9-field contract + flow helpers + options flow + documentation) |
+| Phase 5 – Testing & Validation    | Full test coverage for all new paths                             | 0%         | Service-based + engine unit tests                                                                                    |
 
 1. **Key objective** – Introduce two new chore management capabilities: (a) **Due Window Claim Restrictions** that prevent kids from claiming chores before a configurable window opens, and (b) **Advanced Rotation Logic** that extends shared_first chores into a disciplined turn-based system with two sub-types (`rotation_simple`, `rotation_smart`), plus a steal mechanic delivered via overdue handling (`at_due_date_allow_steal`). Both features extend the existing FSM with three new calculated states (`waiting`, `not_my_turn`, `missed` as a locked terminal state).
 
@@ -226,7 +226,7 @@ This is a **7th overdue handling type** (not a completion criteria). It controls
    | **D-01** | Schema version                                                 | ✅ **v44** (no bump).                                                                                                                                                                                                                                                                                                                                                                                                                                                    | Migration extended in-place (D-13).                                                                                                                                                                                                                                                                                           |
    | **D-02** | Existing `clear_and_mark_missed` vs new `mark_missed_and_lock` | ✅ **Two distinct strategies**. Existing = "at due date: record miss → at approval reset boundary: overdue policy resets chore state to `pending`." New = "at due date: lock in `missed` state → at approval reset boundary: overdue policy unlocks `missed` state, resets chore state to `pending`."                                                                                                                                                                    | Add 6th overdue type `OVERDUE_AT_DUE_DATE_MARK_MISSED_AND_LOCK`. Existing unchanged.                                                                                                                                                                                                                                          |
    | **D-03** | `mark_missed_and_lock` approval reset type compatibility       | ✅ **`at_midnight_*` approval reset types only**.                                                                                                                                                                                                                                                                                                                                                                                                                        | Validation rule: reject `upon_completion`, `at_due_date_*`, `manual` reset types.                                                                                                                                                                                                                                             |
-   | **D-04** | `claim_restriction_enabled` scope                              | ✅ **Per-chore boolean**. Existing `can_claim` calculated attribute will be used.                                                                                                                                                                                                                                                                                                                                                                                        | Per-chore field in storage + flow. `can_claim` is a calculated boolean attribute on the kid chore status sensor.                                                                                                                                                                                                              |
+   | **D-04** | Due window claim restrictions                                  | ✅ **Derived from `due_window_offset` presence**. No separate `claim_restriction_enabled` boolean needed. If `due_window_offset` is set, claim restrictions apply. `can_claim` is a calculated boolean attribute on the kid chore status sensor.                                                                                                                                                                                                                         | Presence of `due_window_offset` implies restrictions. FSM calculates `waiting` state when `now < due_window_start`. Simpler design, fewer fields.                                                                                                                                                                             |
    | **D-05** | Rotation as completion criteria                                | ✅ **REVISED (v2)**: Two `completion_criteria` values: `rotation_simple`, `rotation_smart`. ~~`rotation_steal` removed as criteria~~ — steal mechanic moved to overdue handling (D-06).                                                                                                                                                                                                                                                                                  | Two new constants (not three). Engine uses Logic Adapter pattern (D-12) to treat rotation as shared_first-like.                                                                                                                                                                                                               |
    | **D-06** | Steal mechanic placement                                       | ✅ **REVISED (v2)**: Steal is an **overdue handling type** (`at_due_date_allow_steal`), NOT a completion criteria. Valid only with rotation criteria + `at_midnight_once` `approval_reset_type`. At due date, `not_my_turn` blocking lifts for all assigned kids.                                                                                                                                                                                                        | New 7th overdue type constant. New validation rule V-05 (rotation + at_midnight_once required). FSM P3 steal exception checks `overdue_handling` not `criteria`.                                                                                                                                                              |
    | **D-07** | CHORE_MISSED signal                                            | ✅ **Extend existing** payload with optional `due_date` and `reason` fields.                                                                                                                                                                                                                                                                                                                                                                                             | Backward compatible.                                                                                                                                                                                                                                                                                                          |
@@ -235,7 +235,7 @@ This is a **7th overdue handling type** (not a completion criteria). It controls
    | **D-10** | Migration home                                                 | ✅ **`migration_pre_v50.py`** v44 section.                                                                                                                                                                                                                                                                                                                                                                                                                               | Extend existing `_migrate_to_schema_44()` to backfill new fields (D-13).                                                                                                                                                                                                                                                      |
    | **D-11** | `completion_criteria` mutability                               | ✅ **Mutable**. Users CAN change `completion_criteria` when editing a chore via options flow. The `services.py` immutability guard (L784-788) is incorrect and must be **removed**. When criteria changes, **data transition logic** handles cleanup (e.g., clear rotation fields when switching away from rotation; initialize `rotation_current_kid_id` when switching TO rotation).                                                                                   | Remove immutability guard from `services.py`. Add `_handle_criteria_transition()` method to ChoreManager. Add `completion_criteria` to `UPDATE_CHORE_SCHEMA`.                                                                                                                                                                 |
    | **D-12** | Data model: rotation as criteria value vs. separate field      | ✅ **Option A — Criteria Overload**. Rotation types are new `completion_criteria` values: `rotation_simple`, `rotation_smart`. UI is one-click — no separate `rotation_type` field. **Logic Adapter** pattern in `ChoreEngine` prevents "gremlin code": `is_single_claimer_mode()` → True for `shared_first` + all rotation types; `is_rotation_mode()` → True for `rotation_*` only. All existing `shared_first` checks use `is_single_claimer_mode()` adapter instead. | ~60 existing criteria check sites across 10 production files. The Logic Adapter pattern makes most transparent — existing three-way branches (INDEPENDENT / SHARED_FIRST / SHARED) become (INDEPENDENT / single_claimer / SHARED) and rotation chores automatically get correct behavior. See "Logic Adapter audit" in Notes. |
-   | **D-13** | Existing chore field backfill strategy                         | ✅ **Extend v44 migration** in `migration_pre_v50.py` to backfill new fields on existing chores.                                                                                                                                                                                                                                                                                                                                                                         | Add backfill step to `_migrate_to_schema_44()`: set `claim_restriction_enabled=False`, `rotation_current_kid_id=None`, `rotation_cycle_override=False` on all existing chores.                                                                                                                                                |
+   | **D-13** | Existing chore field backfill strategy                         | ✅ **Extend v44 migration** in `migration_pre_v50.py` to backfill new fields on existing chores.                                                                                                                                                                                                                                                                                                                                                                         | Add backfill step to `_migrate_to_schema_44()`: set `rotation_current_kid_id=None`, `rotation_cycle_override=False` on all existing chores.                                                                                                                                                                                   |
    | **D-14** | Rotation minimum kids                                          | ✅ **All rotation types require ≥ 2 assigned kids**. Turn-taking with 1 kid is meaningless for any rotation variant.                                                                                                                                                                                                                                                                                                                                                     | Validation rule V-03 applies to `rotation_simple` AND `rotation_smart` uniformly. Error message in `data_builders.py`.                                                                                                                                                                                                        |
    | **D-15** | `rotation_cycle_override` clear trigger                        | ✅ **Approval action clears the override** (not a boundary event). Next approval of any kid on the chore clears `rotation_cycle_override = False`. The override is for "let anyone claim THIS cycle's instance." Once approved, normal rotation resumes.                                                                                                                                                                                                                 | Handled in `_advance_rotation()` — which already resets `rotation_cycle_override = False` after approval. No additional timer/scanner logic needed.                                                                                                                                                                           |
    | **D-16** | Where `can_claim` attribute lives                              | ✅ **Calculated boolean on the kid chore status sensor** (`KidChoreStatusSensor.extra_state_attributes`). Pipeline: `ChoreEngine.can_claim_chore()` → `ChoreManager.can_claim_chore()` → sensor attribute. Dashboard helper does NOT include it — documented to fetch via `state_attr(chore.eid, 'can_claim')`. `ATTR_CAN_CLAIM` constant already exists.                                                                                                                | New blocking conditions (waiting, not_my_turn, missed) integrate into existing `ChoreEngine.can_claim_chore()`. No new sensor or attribute needed — extend existing logic.                                                                                                                                                    |
@@ -282,7 +282,7 @@ This is a **7th overdue handling type** (not a completion criteria). It controls
      - Build defaults: ✅ Done
      - Validation rules:
        - **V-01**: `mark_missed_and_lock` requires `AT_MIDNIGHT_*` reset ✅ Done
-       - **V-02**: `claim_restriction_enabled` requires `due_window_offset` ✅ Done
+       - **V-02**: ~~`claim_restriction_enabled` requires `due_window_offset`~~ ❌ OBSOLETE — No separate flag needed, `due_window_offset` presence is sufficient
        - **V-03**: All rotation types require ≥ 2 assigned kids ✅ Done
        - ~~**V-04**: `rotation_steal` requires due date~~ ❌ **REMOVE** — steal is no longer a criteria
        - **V-05**: ⬜ **NEW** — `at_due_date_allow_steal` requires: (a) rotation criteria, (b) `at_midnight_once` reset, (c) due date configured
@@ -346,7 +346,7 @@ This is a **7th overdue handling type** (not a completion criteria). It controls
        | 3        | `not_my_turn` | `is_rotation_mode(chore)` AND `kid_id != rotation_current_kid_id` AND NOT (`overdue_handling == allow_steal` AND `now > due_date`) AND `rotation_cycle_override == False` |
        | 4        | `missed`      | `overdue_handling == mark_missed_and_lock` AND `now > due_date` AND `due_date is not None`                                                                                |
        | 5        | `overdue`     | Relaxed overdue type AND `now > due_date` AND `due_date is not None`                                                                                                      |
-       | 6        | `waiting`     | `claim_restriction_enabled == True` AND `due_window_start is not None` AND `now < due_window_start`                                                                       |
+       | 6        | `waiting`     | `due_window_start is not None` AND `now < due_window_start` (where `due_window_start` is calculated from `due_date` - `due_window_offset`)                                |
        | 7        | `due`         | `due_window_start is not None` AND `now >= due_window_start` AND `now <= due_date`                                                                                        |
        | 8        | `pending`     | Default / fallback                                                                                                                                                        |
 
@@ -402,43 +402,34 @@ This is a **7th overdue handling type** (not a completion criteria). It controls
 ### Phase 3 – Manager Orchestration
 
 - **Goal**: Wire the engine logic into the ChoreManager's workflows: rotation advancement on approval, missed-lock enforcement in the scanner, criteria transition handling, new management services, and cross-manager signal communication.
+- **Status**: ✅ **100% complete (All 10 steps implemented and validated)**
 
 - **Steps / detailed work items**
-  1. **Implement `_advance_rotation()` in ChoreManager**
+  1. ✅ **Implement `_advance_rotation()` in ChoreManager**
      - File: `custom_components/kidschores/managers/chore_manager.py`
-     - Called inside `approve_chore()` after successful approval, before `_persist()`
-     - Logic:
-       - If `not ChoreEngine.is_rotation_mode(chore)` → return (no-op)
-       - If `rotation_simple` → call `ChoreEngine.calculate_next_turn_simple()`
-       - If `rotation_smart` → query StatsEngine/StatsManager for approved counts (D-08) → call `ChoreEngine.calculate_next_turn_smart()`
-       - Update `rotation_current_kid_id` in chore data
-       - Reset `rotation_cycle_override` to `False` (D-15 resolved: next approval clears override)
-       - After `_persist()`: emit `SIGNAL_SUFFIX_ROTATION_ADVANCED` with payload:
-         ```
-         {"chore_id": str, "previous_kid_id": str, "new_kid_id": str, "method": "simple"|"smart"|"manual"}
-         ```
-     - **D-18**: After a steal, the same `_advance_rotation()` runs — turn advances from the completer, not back to the original turn-holder. No special steal path needed.
+     - Implemented method that advances rotation turn after approval
+     - Calls appropriate Engine methods based on rotation type (simple/smart)
+     - Emits SIGNAL_SUFFIX_ROTATION_ADVANCED after persist
+     - Clears rotation_cycle_override flag (D-15)
+     - **D-18 compliance**: Turn advances from completer (no special steal logic)
 
-  2. **Update time scanner for `missed` lock transitions**
+  2. ✅ **Update time scanner for `missed` lock transitions**
      - File: `custom_components/kidschores/managers/chore_manager.py`
-     - In `_run_time_scanner()`: Add a new detection path for `mark_missed_and_lock`
-     - When `now > due_date` AND `overdue_handling == mark_missed_and_lock` AND kid's state is still claimable (pending/due):
-       - Set kid's chore state to `missed` in storage
-       - Call `_record_missed_chore()` for stat tracking (already exists)
-       - Extend signal payload with `due_date` and `reason: "strict_lock"` fields (D-07)
-       - Do **NOT** reset to pending — the `missed` state persists until midnight
-     - This path is distinct from the existing `clear_and_mark_missed` path which records miss then resets
+     - Added detection path in `_process_overdue()` for `mark_missed_and_lock`
+     - Sets chore state to `missed` when past due date
+     - Calls `_record_chore_missed()` with due_date and reason parameters
+     - Extended signal payload with optional due_date and reason fields (D-07)
+     - `missed` state persists until midnight reset
 
-  3. **Update midnight reset to clear `missed` lock**
+  3. ✅ **Update midnight reset to clear `missed` lock**
      - File: `custom_components/kidschores/managers/chore_manager.py`
-     - In `_process_approval_boundary_resets()` for AT*MIDNIGHT*\* chores:
-       - If kid state is `missed` (from `mark_missed_and_lock`), reset to `pending`
-       - Recalculate next due date (existing reschedule logic)
-       - **D-17**: For rotation chores: If the missed kid was the current turn holder, advance rotation to the next kid. This ensures rotation never stalls on a missed turn.
-       - For `at_due_date_allow_steal` chores: If no one claimed during the steal window, the original turn-holder gets the overdue stat and turn advances to next kid at midnight.
-       - This is the ONLY exit path from the `missed` lock state
+     - Modified `_process_approval_reset_entries()` to handle `missed` state
+     - Clears `missed` lock and resets to `pending` at midnight
+     - **D-17 compliance**: Advances rotation turn if missed kid was current turn-holder
+     - Handles both SHARED and INDEPENDENT chores
+     - Reschedules due date after reset
 
-  4. **Implement criteria transition handling** (D-11 — criteria is mutable)
+  4. ✅ **Implement criteria transition handling** (D-11 — criteria is mutable)
      - File: `custom_components/kidschores/managers/chore_manager.py`
      - New method `_handle_criteria_transition(chore_id: str, old_criteria: str, new_criteria: str) -> None`:
        - Calls `ChoreEngine.get_criteria_transition_actions()` to get field changes
@@ -447,59 +438,103 @@ This is a **7th overdue handling type** (not a completion criteria). It controls
        - If transitioning FROM rotation: clears rotation fields
        - Emits `SIGNAL_SUFFIX_CHORE_UPDATED` after persist
      - Called from `update_chore()` when `completion_criteria` field has changed
+     - **Implementation details**:
+       - Added `_handle_criteria_transition()` method (lines 3583-3654)
+       - Added `TRANS_KEY_ERROR_ROTATION_MIN_KIDS` constant and translation
+       - Imported `ServiceValidationError` from `homeassistant.exceptions`
+       - Initialized `_rotation_signal_payload` instance variable in `__init__`
 
-  5. **Remove immutability guard from services.py** (D-11)
-     - File: `custom_components/kidschores/services.py`
-     - **Remove** the block at L784-788 that raises `HomeAssistantError(translation_key=TRANS_KEY_ERROR_COMPLETION_CRITERIA_IMMUTABLE)` when `completion_criteria` is in update data
-     - **Add** `completion_criteria` to `UPDATE_CHORE_SCHEMA` (currently excluded)
-     - **Add** `_COMPLETION_CRITERIA_VALUES` validation to the update schema (same as create). Values: `independent`, `shared_all`, `shared_first`, `rotation_simple`, `rotation_smart` (5 total — no `rotation_steal`)
-     - Update the update handler to detect criteria changes and call `_handle_criteria_transition()` before applying other updates
-     - Remove/deprecate `TRANS_KEY_ERROR_COMPLETION_CRITERIA_IMMUTABLE` constant and translation
-
-  6. **Implement rotation resilience on kid deletion**
+  5. ✅ **Wire criteria transition handler to options flow** (D-11 partial)
      - File: `custom_components/kidschores/managers/chore_manager.py`
-     - In the existing `KID_DELETED` signal handler:
-       - For each chore where `rotation_current_kid_id == deleted_kid_id`:
-         - If `assigned_kids` still has members: set `rotation_current_kid_id = assigned_kids[0]`
-         - If `assigned_kids` is now empty after removal: clear rotation metadata
-       - Persist after changes
+     - Modified `update_chore()` method to detect criteria changes
+     - Calls `_handle_criteria_transition()` when `completion_criteria` changes
+     - Early return after transition (handler persists + emits)
+     - **Services remain unchanged**: `services.py` keeps immutability guard at L784-788
+     - **Rationale**: Options flow already allows editing criteria (Line 1409), services intentionally more restrictive for automation safety
+     - **Implementation details**:
+       - Added criteria change detection in `update_chore()` (lines 2428-2442)
+       - Transition handler validates ≥2 kids for rotation
+       - Initializes/clears rotation fields automatically
+       - Emits `SIGNAL_SUFFIX_CHORE_UPDATED` after persist
 
-  7. **Register new management services**
-     - File: `custom_components/kidschores/services.py`
-     - **`set_rotation_turn`** (`SERVICE_SET_ROTATION_TURN`):
-       - Fields: `chore_id` (required), `kid_id` (required)
-       - Validates: `ChoreEngine.is_rotation_mode(chore)`, kid is in assigned_kids
-       - Delegates to `chore_manager.set_rotation_turn(chore_id, kid_id)`
-       - Emits `ROTATION_ADVANCED` with `method: "manual"`
-     - **`reset_rotation`** (`SERVICE_RESET_ROTATION`):
-       - Fields: `chore_id` (required)
-       - Resets `rotation_current_kid_id` to `assigned_kids[0]`, clears `rotation_cycle_override`
-       - Delegates to `chore_manager.reset_rotation(chore_id)`
-     - **`open_rotation_cycle`** (`SERVICE_OPEN_ROTATION_CYCLE`):
-       - Fields: `chore_id` (required)
-       - Sets `rotation_cycle_override = True`
-       - D-15 resolved: Override cleared on next approval (handled in `_advance_rotation()`)
-       - Delegates to `chore_manager.open_rotation_cycle(chore_id)`
-     - Add schemas with vol.Schema, handler functions, register in `async_setup_services()`
+  6. ✅ **Implement rotation resilience on kid deletion**
+     - File: `custom_components/kidschores/managers/chore_manager.py`
+     - Modified existing `_on_kid_deleted()` signal handler
+     - Checks if deleted kid was current turn-holder (`rotation_current_kid_id`)
+     - If kids remain: reassigns to `assigned_kids[0]`
+     - If no kids remain: clears `rotation_current_kid_id` and `rotation_cycle_override`
+     - **Implementation details**:
+       - Added rotation check in `_on_kid_deleted()` (lines 360-395)
+       - Uses `ChoreEngine.is_rotation_mode()` to detect rotation chores
+       - Logs reassignment for debugging
+       - Ensures rotation never stalls on kid deletion
 
-  8. **Add StatsEngine/StatsManager query method** (D-08)
-     - File: `custom_components/kidschores/engines/stats_engine.py` or `managers/statistics_manager.py`
-     - New method: `get_chore_approved_counts(chore_id: str, kid_ids: list[str]) -> dict[str, int]`
-       - Returns `{kid_id: all_time_approved_count}` from period buckets
-     - New method: `get_chore_last_approved_timestamps(chore_id: str, kid_ids: list[str]) -> dict[str, str | None]`
-       - Returns `{kid_id: last_approved_iso_timestamp}` for smart rotation tie-breaking
-     - Used by `_advance_rotation()` for smart rotation selection
+- [x] **Step 7: Register new management services**
+  - **Implementation**: Added 3 rotation management services to `services.py` with full schema/handler/registration pattern
+  - **Services added**:
+    - `set_rotation_turn`: Manually assign turn to specific kid (validates rotation mode + kid assignment)
+    - `reset_rotation`: Reset turn to first assigned kid
+    - `open_rotation_cycle`: Set `rotation_cycle_override = True` (allows any kid to claim once)
+  - **ChoreManager methods**: Implemented `set_rotation_turn()`, `reset_rotation()`, `open_rotation_cycle()` (lines 3697-3869)
+    - All validate chore is rotation mode
+    - All persist + emit `CHORE_UPDATED` signal
+    - Error handling with `ServiceValidationError` and translation keys
+  - **Constants added**: `SERVICE_SET_ROTATION_TURN`, `SERVICE_RESET_ROTATION`, `SERVICE_OPEN_ROTATION_CYCLE` in `const.py`
+  - **Translation keys added**: `TRANS_KEY_ERROR_NOT_ROTATION`, `TRANS_KEY_ERROR_KID_NOT_ASSIGNED`, `TRANS_KEY_ERROR_NO_ASSIGNED_KIDS`
+  - **Translations added**: 3 new error messages in `en.json`
+  - **Service unload**: Added 3 services to unload list in `async_unload_services()`
+  - **Validation**: ✅ Boundary checks passed, zero mypy errors in services.py and chore_manager.py
 
-  9. **Wire missed + steal notifications**
-     - File: `custom_components/kidschores/managers/notification_manager.py`
-     - Subscribe to `SIGNAL_SUFFIX_CHORE_MISSED`
-     - Handler: Check chore's `notify_on_overdue` flag (reuse existing — missed is a stricter form of overdue) → dispatch notification using `TRANS_KEY_NOTIF_TITLE_CHORE_MISSED` / `TRANS_KEY_NOTIF_MESSAGE_CHORE_MISSED`
-     - **Steal window notification** (D-06 revised): When `at_due_date_allow_steal` chore goes overdue, notify ALL assigned kids (not just turn-holder) that the chore is available for anyone to claim. Reuse existing overdue notification path but expand recipient list.
-     - No new notification flag needed — `notify_on_overdue` gates both overdue and missed notifications
+- [ ] **Step 8: Add StatsEngine/StatsManager query method** (D-08)
+  - File: `custom_components/kidschores/managers/chore_manager.py`
+  - In the existing `KID_DELETED` signal handler:
+    - For each chore where `rotation_current_kid_id == deleted_kid_id`:
+      - If `assigned_kids` still has members: set `rotation_current_kid_id = assigned_kids[0]`
+      - If `assigned_kids` is now empty after removal: clear rotation metadata
+    - Persist after changes
 
-  10. **Add `services.yaml` entries for new services**
-      - File: `custom_components/kidschores/services.yaml`
-      - Add descriptions, field definitions, and examples for all 3 new rotation services
+- [x] **Step 8: Add StatsEngine/StatsManager query methods** (D-08)
+  - **Implementation**: Added 2 query methods to `statistics_manager.py` (lines 2115-2189)
+  - **Methods implemented**:
+    - `get_chore_approved_counts(chore_id, kid_ids)`: Returns `{kid_id: all_time_approved_count}` from period buckets
+    - `get_chore_last_approved_timestamps(chore_id, kid_ids)`: Returns `{kid_id: None}` (timestamp tracking not yet implemented)
+  - **Smart rotation**: Now fully enabled in `_advance_rotation()` (Step 1)
+    - ChoreEngine.calculate_next_turn_smart() gets real approved counts
+    - Fairness-weighted selection based on historical approvals
+    - Timestamps return None (acceptable - counts sufficient for fairness)
+  - **Validation**: ✅ Zero mypy errors in statistics_manager.py and chore_manager.py
+  - **Note**: Timestamp tracking can be added in future if tie-breaking needs refinement
+
+- [x] **Step 9: Wire missed + steal notifications** ✅ **RESOLVED - Rotation notification filtering implemented per user decision**
+  - **Implementation**: Added rotation-aware notification filtering to `notification_manager.py` (lines 2275-2627)
+  - **Key components**:
+    - **Due window filtering**: Only notify turn-holder for rotation chores (`_handle_chore_due_window()`)
+    - **Due reminder filtering**: Only notify turn-holder for rotation chores (`_handle_chore_due_reminder()`)
+    - **Overdue notifications**: Notify ALL assigned kids for rotation chores (steal mechanic - `_handle_chore_overdue()`)
+    - **CHORE_MISSED handler**: Added complete handler with Schedule-Lock pattern (`_handle_chore_missed()`)
+  - **Rotation filtering logic**:
+    - Check `ChoreEngine.is_rotation_mode(chore_info)`
+    - Get `current_turn_kid` from chore rotation data
+    - Skip notification if `current_turn_kid != kid_id` (due/reminder only)
+  - **MISSED notifications**:
+    - Uses existing `notify_on_overdue` flag (missed is stricter form of overdue)
+    - Sends to turn-holder only (chore is locked, no claim actions available)
+    - Includes parent notification with complete/skip actions
+    - Translation keys already existed in `en.json` (lines 4210-4216)
+  - **User decision**: Do NOT send due/reminder to kids who cannot claim in rotation. Allow overdue to ALL (steal window).
+  - **Validation**: ✅ Zero mypy errors in notification_manager.py, architectural boundaries passed
+    - Decision impacts Phase 4 UX work and notification translation strings
+
+- [x] **Step 10: Add `services.yaml` entries for new services** ✅ **COMPLETE**
+  - **Implementation**: Added service documentation for 3 rotation services in both `services.yaml` and `translations/en.json`
+  - **Services documented**:
+    - `set_rotation_turn`: Service definition with chore_id and kid_id fields (lines 925-941)
+    - `reset_rotation`: Service definition with chore_id field (lines 943-952)
+    - `open_rotation_cycle`: Service definition with chore_id field (lines 954-967)
+  - **Translation entries**: Added service translations in `en.json` services section (lines 2235-2285)
+  - **Field descriptions**: All services include field names, descriptions, examples, and UI selectors
+  - **Integration**: Services match constants from Step 7 (`SERVICE_SET_ROTATION_TURN`, etc.)
+  - **Validation**: ✅ JSON syntax validated, services.yaml format correct
 
 - **Key issues** (Phase 3)
   - The `approve_chore()` method is ~400 lines with complex locking. `_advance_rotation()` must be a clean extraction called after state change but within the same persist operation
@@ -515,51 +550,58 @@ This is a **7th overdue handling type** (not a completion criteria). It controls
 - **Goal**: Expose new states and rotation metadata through the UI Manager's dashboard helper, update config/options flow for new chore settings, and ensure dashboard has everything it needs.
 
 - **Steps / detailed work items**
-  1. **Update `KidDashboardHelper` chore attributes**
+  1. **[✅] Update `KidDashboardHelper` chore attributes**
      - File: `custom_components/kidschores/managers/ui_manager.py`
      - For each chore in the kid's dashboard list, add to the existing 6-field dict:
        - `lock_reason` (str | None) — `"waiting"`, `"not_my_turn"`, `"missed"`, or `None`
        - `turn_kid_name` (str | None) — resolve `rotation_current_kid_id` to kid name (if `is_rotation_mode()`)
-       - `available_at` (str | None) — ISO datetime of `due_window_start` (if `claim_restriction_enabled` and state is `waiting`)
+       - `available_at` (str | None) — ISO datetime of `due_window_start` (calculated from `due_date` - `due_window_offset`, only when state is `waiting`)
        - `can_claim` already exists as a sensor attribute on `KidChoreStatusSensor` (confirmed D-16). Dashboard helper documents that consumers should use `state_attr(chore.eid, 'can_claim')`. Consider adding `can_claim` to dashboard helper dict for convenience.
      - Existing 6 fields (`eid`, `name`, `state`, `labels`, `grouping`, `is_am_pm`) remain unchanged
 
-  2. **Update flow helpers — Chore creation/edit form**
+  2. **[✅] Update flow helpers — Chore creation/edit form**
      - File: `custom_components/kidschores/helpers/flow_helpers.py`
-     - **Add `claim_restriction_enabled`** as a `BooleanSelector` in `build_chore_schema()`
-       - Default: `False`
-       - Position: After `due_window_offset` (logically grouped)
-     - **Update `COMPLETION_CRITERIA_OPTIONS`** to include rotation types:
-       - Add `rotation_simple`, `rotation_smart` entries with clear labels (2 new entries, NOT 3)
-     - **Update `OVERDUE_HANDLING_OPTIONS`** to include 7th type:
-       - Add `at_due_date_allow_steal` entry — label must clearly indicate rotation-only + at_midnight_once constraint
-     - Note: HA config flows do not support conditional visibility. All overdue types will appear for all chore types. Use clear labeling and translation text to guide users. Consider adding validation error V-05 feedback when incompatible combo selected.
+     - ✅ `COMPLETION_CRITERIA_OPTIONS` in const.py includes rotation types (rotation_simple, rotation_smart) — completed in Phase 1
+     - ✅ `OVERDUE_HANDLING_TYPE_OPTIONS` in const.py includes 7th type (at_due_date_allow_steal) — completed in Phase 1
+     - ✅ Flow helpers correctly reference `const.COMPLETION_CRITERIA_OPTIONS` and `const.OVERDUE_HANDLING_TYPE_OPTIONS` (lines 584, 631)
+     - ✅ Selector translations complete in en.json (selector.completion_criteria.options, selector.overdue_handling_type.options)
+     - **Status**: Step complete — all work was done during Phase 1 constant updates
 
-  3. **Update options flow for chore editing** (D-11 — criteria is mutable)
+  3. **[✅] Update options flow for chore editing** (D-11 — criteria is mutable)
      - File: `custom_components/kidschores/options_flow.py`
-     - Ensure `claim_restriction_enabled` is included in the chore edit step
-     - `completion_criteria` is already editable in the options flow (confirmed). The form already shows the selector with current value pre-filled.
-     - **Add criteria transition handling**: When user changes `completion_criteria` in the edit form:
-       - After form submission, detect if criteria changed
-       - Delegate to `chore_manager._handle_criteria_transition()` to apply field changes
-       - Show appropriate validation errors (e.g., switching to rotation with only 1 kid assigned)
-     - **Add overdue handling validation**: When user selects `at_due_date_allow_steal`:
-       - Validate rotation criteria + `at_midnight_once` reset (V-05)
-       - Show error if incompatible combination detected
+     - ✅ `completion_criteria` is editable in options flow (confirmed working via existing flow helpers)
+     - ✅ **Removed immutability guard from services.py** (L818-823 deleted, D-11 resolved)
+     - ✅ **Added criteria transition handling**: ChoreManager.\_handle_criteria_transition() already exists and handles field cleanup
+     - ✅ **Added V-03 validation**: Rotation requires ≥2 assigned kids (data_builders.py line ~1296)
+     - ✅ **Added V-05 validation**: at_due_date_allow_steal compatibility (rotation + at_midnight_once + due_date, data_builders.py line ~1303)
+     - ✅ **Updated service schema**: Added completion_criteria to UPDATE_CHORE_SCHEMA + rotation values to \_COMPLETION_CRITERIA_VALUES
+     - ✅ **Added validation constants**: CFOP_ERROR_COMPLETION_CRITERIA, TRANS_KEY_CFOF_ERROR_ALLOW_STEAL_INCOMPATIBLE + translation
+     - **Status**: Step complete — all criteria mutability and validation implemented
 
-  4. **Update dashboard template documentation**
+  4. **[✅] Update dashboard template documentation**
      - File: `docs/DASHBOARD_TEMPLATE_GUIDE.md`
-     - Document new chore attributes (`lock_reason`, `turn_kid_name`, `available_at`)
-     - Provide example Jinja2 snippets for:
-       - Rotation display: "Current Turn: {{ turn_kid_name }}"
-       - Waiting countdown: "Available at {{ available_at }}"
-       - Lock reason tooltip/icon mapping
-     - Note: Actual dashboard YAML changes are in separate repo (`kidschores-ha-dashboard`)
+     - ✅ **Added v0.5.0 Chore Attributes Reference section** with comprehensive documentation
+     - ✅ **Documented 3 new dashboard helper fields**: `lock_reason`, `turn_kid_name`, `available_at`
+     - ✅ **Added Jinja2 examples** for rotation status display, availability countdown, lock reason icon mapping
+     - ✅ **Added multi-chore rotation summary** example for dashboard auto-entities cards
+     - ✅ **Added state-to-color mapping table** with 7 states/locks (pending→blue, not_my_turn→purple, etc.)
+     - ✅ **Provided icon suggestions** for each lock reason and state (waiting→mdi:clock-outline, missed→mdi:calendar-remove)
+     - **Status**: Step complete — dashboard template documentation updated for v0.5.0 contract
+
+  5. **[✅] Add v0.5.0 attributes to individual KidChoreStatusSensor entities**
+     - File: `custom_components/kidschores/sensor.py`
+     - ✅ **Added 3 new attributes to KidChoreStatusSensor.extra_state_attributes**: `lock_reason`, `turn_kid_name`, `available_at`
+     - ✅ **Implementation mirrors dashboard helper logic**: Uses get_chore_status_context() for consistency
+     - ✅ **Added translation keys**: `translations/en.json` sensor state_attributes section
+     - ✅ **Attribute label translations**: "Lock Reason", "Turn Kid Name", "Available At"
+     - ✅ **Value translations for lock_reason**: "waiting"→"Waiting for due window", "not_my_turn"→"Not your turn", "missed"→"Missed"
+     - **Status**: Step complete — individual sensors now expose same v0.5.0 attributes as dashboard helper
 
 - **Key issues** (Phase 4)
   - The dashboard YAML is in `kidschores-ha-dashboard` repo. Phase 4 only defines the **contract** — actual dashboard YAML changes are a separate initiative
   - The flow helpers show all options for all chore types, including rotation options for non-rotation chores and `at_due_date_allow_steal` for non-rotation chores. Clear translation text is critical to avoid user confusion. Validation rule V-05 catches invalid combos on save.
   - Criteria transition in the options flow must validate the new criteria against existing chore state — e.g., switching to `rotation_simple` requires ≥ 2 assigned kids (V-03). Switching to `at_due_date_allow_steal` overdue handling requires rotation criteria + `at_midnight_once` (V-05).
+  - **Step 5 added post-completion**: User identified missing attributes on individual KidChoreStatusSensor entities. Dashboard helper had 9 fields but individual sensors were missing the 3 new v0.5.0 attributes (lock_reason, turn_kid_name, available_at). Fixed by adding attributes to sensor.py and translation keys to en.json.
 
 ---
 
@@ -578,7 +620,7 @@ This is a **7th overdue handling type** (not a completion criteria). It controls
        - Approved takes precedence over everything
        - `not_my_turn` takes precedence over `missed` (P3 > P4)
        - `missed` takes precedence over `overdue` (P4 > P5)
-       - `waiting` only applies when `claim_restriction_enabled`
+       - `waiting` only applies when `due_window_offset` is set (claim restrictions enabled by field presence)
        - `due` window boundaries (exactly at start, exactly at end)
        - **Steal exception**: `overdue_handling == at_due_date_allow_steal` + overdue → `not_my_turn` does NOT match → falls to `overdue`
        - **Non-steal rotation + overdue**: `rotation_simple` with relaxed overdue → `not_my_turn` still wins (P3 > P5)
@@ -623,7 +665,7 @@ This is a **7th overdue handling type** (not a completion criteria). It controls
      - V-01: `mark_missed_and_lock` + `upon_completion` reset → Validation error
      - V-01: `mark_missed_and_lock` + `at_midnight_once` → Valid
      - V-02: `claim_restriction_enabled=True` + no due_window_offset → Validation error
-     - V-03: Any rotation type + only 1 assigned kid → Validation error (D-14 dependent)
+     - ~~V-02: `claim_restriction_enabled=True` + no due_window_offset → Validation error~~ ❌ OBSOLETE — No separate flag exists)
      - V-05: `at_due_date_allow_steal` + non-rotation criteria → Validation error
      - V-05: `at_due_date_allow_steal` + rotation_simple + `at_midnight_multi` → Validation error
      - V-05: `at_due_date_allow_steal` + rotation_simple + `at_midnight_once` → Valid
@@ -632,8 +674,7 @@ This is a **7th overdue handling type** (not a completion criteria). It controls
   4. **Migration tests**
      - File: `tests/test_migration.py` (extend)
      - Test extended v44 migration: Verify new fields backfilled on existing chores
-       - `claim_restriction_enabled = False` on all chores
-       - `rotation_current_kid_id = None` on all chores
+       - No claim restriction flag needed (derived from `due_window_offset` presence)
        - `rotation_cycle_override = False` on all chores
      - Test idempotency: Run migration twice → no errors, no duplicate fields
 
@@ -648,6 +689,1353 @@ This is a **7th overdue handling type** (not a completion criteria). It controls
      - `./utils/quick_lint.sh --fix`
      - `mypy custom_components/kidschores/`
      - `python -m pytest tests/ -v --tb=line`
+
+- **Builder Handoff: Complete Test Specification**
+
+  This section provides explicit test scenarios with expected assertions for KidChoreStatusSensor entities and dashboard helper attributes. Each test MUST verify both sources to ensure contract consistency.
+
+  **CRITICAL REQUIREMENTS**:
+  1. ✅ **Use button presses with user context** (NOT service calls, NOT coordinator API)
+  2. ✅ **Test ALL assigned kids** - turn-holder AND non-turn-holders (not_my_turn states are critical)
+  3. ✅ **Use Stårblüm Family** from YAML scenarios (NOT generic names)
+  4. ✅ **Verify dashboard helper AND individual sensors** for every kid
+  5. ✅ **Use `get_dashboard_helper()` and `find_chore()`** helpers for entity access
+
+  ### Test Organization
+
+  **4 test files, 4 builders working in parallel. NO OVERLAP.**
+
+  | Builder | File | Test Groups | Tests | Lines |
+  |---------|------|-------------|-------|-------|
+  | **Builder 1** | `test_rotation_fsm_states.py` | **T1 ONLY** | 9 tests | ~250 |
+  | **Builder 2** | `test_rotation_services.py` | **T2 + T3** | 6 tests | ~200 |
+  | **Builder 3** | `test_rotation_due_window_overdue.py` | **T4 + T5 + T6** | 8 tests | ~200 |
+  | **Builder 4** | `test_rotation_dashboard_contract.py` | **T7 + T8** | 5 tests | ~150 |
+
+  **Test Group Summary**:
+  - **T1**: FSM State Resolution (9 tests: approved, claimed, not_my_turn, missed, waiting, hold_claim, auto_approve, overdue_state, overdue_until_reset)
+  - **T2**: Rotation Services (3 tests: set_turn, reset, open_cycle)
+  - **T3**: Rotation Turn Advancement (3 tests: simple, smart, kid_deletion)
+  - **T4**: Claim Restriction (2-3 tests: due window blocking scenarios)
+  - **T5**: Missed Lock Strategy (2-3 tests: turn-holder locked, non-turn-holders NOT locked)
+  - **T6**: Steal Window (2-3 tests: ALL kids can steal after due date)
+  - **T7**: Dashboard Helper Attributes (3 tests: lock_reason, turn_kid_name, available_at verification)
+  - **T8**: Criteria Transition (2 tests: mutable completion_criteria updates ALL kid sensors)
+
+  ---
+
+  ## 🔨 BUILDER 1 HANDOFF: `test_rotation_fsm_states.py`
+
+  **YOUR RESPONSIBILITY**: T1 ONLY (FSM State Resolution + Overdue Types)
+  **FILE**: `tests/test_rotation_fsm_states.py`
+  **TESTS**: 9 functions (complete Python code below)
+
+  **DO NOT TOUCH**: T2-T8 (other builders handle those)
+
+  **Your Test Functions**:
+  1. `test_fsm_approved_state()` - T1.1
+  2. `test_fsm_claimed_state()` - T1.2
+  3. `test_fsm_not_my_turn_blocking()` - T1.3 ⚠️ CRITICAL
+  4. `test_fsm_missed_state_rotation()` - T1.4
+  5. `test_fsm_waiting_state_all_kids()` - T1.5
+  6. `test_overdue_hold_claim_rotation()` - T1.6
+  7. `test_overdue_auto_approve_rotation()` - T1.7
+  8. `test_overdue_state_rotation()` - T1.8
+  9. `test_overdue_until_approval_reset_rotation()` - T1.9
+
+  ---
+
+  ## 🔨 BUILDER 2 HANDOFF: `test_rotation_services.py`
+
+  **YOUR RESPONSIBILITY**: T2 (Rotation Services) + T3 (Turn Advancement)
+  **FILE**: `tests/test_rotation_services.py`
+  **TESTS**: 6 functions (3 for T2, 3 for T3)
+
+  **DO NOT TOUCH**: T1, T4, T5, T6, T7, T8 (other builders handle those)
+
+  **Your Test Functions**:
+  1. `test_set_rotation_turn_all_kids()` - T2.1
+  2. `test_reset_rotation_all_kids()` - T2.2
+  3. `test_open_rotation_cycle_all_kids()` - T2.3 ⚠️ CRITICAL
+  4. `test_rotation_advancement_simple()` - T3.1
+  5. `test_rotation_advancement_smart()` - T3.2
+  6. `test_rotation_advancement_kid_deletion()` - T3.3
+
+  ---
+
+  ## 🔨 BUILDER 3 HANDOFF: `test_rotation_due_window_overdue.py`
+
+  **YOUR RESPONSIBILITY**: T4 (Due Window) + T5 (Missed Lock) + T6 (Steal Window)
+  **FILE**: `tests/test_rotation_due_window_overdue.py`
+  **TESTS**: 8 functions (2-3 per group)
+
+  **DO NOT TOUCH**: T1, T2, T3, T7, T8 (other builders handle those)
+
+  **Your Test Functions**:
+  1. `test_due_window_blocks_early_claims()` - T4.1
+  2. `test_due_window_opens_at_offset()` - T4.2
+  3. `test_missed_lock_turn_holder_only()` - T5.1
+  4. `test_missed_lock_non_turn_holders_not_locked()` - T5.2 ⚠️ CRITICAL
+  5. `test_missed_lock_manual_unlock()` - T5.3
+  6. `test_steal_window_all_kids_can_steal()` - T6.1 ⚠️ CRITICAL
+  7. `test_steal_window_turn_advances_on_steal()` - T6.2
+  8. `test_steal_window_requires_overdue_state()` - T6.3
+
+  ---
+
+  ## 🔨 BUILDER 4 HANDOFF: `test_rotation_dashboard_contract.py`
+
+  **YOUR RESPONSIBILITY**: T7 (Dashboard Helper Attributes) + T8 (Criteria Transition)
+  **FILE**: `tests/test_rotation_dashboard_contract.py`
+  **TESTS**: 5 functions (3 for T7, 2 for T8)
+
+  **DO NOT TOUCH**: T1, T2, T3, T4, T5, T6 (other builders handle those)
+
+  **Your Test Functions**:
+  1. `test_dashboard_helper_lock_reason_attribute()` - T7.1
+  2. `test_dashboard_helper_turn_kid_name_attribute()` - T7.2
+  3. `test_dashboard_helper_available_at_attribute()` - T7.3
+  4. `test_criteria_transition_all_kids_update()` - T8.1 ⚠️ CRITICAL
+  5. `test_criteria_transition_via_options_flow()` - T8.2
+
+  ---
+
+  ### Common Test Setup Pattern (ALL BUILDERS USE THIS)
+
+  Tests grouped by feature area:
+  - **T1**: FSM State Resolution (8 states + lock_reason attribute) - **3 kids minimum per test**
+  - **T2**: Rotation Services (3 services) - **Verify ALL assigned kids after each service**
+  - **T3**: Rotation Turn Advancement (simple + smart) - **Track ALL kids through advancement**
+  - **T4**: Claim Restriction (due window blocking) - **Test multiple kids**
+  - **T5**: Missed Lock Strategy (6th overdue type) - **Rotation: verify non-turn-holders NOT locked**
+  - **T6**: Steal Window (7th overdue type) - **Verify ALL kids can steal**
+  - **T7**: Dashboard Helper Attributes (new v0.5.0 fields) - **All kids, all chores**
+  - **T8**: Criteria Transition (mutable completion_criteria) - **Verify all kid sensors update**
+
+  ### Test Setup Pattern (from AGENT_TEST_CREATION_INSTRUCTIONS.md)
+
+  Use **Stårblüm Family** fixtures:
+  - **Kids**: Zoë Stårblüm (8yo), Max! Stårblüm (6yo), Lila Stårblüm (8yo)
+  - **Parents**: Môm Astrid (@Astrid), Dad Leo (@Leo)
+  - **Scenarios**: `scenario_minimal.yaml` (simple), `scenario_shared.yaml` (multi-kid), `scenario_full.yaml` (complex)
+
+  ```python
+  from tests.helpers import (
+      setup_from_yaml, SetupResult,
+      get_dashboard_helper, find_chore, get_chore_buttons,
+      CHORE_STATE_PENDING, CHORE_STATE_CLAIMED, CHORE_STATE_APPROVED,
+      CHORE_STATE_NOT_MY_TURN, CHORE_STATE_WAITING, CHORE_STATE_MISSED,
+  )
+  from homeassistant.core import Context
+  
+  async def test_rotation_example(hass, mock_hass_users):
+      result = await setup_from_yaml(hass, mock_hass_users, "tests/scenarios/scenario_shared.yaml")
+      coordinator = result.coordinator
+      
+      # Get kid IDs from scenario
+      zoe_id = result.kid_ids["Zoë"]
+      max_id = result.kid_ids["Max!"]
+      lila_id = result.kid_ids["Lila"]
+      
+      # Get dashboard helpers for ALL kids
+      zoe_helper = get_dashboard_helper(hass, "Zoë")
+      max_helper = get_dashboard_helper(hass, "Max!")
+      lila_helper = get_dashboard_helper(hass, "Lila")
+      
+      # Find chore in Zoë's dashboard
+      chore = find_chore(zoe_helper, "Dishes Rotation")
+      
+      # Get buttons for ALL kids
+      zoe_buttons = get_chore_buttons(hass, chore["eid"])
+      max_chore_eid = f"sensor.kc_max_chore_{chore['eid'].split('_')[-1]}"
+      max_buttons = get_chore_buttons(hass, max_chore_eid)
+      
+      # Test as kid - use Context with user_id
+      kid_context = Context(user_id=mock_hass_users["kid1"].id)
+      await hass.services.async_call("button", "press", 
+          {"entity_id": zoe_buttons["claim"]}, context=kid_context)
+  ```
+
+  ### T1: FSM State Resolution & lock_reason Attribute
+
+  **T1.1 — Priority 1: Approved State**
+  ```python
+  async def test_fsm_approved_state(hass, mock_hass_users):
+      """Test approved state takes priority over all other states."""
+      result = await setup_from_yaml(hass, mock_hass_users, "tests/scenarios/scenario_shared.yaml")
+      
+      # Setup: rotation_simple, assigned=[Zoë, Max!, Lila], turn=Zoë
+      zoe_id = result.kid_ids["Zoë"]
+      max_id = result.kid_ids["Max!"]
+      lila_id = result.kid_ids["Lila"]
+      
+      # Get dashboard helpers
+      zoe_helper = get_dashboard_helper(hass, "Zoë")
+      max_helper = get_dashboard_helper(hass, "Max!")
+      lila_helper = get_dashboard_helper(hass, "Lila")
+      
+      # Find rotation chore in ALL kids' dashboards
+      zoe_chore = find_chore(zoe_helper, "Dishes Rotation")
+      max_chore = find_chore(max_helper, "Dishes Rotation")
+      lila_chore = find_chore(lila_helper, "Dishes Rotation")
+      
+      # Get buttons
+      zoe_buttons = get_chore_buttons(hass, zoe_chore["eid"])
+      
+      # Zoë claims (turn-holder)
+      kid_context = Context(user_id=mock_hass_users["kid1"].id)
+      await hass.services.async_call("button", "press",
+          {"entity_id": zoe_buttons["claim"]}, context=kid_context)
+      await hass.async_block_till_done()
+      
+      # Parent approves
+      parent_context = Context(user_id=mock_hass_users["parent1"].id)
+      await hass.services.async_call("button", "press",
+          {"entity_id": zoe_buttons["approve"]}, context=parent_context)
+      await hass.async_block_till_done()
+      
+      # Assert Zoë: state=approved, lock_reason=None
+      zoe_sensor = hass.states.get(zoe_chore["eid"])
+      assert zoe_sensor.state == CHORE_STATE_APPROVED
+      assert zoe_sensor.attributes.get("lock_reason") is None
+      assert zoe_sensor.attributes.get("turn_kid_name") == "Max!"  # Turn advanced
+      assert zoe_sensor.attributes.get("can_claim") is False
+      
+      # Assert Zoë dashboard helper
+      zoe_helper_updated = get_dashboard_helper(hass, "Zoë")
+      zoe_chore_updated = find_chore(zoe_helper_updated, "Dishes Rotation")
+      assert zoe_chore_updated["state"] == CHORE_STATE_APPROVED
+      assert zoe_chore_updated.get("lock_reason") is None
+      assert zoe_chore_updated.get("turn_kid_name") == "Max!"
+      
+      # Assert Max!: turn advanced, state=pending (or due if window), lock_reason=None
+      max_sensor = hass.states.get(max_chore["eid"])
+      assert max_sensor.state in (CHORE_STATE_PENDING, CHORE_STATE_DUE)
+      assert max_sensor.attributes.get("lock_reason") is None
+      assert max_sensor.attributes.get("turn_kid_name") == "Max!"
+      assert max_sensor.attributes.get("can_claim") is True
+      
+      # Assert Lila: state=not_my_turn, lock_reason="not_my_turn"
+      lila_sensor = hass.states.get(lila_chore["eid"])
+      assert lila_sensor.state == CHORE_STATE_NOT_MY_TURN
+      assert lila_sensor.attributes.get("lock_reason") == "not_my_turn"
+      assert lila_sensor.attributes.get("turn_kid_name") == "Max!"
+      assert lila_sensor.attributes.get("can_claim") is False
+  ```
+
+  **T1.2 — Priority 2: Claimed State**
+  ```python
+  async def test_fsm_claimed_state(hass, mock_hass_users):
+      """Test claimed state (pending approval)."""
+      result = await setup_from_yaml(hass, mock_hass_users, "tests/scenarios/scenario_shared.yaml")
+      
+      zoe_id = result.kid_ids["Zoë"]
+      max_id = result.kid_ids["Max!"]
+      lila_id = result.kid_ids["Lila"]
+      
+      # Get ALL dashboard helpers
+      zoe_helper = get_dashboard_helper(hass, "Zoë")
+      max_helper = get_dashboard_helper(hass, "Max!")
+      lila_helper = get_dashboard_helper(hass, "Lila")
+      
+      # Find chore in each kid's dashboard
+      zoe_chore = find_chore(zoe_helper, "Dishes Rotation")
+      max_chore = find_chore(max_helper, "Dishes Rotation")
+      lila_chore = find_chore(lila_helper, "Dishes Rotation")
+      
+      # Zoë claims (turn-holder)
+      zoe_buttons = get_chore_buttons(hass, zoe_chore["eid"])
+      kid_context = Context(user_id=mock_hass_users["kid1"].id)
+      await hass.services.async_call("button", "press",
+          {"entity_id": zoe_buttons["claim"]}, context=kid_context)
+      await hass.async_block_till_done()
+      
+      # Assert Zoë: state=claimed, lock_reason=None, can_claim=False
+      zoe_sensor = hass.states.get(zoe_chore["eid"])
+      assert zoe_sensor.state == CHORE_STATE_CLAIMED
+      assert zoe_sensor.attributes.get("lock_reason") is None
+      assert zoe_sensor.attributes.get("turn_kid_name") == "Zoë"
+      assert zoe_sensor.attributes.get("can_claim") is False
+      
+      # Assert Max!: state=not_my_turn (still blocked)
+      max_sensor = hass.states.get(max_chore["eid"])
+      assert max_sensor.state == CHORE_STATE_NOT_MY_TURN
+      assert max_sensor.attributes.get("lock_reason") == "not_my_turn"
+      assert max_sensor.attributes.get("turn_kid_name") == "Zoë"
+      
+      # Assert Lila: state=not_my_turn (still blocked)
+      lila_sensor = hass.states.get(lila_chore["eid"])
+      assert lila_sensor.state == CHORE_STATE_NOT_MY_TURN
+      assert lila_sensor.attributes.get("lock_reason") == "not_my_turn"
+  ```
+
+  **T1.3 — Priority 3: Not My Turn (Rotation Blocking) - CRITICAL TEST**
+  ```python
+  async def test_fsm_not_my_turn_blocking(hass, mock_hass_users):
+      """Test not_my_turn blocks non-turn-holders. CRITICAL: Verify all 3 kids."""
+      result = await setup_from_yaml(hass, mock_hass_users, "tests/scenarios/scenario_shared.yaml")
+      
+      zoe_id = result.kid_ids["Zoë"]
+      max_id = result.kid_ids["Max!"]
+      lila_id = result.kid_ids["Lila"]
+      
+      # Get ALL dashboard helpers
+      zoe_helper = get_dashboard_helper(hass, "Zoë")
+      max_helper = get_dashboard_helper(hass, "Max!")
+      lila_helper = get_dashboard_helper(hass, "Lila")
+      
+      # Find chore in each kid's dashboard
+      zoe_chore = find_chore(zoe_helper, "Dishes Rotation")
+      max_chore = find_chore(max_helper, "Dishes Rotation")
+      lila_chore = find_chore(lila_helper, "Dishes Rotation")
+      
+      # CRITICAL: Verify turn_holder is Zoë (extract internal ID from entity ID)
+      chore_internal_id = zoe_chore["eid"].split("_chore_")[-1]
+      coordinator = result.coordinator
+      chore_data = coordinator.chores_data[chore_internal_id]
+      assert chore_data[DATA_CHORE_ROTATION_CURRENT_KID_ID] == zoe_id
+      
+      # Assert Zoë (turn-holder): can_claim=True, lock_reason=None
+      zoe_sensor = hass.states.get(zoe_chore["eid"])
+      assert zoe_sensor.state in (CHORE_STATE_PENDING, CHORE_STATE_DUE)
+      assert zoe_sensor.attributes.get("lock_reason") is None
+      assert zoe_sensor.attributes.get("turn_kid_name") == "Zoë"
+      assert zoe_sensor.attributes.get("can_claim") is True
+      
+      # Assert Max! (NOT turn-holder): state=not_my_turn, can_claim=False
+      max_sensor = hass.states.get(max_chore["eid"])
+      assert max_sensor.state == CHORE_STATE_NOT_MY_TURN
+      assert max_sensor.attributes.get("lock_reason") == "not_my_turn"
+      assert max_sensor.attributes.get("turn_kid_name") == "Zoë"  # Shows WHO has turn
+      assert max_sensor.attributes.get("can_claim") is False
+      
+      # Assert Lila (NOT turn-holder): state=not_my_turn, can_claim=False
+      lila_sensor = hass.states.get(lila_chore["eid"])
+      assert lila_sensor.state == CHORE_STATE_NOT_MY_TURN
+      assert lila_sensor.attributes.get("lock_reason") == "not_my_turn"
+      assert lila_sensor.attributes.get("turn_kid_name") == "Zoë"
+      assert lila_sensor.attributes.get("can_claim") is False
+      
+      # Verify dashboard helpers match (refresh to get latest state)
+      max_helper_updated = get_dashboard_helper(hass, "Max!")
+      max_helper_chore = find_chore(max_helper_updated, "Dishes Rotation")
+      assert max_helper_chore["state"] == CHORE_STATE_NOT_MY_TURN
+      assert max_helper_chore.get("lock_reason") == "not_my_turn"
+      assert max_helper_chore.get("turn_kid_name") == "Zoë"
+      
+      lila_helper_updated = get_dashboard_helper(hass, "Lila")
+      lila_helper_chore = find_chore(lila_helper_updated, "Dishes Rotation")
+      assert lila_helper_chore["state"] == CHORE_STATE_NOT_MY_TURN
+      assert lila_helper_chore.get("lock_reason") == "not_my_turn"
+      assert lila_helper_chore.get("turn_kid_name") == "Zoë"
+      
+      # CRITICAL: Verify non-turn-holder CANNOT claim
+      max_buttons = get_chore_buttons(hass, max_chore["eid"])
+      kid_context = Context(user_id=mock_hass_users["kid2"].id)  # Max's user
+      
+      with pytest.raises(HomeAssistantError, match="not.*turn|rotation"):
+          await hass.services.async_call("button", "press",
+              {"entity_id": max_buttons["claim"]}, context=kid_context)
+  ```
+
+  **T1.4 — Priority 4: Missed (Locked State) - Rotation: Only Turn-Holder Locked**
+  ```python
+  async def test_fsm_missed_state_rotation(hass, mock_hass_users):
+      """Test missed state locks ONLY turn-holder, not other kids."""
+      from freezegun import freeze_time
+      
+      result = await setup_from_yaml(hass, mock_hass_users, "tests/scenarios/scenario_shared.yaml")
+      
+      zoe_id = result.kid_ids["Zoë"]
+      max_id = result.kid_ids["Max!"]
+      lila_id = result.kid_ids["Lila"]
+      
+      # Setup: rotation chore with mark_missed_and_lock
+      # due_date=2026-02-10T19:00:00Z, approval_reset=at_midnight_once
+      # (Assume scenario includes this chore or create via service)
+      
+      # Freeze time PAST due date
+      with freeze_time("2026-02-10T20:00:00Z"):
+          # Trigger scanner
+          await result.coordinator._run_time_scanner()
+          await hass.async_block_till_done()
+          
+          # Get sensors
+          zoe_helper = get_dashboard_helper(hass, "Zoë")
+          chore = find_chore(zoe_helper, "Dishes Rotation Locked")
+          chore_id = chore["eid"].split("_")[-1]
+          
+          # Assert Zoë (turn-holder): state=missed, lock_reason="missed", can_claim=False
+          zoe_sensor = hass.states.get(chore["eid"])
+          assert zoe_sensor.state == CHORE_STATE_MISSED
+          assert zoe_sensor.attributes.get("lock_reason") == "missed"
+          assert zoe_sensor.attributes.get("turn_kid_name") == "Zoë"
+          assert zoe_sensor.attributes.get("can_claim") is False
+          
+          # CRITICAL: Assert Max! (NOT turn-holder): state=not_my_turn (NOT missed)
+          max_chore_eid = f"sensor.kc_max_chore_{chore_id}"
+          max_sensor = hass.states.get(max_chore_eid)
+          assert max_sensor.state == CHORE_STATE_NOT_MY_TURN  # NOT missed!
+          assert max_sensor.attributes.get("lock_reason") == "not_my_turn"  # NOT "missed"!
+          assert max_sensor.attributes.get("can_claim") is False
+          
+          # CRITICAL: Assert Lila (NOT turn-holder): state=not_my_turn (NOT missed)
+          lila_chore_eid = f"sensor.kc_lila_chore_{chore_id}"
+          lila_sensor = hass.states.get(lila_chore_eid)
+          assert lila_sensor.state == CHORE_STATE_NOT_MY_TURN  # NOT missed!
+          assert lila_sensor.attributes.get("lock_reason") == "not_my_turn"
+          assert lila_sensor.attributes.get("can_claim") is False
+  ```
+
+  **T1.5 — Priority 6: Waiting (Claim Restriction) - All Kids Blocked**
+  ```python
+  async def test_fsm_waiting_state_all_kids(hass, mock_hass_users):
+      """Test waiting state blocks ALL kids (not rotation-specific)."""
+      from freezegun import freeze_time
+      
+      result = await setup_from_yaml(hass, mock_hass_users, "tests/scenarios/scenario_shared.yaml")
+      
+      zoe_id = result.kid_ids["Zoë"]
+      max_id = result.kid_ids["Max!"]
+      lila_id = result.kid_ids["Lila"]
+      
+      # Setup: independent chore with due_window_offset="PT2H"
+      # due_date=2026-02-10T19:00:00Z → window_start=17:00:00Z
+      
+      # Freeze time BEFORE window opens
+      with freeze_time("2026-02-10T16:00:00Z"):
+          zoe_helper = get_dashboard_helper(hass, "Zoë")
+          chore = find_chore(zoe_helper, "Homework Due Window")
+          chore_id = chore["eid"].split("_")[-1]
+          
+          # Assert Zoë: state=waiting, available_at set
+          zoe_sensor = hass.states.get(chore["eid"])
+          assert zoe_sensor.state == CHORE_STATE_WAITING
+          assert zoe_sensor.attributes.get("lock_reason") == "waiting"
+          assert zoe_sensor.attributes.get("available_at") == "2026-02-10T17:00:00+00:00"
+          assert zoe_sensor.attributes.get("can_claim") is False
+          
+          # Assert Max!: also waiting (shared chore, not rotation)
+          max_chore_eid = f"sensor.kc_max_chore_{chore_id}"
+          max_sensor = hass.states.get(max_chore_eid)
+          assert max_sensor.state == CHORE_STATE_WAITING
+          assert max_sensor.attributes.get("lock_reason") == "waiting"
+          assert max_sensor.attributes.get("available_at") == "2026-02-10T17:00:00+00:00"
+          
+          # Assert Lila: also waiting
+          lila_chore_eid = f"sensor.kc_lila_chore_{chore_id}"
+          lila_sensor = hass.states.get(lila_chore_eid)
+          assert lila_sensor.state == CHORE_STATE_WAITING
+          assert lila_sensor.attributes.get("lock_reason") == "waiting"
+      
+      # Advance time INTO window
+      with freeze_time("2026-02-10T18:00:00Z"):
+          await hass.async_block_till_done()
+          
+          # Assert ALL kids: state=due, lock_reason=None, available_at=None
+          zoe_sensor_updated = hass.states.get(chore["eid"])
+          assert zoe_sensor_updated.state == CHORE_STATE_DUE
+          assert zoe_sensor_updated.attributes.get("lock_reason") is None
+          assert zoe_sensor_updated.attributes.get("available_at") is None
+          assert zoe_sensor_updated.attributes.get("can_claim") is True
+          
+          max_sensor_updated = hass.states.get(max_chore_eid)
+          assert max_sensor_updated.state == CHORE_STATE_DUE
+          assert max_sensor_updated.attributes.get("lock_reason") is None
+          assert max_sensor_updated.attributes.get("can_claim") is True
+  ```
+
+  **T1.6 — Overdue Type: Hold Claim (Rotation Turn Holder Keeps Claim)**
+  ```python
+  async def test_overdue_hold_claim_rotation(hass, mock_hass_users):
+      """Test hold_claim overdue: rotation turn holder keeps claimed state past due."""
+      from freezegun import freeze_time
+      
+      result = await setup_from_yaml(hass, mock_hass_users, "tests/scenarios/scenario_shared.yaml")
+      coordinator = result.coordinator
+      
+      zoe_id = result.kid_ids["Zoë"]
+      max_id = result.kid_ids["Max!"]
+      lila_id = result.kid_ids["Lila"]
+      
+      # Setup: rotation chore with overdue_action=hold_claim
+      # turn=Zoë, due_date=2026-02-10T19:00:00Z
+      
+      # Get dashboard helpers
+      zoe_helper = get_dashboard_helper(hass, "Zoë")
+      max_helper = get_dashboard_helper(hass, "Max!")
+      lila_helper = get_dashboard_helper(hass, "Lila")
+      
+      # Find chore
+      zoe_chore = find_chore(zoe_helper, "Dishes Rotation")
+      max_chore = find_chore(max_helper, "Dishes Rotation")
+      lila_chore = find_chore(lila_helper, "Dishes Rotation")
+      
+      # Zoë claims BEFORE due time
+      with freeze_time("2026-02-10T18:00:00Z"):
+          zoe_buttons = get_chore_buttons(hass, zoe_chore["eid"])
+          kid_context = Context(user_id=mock_hass_users["kid1"].id)
+          await hass.services.async_call("button", "press",
+              {"entity_id": zoe_buttons["claim"]}, context=kid_context)
+          await hass.async_block_till_done()
+      
+      # Advance time PAST due date
+      with freeze_time("2026-02-10T20:00:00Z"):
+          # Trigger scanner to update overdue states
+          await coordinator.async_refresh()
+          await hass.async_block_till_done()
+          
+          # Assert Zoë (turn-holder): STILL claimed (hold_claim preserves state)
+          zoe_sensor = hass.states.get(zoe_chore["eid"])
+          assert zoe_sensor.state == CHORE_STATE_CLAIMED  # NOT overdue state
+          assert zoe_sensor.attributes.get("lock_reason") is None
+          assert zoe_sensor.attributes.get("turn_kid_name") == "Zoë"
+          assert zoe_sensor.attributes.get("can_claim") is False
+          
+          # Assert Max! & Lila: STILL blocked (rotation doesn't advance on hold_claim)
+          max_sensor = hass.states.get(max_chore["eid"])
+          assert max_sensor.state == CHORE_STATE_NOT_MY_TURN
+          assert max_sensor.attributes.get("lock_reason") == "not_my_turn"
+          
+          lila_sensor = hass.states.get(lila_chore["eid"])
+          assert lila_sensor.state == CHORE_STATE_NOT_MY_TURN
+          assert lila_sensor.attributes.get("lock_reason") == "not_my_turn"
+  ```
+
+  **T1.7 — Overdue Type: Auto-Approve (Rotation Turn Advances on Approval)**
+  ```python
+  async def test_overdue_auto_approve_rotation(hass, mock_hass_users):
+      """Test auto_approve overdue: rotation advances turn when claim auto-approves."""
+      from freezegun import freeze_time
+      
+      result = await setup_from_yaml(hass, mock_hass_users, "tests/scenarios/scenario_shared.yaml")
+      coordinator = result.coordinator
+      
+      zoe_id = result.kid_ids["Zoë"]
+      max_id = result.kid_ids["Max!"]
+      lila_id = result.kid_ids["Lila"]
+      
+      # Setup: rotation chore with overdue_action=auto_approve_pending_claims
+      # turn=Zoë, due_date=2026-02-10T19:00:00Z
+      
+      # Get dashboard helpers
+      zoe_helper = get_dashboard_helper(hass, "Zoë")
+      max_helper = get_dashboard_helper(hass, "Max!")
+      lila_helper = get_dashboard_helper(hass, "Lila")
+      
+      # Find chore
+      zoe_chore = find_chore(zoe_helper, "Dishes Rotation")
+      max_chore = find_chore(max_helper, "Dishes Rotation")
+      lila_chore = find_chore(lila_helper, "Dishes Rotation")
+      
+      # Zoë claims BEFORE due time
+      with freeze_time("2026-02-10T18:00:00Z"):
+          zoe_buttons = get_chore_buttons(hass, zoe_chore["eid"])
+          kid_context = Context(user_id=mock_hass_users["kid1"].id)
+          await hass.services.async_call("button", "press",
+              {"entity_id": zoe_buttons["claim"]}, context=kid_context)
+          await hass.async_block_till_done()
+          
+          # Verify claimed
+          zoe_sensor = hass.states.get(zoe_chore["eid"])
+          assert zoe_sensor.state == CHORE_STATE_CLAIMED
+      
+      # Advance time to due date (auto-approve triggers)
+      with freeze_time("2026-02-10T19:00:01Z"):
+          # Trigger scanner to auto-approve
+          await coordinator.async_refresh()
+          await hass.async_block_till_done()
+          
+          # Refresh dashboard helpers to get updated turn
+          zoe_helper_updated = get_dashboard_helper(hass, "Zoë")
+          max_helper_updated = get_dashboard_helper(hass, "Max!")
+          lila_helper_updated = get_dashboard_helper(hass, "Lila")
+          
+          zoe_chore_updated = find_chore(zoe_helper_updated, "Dishes Rotation")
+          max_chore_updated = find_chore(max_helper_updated, "Dishes Rotation")
+          lila_chore_updated = find_chore(lila_helper_updated, "Dishes Rotation")
+          
+          # Assert Zoë: auto-approved, turn ADVANCED to Max!
+          zoe_sensor = hass.states.get(zoe_chore_updated["eid"])
+          assert zoe_sensor.state == CHORE_STATE_APPROVED
+          assert zoe_sensor.attributes.get("lock_reason") is None
+          assert zoe_sensor.attributes.get("turn_kid_name") == "Max!"  # Turn advanced
+          
+          # Assert Max!: NOW turn-holder, can claim
+          max_sensor = hass.states.get(max_chore_updated["eid"])
+          assert max_sensor.state in (CHORE_STATE_PENDING, CHORE_STATE_DUE)
+          assert max_sensor.attributes.get("lock_reason") is None
+          assert max_sensor.attributes.get("turn_kid_name") == "Max!"
+          assert max_sensor.attributes.get("can_claim") is True
+          
+          # Assert Lila: STILL blocked (now blocked by Max's turn)
+          lila_sensor = hass.states.get(lila_chore_updated["eid"])
+          assert lila_sensor.state == CHORE_STATE_NOT_MY_TURN
+          assert lila_sensor.attributes.get("lock_reason") == "not_my_turn"
+          assert lila_sensor.attributes.get("turn_kid_name") == "Max!"
+  ```
+
+  **T1.8 — Overdue Type: Overdue State (Turn Holder Can Still Claim)**
+  ```python
+  async def test_overdue_state_rotation(hass, mock_hass_users):
+      """Test overdue state: rotation turn holder can still claim overdue chore."""
+      from freezegun import freeze_time
+      
+      result = await setup_from_yaml(hass, mock_hass_users, "tests/scenarios/scenario_shared.yaml")
+      coordinator = result.coordinator
+      
+      zoe_id = result.kid_ids["Zoë"]
+      max_id = result.kid_ids["Max!"]
+      lila_id = result.kid_ids["Lila"]
+      
+      # Setup: rotation chore with overdue_action=show_overdue_state
+      # turn=Zoë, due_date=2026-02-10T19:00:00Z, approval_reset=never
+      
+      # Advance time PAST due date (chore not claimed)
+      with freeze_time("2026-02-10T20:00:00Z"):
+          # Trigger scanner
+          await coordinator.async_refresh()
+          await hass.async_block_till_done()
+          
+          # Get dashboard helpers
+          zoe_helper = get_dashboard_helper(hass, "Zoë")
+          max_helper = get_dashboard_helper(hass, "Max!")
+          lila_helper = get_dashboard_helper(hass, "Lila")
+          
+          # Find chore
+          zoe_chore = find_chore(zoe_helper, "Dishes Rotation")
+          max_chore = find_chore(max_helper, "Dishes Rotation")
+          lila_chore = find_chore(lila_helper, "Dishes Rotation")
+          
+          # Assert Zoë (turn-holder): state=overdue, CAN still claim
+          zoe_sensor = hass.states.get(zoe_chore["eid"])
+          assert zoe_sensor.state == CHORE_STATE_OVERDUE
+          assert zoe_sensor.attributes.get("lock_reason") is None  # Not locked
+          assert zoe_sensor.attributes.get("turn_kid_name") == "Zoë"
+          assert zoe_sensor.attributes.get("can_claim") is True  # Can still claim
+          
+          # Assert Max! & Lila: STILL blocked by rotation
+          max_sensor = hass.states.get(max_chore["eid"])
+          assert max_sensor.state == CHORE_STATE_NOT_MY_TURN
+          assert max_sensor.attributes.get("lock_reason") == "not_my_turn"
+          
+          lila_sensor = hass.states.get(lila_chore["eid"])
+          assert lila_sensor.state == CHORE_STATE_NOT_MY_TURN
+          assert lila_sensor.attributes.get("lock_reason") == "not_my_turn"
+          
+          # Verify Zoë CAN claim overdue chore
+          zoe_buttons = get_chore_buttons(hass, zoe_chore["eid"])
+          kid_context = Context(user_id=mock_hass_users["kid1"].id)
+          await hass.services.async_call("button", "press",
+              {"entity_id": zoe_buttons["claim"]}, context=kid_context)
+          await hass.async_block_till_done()
+          
+          # Verify state changed to claimed
+          zoe_sensor_updated = hass.states.get(zoe_chore["eid"])
+          assert zoe_sensor_updated.state == CHORE_STATE_CLAIMED
+  ```
+
+  **T1.9 — Overdue Type: Overdue Until Approval Reset (Midnight Reset)**
+  ```python
+  async def test_overdue_until_approval_reset_rotation(hass, mock_hass_users):
+      """Test overdue_until_approval_reset: rotation may advance turn on reset."""
+      from freezegun import freeze_time
+      
+      result = await setup_from_yaml(hass, mock_hass_users, "tests/scenarios/scenario_shared.yaml")
+      coordinator = result.coordinator
+      
+      zoe_id = result.kid_ids["Zoë"]
+      max_id = result.kid_ids["Max!"]
+      lila_id = result.kid_ids["Lila"]
+      
+      # Setup: rotation chore with overdue_action=show_overdue_state
+      # approval_reset=at_midnight_once, turn=Zoë, due_date=2026-02-10T19:00:00Z
+      
+      # Advance time PAST due date (chore overdue, not claimed)
+      with freeze_time("2026-02-10T20:00:00Z"):
+          # Get dashboard helpers
+          zoe_helper = get_dashboard_helper(hass, "Zoë")
+          zoe_chore = find_chore(zoe_helper, "Dishes Rotation")
+          
+          # Zoë claims overdue chore
+          zoe_buttons = get_chore_buttons(hass, zoe_chore["eid"])
+          kid_context = Context(user_id=mock_hass_users["kid1"].id)
+          await hass.services.async_call("button", "press",
+              {"entity_id": zoe_buttons["claim"]}, context=kid_context)
+          await hass.async_block_till_done()
+          
+          # Verify claimed
+          zoe_sensor = hass.states.get(zoe_chore["eid"])
+          assert zoe_sensor.state == CHORE_STATE_CLAIMED
+      
+      # Advance time PAST midnight (approval reset triggers)
+      with freeze_time("2026-02-11T00:00:01Z"):
+          # Trigger scanner to reset approval
+          await coordinator.async_refresh()
+          await hass.async_block_till_done()
+          
+          # Get updated helpers
+          zoe_helper_updated = get_dashboard_helper(hass, "Zoë")
+          max_helper_updated = get_dashboard_helper(hass, "Max!")
+          lila_helper_updated = get_dashboard_helper(hass, "Lila")
+          
+          zoe_chore_updated = find_chore(zoe_helper_updated, "Dishes Rotation")
+          max_chore_updated = find_chore(max_helper_updated, "Dishes Rotation")
+          lila_chore_updated = find_chore(lila_helper_updated, "Dishes Rotation")
+          
+          # Assert: Approval reset, turn MAY advance depending on rotation_advancement
+          # For rotation_simple: turn advances on approval/reset
+          # For rotation_smart: turn may stay with Zoë if they didn't complete
+          
+          zoe_sensor_updated = hass.states.get(zoe_chore_updated["eid"])
+          max_sensor_updated = hass.states.get(max_chore_updated["eid"])
+          
+          # Verify ONE of these scenarios (depends on rotation_advancement setting):
+          # Scenario 1: Turn advanced to Max!
+          if zoe_sensor_updated.attributes.get("turn_kid_name") == "Max!":
+              assert max_sensor_updated.state in (CHORE_STATE_PENDING, CHORE_STATE_DUE)
+              assert max_sensor_updated.attributes.get("can_claim") is True
+              assert zoe_sensor_updated.state == CHORE_STATE_NOT_MY_TURN
+          # Scenario 2: Turn stayed with Zoë (smart advancement penalizes non-completion)
+          else:
+              assert zoe_sensor_updated.attributes.get("turn_kid_name") == "Zoë"
+              assert zoe_sensor_updated.state in (CHORE_STATE_PENDING, CHORE_STATE_DUE)
+              assert max_sensor_updated.state == CHORE_STATE_NOT_MY_TURN
+  ```
+
+  ### T2: Rotation Services - Verify ALL Assigned Kids
+
+  **T2.1 — set_rotation_turn Service: Verify All Kids Update**
+  ```python
+  async def test_set_rotation_turn_all_kids(hass, mock_hass_users):
+      """Test set_rotation_turn updates ALL assigned kids' states."""
+      result = await setup_from_yaml(hass, mock_hass_users, "tests/scenarios/scenario_shared.yaml")
+      
+      zoe_id = result.kid_ids["Zoë"]
+      max_id = result.kid_ids["Max!"]
+      lila_id = result.kid_ids["Lila"]
+      
+      # Initial state: Zoë is turn-holder
+      coordinator = result.coordinator
+      zoe_helper = get_dashboard_helper(hass, "Zoë")
+      chore = find_chore(zoe_helper, "Dishes Rotation")
+      chore_id = chore["eid"].split("_")[-1]
+      
+      # Verify initial turn
+      chore_data = coordinator.chores_data[chore_id]
+      assert chore_data[DATA_CHORE_ROTATION_CURRENT_KID_ID] == zoe_id
+      
+      # Call service: Set turn to Lila
+      await hass.services.async_call(
+          DOMAIN, "set_rotation_turn",
+          {SERVICE_FIELD_CHORE_ID: chore_id, SERVICE_FIELD_ROTATION_KID_ID: lila_id},
+          blocking=True
+      )
+      await hass.async_block_till_done()
+      
+      # Verify turn changed in storage
+      chore_data_updated = coordinator.chores_data[chore_id]
+      assert chore_data_updated[DATA_CHORE_ROTATION_CURRENT_KID_ID] == lila_id
+      
+      # Assert Zoë: state=not_my_turn, turn_kid_name="Lila"
+      zoe_sensor = hass.states.get(chore["eid"])
+      assert zoe_sensor.state == CHORE_STATE_NOT_MY_TURN
+      assert zoe_sensor.attributes.get("lock_reason") == "not_my_turn"
+      assert zoe_sensor.attributes.get("turn_kid_name") == "Lila"
+      assert zoe_sensor.attributes.get("can_claim") is False
+      
+      # Assert Max!: state=not_my_turn, turn_kid_name="Lila"
+      max_chore_eid = f"sensor.kc_max_chore_{chore_id}"
+      max_sensor = hass.states.get(max_chore_eid)
+      assert max_sensor.state == CHORE_STATE_NOT_MY_TURN
+      assert max_sensor.attributes.get("lock_reason") == "not_my_turn"
+      assert max_sensor.attributes.get("turn_kid_name") == "Lila"
+      assert max_sensor.attributes.get("can_claim") is False
+      
+      # Assert Lila: state=pending/due, lock_reason=None, turn_kid_name="Lila"
+      lila_chore_eid = f"sensor.kc_lila_chore_{chore_id}"
+      lila_sensor = hass.states.get(lila_chore_eid)
+      assert lila_sensor.state in (CHORE_STATE_PENDING, CHORE_STATE_DUE)
+      assert lila_sensor.attributes.get("lock_reason") is None
+      assert lila_sensor.attributes.get("turn_kid_name") == "Lila"
+      assert lila_sensor.attributes.get("can_claim") is True
+      
+      # Verify dashboard helpers ALL updated
+      zoe_helper_updated = get_dashboard_helper(hass, "Zoë")
+      max_helper_updated = get_dashboard_helper(hass, "Max!")
+      lila_helper_updated = get_dashboard_helper(hass, "Lila")
+      
+      zoe_chore = find_chore(zoe_helper_updated, "Dishes Rotation")
+      max_chore = find_chore(max_helper_updated, "Dishes Rotation")
+      lila_chore = find_chore(lila_helper_updated, "Dishes Rotation")
+      
+      assert zoe_chore["state"] == CHORE_STATE_NOT_MY_TURN
+      assert zoe_chore.get("turn_kid_name") == "Lila"
+      
+      assert max_chore["state"] == CHORE_STATE_NOT_MY_TURN
+      assert max_chore.get("turn_kid_name") == "Lila"
+      
+      assert lila_chore["state"] in (CHORE_STATE_PENDING, CHORE_STATE_DUE)
+      assert lila_chore.get("turn_kid_name") == "Lila"
+      
+      # Test error: Non-rotation chore
+      independent_chore = find_chore(zoe_helper_updated, "Independent Chore")
+      independent_id = independent_chore["eid"].split("_")[-1]
+      
+      with pytest.raises(ServiceValidationError, match="not.*rotation"):
+          await hass.services.async_call(
+              DOMAIN, "set_rotation_turn",
+              {SERVICE_FIELD_CHORE_ID: independent_id, SERVICE_FIELD_ROTATION_KID_ID: zoe_id},
+              blocking=True
+          )
+      
+      # Test error: Kid not assigned
+      unassigned_kid_id = result.kid_ids.get("Other Kid", "fake-uuid")
+      with pytest.raises(ServiceValidationError, match="not.*assigned|kid"):
+          await hass.services.async_call(
+              DOMAIN, "set_rotation_turn",
+              {SERVICE_FIELD_CHORE_ID: chore_id, SERVICE_FIELD_ROTATION_KID_ID: unassigned_kid_id},
+              blocking=True
+          )
+  ```
+
+  **T2.2 — reset_rotation Service: All Kids Reset**
+  ```python
+  async def test_reset_rotation_all_kids(hass, mock_hass_users):
+      """Test reset_rotation resets to first kid, all kids see update."""
+      result = await setup_from_yaml(hass, mock_hass_users, "tests/scenarios/scenario_shared.yaml")
+      
+      zoe_id = result.kid_ids["Zoë"]
+      max_id = result.kid_ids["Max!"]
+      lila_id = result.kid_ids["Lila"]
+      
+      coordinator = result.coordinator
+      zoe_helper = get_dashboard_helper(hass, "Zoë")
+      chore = find_chore(zoe_helper, "Dishes Rotation")
+      chore_id = chore["eid"].split("_")[-1]
+      
+      # Set turn to Lila (not first kid)
+      await hass.services.async_call(
+          DOMAIN, "set_rotation_turn",
+          {SERVICE_FIELD_CHORE_ID: chore_id, SERVICE_FIELD_ROTATION_KID_ID: lila_id},
+          blocking=True
+      )
+      await hass.async_block_till_done()
+      
+      # Verify Lila is turn-holder
+      chore_data = coordinator.chores_data[chore_id]
+      assert chore_data[DATA_CHORE_ROTATION_CURRENT_KID_ID] == lila_id
+      
+      # Call reset_rotation
+      await hass.services.async_call(
+          DOMAIN, "reset_rotation",
+          {SERVICE_FIELD_CHORE_ID: chore_id},
+          blocking=True
+      )
+      await hass.async_block_till_done()
+      
+      # Verify reset to first kid (Zoë is assigned_kids[0])
+      chore_data_reset = coordinator.chores_data[chore_id]
+      assigned_kids = chore_data_reset[DATA_CHORE_ASSIGNED_KIDS]
+      assert chore_data_reset[DATA_CHORE_ROTATION_CURRENT_KID_ID] == assigned_kids[0]
+      assert assigned_kids[0] == zoe_id  # Zoë is first
+      
+      # Assert ALL kids see Zoë as turn-holder
+      zoe_sensor = hass.states.get(chore["eid"])
+      assert zoe_sensor.attributes.get("turn_kid_name") == "Zoë"
+      assert zoe_sensor.state in (CHORE_STATE_PENDING, CHORE_STATE_DUE)
+      assert zoe_sensor.attributes.get("can_claim") is True
+      
+      max_chore_eid = f"sensor.kc_max_chore_{chore_id}"
+      max_sensor = hass.states.get(max_chore_eid)
+      assert max_sensor.attributes.get("turn_kid_name") == "Zoë"
+      assert max_sensor.state == CHORE_STATE_NOT_MY_TURN
+      
+      lila_chore_eid = f"sensor.kc_lila_chore_{chore_id}"
+      lila_sensor = hass.states.get(lila_chore_eid)
+      assert lila_sensor.attributes.get("turn_kid_name") == "Zoë"
+      assert lila_sensor.state == CHORE_STATE_NOT_MY_TURN
+  ```
+
+  **T2.3 — open_rotation_cycle Service: Override Lifts Blocking for ALL**
+  ```python
+  async def test_open_rotation_cycle_all_kids_unblocked(hass, mock_hass_users):
+      """Test open_rotation_cycle allows ALL kids to claim."""
+      result = await setup_from_yaml(hass, mock_hass_users, "tests/scenarios/scenario_shared.yaml")
+      
+      zoe_id = result.kid_ids["Zoë"]
+      max_id = result.kid_ids["Max!"]
+      lila_id = result.kid_ids["Lila"]
+      
+      coordinator = result.coordinator
+      zoe_helper = get_dashboard_helper(hass, "Zoë")
+      chore = find_chore(zoe_helper, "Dishes Rotation")
+      chore_id = chore["eid"].split("_")[-1]
+      
+      # Initial: Zoë is turn-holder
+      chore_data = coordinator.chores_data[chore_id]
+      assert chore_data[DATA_CHORE_ROTATION_CURRENT_KID_ID] == zoe_id
+      assert chore_data.get(DATA_CHORE_ROTATION_CYCLE_OVERRIDE, False) is False
+      
+      # Verify Max! and Lila are blocked initially
+      max_chore_eid = f"sensor.kc_max_chore_{chore_id}"
+      max_sensor_before = hass.states.get(max_chore_eid)
+      assert max_sensor_before.state == CHORE_STATE_NOT_MY_TURN
+      assert max_sensor_before.attributes.get("can_claim") is False
+      
+      lila_chore_eid = f"sensor.kc_lila_chore_{chore_id}"
+      lila_sensor_before = hass.states.get(lila_chore_eid)
+      assert lila_sensor_before.state == CHORE_STATE_NOT_MY_TURN
+      assert lila_sensor_before.attributes.get("can_claim") is False
+      
+      # Call open_rotation_cycle
+      await hass.services.async_call(
+          DOMAIN, "open_rotation_cycle",
+          {SERVICE_FIELD_CHORE_ID: chore_id},
+          blocking=True
+      )
+      await hass.async_block_till_done()
+      
+      # Verify override flag set
+      chore_data_override = coordinator.chores_data[chore_id]
+      assert chore_data_override[DATA_CHORE_ROTATION_CYCLE_OVERRIDE] is True
+      
+      # Assert ALL kids can now claim (blocking lifted)
+      zoe_sensor_after = hass.states.get(chore["eid"])
+      assert zoe_sensor_after.state in (CHORE_STATE_PENDING, CHORE_STATE_DUE)
+      assert zoe_sensor_after.attributes.get("lock_reason") is None
+      assert zoe_sensor_after.attributes.get("can_claim") is True
+      
+      max_sensor_after = hass.states.get(max_chore_eid)
+      assert max_sensor_after.state in (CHORE_STATE_PENDING, CHORE_STATE_DUE)  # NO LONGER not_my_turn!
+      assert max_sensor_after.attributes.get("lock_reason") is None  # NO LONGER "not_my_turn"!
+      assert max_sensor_after.attributes.get("can_claim") is True
+      
+      lila_sensor_after = hass.states.get(lila_chore_eid)
+      assert lila_sensor_after.state in (CHORE_STATE_PENDING, CHORE_STATE_DUE)
+      assert lila_sensor_after.attributes.get("lock_reason") is None
+      assert lila_sensor_after.attributes.get("can_claim") is True
+      
+      # Verify dashboard helpers show override lifted
+      max_helper = get_dashboard_helper(hass, "Max!")
+      lila_helper = get_dashboard_helper(hass, "Lila")
+      
+      max_chore = find_chore(max_helper, "Dishes Rotation")
+      lila_chore = find_chore(lila_helper, "Dishes Rotation")
+      
+      assert max_chore["state"] in (CHORE_STATE_PENDING, CHORE_STATE_DUE)
+      assert max_chore.get("lock_reason") is None
+      
+      assert lila_chore["state"] in (CHORE_STATE_PENDING, CHORE_STATE_DUE)
+      assert lila_chore.get("lock_reason") is None
+      
+      # Test: After approval, override should clear
+      zoe_buttons = get_chore_buttons(hass, chore["eid"])
+      kid_context = Context(user_id=mock_hass_users["kid1"].id)
+      parent_context = Context(user_id=mock_hass_users["parent1"].id)
+      
+      # Zoë claims and gets approved
+      await hass.services.async_call("button", "press",
+          {"entity_id": zoe_buttons["claim"]}, context=kid_context)
+      await hass.async_block_till_done()
+      
+      await hass.services.async_call("button", "press",
+          {"entity_id": zoe_buttons["approve"]}, context=parent_context)
+      await hass.async_block_till_done()
+      
+      # Verify override cleared after approval
+      chore_data_final = coordinator.chores_data[chore_id]
+      assert chore_data_final[DATA_CHORE_ROTATION_CYCLE_OVERRIDE] is False
+      
+      # Verify blocking restored (next turn-holder is Max!)
+      lila_sensor_final = hass.states.get(lila_chore_eid)
+      assert lila_sensor_final.state == CHORE_STATE_NOT_MY_TURN  # Blocking restored
+      assert lila_sensor_final.attributes.get("lock_reason") == "not_my_turn"
+  ```
+
+  ### T3: Rotation Turn Advancement
+
+  **T3.1 — Simple Rotation: Round-Robin Advancement**
+  ```yaml
+  Setup:
+    - Chore: rotation_simple, assigned_kids=[Henry, Ronnie, Sarah]
+    - rotation_current_kid_id=Henry
+  
+  Action Sequence:
+    1. Henry claims → parent approves
+    2. Check rotation_current_kid_id after approval
+    3. Ronnie claims → parent approves
+    4. Check rotation_current_kid_id after approval
+    5. Sarah claims → parent approves
+    6. Check rotation_current_kid_id after approval (should wrap to Henry)
+  
+  Assert After Each Approval:
+    - Approval 1: rotation_current_kid_id == <ronnie_uuid>
+    - Approval 2: rotation_current_kid_id == <sarah_uuid>
+    - Approval 3: rotation_current_kid_id == <henry_uuid> (wraps to start)
+  
+  Assert Sensors After Approval 1:
+    - Henry: state="approved", turn_kid_name="Ronnie"
+    - Ronnie: state="pending" (or "due"), turn_kid_name="Ronnie", lock_reason=None
+    - Sarah: state="not_my_turn", turn_kid_name="Ronnie", lock_reason="not_my_turn"
+  ```
+
+  **T3.2 — Smart Rotation: Fairness-Weighted Advancement**
+  ```yaml
+  Setup:
+    - Chore: rotation_smart, assigned_kids=[Henry, Ronnie, Sarah]
+    - Pre-populate stats (use StatsManager fixtures):
+      - Henry: 5 approved completions for this chore
+      - Ronnie: 3 approved completions for this chore
+      - Sarah: 3 approved completions for this chore (same as Ronnie, tie-break by list position)
+    - rotation_current_kid_id=Henry
+  
+  Action:
+    - Henry claims → parent approves
+  
+  Assert Post-Approval:
+    - rotation_current_kid_id == <ronnie_uuid> (lowest count: 3, wins tie-break by appearing before Sarah in list)
+  
+  Action:
+    - Ronnie claims → parent approves
+  
+  Assert Post-Approval:
+    - rotation_current_kid_id == <sarah_uuid> (now lowest count: 3, Ronnie now has 4)
+  ```
+
+  **T3.3 — Rotation Resilience: Kid Deletion**
+  ```yaml
+  Setup:
+    - Chore: rotation_simple, assigned_kids=[Henry, Ronnie, Sarah]
+    - rotation_current_kid_id=Ronnie
+  
+  Action:
+    - Delete Ronnie via service: kidschores.delete_kid
+  
+  Assert Post-Deletion:
+    - Chore data: assigned_kids == [Henry, Sarah]
+    - Chore data: rotation_current_kid_id == <henry_uuid> (reassigned to assigned_kids[0])
+    - Henry's sensor: turn_kid_name="Henry", state="pending"
+    - Sarah's sensor: turn_kid_name="Henry", state="not_my_turn"
+  
+  Edge Case: Delete last kid
+    - Chore: assigned_kids=[Henry], rotation_current_kid_id=Henry
+    - Delete Henry
+    - Assert: assigned_kids == [], rotation_current_kid_id == None, rotation_cycle_override == False
+  ```
+
+  ### T4: Claim Restriction (Due Window Blocking)
+
+  **T4.1 — Block Claim Before Window Opens**
+  ```yaml
+  Setup:
+    - Chore: independent, due_date=2026-02-10T19:00:00Z, due_window_offset="PT1H"
+    - Calculated due_window_start: 2026-02-10T18:00:00Z
+    - Freeze time at 2026-02-10T17:00:00Z (1 hour before window)
+  
+  Action:
+    - Attempt service: kidschores.claim_chore (kid_id=Henry, chore_id=X)
+  
+  Assert:
+    - Service raises HomeAssistantError with message containing "waiting" or "due window"
+    - Henry's sensor: state="waiting", lock_reason="waiting", available_at="2026-02-10T18:00:00+00:00"
+  ```
+
+  **T4.2 — Allow Claim After Window Opens**
+  ```yaml
+  Setup:
+    - Same chore as T4.1
+    - Freeze time at 2026-02-10T18:30:00Z (30 minutes into window)
+  
+  Action:
+    - Call service: kidschores.claim_chore (kid_id=Henry, chore_id=X)
+  
+  Assert:
+    - Service succeeds (no error)
+    - Henry's sensor: state="claimed", lock_reason=None
+  ```
+
+  ### T5: Missed Lock Strategy (6th Overdue Type)
+
+  **T5.1 — Lock at Due Date**
+  ```yaml
+  Setup:
+    - Chore: independent, overdue_handling=at_due_date_mark_missed_and_lock
+    - approval_reset_type=at_midnight_once, due_date=2026-02-10T19:00:00Z
+    - Freeze time at 2026-02-10T18:00:00Z (before due), Henry has NOT claimed
+  
+  Action:
+    - Advance time to 2026-02-10T19:01:00Z (1 minute past due)
+    - Trigger scanner: ChoreManager._run_time_scanner()
+  
+  Assert Post-Scanner:
+    - Henry's sensor: state="missed", lock_reason="missed", can_claim=False
+    - Stats: Henry has 1 missed stat recorded for this chore
+  ```
+
+  **T5.2 — Reject Claim in Missed State**
+  ```yaml
+  Setup:
+    - Same chore as T5.1, already in "missed" state
+  
+  Action:
+    - Attempt service: kidschores.claim_chore (kid_id=Henry, chore_id=X)
+  
+  Assert:
+    - Service raises HomeAssistantError with message containing "missed"
+    - Henry's sensor: state remains "missed", can_claim=False
+  ```
+
+  **T5.3 — Unlock at Midnight (Approval Reset Boundary)**
+  ```yaml
+  Setup:
+    - Same chore as T5.1, still in "missed" state at 2026-02-10T23:59:00Z
+  
+  Action:
+    - Advance time to 2026-02-11T00:00:00Z (midnight - approval reset boundary fires)
+    - Trigger scanner: ChoreManager._run_time_scanner()
+  
+  Assert Post-Scanner:
+    - Henry's sensor: state="pending", lock_reason=None, can_claim=True
+    - Chore lifecycle: New cycle begins, overdue policy cleared missed state
+  ```
+
+  **T5.4 — Rotation + Missed Lock: Turn Advances at Midnight**
+  ```yaml
+  Setup:
+    - Chore: rotation_simple, assigned_kids=[Henry, Ronnie]
+    - overdue_handling=at_due_date_mark_missed_and_lock, approval_reset_type=at_midnight_once
+    - due_date=2026-02-10T19:00:00Z, rotation_current_kid_id=Henry
+    - Freeze time at 2026-02-10T20:00:00Z, Henry in "missed" state
+  
+  Action:
+    - Advance time to 2026-02-11T00:00:00Z (midnight)
+    - Trigger scanner
+  
+  Assert Post-Scanner:
+    - rotation_current_kid_id == <ronnie_uuid> (turn advanced to next kid)
+    - Henry's sensor: state="not_my_turn" (no longer turn-holder), turn_kid_name="Ronnie"
+    - Ronnie's sensor: state="pending", turn_kid_name="Ronnie", lock_reason=None
+  ```
+
+  ### T6: Steal Window (7th Overdue Type)
+
+  **T6.1 — Pre-Overdue: Normal Rotation Blocking**
+  ```yaml
+  Setup:
+    - Chore: rotation_simple, overdue_handling=at_due_date_allow_steal
+    - assigned_kids=[Henry, Ronnie], rotation_current_kid_id=Henry
+    - approval_reset_type=at_midnight_once, due_date=2026-02-10T19:00:00Z
+    - Freeze time at 2026-02-10T18:00:00Z (1 hour before due)
+  
+  Assert:
+    - Henry's sensor: state="due" (or "pending"), can_claim=True
+    - Ronnie's sensor: state="not_my_turn", lock_reason="not_my_turn", can_claim=False
+  ```
+
+  **T6.2 — Steal Window Opens at Due Date**
+  ```yaml
+  Setup:
+    - Same chore as T6.1
+    - Advance time to 2026-02-10T19:01:00Z (1 minute past due)
+    - Trigger scanner
+  
+  Assert Post-Scanner:
+    - Henry's sensor: state="overdue", lock_reason=None, can_claim=True
+    - Ronnie's sensor: state="overdue", lock_reason=None, can_claim=True (steal window open!)
+    - Notifications: BOTH Henry and Ronnie received overdue notification
+  ```
+
+  **T6.3 — Non-Turn-Holder Steals Chore**
+  ```yaml
+  Setup:
+    - Same chore as T6.2, steal window open
+  
+  Action:
+    - Ronnie claims chore (the "stealer", not turn-holder)
+    - Parent approves Ronnie
+  
+  Assert Post-Approval:
+    - rotation_current_kid_id == <henry_uuid> (turn advances FROM Ronnie, not from Henry)
+    - Stats: Henry gets 1 overdue stat (was skipped), Ronnie does NOT get overdue stat
+    - Henry's sensor: state="not_my_turn", turn_kid_name="Henry"
+    - Ronnie's sensor: state="approved", turn_kid_name="Henry"
+  ```
+
+  **T6.4 — Pure Miss in Steal Window: Turn Advances at Midnight**
+  ```yaml
+  Setup:
+    - Same chore as T6.2, steal window open
+    - NO ONE claims (neither Henry nor Ronnie)
+    - Freeze time at 2026-02-10T23:59:00Z
+  
+  Action:
+    - Advance time to 2026-02-11T00:00:00Z (midnight - approval reset boundary fires)
+    - Trigger scanner
+  
+  Assert Post-Scanner:
+    - rotation_current_kid_id == <ronnie_uuid> (turn advanced to next kid)
+    - Stats: Henry gets 1 missed stat (original turn-holder gets stat)
+    - Henry's sensor: state="not_my_turn", turn_kid_name="Ronnie"
+    - Ronnie's sensor: state="pending", turn_kid_name="Ronnie", lock_reason=None
+  ```
+
+  ### T7: Dashboard Helper Attributes (Contract Verification)
+
+  **T7.1 — All 3 New Attributes Present**
+  ```yaml
+  Setup:
+    - Any chore with rotation_simple
+  
+  Assert Dashboard Helper (sensor.kc_henry_ui_dashboard_helper):
+    - attributes.chores exists
+    - attributes.chores[0] contains keys: ['eid', 'name', 'state', 'labels', 'grouping', 'is_am_pm', 'lock_reason', 'turn_kid_name', 'available_at']
+    - Verify types: lock_reason (str | None), turn_kid_name (str | None), available_at (str | None)
+  ```
+
+  **T7.2 — turn_kid_name UUID Resolution**
+  ```yaml
+  Setup:
+    - Chore: rotation_simple, assigned_kids=[Henry, Ronnie], rotation_current_kid_id=<henry_uuid>
+  
+  Assert Dashboard Helper:
+    - chores[X].turn_kid_name == "Henry" (UUID resolved to display name)
+  
+  Assert KidChoreStatusSensor (sensor.kc_henry_chore_X):
+    - attributes.turn_kid_name == "Henry" (same resolution)
+  ```
+
+  **T7.3 — available_at ISO Formatting**
+  ```yaml
+  Setup:
+    - Chore: independent, due_date=2026-02-10T19:00:00Z, due_window_offset="PT2H"
+    - Freeze time at 2026-02-10T16:00:00Z (before window)
+  
+  Assert Dashboard Helper:
+    - chores[X].available_at == "2026-02-10T17:00:00+00:00" (ISO 8601 with timezone)
+  
+  Assert KidChoreStatusSensor:
+    - attributes.available_at == "2026-02-10T17:00:00+00:00" (same format)
+  ```
+
+  ### T8: Criteria Transition (Mutable Completion Criteria)
+
+  **T8.1 — Non-Rotation → Rotation: Initialize Fields**
+  ```yaml
+  Setup:
+    - Chore: shared_first, assigned_kids=[Henry, Ronnie]
+    - No rotation fields exist
+  
+  Action:
+    - Call service: kidschores.update_chore
+      - chore_id: <chore_uuid>
+      - completion_criteria: "rotation_simple"
+  
+  Assert Post-Service:
+    - Chore data: completion_criteria == "rotation_simple"
+    - Chore data: rotation_current_kid_id == <henry_uuid> (assigned_kids[0])
+    - Chore data: rotation_cycle_override == False
+    - Signal emitted: SIGNAL_SUFFIX_CHORE_UPDATED
+  ```
+
+  **T8.2 — Rotation → Non-Rotation: Clear Fields**
+  ```yaml
+  Setup:
+    - Chore: rotation_simple, rotation_current_kid_id=<ronnie_uuid>, rotation_cycle_override=True
+  
+  Action:
+    - Call service: kidschores.update_chore
+      - chore_id: <chore_uuid>
+      - completion_criteria: "independent"
+  
+  Assert Post-Service:
+    - Chore data: completion_criteria == "independent"
+    - Chore data: rotation_current_kid_id == None (cleared)
+    - Chore data: rotation_cycle_override == False (cleared)
+  ```
+
+  **T8.3 — Rotation → Different Rotation: Preserve Turn**
+  ```yaml
+  Setup:
+    - Chore: rotation_simple, rotation_current_kid_id=<sarah_uuid>
+  
+  Action:
+    - Call service: kidschores.update_chore
+      - chore_id: <chore_uuid>
+      - completion_criteria: "rotation_smart"
+  
+  Assert Post-Service:
+    - Chore data: completion_criteria == "rotation_smart"
+    - Chore data: rotation_current_kid_id == <sarah_uuid> (unchanged - both are rotation modes)
+  ```
+
+  **T8.4 — Validation: Rotation Requires ≥2 Kids (V-03)**
+  ```yaml
+  Setup:
+    - Chore: independent, assigned_kids=[Henry] (only 1 kid)
+  
+  Action:
+    - Call service: kidschores.update_chore
+      - chore_id: <chore_uuid>
+      - completion_criteria: "rotation_simple"
+  
+  Assert:
+    - Service raises ServiceValidationError
+    - Error translation_key contains "rotation" and "2 kids" or similar
+  ```
+
+  **T8.5 — Validation: at_due_date_allow_steal Compatibility (V-05)**
+  ```yaml
+  Setup:
+    - Chore: independent, approval_reset_type=at_midnight_once, due_date set
+  
+  Action:
+    - Call service: kidschores.update_chore
+      - chore_id: <chore_uuid>
+      - overdue_handling: "at_due_date_allow_steal"
+  
+  Assert:
+    - Service raises ServiceValidationError
+    - Error message: "at_due_date_allow_steal requires rotation criteria"
+  
+  ---
+  
+  Setup:
+    - Chore: rotation_simple, approval_reset_type=upon_completion, due_date set
+  
+  Action:
+    - Call service: kidschores.update_chore
+      - chore_id: <chore_uuid>
+      - overdue_handling: "at_due_date_allow_steal"
+  
+  Assert:
+    - Service raises ServiceValidationError
+    - Error message: "at_due_date_allow_steal requires at_midnight_once reset type"
+  ```
+
+  ### Summary for Builder
+
+  **Test Execution Order**:
+  1. T1 (FSM states) — Foundation for all other tests
+  2. T7 (Dashboard attributes) — Verify contract consistency early
+  3. T2 (Rotation services) — Service layer validation
+  4. T3 (Turn advancement) — Core rotation logic
+  5. T4 (Claim restriction) — Due window blocking
+  6. T5 (Missed lock) — 6th overdue type
+  7. T6 (Steal window) — 7th overdue type
+  8. T8 (Criteria transition) — Mutable criteria + validation
+
+  **Critical Patterns**:
+  - ALWAYS assert both KidChoreStatusSensor AND dashboard helper for same chore/kid
+  - ALWAYS verify new attributes: `lock_reason`, `turn_kid_name`, `available_at`
+  - ALWAYS check `can_claim` attribute alongside state (contract requirement)
+  - Use `freezegun` for time control (due dates, windows, midnight boundaries)
+  - Use `async_fire_time_changed` for scanner triggers
+
+  **Validation Gates (Run After All Tests)**:
+  - `./utils/quick_lint.sh --fix` must pass
+  - `mypy custom_components/kidschores/` must show zero errors
+  - `pytest tests/ -v --tb=line` must show 95%+ coverage for new code
 
 - **Key issues**
   - Smart rotation tests need StatsEngine/StatsManager fixtures with pre-populated chore stats per kid

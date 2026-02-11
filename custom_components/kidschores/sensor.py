@@ -69,6 +69,7 @@ from homeassistant.util import dt as dt_util
 
 from . import const
 from .coordinator import KidsChoresConfigEntry, KidsChoresDataCoordinator
+from .engines.chore_engine import ChoreEngine
 from .entity import KidsChoresCoordinatorEntity
 from .helpers.device_helpers import (
     create_kid_device_info_from_coordinator,
@@ -1102,6 +1103,41 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
         )
         attributes[const.ATTR_CAN_CLAIM] = can_claim
         attributes[const.ATTR_CAN_APPROVE] = can_approve
+
+        # Phase 4: Add v0.5.0 rotation and lock status attributes
+        # Get current chore state for lock_reason calculation
+        ctx = self.coordinator.chore_manager.get_chore_status_context(
+            self._kid_id, self._chore_id
+        )
+        current_state = ctx["state"]
+
+        # lock_reason: Maps directly from certain states (waiting/not_my_turn/missed)
+        lock_reason = None
+        if current_state in [
+            const.CHORE_STATE_WAITING,
+            const.CHORE_STATE_NOT_MY_TURN,
+            const.CHORE_STATE_MISSED,
+        ]:
+            lock_reason = current_state
+        attributes[const.ATTR_CHORE_LOCK_REASON] = lock_reason
+
+        # turn_kid_name: resolve rotation_current_kid_id to kid name (if rotation mode)
+        turn_kid_name = None
+        if ChoreEngine.is_rotation_mode(chore_info):
+            current_turn_kid_id = chore_info.get(
+                const.DATA_CHORE_ROTATION_CURRENT_KID_ID
+            )
+            if current_turn_kid_id:
+                turn_kid_name = get_kid_name_by_id(
+                    self.coordinator, current_turn_kid_id
+                )
+        attributes[const.ATTR_CHORE_TURN_KID_NAME] = turn_kid_name
+
+        # available_at: ISO datetime when due window opens (only when state is "waiting")
+        available_at = None
+        if current_state == const.CHORE_STATE_WAITING:
+            available_at = self._get_due_window_start_iso()
+        attributes[const.ATTR_CHORE_AVAILABLE_AT] = available_at
 
         # Add claim, approve, disapprove button entity ids to attributes for direct ui access.
         button_types = [
@@ -3883,13 +3919,16 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
         can_claim, can_approve, timestamps, etc.) should be fetched from the
         chore status sensor via state_attr(chore.eid, 'attribute_name').
 
-        Minimal fields (6 total):
+        Minimal fields (9 total as of Phase 4):
         - eid: entity_id (for fetching additional attributes from chore sensor)
         - name: chore name (for display)
         - status: pending/claimed/approved/overdue (for status coloring)
         - labels: list of label strings (for label filtering)
         - primary_group: today/this_week/other (for grouping)
         - is_today_am: boolean or None (for AM/PM sorting)
+        - lock_reason: str | None (waiting/not_my_turn/missed, Phase 4 rotation support)
+        - turn_kid_name: str | None (current turn holder name for rotation chores)
+        - available_at: str | None (ISO datetime when waiting chore becomes claimable)
 
         Uses get_chore_status_context() for single bulk fetch instead of
         multiple individual manager calls.
@@ -3939,7 +3978,61 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
             status, is_due, due_date_local_dt, recurring_frequency
         )
 
-        # Return only the 6 minimal fields needed for dashboard list rendering
+        # Phase 4: Calculate rotation-aware attributes using ChoreEngine
+        lock_reason = None
+        turn_kid_name = None
+        available_at = None
+
+        # Calculate lock reason using engine (waiting, not_my_turn, missed)
+        if status in [
+            const.CHORE_STATE_WAITING,
+            const.CHORE_STATE_NOT_MY_TURN,
+            const.CHORE_STATE_MISSED,
+        ]:
+            lock_reason = status
+
+        # For rotation chores, get current turn holder name
+        if ChoreEngine.is_rotation_mode(chore_info):
+            current_turn_kid_id = chore_info.get(
+                const.DATA_CHORE_ROTATION_CURRENT_KID_ID
+            )
+            if current_turn_kid_id:
+                turn_kid_info: Any = self.coordinator.kids_data.get(
+                    current_turn_kid_id, {}
+                )
+                turn_kid_name = turn_kid_info.get(const.DATA_KID_NAME)
+
+        # Calculate available_at for waiting state (due window claim restrictions)
+        # If due_window_offset exists, calculate when the window opens
+        if status == const.CHORE_STATE_WAITING and due_date_str:
+            # Calculate due window start time using basic offset parsing
+            due_window_offset = chore_info.get(const.DATA_CHORE_DUE_WINDOW_OFFSET)
+            if (
+                due_date_utc
+                and due_window_offset
+                and isinstance(due_window_offset, str)
+            ):
+                try:
+                    # Simple parsing for formats like "30m", "1h", "2h30m"
+                    offset_minutes = 0
+                    if "h" in due_window_offset:
+                        parts = due_window_offset.split("h")
+                        offset_minutes += int(parts[0]) * 60
+                        if len(parts) > 1 and parts[1] and "m" in parts[1]:
+                            offset_minutes += int(parts[1].replace("m", ""))
+                    elif "m" in due_window_offset:
+                        offset_minutes += int(due_window_offset.replace("m", ""))
+
+                    # Subtract the offset from due date to get available_at time
+                    from datetime import timedelta
+
+                    due_window_start = due_date_utc - timedelta(minutes=offset_minutes)
+                    available_at = due_window_start.isoformat()
+                except (ValueError, AttributeError, TypeError):
+                    # Fallback if offset parsing fails
+                    available_at = due_date_str
+
+        # Return the 9 fields needed for Phase 4 dashboard rendering
         return {
             const.ATTR_EID: chore_eid,
             const.ATTR_NAME: chore_name,
@@ -3947,6 +4040,9 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.ATTR_CHORE_LABELS: chore_labels,
             const.ATTR_CHORE_PRIMARY_GROUP: primary_group,
             const.ATTR_CHORE_IS_TODAY_AM: is_today_am,
+            const.ATTR_CHORE_LOCK_REASON: lock_reason,
+            const.ATTR_CHORE_TURN_KID_NAME: turn_kid_name,
+            const.ATTR_CHORE_AVAILABLE_AT: available_at,
         }
 
     def _calculate_primary_group(
@@ -4344,140 +4440,142 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
         )
 
         rewards_attr = []
-        for reward_id, reward_info in self.coordinator.rewards_data.items():
-            reward_name = get_item_name_or_log_error(
-                "reward", reward_id, reward_info, const.DATA_REWARD_NAME
-            )
-            if not reward_name:
-                continue
+        if gamification_enabled:
+            for reward_id, reward_info in self.coordinator.rewards_data.items():
+                reward_name = get_item_name_or_log_error(
+                    "reward", reward_id, reward_info, const.DATA_REWARD_NAME
+                )
+                if not reward_name:
+                    continue
 
-            # Get the RewardStatusSensor entity_id
-            reward_eid = None
-            if entity_registry:
-                unique_id = f"{self._entry.entry_id}_{self._kid_id}_{reward_id}{const.SENSOR_KC_UID_SUFFIX_REWARD_STATUS_SENSOR}"
-                reward_eid = entity_registry.async_get_entity_id(
-                    "sensor", const.DOMAIN, unique_id
+                # Get the RewardStatusSensor entity_id
+                reward_eid = None
+                if entity_registry:
+                    unique_id = f"{self._entry.entry_id}_{self._kid_id}_{reward_id}{const.SENSOR_KC_UID_SUFFIX_REWARD_STATUS_SENSOR}"
+                    reward_eid = entity_registry.async_get_entity_id(
+                        "sensor", const.DOMAIN, unique_id
+                    )
+
+                # Get reward status from the sensor state
+                reward_status = None
+                if reward_eid:
+                    state_obj = self.hass.states.get(reward_eid)
+                    if state_obj:
+                        reward_status = state_obj.state
+
+                # Get reward labels (always a list, even if empty)
+                reward_labels = reward_info.get(const.DATA_REWARD_LABELS, [])
+                if not isinstance(reward_labels, list):
+                    reward_labels = []
+
+                # Get reward cost
+                reward_cost = reward_info.get(const.DATA_REWARD_COST, 0)
+
+                # Get claims and approvals counts using get_period_total
+                reward_data_entry = kid_info.get(const.DATA_KID_REWARD_DATA, {}).get(
+                    reward_id, {}
+                )
+                periods = reward_data_entry.get(const.DATA_KID_REWARD_DATA_PERIODS, {})
+                period_key_mapping = {
+                    const.PERIOD_ALL_TIME: const.DATA_KID_REWARD_DATA_PERIODS_ALL_TIME
+                }
+                claims_count = self.coordinator.stats.get_period_total(
+                    periods,
+                    const.PERIOD_ALL_TIME,
+                    const.DATA_KID_REWARD_DATA_PERIOD_CLAIMED,
+                    period_key_mapping=period_key_mapping,
+                )
+                approvals_count = self.coordinator.stats.get_period_total(
+                    periods,
+                    const.PERIOD_ALL_TIME,
+                    const.DATA_KID_REWARD_DATA_PERIOD_APPROVED,
+                    period_key_mapping=period_key_mapping,
                 )
 
-            # Get reward status from the sensor state
-            reward_status = None
-            if reward_eid:
-                state_obj = self.hass.states.get(reward_eid)
-                if state_obj:
-                    reward_status = state_obj.state
+                rewards_attr.append(
+                    {
+                        const.ATTR_EID: reward_eid,
+                        const.ATTR_NAME: reward_name,
+                        const.ATTR_STATUS: reward_status,
+                        const.ATTR_LABELS: reward_labels,
+                        const.ATTR_COST: reward_cost,
+                        const.ATTR_CLAIMS: claims_count,
+                        const.ATTR_APPROVALS: approvals_count,
+                    }
+                )
 
-            # Get reward labels (always a list, even if empty)
-            reward_labels = reward_info.get(const.DATA_REWARD_LABELS, [])
-            if not isinstance(reward_labels, list):
-                reward_labels = []
+            # Sort rewards by name (alphabetically)
+            rewards_attr.sort(key=lambda r: str(r.get(const.ATTR_NAME, "")).lower())
 
-            # Get reward cost
-            reward_cost = reward_info.get(const.DATA_REWARD_COST, 0)
-
-            # Get claims and approvals counts using get_period_total
-            reward_data_entry = kid_info.get(const.DATA_KID_REWARD_DATA, {}).get(
-                reward_id, {}
-            )
-            periods = reward_data_entry.get(const.DATA_KID_REWARD_DATA_PERIODS, {})
-            period_key_mapping = {
-                const.PERIOD_ALL_TIME: const.DATA_KID_REWARD_DATA_PERIODS_ALL_TIME
-            }
-            claims_count = self.coordinator.stats.get_period_total(
-                periods,
-                const.PERIOD_ALL_TIME,
-                const.DATA_KID_REWARD_DATA_PERIOD_CLAIMED,
-                period_key_mapping=period_key_mapping,
-            )
-            approvals_count = self.coordinator.stats.get_period_total(
-                periods,
-                const.PERIOD_ALL_TIME,
-                const.DATA_KID_REWARD_DATA_PERIOD_APPROVED,
-                period_key_mapping=period_key_mapping,
-            )
-
-            rewards_attr.append(
-                {
-                    const.ATTR_EID: reward_eid,
-                    const.ATTR_NAME: reward_name,
-                    const.ATTR_STATUS: reward_status,
-                    const.ATTR_LABELS: reward_labels,
-                    const.ATTR_COST: reward_cost,
-                    const.ATTR_CLAIMS: claims_count,
-                    const.ATTR_APPROVALS: approvals_count,
-                }
-            )
-
-        # Sort rewards by name (alphabetically)
-        rewards_attr.sort(key=lambda r: str(r.get(const.ATTR_NAME, "")).lower())
-
-        # Badges assigned to this kid
+        # Badges assigned to this kid - only build if gamification is enabled
         # Badge applies if: no kids assigned (applies to all) OR kid is in assigned list
         # Note: Cumulative badges return system-level badge sensor (no kid-specific progress sensor)
         # Other badge types return kid-specific progress sensors
         badges_attr = []
-        for badge_id, badge_info in self.coordinator.badges_data.items():
-            assigned_to = badge_info.get(const.DATA_BADGE_ASSIGNED_TO, [])
-            if assigned_to and self._kid_id not in assigned_to:
-                continue
-            badge_type = badge_info.get(const.DATA_BADGE_TYPE, const.SENTINEL_EMPTY)
-            badge_name = get_item_name_or_log_error(
-                "badge", badge_id, badge_info, const.DATA_BADGE_NAME
-            )
-            if not badge_name:
-                continue
+        if gamification_enabled:
+            for badge_id, badge_info in self.coordinator.badges_data.items():
+                assigned_to = badge_info.get(const.DATA_BADGE_ASSIGNED_TO, [])
+                if assigned_to and self._kid_id not in assigned_to:
+                    continue
+                badge_type = badge_info.get(const.DATA_BADGE_TYPE, const.SENTINEL_EMPTY)
+                badge_name = get_item_name_or_log_error(
+                    "badge", badge_id, badge_info, const.DATA_BADGE_NAME
+                )
+                if not badge_name:
+                    continue
 
-            # For cumulative badges, return the system-level badge sensor
-            # For other types, return the kid-specific progress sensor
-            badge_eid = None
-            if entity_registry:
-                if badge_type == const.BADGE_TYPE_CUMULATIVE:
-                    # System badge sensor (no kid_id in unique_id)
-                    unique_id = f"{self._entry.entry_id}_{badge_id}{const.SENSOR_KC_UID_SUFFIX_BADGE_SENSOR}"
-                    badge_eid = entity_registry.async_get_entity_id(
-                        "sensor", const.DOMAIN, unique_id
+                # For cumulative badges, return the system-level badge sensor
+                # For other types, return the kid-specific progress sensor
+                badge_eid = None
+                if entity_registry:
+                    if badge_type == const.BADGE_TYPE_CUMULATIVE:
+                        # System badge sensor (no kid_id in unique_id)
+                        unique_id = f"{self._entry.entry_id}_{badge_id}{const.SENSOR_KC_UID_SUFFIX_BADGE_SENSOR}"
+                        badge_eid = entity_registry.async_get_entity_id(
+                            "sensor", const.DOMAIN, unique_id
+                        )
+                    else:
+                        # Kid-specific progress sensor
+                        unique_id = f"{self._entry.entry_id}_{self._kid_id}_{badge_id}{const.SENSOR_KC_UID_SUFFIX_BADGE_PROGRESS_SENSOR}"
+                        badge_eid = entity_registry.async_get_entity_id(
+                            "sensor", const.DOMAIN, unique_id
+                        )
+
+                # Check if badge is earned (in badges_earned dict)
+                badges_earned = kid_info.get(const.DATA_KID_BADGES_EARNED, {})
+                is_earned = badge_id in badges_earned
+
+                # Get badge status from kid's badge progress (only for non-cumulative)
+                badge_status = const.SENTINEL_NONE
+                if badge_type != const.BADGE_TYPE_CUMULATIVE:
+                    badge_progress = kid_info.get(
+                        const.DATA_KID_BADGE_PROGRESS, {}
+                    ).get(badge_id, {})
+                    badge_status = badge_progress.get(
+                        const.DATA_KID_BADGE_PROGRESS_STATUS, const.SENTINEL_NONE
+                    )
+                    badges_attr.append(
+                        {
+                            const.ATTR_EID: badge_eid,
+                            const.ATTR_NAME: badge_name,
+                            const.ATTR_BADGE_TYPE: badge_type,
+                            const.ATTR_STATUS: badge_status,
+                            const.ATTR_BADGE_EARNED: is_earned,
+                        }
                     )
                 else:
-                    # Kid-specific progress sensor
-                    unique_id = f"{self._entry.entry_id}_{self._kid_id}_{badge_id}{const.SENSOR_KC_UID_SUFFIX_BADGE_PROGRESS_SENSOR}"
-                    badge_eid = entity_registry.async_get_entity_id(
-                        "sensor", const.DOMAIN, unique_id
+                    # Cumulative badge - no status
+                    badges_attr.append(
+                        {
+                            const.ATTR_EID: badge_eid,
+                            const.ATTR_NAME: badge_name,
+                            const.ATTR_BADGE_TYPE: badge_type,
+                            const.ATTR_BADGE_EARNED: is_earned,
+                        }
                     )
 
-            # Check if badge is earned (in badges_earned dict)
-            badges_earned = kid_info.get(const.DATA_KID_BADGES_EARNED, {})
-            is_earned = badge_id in badges_earned
-
-            # Get badge status from kid's badge progress (only for non-cumulative)
-            badge_status = const.SENTINEL_NONE
-            if badge_type != const.BADGE_TYPE_CUMULATIVE:
-                badge_progress = kid_info.get(const.DATA_KID_BADGE_PROGRESS, {}).get(
-                    badge_id, {}
-                )
-                badge_status = badge_progress.get(
-                    const.DATA_KID_BADGE_PROGRESS_STATUS, const.SENTINEL_NONE
-                )
-                badges_attr.append(
-                    {
-                        const.ATTR_EID: badge_eid,
-                        const.ATTR_NAME: badge_name,
-                        const.ATTR_BADGE_TYPE: badge_type,
-                        const.ATTR_STATUS: badge_status,
-                        const.ATTR_BADGE_EARNED: is_earned,
-                    }
-                )
-            else:
-                # Cumulative badge - no status
-                badges_attr.append(
-                    {
-                        const.ATTR_EID: badge_eid,
-                        const.ATTR_NAME: badge_name,
-                        const.ATTR_BADGE_TYPE: badge_type,
-                        const.ATTR_BADGE_EARNED: is_earned,
-                    }
-                )
-
-        # Sort badges by name (alphabetically)
-        badges_attr.sort(key=lambda b: str(b.get(const.ATTR_NAME, "")).lower())
+            # Sort badges by name (alphabetically)
+            badges_attr.sort(key=lambda b: str(b.get(const.ATTR_NAME, "")).lower())
 
         # Bonuses for this kid - only build if gamification is enabled
         bonuses_attr = []
@@ -4569,69 +4667,74 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
             # Sort penalties by name (alphabetically)
             penalties_attr.sort(key=lambda p: str(p.get(const.ATTR_NAME, "")).lower())
         # Penalties for this kid
-        # Achievements assigned to this kid
+        # Achievements assigned to this kid - only build if gamification is enabled
         achievements_attr = []
-        for (
-            achievement_id,
-            achievement_info,
-        ) in self.coordinator.achievements_data.items():
-            if self._kid_id not in achievement_info.get(
-                const.DATA_ACHIEVEMENT_ASSIGNED_KIDS, []
-            ):
-                continue
-            achievement_name = get_item_name_or_log_error(
-                "achievement",
+        if gamification_enabled:
+            for (
                 achievement_id,
                 achievement_info,
-                const.DATA_ACHIEVEMENT_NAME,
-            )
-            if not achievement_name:
-                continue
-            # Get KidAchievementProgressSensor entity_id
-            achievement_eid = None
-            if entity_registry:
-                unique_id = f"{self._entry.entry_id}_{self._kid_id}_{achievement_id}{const.SENSOR_KC_UID_SUFFIX_ACHIEVEMENT_PROGRESS_SENSOR}"
-                achievement_eid = entity_registry.async_get_entity_id(
-                    "sensor", const.DOMAIN, unique_id
+            ) in self.coordinator.achievements_data.items():
+                if self._kid_id not in achievement_info.get(
+                    const.DATA_ACHIEVEMENT_ASSIGNED_KIDS, []
+                ):
+                    continue
+                achievement_name = get_item_name_or_log_error(
+                    "achievement",
+                    achievement_id,
+                    achievement_info,
+                    const.DATA_ACHIEVEMENT_NAME,
                 )
-            achievements_attr.append(
-                {
-                    const.ATTR_EID: achievement_eid,
-                    const.ATTR_NAME: achievement_name,
-                }
-            )
+                if not achievement_name:
+                    continue
+                # Get KidAchievementProgressSensor entity_id
+                achievement_eid = None
+                if entity_registry:
+                    unique_id = f"{self._entry.entry_id}_{self._kid_id}_{achievement_id}{const.SENSOR_KC_UID_SUFFIX_ACHIEVEMENT_PROGRESS_SENSOR}"
+                    achievement_eid = entity_registry.async_get_entity_id(
+                        "sensor", const.DOMAIN, unique_id
+                    )
+                achievements_attr.append(
+                    {
+                        const.ATTR_EID: achievement_eid,
+                        const.ATTR_NAME: achievement_name,
+                    }
+                )
 
-        # Sort achievements by name (alphabetically)
-        achievements_attr.sort(key=lambda a: (a.get(const.ATTR_NAME) or "").lower())
+            # Sort achievements by name (alphabetically)
+            achievements_attr.sort(key=lambda a: (a.get(const.ATTR_NAME) or "").lower())
 
-        # Challenges assigned to this kid
+        # Challenges assigned to this kid - only build if gamification is enabled
         challenges_attr = []
-        for challenge_id, challenge_info in self.coordinator.challenges_data.items():
-            if self._kid_id not in challenge_info.get(
-                const.DATA_CHALLENGE_ASSIGNED_KIDS, []
-            ):
-                continue
-            challenge_name = get_item_name_or_log_error(
-                "challenge", challenge_id, challenge_info, const.DATA_CHALLENGE_NAME
-            )
-            if not challenge_name:
-                continue
-            # Get KidChallengeProgressSensor entity_id
-            challenge_eid = None
-            if entity_registry:
-                unique_id = f"{self._entry.entry_id}_{self._kid_id}_{challenge_id}{const.SENSOR_KC_UID_SUFFIX_CHALLENGE_PROGRESS_SENSOR}"
-                challenge_eid = entity_registry.async_get_entity_id(
-                    "sensor", const.DOMAIN, unique_id
+        if gamification_enabled:
+            for (
+                challenge_id,
+                challenge_info,
+            ) in self.coordinator.challenges_data.items():
+                if self._kid_id not in challenge_info.get(
+                    const.DATA_CHALLENGE_ASSIGNED_KIDS, []
+                ):
+                    continue
+                challenge_name = get_item_name_or_log_error(
+                    "challenge", challenge_id, challenge_info, const.DATA_CHALLENGE_NAME
                 )
-            challenges_attr.append(
-                {
-                    const.ATTR_EID: challenge_eid,
-                    const.ATTR_NAME: challenge_name,
-                }
-            )
+                if not challenge_name:
+                    continue
+                # Get KidChallengeProgressSensor entity_id
+                challenge_eid = None
+                if entity_registry:
+                    unique_id = f"{self._entry.entry_id}_{self._kid_id}_{challenge_id}{const.SENSOR_KC_UID_SUFFIX_CHALLENGE_PROGRESS_SENSOR}"
+                    challenge_eid = entity_registry.async_get_entity_id(
+                        "sensor", const.DOMAIN, unique_id
+                    )
+                challenges_attr.append(
+                    {
+                        const.ATTR_EID: challenge_eid,
+                        const.ATTR_NAME: challenge_name,
+                    }
+                )
 
-        # Sort challenges by name (alphabetically)
-        challenges_attr.sort(key=lambda c: (c.get(const.ATTR_NAME) or "").lower())
+            # Sort challenges by name (alphabetically)
+            challenges_attr.sort(key=lambda c: (c.get(const.ATTR_NAME) or "").lower())
 
         # Point adjustment buttons for this kid - only build if gamification is enabled
         points_buttons_attr = []
