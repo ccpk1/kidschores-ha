@@ -705,12 +705,12 @@ This is a **7th overdue handling type** (not a completion criteria). It controls
 
   **4 test files, 4 builders working in parallel. NO OVERLAP.**
 
-  | Builder | File | Test Groups | Tests | Lines |
-  |---------|------|-------------|-------|-------|
-  | **Builder 1** | `test_rotation_fsm_states.py` | **T1 ONLY** | 9 tests | ~250 |
-  | **Builder 2** | `test_rotation_services.py` | **T2 + T3** | 6 tests | ~200 |
-  | **Builder 3** | `test_rotation_due_window_overdue.py` | **T4 + T5 + T6** | 8 tests | ~200 |
-  | **Builder 4** | `test_rotation_dashboard_contract.py` | **T7 + T8** | 5 tests | ~150 |
+  | Builder       | File                                  | Test Groups      | Tests   | Lines |
+  | ------------- | ------------------------------------- | ---------------- | ------- | ----- |
+  | **Builder 1** | `test_rotation_fsm_states.py`         | **T1 ONLY**      | 9 tests | ~250  |
+  | **Builder 2** | `test_rotation_services.py`           | **T2 + T3**      | 6 tests | ~200  |
+  | **Builder 3** | `test_rotation_due_window_overdue.py` | **T4 + T5 + T6** | 8 tests | ~200  |
+  | **Builder 4** | `test_rotation_dashboard_contract.py` | **T7 + T8**      | 5 tests | ~150  |
 
   **Test Group Summary**:
   - **T1**: FSM State Resolution (9 tests: approved, claimed, not_my_turn, missed, waiting, hold_claim, auto_approve, overdue_state, overdue_until_reset)
@@ -722,7 +722,7 @@ This is a **7th overdue handling type** (not a completion criteria). It controls
   - **T7**: Dashboard Helper Attributes (3 tests: lock_reason, turn_kid_name, available_at verification)
   - **T8**: Criteria Transition (2 tests: mutable completion_criteria updates ALL kid sensors)
 
-  ---
+  ***
 
   ## 🔨 BUILDER 1 HANDOFF: `test_rotation_fsm_states.py`
 
@@ -743,7 +743,7 @@ This is a **7th overdue handling type** (not a completion criteria). It controls
   8. `test_overdue_state_rotation()` - T1.8
   9. `test_overdue_until_approval_reset_rotation()` - T1.9
 
-  ---
+  ***
 
   ## 🔨 BUILDER 2 HANDOFF: `test_rotation_services.py`
 
@@ -761,7 +761,7 @@ This is a **7th overdue handling type** (not a completion criteria). It controls
   5. `test_rotation_advancement_smart()` - T3.2
   6. `test_rotation_advancement_kid_deletion()` - T3.3
 
-  ---
+  ***
 
   ## 🔨 BUILDER 3 HANDOFF: `test_rotation_due_window_overdue.py`
 
@@ -781,7 +781,7 @@ This is a **7th overdue handling type** (not a completion criteria). It controls
   7. `test_steal_window_turn_advances_on_steal()` - T6.2
   8. `test_steal_window_requires_overdue_state()` - T6.3
 
-  ---
+  ***
 
   ## 🔨 BUILDER 4 HANDOFF: `test_rotation_dashboard_contract.py`
 
@@ -798,7 +798,7 @@ This is a **7th overdue handling type** (not a completion criteria). It controls
   4. `test_criteria_transition_all_kids_update()` - T8.1 ⚠️ CRITICAL
   5. `test_criteria_transition_via_options_flow()` - T8.2
 
-  ---
+  ***
 
   ### Common Test Setup Pattern (ALL BUILDERS USE THIS)
 
@@ -827,94 +827,95 @@ This is a **7th overdue handling type** (not a completion criteria). It controls
       CHORE_STATE_NOT_MY_TURN, CHORE_STATE_WAITING, CHORE_STATE_MISSED,
   )
   from homeassistant.core import Context
-  
+
   async def test_rotation_example(hass, mock_hass_users):
       result = await setup_from_yaml(hass, mock_hass_users, "tests/scenarios/scenario_shared.yaml")
       coordinator = result.coordinator
-      
+
       # Get kid IDs from scenario
       zoe_id = result.kid_ids["Zoë"]
       max_id = result.kid_ids["Max!"]
       lila_id = result.kid_ids["Lila"]
-      
+
       # Get dashboard helpers for ALL kids
       zoe_helper = get_dashboard_helper(hass, "Zoë")
       max_helper = get_dashboard_helper(hass, "Max!")
       lila_helper = get_dashboard_helper(hass, "Lila")
-      
+
       # Find chore in Zoë's dashboard
       chore = find_chore(zoe_helper, "Dishes Rotation")
-      
+
       # Get buttons for ALL kids
       zoe_buttons = get_chore_buttons(hass, chore["eid"])
       max_chore_eid = f"sensor.kc_max_chore_{chore['eid'].split('_')[-1]}"
       max_buttons = get_chore_buttons(hass, max_chore_eid)
-      
+
       # Test as kid - use Context with user_id
       kid_context = Context(user_id=mock_hass_users["kid1"].id)
-      await hass.services.async_call("button", "press", 
+      await hass.services.async_call("button", "press",
           {"entity_id": zoe_buttons["claim"]}, context=kid_context)
   ```
 
   ### T1: FSM State Resolution & lock_reason Attribute
 
   **T1.1 — Priority 1: Approved State**
+
   ```python
   async def test_fsm_approved_state(hass, mock_hass_users):
       """Test approved state takes priority over all other states."""
       result = await setup_from_yaml(hass, mock_hass_users, "tests/scenarios/scenario_shared.yaml")
-      
+
       # Setup: rotation_simple, assigned=[Zoë, Max!, Lila], turn=Zoë
       zoe_id = result.kid_ids["Zoë"]
       max_id = result.kid_ids["Max!"]
       lila_id = result.kid_ids["Lila"]
-      
+
       # Get dashboard helpers
       zoe_helper = get_dashboard_helper(hass, "Zoë")
       max_helper = get_dashboard_helper(hass, "Max!")
       lila_helper = get_dashboard_helper(hass, "Lila")
-      
+
       # Find rotation chore in ALL kids' dashboards
       zoe_chore = find_chore(zoe_helper, "Dishes Rotation")
       max_chore = find_chore(max_helper, "Dishes Rotation")
       lila_chore = find_chore(lila_helper, "Dishes Rotation")
-      
+
       # Get buttons
       zoe_buttons = get_chore_buttons(hass, zoe_chore["eid"])
-      
+
       # Zoë claims (turn-holder)
       kid_context = Context(user_id=mock_hass_users["kid1"].id)
       await hass.services.async_call("button", "press",
           {"entity_id": zoe_buttons["claim"]}, context=kid_context)
       await hass.async_block_till_done()
-      
+
       # Parent approves
       parent_context = Context(user_id=mock_hass_users["parent1"].id)
       await hass.services.async_call("button", "press",
           {"entity_id": zoe_buttons["approve"]}, context=parent_context)
       await hass.async_block_till_done()
-      
+
       # Assert Zoë: state=approved, lock_reason=None
       zoe_sensor = hass.states.get(zoe_chore["eid"])
       assert zoe_sensor.state == CHORE_STATE_APPROVED
       assert zoe_sensor.attributes.get("lock_reason") is None
       assert zoe_sensor.attributes.get("turn_kid_name") == "Max!"  # Turn advanced
       assert zoe_sensor.attributes.get("can_claim") is False
-      
+
       # Assert Zoë dashboard helper
       zoe_helper_updated = get_dashboard_helper(hass, "Zoë")
       zoe_chore_updated = find_chore(zoe_helper_updated, "Dishes Rotation")
       assert zoe_chore_updated["state"] == CHORE_STATE_APPROVED
       assert zoe_chore_updated.get("lock_reason") is None
       assert zoe_chore_updated.get("turn_kid_name") == "Max!"
-      
+
       # Assert Max!: turn advanced, state=pending (or due if window), lock_reason=None
       max_sensor = hass.states.get(max_chore["eid"])
       assert max_sensor.state in (CHORE_STATE_PENDING, CHORE_STATE_DUE)
       assert max_sensor.attributes.get("lock_reason") is None
       assert max_sensor.attributes.get("turn_kid_name") == "Max!"
       assert max_sensor.attributes.get("can_claim") is True
-      
+
       # Assert Lila: state=not_my_turn, lock_reason="not_my_turn"
       lila_sensor = hass.states.get(lila_chore["eid"])
       assert lila_sensor.state == CHORE_STATE_NOT_MY_TURN
@@ -924,45 +925,46 @@ This is a **7th overdue handling type** (not a completion criteria). It controls
   ```
 
   **T1.2 — Priority 2: Claimed State**
+
   ```python
   async def test_fsm_claimed_state(hass, mock_hass_users):
       """Test claimed state (pending approval)."""
       result = await setup_from_yaml(hass, mock_hass_users, "tests/scenarios/scenario_shared.yaml")
-      
+
       zoe_id = result.kid_ids["Zoë"]
       max_id = result.kid_ids["Max!"]
       lila_id = result.kid_ids["Lila"]
-      
+
       # Get ALL dashboard helpers
       zoe_helper = get_dashboard_helper(hass, "Zoë")
       max_helper = get_dashboard_helper(hass, "Max!")
       lila_helper = get_dashboard_helper(hass, "Lila")
-      
+
       # Find chore in each kid's dashboard
       zoe_chore = find_chore(zoe_helper, "Dishes Rotation")
       max_chore = find_chore(max_helper, "Dishes Rotation")
       lila_chore = find_chore(lila_helper, "Dishes Rotation")
-      
+
       # Zoë claims (turn-holder)
       zoe_buttons = get_chore_buttons(hass, zoe_chore["eid"])
       kid_context = Context(user_id=mock_hass_users["kid1"].id)
       await hass.services.async_call("button", "press",
           {"entity_id": zoe_buttons["claim"]}, context=kid_context)
       await hass.async_block_till_done()
-      
+
       # Assert Zoë: state=claimed, lock_reason=None, can_claim=False
       zoe_sensor = hass.states.get(zoe_chore["eid"])
       assert zoe_sensor.state == CHORE_STATE_CLAIMED
       assert zoe_sensor.attributes.get("lock_reason") is None
       assert zoe_sensor.attributes.get("turn_kid_name") == "Zoë"
       assert zoe_sensor.attributes.get("can_claim") is False
-      
+
       # Assert Max!: state=not_my_turn (still blocked)
       max_sensor = hass.states.get(max_chore["eid"])
       assert max_sensor.state == CHORE_STATE_NOT_MY_TURN
       assert max_sensor.attributes.get("lock_reason") == "not_my_turn"
       assert max_sensor.attributes.get("turn_kid_name") == "Zoë"
-      
+
       # Assert Lila: state=not_my_turn (still blocked)
       lila_sensor = hass.states.get(lila_chore["eid"])
       assert lila_sensor.state == CHORE_STATE_NOT_MY_TURN
@@ -970,115 +972,117 @@ This is a **7th overdue handling type** (not a completion criteria). It controls
   ```
 
   **T1.3 — Priority 3: Not My Turn (Rotation Blocking) - CRITICAL TEST**
+
   ```python
   async def test_fsm_not_my_turn_blocking(hass, mock_hass_users):
       """Test not_my_turn blocks non-turn-holders. CRITICAL: Verify all 3 kids."""
       result = await setup_from_yaml(hass, mock_hass_users, "tests/scenarios/scenario_shared.yaml")
-      
+
       zoe_id = result.kid_ids["Zoë"]
       max_id = result.kid_ids["Max!"]
       lila_id = result.kid_ids["Lila"]
-      
+
       # Get ALL dashboard helpers
       zoe_helper = get_dashboard_helper(hass, "Zoë")
       max_helper = get_dashboard_helper(hass, "Max!")
       lila_helper = get_dashboard_helper(hass, "Lila")
-      
+
       # Find chore in each kid's dashboard
       zoe_chore = find_chore(zoe_helper, "Dishes Rotation")
       max_chore = find_chore(max_helper, "Dishes Rotation")
       lila_chore = find_chore(lila_helper, "Dishes Rotation")
-      
+
       # CRITICAL: Verify turn_holder is Zoë (extract internal ID from entity ID)
       chore_internal_id = zoe_chore["eid"].split("_chore_")[-1]
       coordinator = result.coordinator
       chore_data = coordinator.chores_data[chore_internal_id]
       assert chore_data[DATA_CHORE_ROTATION_CURRENT_KID_ID] == zoe_id
-      
+
       # Assert Zoë (turn-holder): can_claim=True, lock_reason=None
       zoe_sensor = hass.states.get(zoe_chore["eid"])
       assert zoe_sensor.state in (CHORE_STATE_PENDING, CHORE_STATE_DUE)
       assert zoe_sensor.attributes.get("lock_reason") is None
       assert zoe_sensor.attributes.get("turn_kid_name") == "Zoë"
       assert zoe_sensor.attributes.get("can_claim") is True
-      
+
       # Assert Max! (NOT turn-holder): state=not_my_turn, can_claim=False
       max_sensor = hass.states.get(max_chore["eid"])
       assert max_sensor.state == CHORE_STATE_NOT_MY_TURN
       assert max_sensor.attributes.get("lock_reason") == "not_my_turn"
       assert max_sensor.attributes.get("turn_kid_name") == "Zoë"  # Shows WHO has turn
       assert max_sensor.attributes.get("can_claim") is False
-      
+
       # Assert Lila (NOT turn-holder): state=not_my_turn, can_claim=False
       lila_sensor = hass.states.get(lila_chore["eid"])
       assert lila_sensor.state == CHORE_STATE_NOT_MY_TURN
       assert lila_sensor.attributes.get("lock_reason") == "not_my_turn"
       assert lila_sensor.attributes.get("turn_kid_name") == "Zoë"
       assert lila_sensor.attributes.get("can_claim") is False
-      
+
       # Verify dashboard helpers match (refresh to get latest state)
       max_helper_updated = get_dashboard_helper(hass, "Max!")
       max_helper_chore = find_chore(max_helper_updated, "Dishes Rotation")
       assert max_helper_chore["state"] == CHORE_STATE_NOT_MY_TURN
       assert max_helper_chore.get("lock_reason") == "not_my_turn"
       assert max_helper_chore.get("turn_kid_name") == "Zoë"
-      
+
       lila_helper_updated = get_dashboard_helper(hass, "Lila")
       lila_helper_chore = find_chore(lila_helper_updated, "Dishes Rotation")
       assert lila_helper_chore["state"] == CHORE_STATE_NOT_MY_TURN
       assert lila_helper_chore.get("lock_reason") == "not_my_turn"
       assert lila_helper_chore.get("turn_kid_name") == "Zoë"
-      
+
       # CRITICAL: Verify non-turn-holder CANNOT claim
       max_buttons = get_chore_buttons(hass, max_chore["eid"])
       kid_context = Context(user_id=mock_hass_users["kid2"].id)  # Max's user
-      
+
       with pytest.raises(HomeAssistantError, match="not.*turn|rotation"):
           await hass.services.async_call("button", "press",
               {"entity_id": max_buttons["claim"]}, context=kid_context)
   ```
 
   **T1.4 — Priority 4: Missed (Locked State) - Rotation: Only Turn-Holder Locked**
+
   ```python
   async def test_fsm_missed_state_rotation(hass, mock_hass_users):
       """Test missed state locks ONLY turn-holder, not other kids."""
       from freezegun import freeze_time
-      
+
       result = await setup_from_yaml(hass, mock_hass_users, "tests/scenarios/scenario_shared.yaml")
-      
+
       zoe_id = result.kid_ids["Zoë"]
       max_id = result.kid_ids["Max!"]
       lila_id = result.kid_ids["Lila"]
-      
+
       # Setup: rotation chore with mark_missed_and_lock
       # due_date=2026-02-10T19:00:00Z, approval_reset=at_midnight_once
       # (Assume scenario includes this chore or create via service)
-      
+
       # Freeze time PAST due date
       with freeze_time("2026-02-10T20:00:00Z"):
           # Trigger scanner
           await result.coordinator._run_time_scanner()
           await hass.async_block_till_done()
-          
+
           # Get sensors
           zoe_helper = get_dashboard_helper(hass, "Zoë")
           chore = find_chore(zoe_helper, "Dishes Rotation Locked")
           chore_id = chore["eid"].split("_")[-1]
-          
+
           # Assert Zoë (turn-holder): state=missed, lock_reason="missed", can_claim=False
           zoe_sensor = hass.states.get(chore["eid"])
           assert zoe_sensor.state == CHORE_STATE_MISSED
           assert zoe_sensor.attributes.get("lock_reason") == "missed"
           assert zoe_sensor.attributes.get("turn_kid_name") == "Zoë"
           assert zoe_sensor.attributes.get("can_claim") is False
-          
+
           # CRITICAL: Assert Max! (NOT turn-holder): state=not_my_turn (NOT missed)
           max_chore_eid = f"sensor.kc_max_chore_{chore_id}"
           max_sensor = hass.states.get(max_chore_eid)
           assert max_sensor.state == CHORE_STATE_NOT_MY_TURN  # NOT missed!
           assert max_sensor.attributes.get("lock_reason") == "not_my_turn"  # NOT "missed"!
           assert max_sensor.attributes.get("can_claim") is False
-          
+
           # CRITICAL: Assert Lila (NOT turn-holder): state=not_my_turn (NOT missed)
           lila_chore_eid = f"sensor.kc_lila_chore_{chore_id}"
           lila_sensor = hass.states.get(lila_chore_eid)
@@ -1088,57 +1092,58 @@ This is a **7th overdue handling type** (not a completion criteria). It controls
   ```
 
   **T1.5 — Priority 6: Waiting (Claim Restriction) - All Kids Blocked**
+
   ```python
   async def test_fsm_waiting_state_all_kids(hass, mock_hass_users):
       """Test waiting state blocks ALL kids (not rotation-specific)."""
       from freezegun import freeze_time
-      
+
       result = await setup_from_yaml(hass, mock_hass_users, "tests/scenarios/scenario_shared.yaml")
-      
+
       zoe_id = result.kid_ids["Zoë"]
       max_id = result.kid_ids["Max!"]
       lila_id = result.kid_ids["Lila"]
-      
+
       # Setup: independent chore with due_window_offset="PT2H"
       # due_date=2026-02-10T19:00:00Z → window_start=17:00:00Z
-      
+
       # Freeze time BEFORE window opens
       with freeze_time("2026-02-10T16:00:00Z"):
           zoe_helper = get_dashboard_helper(hass, "Zoë")
           chore = find_chore(zoe_helper, "Homework Due Window")
           chore_id = chore["eid"].split("_")[-1]
-          
+
           # Assert Zoë: state=waiting, available_at set
           zoe_sensor = hass.states.get(chore["eid"])
           assert zoe_sensor.state == CHORE_STATE_WAITING
           assert zoe_sensor.attributes.get("lock_reason") == "waiting"
           assert zoe_sensor.attributes.get("available_at") == "2026-02-10T17:00:00+00:00"
           assert zoe_sensor.attributes.get("can_claim") is False
-          
+
           # Assert Max!: also waiting (shared chore, not rotation)
           max_chore_eid = f"sensor.kc_max_chore_{chore_id}"
           max_sensor = hass.states.get(max_chore_eid)
           assert max_sensor.state == CHORE_STATE_WAITING
           assert max_sensor.attributes.get("lock_reason") == "waiting"
           assert max_sensor.attributes.get("available_at") == "2026-02-10T17:00:00+00:00"
-          
+
           # Assert Lila: also waiting
           lila_chore_eid = f"sensor.kc_lila_chore_{chore_id}"
           lila_sensor = hass.states.get(lila_chore_eid)
           assert lila_sensor.state == CHORE_STATE_WAITING
           assert lila_sensor.attributes.get("lock_reason") == "waiting"
-      
+
       # Advance time INTO window
       with freeze_time("2026-02-10T18:00:00Z"):
           await hass.async_block_till_done()
-          
+
           # Assert ALL kids: state=due, lock_reason=None, available_at=None
           zoe_sensor_updated = hass.states.get(chore["eid"])
           assert zoe_sensor_updated.state == CHORE_STATE_DUE
           assert zoe_sensor_updated.attributes.get("lock_reason") is None
           assert zoe_sensor_updated.attributes.get("available_at") is None
           assert zoe_sensor_updated.attributes.get("can_claim") is True
-          
+
           max_sensor_updated = hass.states.get(max_chore_eid)
           assert max_sensor_updated.state == CHORE_STATE_DUE
           assert max_sensor_updated.attributes.get("lock_reason") is None
@@ -1146,31 +1151,32 @@ This is a **7th overdue handling type** (not a completion criteria). It controls
   ```
 
   **T1.6 — Overdue Type: Hold Claim (Rotation Turn Holder Keeps Claim)**
+
   ```python
   async def test_overdue_hold_claim_rotation(hass, mock_hass_users):
       """Test hold_claim overdue: rotation turn holder keeps claimed state past due."""
       from freezegun import freeze_time
-      
+
       result = await setup_from_yaml(hass, mock_hass_users, "tests/scenarios/scenario_shared.yaml")
       coordinator = result.coordinator
-      
+
       zoe_id = result.kid_ids["Zoë"]
       max_id = result.kid_ids["Max!"]
       lila_id = result.kid_ids["Lila"]
-      
+
       # Setup: rotation chore with overdue_action=hold_claim
       # turn=Zoë, due_date=2026-02-10T19:00:00Z
-      
+
       # Get dashboard helpers
       zoe_helper = get_dashboard_helper(hass, "Zoë")
       max_helper = get_dashboard_helper(hass, "Max!")
       lila_helper = get_dashboard_helper(hass, "Lila")
-      
+
       # Find chore
       zoe_chore = find_chore(zoe_helper, "Dishes Rotation")
       max_chore = find_chore(max_helper, "Dishes Rotation")
       lila_chore = find_chore(lila_helper, "Dishes Rotation")
-      
+
       # Zoë claims BEFORE due time
       with freeze_time("2026-02-10T18:00:00Z"):
           zoe_buttons = get_chore_buttons(hass, zoe_chore["eid"])
@@ -1178,56 +1184,57 @@ This is a **7th overdue handling type** (not a completion criteria). It controls
           await hass.services.async_call("button", "press",
               {"entity_id": zoe_buttons["claim"]}, context=kid_context)
           await hass.async_block_till_done()
-      
+
       # Advance time PAST due date
       with freeze_time("2026-02-10T20:00:00Z"):
           # Trigger scanner to update overdue states
           await coordinator.async_refresh()
           await hass.async_block_till_done()
-          
+
           # Assert Zoë (turn-holder): STILL claimed (hold_claim preserves state)
           zoe_sensor = hass.states.get(zoe_chore["eid"])
           assert zoe_sensor.state == CHORE_STATE_CLAIMED  # NOT overdue state
           assert zoe_sensor.attributes.get("lock_reason") is None
           assert zoe_sensor.attributes.get("turn_kid_name") == "Zoë"
           assert zoe_sensor.attributes.get("can_claim") is False
-          
+
           # Assert Max! & Lila: STILL blocked (rotation doesn't advance on hold_claim)
           max_sensor = hass.states.get(max_chore["eid"])
           assert max_sensor.state == CHORE_STATE_NOT_MY_TURN
           assert max_sensor.attributes.get("lock_reason") == "not_my_turn"
-          
+
           lila_sensor = hass.states.get(lila_chore["eid"])
           assert lila_sensor.state == CHORE_STATE_NOT_MY_TURN
           assert lila_sensor.attributes.get("lock_reason") == "not_my_turn"
   ```
 
   **T1.7 — Overdue Type: Auto-Approve (Rotation Turn Advances on Approval)**
+
   ```python
   async def test_overdue_auto_approve_rotation(hass, mock_hass_users):
       """Test auto_approve overdue: rotation advances turn when claim auto-approves."""
       from freezegun import freeze_time
-      
+
       result = await setup_from_yaml(hass, mock_hass_users, "tests/scenarios/scenario_shared.yaml")
       coordinator = result.coordinator
-      
+
       zoe_id = result.kid_ids["Zoë"]
       max_id = result.kid_ids["Max!"]
       lila_id = result.kid_ids["Lila"]
-      
+
       # Setup: rotation chore with overdue_action=auto_approve_pending_claims
       # turn=Zoë, due_date=2026-02-10T19:00:00Z
-      
+
       # Get dashboard helpers
       zoe_helper = get_dashboard_helper(hass, "Zoë")
       max_helper = get_dashboard_helper(hass, "Max!")
       lila_helper = get_dashboard_helper(hass, "Lila")
-      
+
       # Find chore
       zoe_chore = find_chore(zoe_helper, "Dishes Rotation")
       max_chore = find_chore(max_helper, "Dishes Rotation")
       lila_chore = find_chore(lila_helper, "Dishes Rotation")
-      
+
       # Zoë claims BEFORE due time
       with freeze_time("2026-02-10T18:00:00Z"):
           zoe_buttons = get_chore_buttons(hass, zoe_chore["eid"])
@@ -1235,39 +1242,39 @@ This is a **7th overdue handling type** (not a completion criteria). It controls
           await hass.services.async_call("button", "press",
               {"entity_id": zoe_buttons["claim"]}, context=kid_context)
           await hass.async_block_till_done()
-          
+
           # Verify claimed
           zoe_sensor = hass.states.get(zoe_chore["eid"])
           assert zoe_sensor.state == CHORE_STATE_CLAIMED
-      
+
       # Advance time to due date (auto-approve triggers)
       with freeze_time("2026-02-10T19:00:01Z"):
           # Trigger scanner to auto-approve
           await coordinator.async_refresh()
           await hass.async_block_till_done()
-          
+
           # Refresh dashboard helpers to get updated turn
           zoe_helper_updated = get_dashboard_helper(hass, "Zoë")
           max_helper_updated = get_dashboard_helper(hass, "Max!")
           lila_helper_updated = get_dashboard_helper(hass, "Lila")
-          
+
           zoe_chore_updated = find_chore(zoe_helper_updated, "Dishes Rotation")
           max_chore_updated = find_chore(max_helper_updated, "Dishes Rotation")
           lila_chore_updated = find_chore(lila_helper_updated, "Dishes Rotation")
-          
+
           # Assert Zoë: auto-approved, turn ADVANCED to Max!
           zoe_sensor = hass.states.get(zoe_chore_updated["eid"])
           assert zoe_sensor.state == CHORE_STATE_APPROVED
           assert zoe_sensor.attributes.get("lock_reason") is None
           assert zoe_sensor.attributes.get("turn_kid_name") == "Max!"  # Turn advanced
-          
+
           # Assert Max!: NOW turn-holder, can claim
           max_sensor = hass.states.get(max_chore_updated["eid"])
           assert max_sensor.state in (CHORE_STATE_PENDING, CHORE_STATE_DUE)
           assert max_sensor.attributes.get("lock_reason") is None
           assert max_sensor.attributes.get("turn_kid_name") == "Max!"
           assert max_sensor.attributes.get("can_claim") is True
-          
+
           # Assert Lila: STILL blocked (now blocked by Max's turn)
           lila_sensor = hass.states.get(lila_chore_updated["eid"])
           assert lila_sensor.state == CHORE_STATE_NOT_MY_TURN
@@ -1276,120 +1283,122 @@ This is a **7th overdue handling type** (not a completion criteria). It controls
   ```
 
   **T1.8 — Overdue Type: Overdue State (Turn Holder Can Still Claim)**
+
   ```python
   async def test_overdue_state_rotation(hass, mock_hass_users):
       """Test overdue state: rotation turn holder can still claim overdue chore."""
       from freezegun import freeze_time
-      
+
       result = await setup_from_yaml(hass, mock_hass_users, "tests/scenarios/scenario_shared.yaml")
       coordinator = result.coordinator
-      
+
       zoe_id = result.kid_ids["Zoë"]
       max_id = result.kid_ids["Max!"]
       lila_id = result.kid_ids["Lila"]
-      
+
       # Setup: rotation chore with overdue_action=show_overdue_state
       # turn=Zoë, due_date=2026-02-10T19:00:00Z, approval_reset=never
-      
+
       # Advance time PAST due date (chore not claimed)
       with freeze_time("2026-02-10T20:00:00Z"):
           # Trigger scanner
           await coordinator.async_refresh()
           await hass.async_block_till_done()
-          
+
           # Get dashboard helpers
           zoe_helper = get_dashboard_helper(hass, "Zoë")
           max_helper = get_dashboard_helper(hass, "Max!")
           lila_helper = get_dashboard_helper(hass, "Lila")
-          
+
           # Find chore
           zoe_chore = find_chore(zoe_helper, "Dishes Rotation")
           max_chore = find_chore(max_helper, "Dishes Rotation")
           lila_chore = find_chore(lila_helper, "Dishes Rotation")
-          
+
           # Assert Zoë (turn-holder): state=overdue, CAN still claim
           zoe_sensor = hass.states.get(zoe_chore["eid"])
           assert zoe_sensor.state == CHORE_STATE_OVERDUE
           assert zoe_sensor.attributes.get("lock_reason") is None  # Not locked
           assert zoe_sensor.attributes.get("turn_kid_name") == "Zoë"
           assert zoe_sensor.attributes.get("can_claim") is True  # Can still claim
-          
+
           # Assert Max! & Lila: STILL blocked by rotation
           max_sensor = hass.states.get(max_chore["eid"])
           assert max_sensor.state == CHORE_STATE_NOT_MY_TURN
           assert max_sensor.attributes.get("lock_reason") == "not_my_turn"
-          
+
           lila_sensor = hass.states.get(lila_chore["eid"])
           assert lila_sensor.state == CHORE_STATE_NOT_MY_TURN
           assert lila_sensor.attributes.get("lock_reason") == "not_my_turn"
-          
+
           # Verify Zoë CAN claim overdue chore
           zoe_buttons = get_chore_buttons(hass, zoe_chore["eid"])
           kid_context = Context(user_id=mock_hass_users["kid1"].id)
           await hass.services.async_call("button", "press",
               {"entity_id": zoe_buttons["claim"]}, context=kid_context)
           await hass.async_block_till_done()
-          
+
           # Verify state changed to claimed
           zoe_sensor_updated = hass.states.get(zoe_chore["eid"])
           assert zoe_sensor_updated.state == CHORE_STATE_CLAIMED
   ```
 
   **T1.9 — Overdue Type: Overdue Until Approval Reset (Midnight Reset)**
+
   ```python
   async def test_overdue_until_approval_reset_rotation(hass, mock_hass_users):
       """Test overdue_until_approval_reset: rotation may advance turn on reset."""
       from freezegun import freeze_time
-      
+
       result = await setup_from_yaml(hass, mock_hass_users, "tests/scenarios/scenario_shared.yaml")
       coordinator = result.coordinator
-      
+
       zoe_id = result.kid_ids["Zoë"]
       max_id = result.kid_ids["Max!"]
       lila_id = result.kid_ids["Lila"]
-      
+
       # Setup: rotation chore with overdue_action=show_overdue_state
       # approval_reset=at_midnight_once, turn=Zoë, due_date=2026-02-10T19:00:00Z
-      
+
       # Advance time PAST due date (chore overdue, not claimed)
       with freeze_time("2026-02-10T20:00:00Z"):
           # Get dashboard helpers
           zoe_helper = get_dashboard_helper(hass, "Zoë")
           zoe_chore = find_chore(zoe_helper, "Dishes Rotation")
-          
+
           # Zoë claims overdue chore
           zoe_buttons = get_chore_buttons(hass, zoe_chore["eid"])
           kid_context = Context(user_id=mock_hass_users["kid1"].id)
           await hass.services.async_call("button", "press",
               {"entity_id": zoe_buttons["claim"]}, context=kid_context)
           await hass.async_block_till_done()
-          
+
           # Verify claimed
           zoe_sensor = hass.states.get(zoe_chore["eid"])
           assert zoe_sensor.state == CHORE_STATE_CLAIMED
-      
+
       # Advance time PAST midnight (approval reset triggers)
       with freeze_time("2026-02-11T00:00:01Z"):
           # Trigger scanner to reset approval
           await coordinator.async_refresh()
           await hass.async_block_till_done()
-          
+
           # Get updated helpers
           zoe_helper_updated = get_dashboard_helper(hass, "Zoë")
           max_helper_updated = get_dashboard_helper(hass, "Max!")
           lila_helper_updated = get_dashboard_helper(hass, "Lila")
-          
+
           zoe_chore_updated = find_chore(zoe_helper_updated, "Dishes Rotation")
           max_chore_updated = find_chore(max_helper_updated, "Dishes Rotation")
           lila_chore_updated = find_chore(lila_helper_updated, "Dishes Rotation")
-          
+
           # Assert: Approval reset, turn MAY advance depending on rotation_advancement
           # For rotation_simple: turn advances on approval/reset
           # For rotation_smart: turn may stay with Zoë if they didn't complete
-          
+
           zoe_sensor_updated = hass.states.get(zoe_chore_updated["eid"])
           max_sensor_updated = hass.states.get(max_chore_updated["eid"])
-          
+
           # Verify ONE of these scenarios (depends on rotation_advancement setting):
           # Scenario 1: Turn advanced to Max!
           if zoe_sensor_updated.attributes.get("turn_kid_name") == "Max!":
@@ -1406,25 +1415,26 @@ This is a **7th overdue handling type** (not a completion criteria). It controls
   ### T2: Rotation Services - Verify ALL Assigned Kids
 
   **T2.1 — set_rotation_turn Service: Verify All Kids Update**
+
   ```python
   async def test_set_rotation_turn_all_kids(hass, mock_hass_users):
       """Test set_rotation_turn updates ALL assigned kids' states."""
       result = await setup_from_yaml(hass, mock_hass_users, "tests/scenarios/scenario_shared.yaml")
-      
+
       zoe_id = result.kid_ids["Zoë"]
       max_id = result.kid_ids["Max!"]
       lila_id = result.kid_ids["Lila"]
-      
+
       # Initial state: Zoë is turn-holder
       coordinator = result.coordinator
       zoe_helper = get_dashboard_helper(hass, "Zoë")
       chore = find_chore(zoe_helper, "Dishes Rotation")
       chore_id = chore["eid"].split("_")[-1]
-      
+
       # Verify initial turn
       chore_data = coordinator.chores_data[chore_id]
       assert chore_data[DATA_CHORE_ROTATION_CURRENT_KID_ID] == zoe_id
-      
+
       # Call service: Set turn to Lila
       await hass.services.async_call(
           DOMAIN, "set_rotation_turn",
@@ -1432,18 +1442,18 @@ This is a **7th overdue handling type** (not a completion criteria). It controls
           blocking=True
       )
       await hass.async_block_till_done()
-      
+
       # Verify turn changed in storage
       chore_data_updated = coordinator.chores_data[chore_id]
       assert chore_data_updated[DATA_CHORE_ROTATION_CURRENT_KID_ID] == lila_id
-      
+
       # Assert Zoë: state=not_my_turn, turn_kid_name="Lila"
       zoe_sensor = hass.states.get(chore["eid"])
       assert zoe_sensor.state == CHORE_STATE_NOT_MY_TURN
       assert zoe_sensor.attributes.get("lock_reason") == "not_my_turn"
       assert zoe_sensor.attributes.get("turn_kid_name") == "Lila"
       assert zoe_sensor.attributes.get("can_claim") is False
-      
+
       # Assert Max!: state=not_my_turn, turn_kid_name="Lila"
       max_chore_eid = f"sensor.kc_max_chore_{chore_id}"
       max_sensor = hass.states.get(max_chore_eid)
@@ -1451,7 +1461,7 @@ This is a **7th overdue handling type** (not a completion criteria). It controls
       assert max_sensor.attributes.get("lock_reason") == "not_my_turn"
       assert max_sensor.attributes.get("turn_kid_name") == "Lila"
       assert max_sensor.attributes.get("can_claim") is False
-      
+
       # Assert Lila: state=pending/due, lock_reason=None, turn_kid_name="Lila"
       lila_chore_eid = f"sensor.kc_lila_chore_{chore_id}"
       lila_sensor = hass.states.get(lila_chore_eid)
@@ -1459,36 +1469,36 @@ This is a **7th overdue handling type** (not a completion criteria). It controls
       assert lila_sensor.attributes.get("lock_reason") is None
       assert lila_sensor.attributes.get("turn_kid_name") == "Lila"
       assert lila_sensor.attributes.get("can_claim") is True
-      
+
       # Verify dashboard helpers ALL updated
       zoe_helper_updated = get_dashboard_helper(hass, "Zoë")
       max_helper_updated = get_dashboard_helper(hass, "Max!")
       lila_helper_updated = get_dashboard_helper(hass, "Lila")
-      
+
       zoe_chore = find_chore(zoe_helper_updated, "Dishes Rotation")
       max_chore = find_chore(max_helper_updated, "Dishes Rotation")
       lila_chore = find_chore(lila_helper_updated, "Dishes Rotation")
-      
+
       assert zoe_chore["state"] == CHORE_STATE_NOT_MY_TURN
       assert zoe_chore.get("turn_kid_name") == "Lila"
-      
+
       assert max_chore["state"] == CHORE_STATE_NOT_MY_TURN
       assert max_chore.get("turn_kid_name") == "Lila"
-      
+
       assert lila_chore["state"] in (CHORE_STATE_PENDING, CHORE_STATE_DUE)
       assert lila_chore.get("turn_kid_name") == "Lila"
-      
+
       # Test error: Non-rotation chore
       independent_chore = find_chore(zoe_helper_updated, "Independent Chore")
       independent_id = independent_chore["eid"].split("_")[-1]
-      
+
       with pytest.raises(ServiceValidationError, match="not.*rotation"):
           await hass.services.async_call(
               DOMAIN, "set_rotation_turn",
               {SERVICE_FIELD_CHORE_ID: independent_id, SERVICE_FIELD_ROTATION_KID_ID: zoe_id},
               blocking=True
           )
-      
+
       # Test error: Kid not assigned
       unassigned_kid_id = result.kid_ids.get("Other Kid", "fake-uuid")
       with pytest.raises(ServiceValidationError, match="not.*assigned|kid"):
@@ -1500,20 +1510,21 @@ This is a **7th overdue handling type** (not a completion criteria). It controls
   ```
 
   **T2.2 — reset_rotation Service: All Kids Reset**
+
   ```python
   async def test_reset_rotation_all_kids(hass, mock_hass_users):
       """Test reset_rotation resets to first kid, all kids see update."""
       result = await setup_from_yaml(hass, mock_hass_users, "tests/scenarios/scenario_shared.yaml")
-      
+
       zoe_id = result.kid_ids["Zoë"]
       max_id = result.kid_ids["Max!"]
       lila_id = result.kid_ids["Lila"]
-      
+
       coordinator = result.coordinator
       zoe_helper = get_dashboard_helper(hass, "Zoë")
       chore = find_chore(zoe_helper, "Dishes Rotation")
       chore_id = chore["eid"].split("_")[-1]
-      
+
       # Set turn to Lila (not first kid)
       await hass.services.async_call(
           DOMAIN, "set_rotation_turn",
@@ -1521,11 +1532,11 @@ This is a **7th overdue handling type** (not a completion criteria). It controls
           blocking=True
       )
       await hass.async_block_till_done()
-      
+
       # Verify Lila is turn-holder
       chore_data = coordinator.chores_data[chore_id]
       assert chore_data[DATA_CHORE_ROTATION_CURRENT_KID_ID] == lila_id
-      
+
       # Call reset_rotation
       await hass.services.async_call(
           DOMAIN, "reset_rotation",
@@ -1533,24 +1544,24 @@ This is a **7th overdue handling type** (not a completion criteria). It controls
           blocking=True
       )
       await hass.async_block_till_done()
-      
+
       # Verify reset to first kid (Zoë is assigned_kids[0])
       chore_data_reset = coordinator.chores_data[chore_id]
       assigned_kids = chore_data_reset[DATA_CHORE_ASSIGNED_KIDS]
       assert chore_data_reset[DATA_CHORE_ROTATION_CURRENT_KID_ID] == assigned_kids[0]
       assert assigned_kids[0] == zoe_id  # Zoë is first
-      
+
       # Assert ALL kids see Zoë as turn-holder
       zoe_sensor = hass.states.get(chore["eid"])
       assert zoe_sensor.attributes.get("turn_kid_name") == "Zoë"
       assert zoe_sensor.state in (CHORE_STATE_PENDING, CHORE_STATE_DUE)
       assert zoe_sensor.attributes.get("can_claim") is True
-      
+
       max_chore_eid = f"sensor.kc_max_chore_{chore_id}"
       max_sensor = hass.states.get(max_chore_eid)
       assert max_sensor.attributes.get("turn_kid_name") == "Zoë"
       assert max_sensor.state == CHORE_STATE_NOT_MY_TURN
-      
+
       lila_chore_eid = f"sensor.kc_lila_chore_{chore_id}"
       lila_sensor = hass.states.get(lila_chore_eid)
       assert lila_sensor.attributes.get("turn_kid_name") == "Zoë"
@@ -1558,36 +1569,37 @@ This is a **7th overdue handling type** (not a completion criteria). It controls
   ```
 
   **T2.3 — open_rotation_cycle Service: Override Lifts Blocking for ALL**
+
   ```python
   async def test_open_rotation_cycle_all_kids_unblocked(hass, mock_hass_users):
       """Test open_rotation_cycle allows ALL kids to claim."""
       result = await setup_from_yaml(hass, mock_hass_users, "tests/scenarios/scenario_shared.yaml")
-      
+
       zoe_id = result.kid_ids["Zoë"]
       max_id = result.kid_ids["Max!"]
       lila_id = result.kid_ids["Lila"]
-      
+
       coordinator = result.coordinator
       zoe_helper = get_dashboard_helper(hass, "Zoë")
       chore = find_chore(zoe_helper, "Dishes Rotation")
       chore_id = chore["eid"].split("_")[-1]
-      
+
       # Initial: Zoë is turn-holder
       chore_data = coordinator.chores_data[chore_id]
       assert chore_data[DATA_CHORE_ROTATION_CURRENT_KID_ID] == zoe_id
       assert chore_data.get(DATA_CHORE_ROTATION_CYCLE_OVERRIDE, False) is False
-      
+
       # Verify Max! and Lila are blocked initially
       max_chore_eid = f"sensor.kc_max_chore_{chore_id}"
       max_sensor_before = hass.states.get(max_chore_eid)
       assert max_sensor_before.state == CHORE_STATE_NOT_MY_TURN
       assert max_sensor_before.attributes.get("can_claim") is False
-      
+
       lila_chore_eid = f"sensor.kc_lila_chore_{chore_id}"
       lila_sensor_before = hass.states.get(lila_chore_eid)
       assert lila_sensor_before.state == CHORE_STATE_NOT_MY_TURN
       assert lila_sensor_before.attributes.get("can_claim") is False
-      
+
       # Call open_rotation_cycle
       await hass.services.async_call(
           DOMAIN, "open_rotation_cycle",
@@ -1595,58 +1607,58 @@ This is a **7th overdue handling type** (not a completion criteria). It controls
           blocking=True
       )
       await hass.async_block_till_done()
-      
+
       # Verify override flag set
       chore_data_override = coordinator.chores_data[chore_id]
       assert chore_data_override[DATA_CHORE_ROTATION_CYCLE_OVERRIDE] is True
-      
+
       # Assert ALL kids can now claim (blocking lifted)
       zoe_sensor_after = hass.states.get(chore["eid"])
       assert zoe_sensor_after.state in (CHORE_STATE_PENDING, CHORE_STATE_DUE)
       assert zoe_sensor_after.attributes.get("lock_reason") is None
       assert zoe_sensor_after.attributes.get("can_claim") is True
-      
+
       max_sensor_after = hass.states.get(max_chore_eid)
       assert max_sensor_after.state in (CHORE_STATE_PENDING, CHORE_STATE_DUE)  # NO LONGER not_my_turn!
       assert max_sensor_after.attributes.get("lock_reason") is None  # NO LONGER "not_my_turn"!
       assert max_sensor_after.attributes.get("can_claim") is True
-      
+
       lila_sensor_after = hass.states.get(lila_chore_eid)
       assert lila_sensor_after.state in (CHORE_STATE_PENDING, CHORE_STATE_DUE)
       assert lila_sensor_after.attributes.get("lock_reason") is None
       assert lila_sensor_after.attributes.get("can_claim") is True
-      
+
       # Verify dashboard helpers show override lifted
       max_helper = get_dashboard_helper(hass, "Max!")
       lila_helper = get_dashboard_helper(hass, "Lila")
-      
+
       max_chore = find_chore(max_helper, "Dishes Rotation")
       lila_chore = find_chore(lila_helper, "Dishes Rotation")
-      
+
       assert max_chore["state"] in (CHORE_STATE_PENDING, CHORE_STATE_DUE)
       assert max_chore.get("lock_reason") is None
-      
+
       assert lila_chore["state"] in (CHORE_STATE_PENDING, CHORE_STATE_DUE)
       assert lila_chore.get("lock_reason") is None
-      
+
       # Test: After approval, override should clear
       zoe_buttons = get_chore_buttons(hass, chore["eid"])
       kid_context = Context(user_id=mock_hass_users["kid1"].id)
       parent_context = Context(user_id=mock_hass_users["parent1"].id)
-      
+
       # Zoë claims and gets approved
       await hass.services.async_call("button", "press",
           {"entity_id": zoe_buttons["claim"]}, context=kid_context)
       await hass.async_block_till_done()
-      
+
       await hass.services.async_call("button", "press",
           {"entity_id": zoe_buttons["approve"]}, context=parent_context)
       await hass.async_block_till_done()
-      
+
       # Verify override cleared after approval
       chore_data_final = coordinator.chores_data[chore_id]
       assert chore_data_final[DATA_CHORE_ROTATION_CYCLE_OVERRIDE] is False
-      
+
       # Verify blocking restored (next turn-holder is Max!)
       lila_sensor_final = hass.states.get(lila_chore_eid)
       assert lila_sensor_final.state == CHORE_STATE_NOT_MY_TURN  # Blocking restored
@@ -1656,24 +1668,24 @@ This is a **7th overdue handling type** (not a completion criteria). It controls
   ### T3: Rotation Turn Advancement
 
   **T3.1 — Simple Rotation: Round-Robin Advancement**
+
   ```yaml
   Setup:
     - Chore: rotation_simple, assigned_kids=[Henry, Ronnie, Sarah]
     - rotation_current_kid_id=Henry
-  
-  Action Sequence:
-    1. Henry claims → parent approves
+
+  Action Sequence: 1. Henry claims → parent approves
     2. Check rotation_current_kid_id after approval
     3. Ronnie claims → parent approves
     4. Check rotation_current_kid_id after approval
     5. Sarah claims → parent approves
     6. Check rotation_current_kid_id after approval (should wrap to Henry)
-  
+
   Assert After Each Approval:
     - Approval 1: rotation_current_kid_id == <ronnie_uuid>
     - Approval 2: rotation_current_kid_id == <sarah_uuid>
     - Approval 3: rotation_current_kid_id == <henry_uuid> (wraps to start)
-  
+
   Assert Sensors After Approval 1:
     - Henry: state="approved", turn_kid_name="Ronnie"
     - Ronnie: state="pending" (or "due"), turn_kid_name="Ronnie", lock_reason=None
@@ -1681,6 +1693,7 @@ This is a **7th overdue handling type** (not a completion criteria). It controls
   ```
 
   **T3.2 — Smart Rotation: Fairness-Weighted Advancement**
+
   ```yaml
   Setup:
     - Chore: rotation_smart, assigned_kids=[Henry, Ronnie, Sarah]
@@ -1689,35 +1702,36 @@ This is a **7th overdue handling type** (not a completion criteria). It controls
       - Ronnie: 3 approved completions for this chore
       - Sarah: 3 approved completions for this chore (same as Ronnie, tie-break by list position)
     - rotation_current_kid_id=Henry
-  
+
   Action:
     - Henry claims → parent approves
-  
+
   Assert Post-Approval:
     - rotation_current_kid_id == <ronnie_uuid> (lowest count: 3, wins tie-break by appearing before Sarah in list)
-  
+
   Action:
     - Ronnie claims → parent approves
-  
+
   Assert Post-Approval:
     - rotation_current_kid_id == <sarah_uuid> (now lowest count: 3, Ronnie now has 4)
   ```
 
   **T3.3 — Rotation Resilience: Kid Deletion**
+
   ```yaml
   Setup:
     - Chore: rotation_simple, assigned_kids=[Henry, Ronnie, Sarah]
     - rotation_current_kid_id=Ronnie
-  
+
   Action:
     - Delete Ronnie via service: kidschores.delete_kid
-  
+
   Assert Post-Deletion:
     - Chore data: assigned_kids == [Henry, Sarah]
     - Chore data: rotation_current_kid_id == <henry_uuid> (reassigned to assigned_kids[0])
     - Henry's sensor: turn_kid_name="Henry", state="pending"
     - Sarah's sensor: turn_kid_name="Henry", state="not_my_turn"
-  
+
   Edge Case: Delete last kid
     - Chore: assigned_kids=[Henry], rotation_current_kid_id=Henry
     - Delete Henry
@@ -1727,29 +1741,31 @@ This is a **7th overdue handling type** (not a completion criteria). It controls
   ### T4: Claim Restriction (Due Window Blocking)
 
   **T4.1 — Block Claim Before Window Opens**
+
   ```yaml
   Setup:
     - Chore: independent, due_date=2026-02-10T19:00:00Z, due_window_offset="PT1H"
     - Calculated due_window_start: 2026-02-10T18:00:00Z
     - Freeze time at 2026-02-10T17:00:00Z (1 hour before window)
-  
+
   Action:
     - Attempt service: kidschores.claim_chore (kid_id=Henry, chore_id=X)
-  
+
   Assert:
     - Service raises HomeAssistantError with message containing "waiting" or "due window"
     - Henry's sensor: state="waiting", lock_reason="waiting", available_at="2026-02-10T18:00:00+00:00"
   ```
 
   **T4.2 — Allow Claim After Window Opens**
+
   ```yaml
   Setup:
     - Same chore as T4.1
     - Freeze time at 2026-02-10T18:30:00Z (30 minutes into window)
-  
+
   Action:
     - Call service: kidschores.claim_chore (kid_id=Henry, chore_id=X)
-  
+
   Assert:
     - Service succeeds (no error)
     - Henry's sensor: state="claimed", lock_reason=None
@@ -1758,60 +1774,64 @@ This is a **7th overdue handling type** (not a completion criteria). It controls
   ### T5: Missed Lock Strategy (6th Overdue Type)
 
   **T5.1 — Lock at Due Date**
+
   ```yaml
   Setup:
     - Chore: independent, overdue_handling=at_due_date_mark_missed_and_lock
     - approval_reset_type=at_midnight_once, due_date=2026-02-10T19:00:00Z
     - Freeze time at 2026-02-10T18:00:00Z (before due), Henry has NOT claimed
-  
+
   Action:
     - Advance time to 2026-02-10T19:01:00Z (1 minute past due)
     - Trigger scanner: ChoreManager._run_time_scanner()
-  
+
   Assert Post-Scanner:
     - Henry's sensor: state="missed", lock_reason="missed", can_claim=False
     - Stats: Henry has 1 missed stat recorded for this chore
   ```
 
   **T5.2 — Reject Claim in Missed State**
+
   ```yaml
   Setup:
     - Same chore as T5.1, already in "missed" state
-  
+
   Action:
     - Attempt service: kidschores.claim_chore (kid_id=Henry, chore_id=X)
-  
+
   Assert:
     - Service raises HomeAssistantError with message containing "missed"
     - Henry's sensor: state remains "missed", can_claim=False
   ```
 
   **T5.3 — Unlock at Midnight (Approval Reset Boundary)**
+
   ```yaml
   Setup:
     - Same chore as T5.1, still in "missed" state at 2026-02-10T23:59:00Z
-  
+
   Action:
     - Advance time to 2026-02-11T00:00:00Z (midnight - approval reset boundary fires)
     - Trigger scanner: ChoreManager._run_time_scanner()
-  
+
   Assert Post-Scanner:
     - Henry's sensor: state="pending", lock_reason=None, can_claim=True
     - Chore lifecycle: New cycle begins, overdue policy cleared missed state
   ```
 
   **T5.4 — Rotation + Missed Lock: Turn Advances at Midnight**
+
   ```yaml
   Setup:
     - Chore: rotation_simple, assigned_kids=[Henry, Ronnie]
     - overdue_handling=at_due_date_mark_missed_and_lock, approval_reset_type=at_midnight_once
     - due_date=2026-02-10T19:00:00Z, rotation_current_kid_id=Henry
     - Freeze time at 2026-02-10T20:00:00Z, Henry in "missed" state
-  
+
   Action:
     - Advance time to 2026-02-11T00:00:00Z (midnight)
     - Trigger scanner
-  
+
   Assert Post-Scanner:
     - rotation_current_kid_id == <ronnie_uuid> (turn advanced to next kid)
     - Henry's sensor: state="not_my_turn" (no longer turn-holder), turn_kid_name="Ronnie"
@@ -1821,25 +1841,27 @@ This is a **7th overdue handling type** (not a completion criteria). It controls
   ### T6: Steal Window (7th Overdue Type)
 
   **T6.1 — Pre-Overdue: Normal Rotation Blocking**
+
   ```yaml
   Setup:
     - Chore: rotation_simple, overdue_handling=at_due_date_allow_steal
     - assigned_kids=[Henry, Ronnie], rotation_current_kid_id=Henry
     - approval_reset_type=at_midnight_once, due_date=2026-02-10T19:00:00Z
     - Freeze time at 2026-02-10T18:00:00Z (1 hour before due)
-  
+
   Assert:
     - Henry's sensor: state="due" (or "pending"), can_claim=True
     - Ronnie's sensor: state="not_my_turn", lock_reason="not_my_turn", can_claim=False
   ```
 
   **T6.2 — Steal Window Opens at Due Date**
+
   ```yaml
   Setup:
     - Same chore as T6.1
     - Advance time to 2026-02-10T19:01:00Z (1 minute past due)
     - Trigger scanner
-  
+
   Assert Post-Scanner:
     - Henry's sensor: state="overdue", lock_reason=None, can_claim=True
     - Ronnie's sensor: state="overdue", lock_reason=None, can_claim=True (steal window open!)
@@ -1847,14 +1869,15 @@ This is a **7th overdue handling type** (not a completion criteria). It controls
   ```
 
   **T6.3 — Non-Turn-Holder Steals Chore**
+
   ```yaml
   Setup:
     - Same chore as T6.2, steal window open
-  
+
   Action:
     - Ronnie claims chore (the "stealer", not turn-holder)
     - Parent approves Ronnie
-  
+
   Assert Post-Approval:
     - rotation_current_kid_id == <henry_uuid> (turn advances FROM Ronnie, not from Henry)
     - Stats: Henry gets 1 overdue stat (was skipped), Ronnie does NOT get overdue stat
@@ -1863,16 +1886,17 @@ This is a **7th overdue handling type** (not a completion criteria). It controls
   ```
 
   **T6.4 — Pure Miss in Steal Window: Turn Advances at Midnight**
+
   ```yaml
   Setup:
     - Same chore as T6.2, steal window open
     - NO ONE claims (neither Henry nor Ronnie)
     - Freeze time at 2026-02-10T23:59:00Z
-  
+
   Action:
     - Advance time to 2026-02-11T00:00:00Z (midnight - approval reset boundary fires)
     - Trigger scanner
-  
+
   Assert Post-Scanner:
     - rotation_current_kid_id == <ronnie_uuid> (turn advanced to next kid)
     - Stats: Henry gets 1 missed stat (original turn-holder gets stat)
@@ -1883,37 +1907,51 @@ This is a **7th overdue handling type** (not a completion criteria). It controls
   ### T7: Dashboard Helper Attributes (Contract Verification)
 
   **T7.1 — All 3 New Attributes Present**
+
   ```yaml
   Setup:
     - Any chore with rotation_simple
-  
+
   Assert Dashboard Helper (sensor.kc_henry_ui_dashboard_helper):
     - attributes.chores exists
-    - attributes.chores[0] contains keys: ['eid', 'name', 'state', 'labels', 'grouping', 'is_am_pm', 'lock_reason', 'turn_kid_name', 'available_at']
+    - attributes.chores[0] contains keys:
+        [
+          "eid",
+          "name",
+          "state",
+          "labels",
+          "grouping",
+          "is_am_pm",
+          "lock_reason",
+          "turn_kid_name",
+          "available_at",
+        ]
     - Verify types: lock_reason (str | None), turn_kid_name (str | None), available_at (str | None)
   ```
 
   **T7.2 — turn_kid_name UUID Resolution**
+
   ```yaml
   Setup:
     - Chore: rotation_simple, assigned_kids=[Henry, Ronnie], rotation_current_kid_id=<henry_uuid>
-  
+
   Assert Dashboard Helper:
     - chores[X].turn_kid_name == "Henry" (UUID resolved to display name)
-  
+
   Assert KidChoreStatusSensor (sensor.kc_henry_chore_X):
     - attributes.turn_kid_name == "Henry" (same resolution)
   ```
 
   **T7.3 — available_at ISO Formatting**
+
   ```yaml
   Setup:
     - Chore: independent, due_date=2026-02-10T19:00:00Z, due_window_offset="PT2H"
     - Freeze time at 2026-02-10T16:00:00Z (before window)
-  
+
   Assert Dashboard Helper:
     - chores[X].available_at == "2026-02-10T17:00:00+00:00" (ISO 8601 with timezone)
-  
+
   Assert KidChoreStatusSensor:
     - attributes.available_at == "2026-02-10T17:00:00+00:00" (same format)
   ```
@@ -1921,16 +1959,17 @@ This is a **7th overdue handling type** (not a completion criteria). It controls
   ### T8: Criteria Transition (Mutable Completion Criteria)
 
   **T8.1 — Non-Rotation → Rotation: Initialize Fields**
+
   ```yaml
   Setup:
     - Chore: shared_first, assigned_kids=[Henry, Ronnie]
     - No rotation fields exist
-  
+
   Action:
     - Call service: kidschores.update_chore
       - chore_id: <chore_uuid>
       - completion_criteria: "rotation_simple"
-  
+
   Assert Post-Service:
     - Chore data: completion_criteria == "rotation_simple"
     - Chore data: rotation_current_kid_id == <henry_uuid> (assigned_kids[0])
@@ -1939,15 +1978,16 @@ This is a **7th overdue handling type** (not a completion criteria). It controls
   ```
 
   **T8.2 — Rotation → Non-Rotation: Clear Fields**
+
   ```yaml
   Setup:
     - Chore: rotation_simple, rotation_current_kid_id=<ronnie_uuid>, rotation_cycle_override=True
-  
+
   Action:
     - Call service: kidschores.update_chore
       - chore_id: <chore_uuid>
       - completion_criteria: "independent"
-  
+
   Assert Post-Service:
     - Chore data: completion_criteria == "independent"
     - Chore data: rotation_current_kid_id == None (cleared)
@@ -1955,59 +1995,62 @@ This is a **7th overdue handling type** (not a completion criteria). It controls
   ```
 
   **T8.3 — Rotation → Different Rotation: Preserve Turn**
+
   ```yaml
   Setup:
     - Chore: rotation_simple, rotation_current_kid_id=<sarah_uuid>
-  
+
   Action:
     - Call service: kidschores.update_chore
       - chore_id: <chore_uuid>
       - completion_criteria: "rotation_smart"
-  
+
   Assert Post-Service:
     - Chore data: completion_criteria == "rotation_smart"
     - Chore data: rotation_current_kid_id == <sarah_uuid> (unchanged - both are rotation modes)
   ```
 
   **T8.4 — Validation: Rotation Requires ≥2 Kids (V-03)**
+
   ```yaml
   Setup:
     - Chore: independent, assigned_kids=[Henry] (only 1 kid)
-  
+
   Action:
     - Call service: kidschores.update_chore
       - chore_id: <chore_uuid>
       - completion_criteria: "rotation_simple"
-  
+
   Assert:
     - Service raises ServiceValidationError
     - Error translation_key contains "rotation" and "2 kids" or similar
   ```
 
   **T8.5 — Validation: at_due_date_allow_steal Compatibility (V-05)**
+
   ```yaml
   Setup:
     - Chore: independent, approval_reset_type=at_midnight_once, due_date set
-  
+
   Action:
     - Call service: kidschores.update_chore
       - chore_id: <chore_uuid>
       - overdue_handling: "at_due_date_allow_steal"
-  
+
   Assert:
     - Service raises ServiceValidationError
     - Error message: "at_due_date_allow_steal requires rotation criteria"
-  
+
   ---
-  
+
   Setup:
     - Chore: rotation_simple, approval_reset_type=upon_completion, due_date set
-  
+
   Action:
     - Call service: kidschores.update_chore
       - chore_id: <chore_uuid>
       - overdue_handling: "at_due_date_allow_steal"
-  
+
   Assert:
     - Service raises ServiceValidationError
     - Error message: "at_due_date_allow_steal requires at_midnight_once reset type"
