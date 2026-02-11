@@ -389,7 +389,7 @@ class GamificationManager(BaseManager):
         )
 
         # Persist → Emit (per DEVELOPMENT_STANDARDS.md § 5.3)
-        self.coordinator._persist()
+        self.coordinator._persist_and_update()
 
         # Emit event for NotificationManager to send notifications
         # EconomyManager listens to this and handles point deposit
@@ -401,8 +401,6 @@ class GamificationManager(BaseManager):
             achievement_name=achievement_info.get(const.DATA_ACHIEVEMENT_NAME, ""),
             achievement_points=extra_points,
         )
-
-        self.coordinator.async_set_updated_data(self.coordinator._data)
 
     async def award_challenge(self, kid_id: str, challenge_id: str) -> None:
         """Award the challenge to the kid.
@@ -449,7 +447,7 @@ class GamificationManager(BaseManager):
         )
 
         # Persist → Emit (per DEVELOPMENT_STANDARDS.md § 5.3)
-        self.coordinator._persist()
+        self.coordinator._persist_and_update()
 
         # Emit event for NotificationManager to send notifications
         # EconomyManager listens to this and handles point deposit
@@ -461,8 +459,6 @@ class GamificationManager(BaseManager):
             challenge_name=challenge_info.get(const.DATA_CHALLENGE_NAME, ""),
             challenge_points=extra_points,
         )
-
-        self.coordinator.async_set_updated_data(self.coordinator._data)
 
     def update_streak_progress(
         self, progress: AchievementProgress, today: date
@@ -1057,17 +1053,18 @@ class GamificationManager(BaseManager):
         # Get today's ISO date using helper
         today_iso = dt_today_iso()
 
-        # Get total earned from all_time period bucket (DEPRECATED: v42 structure)
-        point_data: dict[str, Any] = kid_data.get(const.DATA_KID_POINT_DATA_LEGACY, {})  # type: ignore[assignment]
-        periods: dict[str, Any] = point_data.get(
-            const.DATA_KID_POINT_DATA_PERIODS_LEGACY, {}
-        )
-        all_time_periods = periods.get(const.DATA_KID_POINT_PERIODS_ALL_TIME, {})
-        all_time_bucket = all_time_periods.get(
-            const.DATA_KID_POINT_PERIODS_ALL_TIME, {}
-        )
+        # Get total earned from all_time period bucket using stats engine
+        point_periods = kid_data.get(const.DATA_KID_POINT_PERIODS, {})
+        period_key_mapping = {
+            const.PERIOD_ALL_TIME: const.DATA_KID_POINT_PERIODS_ALL_TIME
+        }
         total_earned = float(
-            all_time_bucket.get(const.DATA_KID_POINT_PERIOD_POINTS_EARNED, 0.0)
+            self.coordinator.stats.get_period_total(
+                point_periods,
+                const.PERIOD_ALL_TIME,
+                const.DATA_KID_POINT_PERIOD_POINTS_EARNED,
+                period_key_mapping=period_key_mapping,
+            )
         )
 
         # Get badge progress from kid data
@@ -1314,25 +1311,38 @@ class GamificationManager(BaseManager):
             - highest_earned_badge_info (dict or None)
             - next_higher_badge_info (dict or None)
             - next_lower_badge_info (dict or None)
-            - baseline (float)
+            - baseline (float) - DEPRECATED, returns 0.0
             - cycle_points (float)
         """
         kid_info = self.coordinator.kids_data.get(kid_id)
         if not kid_info:
             return None, None, None, 0.0, 0.0
 
-        progress = kid_info.get(const.DATA_KID_CUMULATIVE_BADGE_PROGRESS, {})
-        baseline = round(
-            float(progress.get(const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_BASELINE, 0)),
-            const.DATA_FLOAT_PRECISION,
+        # Get total earned from point_periods using stats engine
+        point_periods = kid_info.get(const.DATA_KID_POINT_PERIODS, {})
+        period_key_mapping = {
+            const.PERIOD_ALL_TIME: const.DATA_KID_POINT_PERIODS_ALL_TIME
+        }
+        total_points_earned = float(
+            self.coordinator.stats.get_period_total(
+                point_periods,
+                const.PERIOD_ALL_TIME,
+                const.DATA_KID_POINT_PERIOD_POINTS_EARNED,
+                period_key_mapping=period_key_mapping,
+            )
         )
+
+        # Get cycle_points for maintenance tracking
+        progress = kid_info.get(const.DATA_KID_CUMULATIVE_BADGE_PROGRESS, {})
         cycle_points = round(
             float(
                 progress.get(const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_CYCLE_POINTS, 0)
             ),
             const.DATA_FLOAT_PRECISION,
         )
-        total_points = baseline + cycle_points
+
+        # Get badges this kid has earned (from badges_earned dict)
+        badges_earned = kid_info.get(const.DATA_KID_BADGES_EARNED, {})
 
         # Get sorted list of cumulative badges (lowest to highest threshold)
         cumulative_badges = sorted(
@@ -1349,41 +1359,47 @@ class GamificationManager(BaseManager):
         )
 
         if not cumulative_badges:
-            # No cumulative badges exist - reset tracking values to 0
-            return None, None, None, 0.0, 0.0
+            # No cumulative badges exist
+            return None, None, None, 0.0, cycle_points
 
         highest_earned: dict[str, Any] | None = None
         next_higher: dict[str, Any] | None = None
         next_lower: dict[str, Any] | None = None
         previous_badge_info: dict[str, Any] | None = None
 
-        for _badge_id, badge_info in cumulative_badges:
+        for badge_id, badge_info in cumulative_badges:
             threshold = float(
                 badge_info.get(const.DATA_BADGE_TARGET, {}).get(
                     const.DATA_BADGE_TARGET_THRESHOLD_VALUE, 0
                 )
             )
 
-            # True if list is empty or kid_id is in the assigned list
+            # Check if badge is assigned to this kid (empty list = assigned to all)
             is_assigned_to = not badge_info.get(
                 const.DATA_BADGE_ASSIGNED_TO, []
             ) or kid_id in badge_info.get(const.DATA_BADGE_ASSIGNED_TO, [])
 
-            if is_assigned_to:
-                if total_points >= threshold:
-                    highest_earned = cast("dict[str, Any]", badge_info)
-                    next_lower = previous_badge_info
-                else:
-                    next_higher = cast("dict[str, Any]", badge_info)
-                    break
+            if not is_assigned_to:
+                continue
 
-                previous_badge_info = cast("dict[str, Any]", badge_info)
+            # Badge is earned if it's in badges_earned dict OR total_points >= threshold
+            is_earned = badge_id in badges_earned or total_points_earned >= threshold
+
+            if is_earned:
+                highest_earned = cast("dict[str, Any]", badge_info)
+                next_lower = previous_badge_info
+            else:
+                # First unearned badge is next_higher
+                next_higher = cast("dict[str, Any]", badge_info)
+                break
+
+            previous_badge_info = cast("dict[str, Any]", badge_info)
 
         return (
             highest_earned,
             next_higher,
             next_lower,
-            baseline,
+            0.0,  # baseline deprecated, return 0
             cycle_points,
         )
 
@@ -1503,8 +1519,7 @@ class GamificationManager(BaseManager):
         # Phase 4: Periods updated by StatisticsManager._on_badge_earned listener
         # No direct StatisticsEngine calls - clean Landlord/Tenant separation
 
-        self.coordinator._persist()
-        self.coordinator.async_set_updated_data(self.coordinator._data)
+        self.coordinator._persist_and_update()
 
     def update_chore_badge_references_for_kid(
         self, include_cumulative_badges: bool = False
@@ -1583,10 +1598,23 @@ class GamificationManager(BaseManager):
         ).copy()
 
         # Compute values from badge level logic
-        (highest_earned, next_higher, next_lower, baseline, cycle_points) = (
+        (highest_earned, next_higher, next_lower, _, cycle_points) = (
             self.get_cumulative_badge_levels(kid_id)
         )
-        total_points = baseline + cycle_points
+
+        # Get kid's total points from point_periods using stats engine
+        point_periods = kid_info.get(const.DATA_KID_POINT_PERIODS, {})
+        period_key_mapping = {
+            const.PERIOD_ALL_TIME: const.DATA_KID_POINT_PERIODS_ALL_TIME
+        }
+        total_points = float(
+            self.coordinator.stats.get_period_total(
+                point_periods,
+                const.PERIOD_ALL_TIME,
+                const.DATA_KID_POINT_PERIOD_POINTS_EARNED,
+                period_key_mapping=period_key_mapping,
+            )
+        )
 
         # Determine which badge should be considered current
         current_status = stored_progress.get(
@@ -1604,7 +1632,6 @@ class GamificationManager(BaseManager):
                 const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_STATUS,
                 const.CUMULATIVE_BADGE_STATE_ACTIVE,
             ),
-            const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_BASELINE: baseline,
             const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_CYCLE_POINTS: cycle_points,
             # Highest earned badge
             const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_HIGHEST_EARNED_BADGE_ID: (
@@ -1730,8 +1757,7 @@ class GamificationManager(BaseManager):
             # Recalculate multiplier immediately so the penalty takes effect
             self.update_point_multiplier_for_kid(kid_id)
 
-            self.coordinator._persist()
-            self.coordinator.async_set_updated_data(self.coordinator._data)
+            self.coordinator._persist_and_update()
 
             kid_name = kid_info.get(const.DATA_KID_NAME, kid_id)
             const.LOGGER.info(
@@ -1808,8 +1834,7 @@ class GamificationManager(BaseManager):
                         for bid in to_remove:
                             del badges_earned[bid]
 
-                self.coordinator._persist()
-                self.coordinator.async_set_updated_data(self.coordinator._data)
+                self.coordinator._persist_and_update()
                 return
 
         self.remove_awarded_badges_by_id(kid_id, badge_id)
@@ -2036,8 +2061,7 @@ class GamificationManager(BaseManager):
                 )
 
         const.LOGGER.info("Remove Awarded Badges - Badge removal process completed")
-        self.coordinator._persist()
-        self.coordinator.async_set_updated_data(self.coordinator._data)
+        self.coordinator._persist_and_update()
 
     # =========================================================================
     # BADGE AWARDING AND PROGRESS SYNC (State-Modifying Methods)
@@ -2082,8 +2106,7 @@ class GamificationManager(BaseManager):
         )
 
         # Persist badge tracking data
-        self.coordinator._persist()
-        self.coordinator.async_set_updated_data(self.coordinator._data)
+        self.coordinator._persist_and_update()
 
     async def award_badge(self, kid_id: str, badge_id: str) -> None:
         """Award a badge to a kid (public API, emits full manifest).
@@ -3111,8 +3134,7 @@ class GamificationManager(BaseManager):
                     field_data.clear()
 
         # Persist → Emit (per DEVELOPMENT_STANDARDS.md § 5.3)
-        self.coordinator._persist()
-        self.coordinator.async_set_updated_data(self.coordinator._data)
+        self.coordinator._persist_and_update()
 
         # Recalculate multiplier for affected kids after clearing badge data
         # With cumulative badge progress cleared, this will emit signal with 1.0
@@ -3194,8 +3216,7 @@ class GamificationManager(BaseManager):
                 progress.clear()
 
         # Persist → Emit (per DEVELOPMENT_STANDARDS.md § 5.3)
-        self.coordinator._persist()
-        self.coordinator.async_set_updated_data(self.coordinator._data)
+        self.coordinator._persist_and_update()
 
         # Emit completion signal
         self.emit(
@@ -3263,8 +3284,7 @@ class GamificationManager(BaseManager):
                 progress.clear()
 
         # Persist → Emit (per DEVELOPMENT_STANDARDS.md § 5.3)
-        self.coordinator._persist()
-        self.coordinator.async_set_updated_data(self.coordinator._data)
+        self.coordinator._persist_and_update()
 
         # Emit completion signal
         self.emit(

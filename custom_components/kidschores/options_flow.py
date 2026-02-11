@@ -1095,8 +1095,17 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             assignments_changed = old_assigned != new_assigned
 
             # Use Manager-owned CRUD (handles badge recalc and orphan cleanup)
+            const.LOGGER.debug(
+                "CHORE UPDATE: About to update chore %s with completion_criteria=%s",
+                internal_id,
+                transformed_data.get(const.DATA_CHORE_COMPLETION_CRITERIA),
+            )
             merged_chore = coordinator.chore_manager.update_chore(
                 str(internal_id), transformed_data, immediate_persist=True
+            )
+            const.LOGGER.debug(
+                "CHORE UPDATE: After update, merged_chore completion_criteria=%s",
+                merged_chore.get(const.DATA_CHORE_COMPLETION_CRITERIA),
             )
 
             new_name = merged_chore.get(
@@ -1114,10 +1123,18 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             # Use merged_chore (post-update) for routing decisions
             completion_criteria = merged_chore.get(const.DATA_CHORE_COMPLETION_CRITERIA)
             assigned_kids = merged_chore.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
-            if (
+            # PKAH-2026-002: Only INDEPENDENT chores need per-kid details
+            # SHARED and ROTATION types skip per-kid customization
+            requires_per_kid_details = (
                 completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT
-                and assigned_kids
-            ):
+            )
+            const.LOGGER.debug(
+                "ROUTING DEBUG: completion_criteria=%s, assigned_kids=%s, requires_per_kid=%s",
+                completion_criteria,
+                len(assigned_kids),
+                requires_per_kid_details,
+            )
+            if requires_per_kid_details and assigned_kids:
                 # Check if user explicitly cleared the date via checkbox
                 clear_due_date = user_input.get(
                     const.CFOF_CHORES_INPUT_CLEAR_DUE_DATE, False

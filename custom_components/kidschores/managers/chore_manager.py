@@ -579,7 +579,7 @@ class ChoreManager(BaseManager):
             # _approve_chore_locked already persisted; skip our persist
         else:
             # Persist → Emit (per DEVELOPMENT_STANDARDS.md § 5.3)
-            self._coordinator._persist()
+            self._coordinator._persist_and_update()
 
         # Emit event for notification system
         # StatisticsManager._on_chore_claimed handles cache refresh and entity notification
@@ -911,7 +911,7 @@ class ChoreManager(BaseManager):
         is_multi_claim = ChoreEngine.chore_allows_multiple_claims(chore_data)
 
         # Persist → Emit (per DEVELOPMENT_STANDARDS.md § 5.3)
-        self._coordinator._persist()
+        self._coordinator._persist_and_update()
 
         # Emit approval event - EconomyManager listens and handles point deposit
         # (Platinum Architecture: signal-first, no cross-manager writes)
@@ -1108,7 +1108,7 @@ class ChoreManager(BaseManager):
         kid_chore_data[const.DATA_KID_CHORE_DATA_LAST_DISAPPROVED] = dt_now_iso()
 
         # Persist → Emit (per DEVELOPMENT_STANDARDS.md § 5.3)
-        self._coordinator._persist()
+        self._coordinator._persist_and_update()
 
         # Emit disapproval event
         # StatisticsManager._on_chore_disapproved handles cache refresh and entity notification
@@ -1185,7 +1185,7 @@ class ChoreManager(BaseManager):
         self._update_global_state(chore_id)
 
         # Persist → Emit (per DEVELOPMENT_STANDARDS.md § 5.3)
-        self._coordinator._persist()
+        self._coordinator._persist_and_update()
 
         # Emit undo signal - EconomyManager listens and handles point withdrawal
         # (Platinum Architecture: signal-first, no cross-manager writes)
@@ -3748,12 +3748,15 @@ class ChoreManager(BaseManager):
                     translation_key=const.TRANS_KEY_ERROR_ROTATION_MIN_KIDS,
                 )
 
+        # Always update the completion_criteria field itself
+        changes[const.DATA_CHORE_COMPLETION_CRITERIA] = new_criteria
+
         # Apply field changes to storage
         for field_name, new_value in changes.items():
             chore_data[field_name] = new_value  # type: ignore[literal-required]
 
         # Persist changes
-        self._coordinator._persist()
+        self._coordinator._persist_and_update()
 
         # Emit CHORE_UPDATED signal (Phase 4 UX listens for dashboard refresh)
         self.emit(
@@ -3815,7 +3818,7 @@ class ChoreManager(BaseManager):
         chore_info[const.DATA_CHORE_ROTATION_CURRENT_KID_ID] = kid_id
 
         # Persist
-        self._coordinator._persist()
+        self._coordinator._persist_and_update()
 
         # Emit signal
         self.emit(
@@ -3871,7 +3874,7 @@ class ChoreManager(BaseManager):
         chore_info[const.DATA_CHORE_ROTATION_CURRENT_KID_ID] = first_kid
 
         # Persist
-        self._coordinator._persist()
+        self._coordinator._persist_and_update()
 
         # Emit signal
         self.emit(
@@ -3918,7 +3921,7 @@ class ChoreManager(BaseManager):
         chore_info[const.DATA_CHORE_ROTATION_CYCLE_OVERRIDE] = True
 
         # Persist
-        self._coordinator._persist()
+        self._coordinator._persist_and_update()
 
         # Emit signal
         self.emit(
@@ -4299,7 +4302,7 @@ class ChoreManager(BaseManager):
         self._ensure_kid_structures(kid_id, chore_id)
 
         # Persist changes before emitting signal (transactional integrity)
-        self.coordinator._persist()
+        self.coordinator._persist_and_update()
 
         # Emit signal for StatisticsManager to handle period buckets
         # Pass missed_streak_tally for daily bucket snapshot (display purposes)
@@ -4654,7 +4657,7 @@ class ChoreManager(BaseManager):
                         kid_dict[field] = []
 
         # Persist → Emit (per DEVELOPMENT_STANDARDS.md § 5.3)
-        self._coordinator._persist()
+        self._coordinator._persist_and_update()
 
         # Emit completion signal
         self.emit(

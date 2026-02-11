@@ -746,7 +746,7 @@ class EconomyManager(BaseManager):
         )
 
         # Persist → Emit (per DEVELOPMENT_STANDARDS.md § 5.3)
-        self._coordinator._persist()
+        self._coordinator._persist_and_update()
 
         # Emit event for NotificationManager to send notification
         self.emit(
@@ -756,8 +756,6 @@ class EconomyManager(BaseManager):
             penalty_name=penalty_info[const.DATA_PENALTY_NAME],
             points=penalty_pts,
         )
-
-        self._coordinator.async_set_updated_data(self._coordinator._data)
 
         return new_balance
 
@@ -940,7 +938,7 @@ class EconomyManager(BaseManager):
         )
 
         # Persist → Emit (per DEVELOPMENT_STANDARDS.md § 5.3)
-        self._coordinator._persist()
+        self._coordinator._persist_and_update()
 
         # Emit event for NotificationManager to send notification
         self.emit(
@@ -950,8 +948,6 @@ class EconomyManager(BaseManager):
             bonus_name=bonus_info[const.DATA_BONUS_NAME],
             points=bonus_pts,
         )
-
-        self._coordinator.async_set_updated_data(self._coordinator._data)
 
         return new_balance
 

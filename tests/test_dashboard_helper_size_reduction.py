@@ -311,9 +311,9 @@ class TestTranslationSensorArchitecture:
 
 
 class TestMinimalChoreAttributes:
-    """CHORE-* tests: Validate minimal 6-field chore structure."""
+    """CHORE-* tests: Validate minimal 9-field chore structure (includes rotation fields)."""
 
-    # The 6 fields we expect to keep
+    # The 9 fields we expect (6 original + 3 rotation fields added for Phase 4)
     EXPECTED_CHORE_FIELDS = {
         "eid",
         "name",
@@ -321,6 +321,9 @@ class TestMinimalChoreAttributes:
         "labels",
         "primary_group",
         "is_today_am",
+        "lock_reason",  # Phase 4: rotation support
+        "turn_kid_name",  # Phase 4: rotation support
+        "available_at",  # Phase 4: rotation support
     }
 
     # Fields that should be REMOVED (fetch from chore sensor instead)
@@ -344,7 +347,7 @@ class TestMinimalChoreAttributes:
         hass: HomeAssistant,
         scenario_minimal: SetupResult,
     ) -> None:
-        """CHORE-01: Each chore in list has exactly 6 fields."""
+        """CHORE-01: Each chore in list has exactly 9 fields (6 original + 3 rotation)."""
         helper_eid = construct_entity_id(
             "sensor", "Zoë", SENSOR_KC_EID_SUFFIX_UI_DASHBOARD_HELPER
         )

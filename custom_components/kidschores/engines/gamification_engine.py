@@ -500,12 +500,13 @@ class GamificationEngine:
         context: EvaluationContext,
         target: dict[str, Any],
     ) -> CriterionResult:
-        """Evaluate points-based badge criterion.
+        """Evaluate points-based badge criterion (PERIODIC BADGES ONLY).
 
         Checks if kid has earned enough total points (from any source).
+        Uses per-badge cycle count plus today's points.
 
         Args:
-            context: EvaluationContext with current_badge_progress.points_cycle_count
+            context: EvaluationContext with point tracking data
             target: Badge target with threshold_value
 
         Returns:
@@ -513,7 +514,7 @@ class GamificationEngine:
         """
         threshold = target.get(const.DATA_BADGE_TARGET_THRESHOLD_VALUE, 0)
 
-        # Get cycle count from badge progress (not target)
+        # Use per-badge cycle count
         badge_progress = context.get("current_badge_progress") or {}
         cycle_count = badge_progress.get(
             const.DATA_KID_BADGE_PROGRESS_POINTS_CYCLE_COUNT, 0
@@ -525,6 +526,7 @@ class GamificationEngine:
 
         # Total is cycle_count (previously accumulated) + today's points
         current_value = cycle_count + today_points
+
         progress = min(1.0, current_value / threshold) if threshold > 0 else 0.0
         criteria_met = current_value >= threshold
 
@@ -542,13 +544,13 @@ class GamificationEngine:
         context: EvaluationContext,
         target: dict[str, Any],
     ) -> CriterionResult:
-        """Evaluate points-from-chores badge criterion.
+        """Evaluate points-from-chores badge criterion (PERIODIC BADGES ONLY).
 
         Checks if kid has earned enough points specifically from chores
-        (excludes bonuses, manual adjustments, etc.).
+        (excludes bonuses, penalties, manual adjustments, etc.).
 
         Args:
-            context: EvaluationContext with current_badge_progress
+            context: EvaluationContext with point tracking data
             target: Badge target with threshold_value
 
         Returns:
@@ -556,7 +558,7 @@ class GamificationEngine:
         """
         threshold = target.get(const.DATA_BADGE_TARGET_THRESHOLD_VALUE, 0)
 
-        # Get cycle count from badge progress
+        # PERIODIC BADGES ONLY: Use per-badge cycle count
         badge_progress = context.get("current_badge_progress") or {}
         cycle_count = badge_progress.get(
             const.DATA_KID_BADGE_PROGRESS_POINTS_CYCLE_COUNT, 0
@@ -571,6 +573,7 @@ class GamificationEngine:
             total_earned - cycle_count if total_earned > cycle_count else 0
         )
         current_value = cycle_count + today_chore_points
+
         progress = min(1.0, current_value / threshold) if threshold > 0 else 0.0
         criteria_met = current_value >= threshold
 

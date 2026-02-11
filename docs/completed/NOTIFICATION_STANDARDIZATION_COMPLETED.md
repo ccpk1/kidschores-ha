@@ -86,10 +86,9 @@ Every notification key MUST have `_kid` or `_parent` suffix. No ambiguous shared
   - Due date notifications cleared on claim/approval
   - **Result**: All clearing behavior matches wiki documentation ✅
 
-**Validation Summary**:
-
+**Validation Summary**: 
 - ✅ All 16 notification types tested and working
-- ✅ Kid vs parent perspectives validated
+- ✅ Kid vs parent perspectives validated  
 - ✅ Action buttons and language handling confirmed
 - ✅ Auto-clearing behavior verified
 - ✅ Ghost notification prevention working

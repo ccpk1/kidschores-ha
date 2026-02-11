@@ -78,6 +78,7 @@ def mock_coordinator(sample_chore_data: dict, sample_kid_data: dict) -> MagicMoc
         },
     }
     coordinator._persist = MagicMock()
+    coordinator._persist_and_update = MagicMock()
     coordinator.async_set_updated_data = MagicMock()
     # Include chores data for tests that access _data[DATA_CHORES]
     coordinator._data = {
@@ -166,7 +167,7 @@ class TestClaimWorkflow:
         assert call_args[1]["chore_id"] == "chore-1"
 
         # Verify persist called
-        chore_manager._coordinator._persist.assert_called_once()
+        chore_manager._coordinator._persist_and_update.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_claim_chore_not_assigned(self, chore_manager: ChoreManager) -> None:

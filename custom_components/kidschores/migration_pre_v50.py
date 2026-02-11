@@ -1046,6 +1046,50 @@ class PreV50Migrator:
                 lists_removed,
             )
 
+        # Cumulative Badge Progress Cleanup (v0.5.0-beta4)
+        # Remove deprecated baseline field and reset cycle_points for badges without maintenance
+        badges_data = self.coordinator._data.get(const.DATA_BADGES, {})
+        baseline_removed = 0
+        cycle_reset = 0
+
+        for kid_data in kids.values():
+            progress = kid_data.get(const.DATA_KID_CUMULATIVE_BADGE_PROGRESS, {})
+            if not progress:
+                continue
+
+            # Remove baseline field (deprecated - acquisition uses total_points_earned)
+            if const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_BASELINE in progress:
+                del progress[const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_BASELINE]
+                baseline_removed += 1
+
+            # Reset cycle_points to 0 if current badge doesn't have maintenance enabled
+            current_badge_id = progress.get(
+                const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_CURRENT_BADGE_ID
+            )
+            if current_badge_id:
+                badge_info = badges_data.get(current_badge_id, {})
+                maintenance_rules = badge_info.get(
+                    const.DATA_BADGE_MAINTENANCE_RULES, {}
+                )
+                has_maintenance = bool(maintenance_rules)
+                if not has_maintenance:
+                    current_cycle = progress.get(
+                        const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_CYCLE_POINTS, 0
+                    )
+                    if current_cycle != 0:
+                        progress[
+                            const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_CYCLE_POINTS
+                        ] = 0.0
+                        cycle_reset += 1
+
+        if baseline_removed > 0 or cycle_reset > 0:
+            const.LOGGER.info(
+                "Cumulative badge progress cleanup: Removed %d baseline fields, "
+                "reset %d cycle_points for badges without maintenance",
+                baseline_removed,
+                cycle_reset,
+            )
+
         # Stamp schema 44
         meta = self.coordinator._data.get(const.DATA_META, {})
         applied = list(meta.get(const.DATA_META_MIGRATIONS_APPLIED, []))

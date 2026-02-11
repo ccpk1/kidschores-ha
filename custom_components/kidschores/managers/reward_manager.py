@@ -350,7 +350,7 @@ class RewardManager(BaseManager):
         )
 
         # Persist → Emit (per DEVELOPMENT_STANDARDS.md § 5.3)
-        self.coordinator._persist()
+        self.coordinator._persist_and_update()
 
         # Emit event for NotificationManager to send notifications
         # StatisticsManager._on_reward_claimed handles cache refresh and entity notification
@@ -469,7 +469,7 @@ class RewardManager(BaseManager):
         # NOTE: Badge checks handled by GamificationManager via POINTS_CHANGED event
 
         # Persist → Emit (per DEVELOPMENT_STANDARDS.md § 5.3)
-        self.coordinator._persist()
+        self.coordinator._persist_and_update()
 
         # Emit event - EconomyManager handles point withdrawal, NotificationManager sends notification
         # (Platinum Architecture: signal-first, no cross-manager writes)
@@ -590,7 +590,7 @@ class RewardManager(BaseManager):
             # StatisticsManager derives stats from reward_periods on-demand
 
         # Persist → Emit (per DEVELOPMENT_STANDARDS.md § 5.3)
-        self.coordinator._persist()
+        self.coordinator._persist_and_update()
 
         # Emit event for NotificationManager to send notification and clear parent claim
         # StatisticsManager._on_reward_disapproved handles cache refresh and entity notification

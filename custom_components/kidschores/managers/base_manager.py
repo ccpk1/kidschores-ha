@@ -29,6 +29,12 @@ class BaseManager(ABC):
     - Instance-scoped event listening (listen)
     - Automatic cleanup via coordinator's config_entry.async_on_unload
 
+    Data Persistence:
+    - Use coordinator._persist_and_update() for user-visible state changes
+      (workflow operations: claim, approve, timer-triggered state transitions)
+    - Use coordinator._persist() alone for internal bookkeeping
+      (notification metadata, system config cleanup)
+
     Subclasses must implement:
     - async_setup(): Subscribe to events, initialize state
     """

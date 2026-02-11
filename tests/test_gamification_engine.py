@@ -46,6 +46,8 @@ def make_context(
     approved_all_time: int = 0,
     streak_yesterday: bool = False,
     today_iso: str | None = None,
+    cumulative_baseline: float = 0.0,
+    cumulative_cycle_points: float = 0.0,
 ) -> EvaluationContext:
     """Build a minimal EvaluationContext for testing.
 
@@ -86,7 +88,10 @@ def make_context(
             "today_iso": today_iso or datetime.now(UTC).date().isoformat(),
             # Required fields for EvaluationContext TypedDict
             "badge_progress": {},
-            "cumulative_badge_progress": {},
+            "cumulative_badge_progress": {
+                "baseline_points": cumulative_baseline,
+                "cycle_points": cumulative_cycle_points,
+            },
             "badges_earned": {},
         },
     )
@@ -110,11 +115,13 @@ def make_badge(
     name: str = "Test Badge",
     target_type: str = const.BADGE_TARGET_THRESHOLD_TYPE_POINTS,
     threshold: int = 100,
+    badge_type: str = const.BADGE_TYPE_CUMULATIVE,
 ) -> dict[str, Any]:
     """Build a minimal badge definition."""
     return {
         const.DATA_BADGE_ID: badge_id,
         const.DATA_BADGE_NAME: name,
+        const.DATA_BADGE_TYPE: badge_type,
         const.DATA_BADGE_TARGET: make_badge_target(
             target_type=target_type,
             threshold=threshold,
@@ -170,23 +177,22 @@ class TestEvaluatePoints:
 
     def test_below_threshold_returns_not_met(self) -> None:
         """Points below threshold returns met=False."""
-        context = make_context(points_cycle_count=50, today_points=10)
-        target = make_badge_target(
-            target_type=const.BADGE_TARGET_THRESHOLD_TYPE_POINTS,
-            threshold=100,
-        )
+        context = make_context(today_points=50)  # Periodic badge uses today_points
+        badge_data = make_badge(threshold=100)
+        target = badge_data[const.DATA_BADGE_TARGET]
 
         result = GamificationEngine._evaluate_points(context, target)
 
         assert result["met"] is False
-        assert result["current_value"] == 60  # 50 + 10
+        assert result["current_value"] == 50
         assert result["threshold"] == 100
-        assert result["progress"] == 0.6
+        assert result["progress"] == 0.5
 
     def test_at_threshold_returns_met(self) -> None:
         """Points at threshold returns met=True."""
-        context = make_context(points_cycle_count=90, today_points=10)
-        target = make_badge_target(threshold=100)
+        context = make_context(today_points=100)
+        badge_data = make_badge(threshold=100)
+        target = badge_data[const.DATA_BADGE_TARGET]
 
         result = GamificationEngine._evaluate_points(context, target)
 
@@ -196,8 +202,9 @@ class TestEvaluatePoints:
 
     def test_above_threshold_returns_met(self) -> None:
         """Points above threshold returns met=True."""
-        context = make_context(points_cycle_count=100, today_points=50)
-        target = make_badge_target(threshold=100)
+        context = make_context(today_points=150)
+        badge_data = make_badge(threshold=100)
+        target = badge_data[const.DATA_BADGE_TARGET]
 
         result = GamificationEngine._evaluate_points(context, target)
 
@@ -207,8 +214,9 @@ class TestEvaluatePoints:
 
     def test_zero_threshold_returns_met(self) -> None:
         """Zero threshold always returns met=True (any value >= 0)."""
-        context = make_context(points_cycle_count=50)
-        target = make_badge_target(threshold=0)
+        context = make_context(total_points_earned=50)
+        badge_data = make_badge(threshold=0)
+        target = badge_data[const.DATA_BADGE_TARGET]
 
         result = GamificationEngine._evaluate_points(context, target)
 
@@ -219,8 +227,9 @@ class TestEvaluatePoints:
 
     def test_progress_calculation(self) -> None:
         """Progress percentage calculated correctly."""
-        context = make_context(points_cycle_count=25, today_points=0)
-        target = make_badge_target(threshold=100)
+        context = make_context(today_points=25)  # Periodic badge uses today_points
+        badge_data = make_badge(threshold=100)
+        target = badge_data[const.DATA_BADGE_TARGET]
 
         result = GamificationEngine._evaluate_points(context, target)
 
@@ -240,10 +249,11 @@ class TestEvaluateChoreCount:
         """Chore count below threshold returns met=False."""
         # Engine calculates: chores_cycle_count + today_approved
         context = make_context(chores_cycle_count=5, today_approved=3)
-        target = make_badge_target(
+        badge_data = make_badge(
             target_type=const.BADGE_TARGET_THRESHOLD_TYPE_CHORE_COUNT,
             threshold=10,
         )
+        target = badge_data[const.DATA_BADGE_TARGET]
 
         result = GamificationEngine._evaluate_chore_count(context, target)
 
@@ -255,10 +265,11 @@ class TestEvaluateChoreCount:
         """Chore count at threshold returns met=True."""
         # Engine calculates: chores_cycle_count + today_approved
         context = make_context(chores_cycle_count=5, today_approved=5)
-        target = make_badge_target(
+        badge_data = make_badge(
             target_type=const.BADGE_TARGET_THRESHOLD_TYPE_CHORE_COUNT,
             threshold=10,
         )
+        target = badge_data[const.DATA_BADGE_TARGET]
 
         result = GamificationEngine._evaluate_chore_count(context, target)
 
@@ -268,10 +279,11 @@ class TestEvaluateChoreCount:
     def test_zero_chores_returns_not_met(self) -> None:
         """Zero chores completed returns not met."""
         context = make_context(chores_cycle_count=0, today_approved=0)
-        target = make_badge_target(
+        badge_data = make_badge(
             target_type=const.BADGE_TARGET_THRESHOLD_TYPE_CHORE_COUNT,
             threshold=10,
         )
+        target = badge_data[const.DATA_BADGE_TARGET]
 
         result = GamificationEngine._evaluate_chore_count(context, target)
 
@@ -468,7 +480,7 @@ class TestEvaluateBadge:
 
     def test_badge_meets_criteria(self) -> None:
         """Badge criteria met returns criteria_met=True."""
-        context = make_context(points_cycle_count=100, today_points=0)
+        context = make_context(today_points=100)
         badge = make_badge(threshold=50)
 
         result = GamificationEngine.evaluate_badge(context, badge)
@@ -479,7 +491,7 @@ class TestEvaluateBadge:
 
     def test_badge_not_met_below_threshold(self) -> None:
         """Badge not met when below threshold."""
-        context = make_context(points_cycle_count=25, today_points=0)
+        context = make_context(today_points=25)
         badge = make_badge(threshold=100)
 
         result = GamificationEngine.evaluate_badge(context, badge)
@@ -512,7 +524,7 @@ class TestAcquisitionRetention:
 
     def test_check_acquisition_returns_criteria_met(self) -> None:
         """check_acquisition returns whether badge criteria met."""
-        context = make_context(points_cycle_count=100)
+        context = make_context(total_points_earned=100)
         badge = make_badge(threshold=50)
 
         result = GamificationEngine.check_acquisition(context, badge)
@@ -521,17 +533,22 @@ class TestAcquisitionRetention:
 
     def test_check_acquisition_not_met(self) -> None:
         """check_acquisition returns not met when below threshold."""
-        context = make_context(points_cycle_count=25)
+        context = make_context(total_points_earned=25)
         badge = make_badge(threshold=100)
 
         result = GamificationEngine.check_acquisition(context, badge)
 
         assert result["criteria_met"] is False
 
+        assert result["criteria_met"] is False
+
     def test_check_retention_criteria_met(self) -> None:
         """check_retention returns criteria_met=True when threshold still met."""
-        context = make_context(points_cycle_count=100)
+        # For cumulative badge: baseline=0, cycle_points=100 → total=100 >= 50
         badge = make_badge(threshold=50)
+        context = make_context(cumulative_baseline=0, cumulative_cycle_points=100)
+        # Mark badge as already earned to trigger maintenance mode
+        context["badges_earned"] = {badge[const.DATA_BADGE_ID]: True}
 
         result = GamificationEngine.check_retention(context, badge)
 
@@ -539,7 +556,8 @@ class TestAcquisitionRetention:
 
     def test_check_retention_criteria_not_met(self) -> None:
         """check_retention returns criteria_met=False when below threshold."""
-        context = make_context(points_cycle_count=25)
+        # For cumulative badge: baseline=0, cycle_points=25 → total=25 < 100
+        context = make_context(cumulative_baseline=0, cumulative_cycle_points=25)
         badge = make_badge(threshold=100)
 
         result = GamificationEngine.check_retention(context, badge)
@@ -722,14 +740,15 @@ class TestHandlerRegistry:
         GamificationEngine._register_handlers()
 
         context = make_context(points_cycle_count=50)
-        target = make_badge_target(threshold=100)
+        badge_data = make_badge(threshold=100)
+        target = badge_data[const.DATA_BADGE_TARGET]
 
         handler = GamificationEngine._CRITERION_HANDLERS.get(
             const.BADGE_TARGET_THRESHOLD_TYPE_POINTS
         )
         assert handler is not None
 
-        result = handler(context, target)
+        result = handler(context, target, badge_data)
 
         # Verify CriterionResult structure
         assert "met" in result

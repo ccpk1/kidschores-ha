@@ -170,11 +170,19 @@ async def update_kid_points(self, kid_id: str, points: int) -> None:
     # 1. Update memory
     self._data[const.DATA_KIDS][kid_id][const.DATA_KID_POINTS] = points
 
-    # 2. Persist to storage
-    self.coordinator._persist()
+    # 2. Persist to storage AND update entity listeners
+    self.coordinator._persist_and_update()
 
     # 3. Emit signal for listeners
     async_dispatcher_send(self.hass, SIGNAL_SUFFIX_KID_UPDATED)
+```
+
+**Two Persist Methods**:
+
+| Method | When to Use | Entity Update? |
+|--------|-------------|----------------|
+| `_persist_and_update(immediate=False)` | **Default** - All workflow operations that change user-visible state (claim, approve, timer-triggered, rotations) | ✅ YES - Calls `async_update_listeners()` |
+| `_persist(immediate=False)` | Internal bookkeeping only (notification metadata, system config cleanup, statistics flushes) | ❌ NO - Data not read by entities |
 ```
 
 #### Forbidden Patterns

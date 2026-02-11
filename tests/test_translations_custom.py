@@ -179,7 +179,12 @@ class TestNotificationTranslationStructure:
         """English notifications must have chore-related messages."""
         translations = load_notification_translations("en")
 
-        chore_keys = ["chore_claimed", "chore_approved", "chore_disapproved"]
+        # v0.5.0+ standardized notification keys by recipient (kid/parent)
+        chore_keys = [
+            "chore_approved_kid",
+            "chore_disapproved_kid",
+            "chore_claimed_parent",
+        ]
         for key in chore_keys:
             assert key in translations, f"Missing chore notification: {key}"
             assert "title" in translations[key], f"Missing title for {key}"
@@ -189,7 +194,12 @@ class TestNotificationTranslationStructure:
         """English notifications must have reward-related messages."""
         translations = load_notification_translations("en")
 
-        reward_keys = ["reward_claimed_kid", "reward_claimed_parent", "reward_approved"]
+        # v0.5.0+ standardized notification keys by recipient (kid/parent)
+        reward_keys = [
+            "reward_approved_kid",
+            "reward_disapproved_kid",
+            "reward_claimed_parent",
+        ]
         for key in reward_keys:
             assert key in translations, f"Missing reward notification: {key}"
             assert "title" in translations[key], f"Missing title for {key}"

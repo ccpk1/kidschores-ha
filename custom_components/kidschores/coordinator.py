@@ -315,6 +315,31 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
             const.LOGGER.debug("Debounced persist cancelled (replaced by new save)")
             raise
 
+    def _persist_and_update(self, immediate: bool = False) -> None:
+        """Persist data AND update entity listeners to reflect state changes.
+
+        Use this for ALL workflow operations that change user-visible state.
+        Use _persist() alone only for internal bookkeeping (notification metadata,
+        system config, cleanup operations).
+
+        Name note: "update" refers to HA entity listener updates, NOT push
+        notifications. See NotificationManager for push notification handling.
+
+        Args:
+            immediate: If True, persist immediately without debouncing.
+                      If False (default), use debounced persistence.
+                      See _persist() docstring for immediate=True use cases.
+
+        Example:
+            # Workflow operation that changes user-visible state
+            async def claim_chore(self, chore_id: str) -> None:
+                self._data[DATA_CHORES][chore_id]["state"] = "claimed"
+                self.coordinator._persist_and_update()  # ✅ Persist + refresh entities
+                self.emit(SIGNAL_SUFFIX_CHORE_CLAIMED, chore_id=chore_id)
+        """
+        self._persist(immediate=immediate)
+        self.async_update_listeners()
+
     # -------------------------------------------------------------------------------------
     # Properties for Easy Access
     # -------------------------------------------------------------------------------------

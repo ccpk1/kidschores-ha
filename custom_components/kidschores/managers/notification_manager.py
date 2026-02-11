@@ -2149,20 +2149,42 @@ class NotificationManager(BaseManager):
 
     @callback
     def _handle_chore_approved(self, payload: dict[str, Any]) -> None:
-        """Handle CHORE_APPROVED event - clear pending notifications.
+        """Handle CHORE_APPROVED event - notify kid and clear pending notifications.
 
-        This implements auto-clearing functionality for approved chores.
+        Sends approval notification to kid if notify_on_approval is enabled.
         Clears both parent claim notifications and kid overdue notifications.
 
         Args:
-            payload: Event data containing kid_id, chore_id, chore_name
+            payload: Event data containing kid_id, chore_id, chore_name, points_awarded
         """
         kid_id = payload.get("kid_id", "")
         chore_id = payload.get("chore_id", "")
         chore_name = payload.get("chore_name", "Unknown Chore")
+        points = payload.get(
+            "points_awarded", 0
+        )  # Use points_awarded from ChoreManager
 
         if not kid_id or not chore_id:
             return
+
+        # Check if approval notifications are enabled for this chore
+        chore_info: ChoreData | None = self.coordinator.chores_data.get(chore_id)
+        if chore_info and chore_info.get(
+            const.DATA_CHORE_NOTIFY_ON_APPROVAL,
+            const.DEFAULT_NOTIFY_ON_APPROVAL,
+        ):
+            # Notify kid of approval
+            self.hass.async_create_task(
+                self.notify_kid_translated(
+                    kid_id,
+                    title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_APPROVED_KID,
+                    message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_APPROVED_KID,
+                    message_data={
+                        "chore_name": chore_name,
+                        "points": points,
+                    },
+                )
+            )
 
         # Clear claim notification for parents
         self.hass.async_create_task(
@@ -2494,6 +2516,12 @@ class NotificationManager(BaseManager):
         # Get kid's name for notification message
         kid_name = kid_info.get(const.DATA_KID_NAME, "Unknown Kid")
 
+        # Get chore points for message
+        chore_info: ChoreData | None = self.coordinator.chores_data.get(chore_id)
+        chore_points = (
+            chore_info.get(const.DATA_CHORE_DEFAULT_POINTS, 0) if chore_info else 0
+        )
+
         # Notify kid with claim action (using tag for smart replacement)
         self.hass.async_create_task(
             self.notify_kid_translated(
@@ -2504,6 +2532,7 @@ class NotificationManager(BaseManager):
                     "kid_name": kid_name,
                     "chore_name": chore_name,
                     "due_date": formatted_due_date,
+                    "points": chore_points,
                 },
                 actions=self.build_claim_action(target_kid_id, chore_id, self.entry_id),
                 tag_type=const.NOTIFY_TAG_TYPE_STATUS,
