@@ -1,120 +1,130 @@
 {
-  "chore_assigned": {
-    "title": "Barneoppgaver: Ny oppgave",
-    "message": "Ny gjøremål {chore_name} ble tildelt deg! Forfall: {due_date}"
+  "_comment_kid_section": "═════════════════════════════════════════════════════════════════════════════════════",
+  "_comment_kid_desc": "BARNVARSLER: Spillbasert, andrepersons, oppmuntrende tone med emojier. INGEN prefiks for «BarnGjørninger:».",
+  "_comment_kid_footer": "═════════════════════════════════════════════════════════════════════════════════════",
+  "chore_approved_kid": {
+    "title": "🎉 Godkjent husarbeid!",
+    "message": "{chore_name} godkjent! Du har tjent {points} poeng"
   },
-  "chore_claimed": {
-    "title": "Barneoppgaver: Gjøremål påkrevd",
-    "message": "{kid_name} tok på seg gjøremål {chore_name}"
+  "chore_disapproved_kid": {
+    "title": "↩️ Gjøremål returnert",
+    "message": "{chore_name} trenger mer arbeid."
   },
-  "chore_approved": {
-    "title": "Barnehusarbeid: Godkjent for husarbeid",
-    "message": "{kid_name}: {chore_name} godkjent! +{points} poeng"
+  "chore_overdue_kid": {
+    "title": "⏰ Forfalt husarbeid",
+    "message": "{chore_name} er for sent! Fullfør nå for å tjene {points} poeng"
   },
-  "chore_disapproved": {
-    "title": "Barneoppgaver: Gjøremål ikke godkjent",
-    "message": "Gjøremålet ditt {chore_name} ble ikke godkjent"
+  "chore_missed_kid": {
+    "title": "😔 Gjøremål utløpt",
+    "message": "{chore_name} utløp uten fullføring."
   },
-  "chore_overdue": {
-    "title": "Barneoppgaver: Forfalte oppgaver",
-    "message": "{kid_name}: {chore_name} er for sent! Forfallsdatoen var {due_date}"
+  "chore_due_reminder_kid": {
+    "title": "⏰ Påminnelse om husarbeid",
+    "message": "{chore_name} forfaller om {minutes} minutter! Verdt {points} poeng"
   },
-  "chore_due_soon": {
-    "title": "⏰ Gjøremål snart ferdig!",
-    "message": "{chore_name} forfaller om {minutes} minutter (+{points}poeng)"
-  },
-  "chore_due_reminder": {
-    "title": "⏰ Gjøremål snart ferdig!",
-    "message": "{chore_name} forfaller om {minutes} minutter (+{points}poeng)"
-  },
-  "chore_due_window": {
-    "title": "🔔 Gjøremål forfaller nå",
+  "chore_due_window_kid": {
+    "title": "🎯 Gjøremål forfaller nå",
     "message": "{chore_name} forfaller nå! Fullfør innen {hours} time(r) for å tjene {points} poeng"
   },
-  "chore_reminder": {
-    "title": "Barneoppgaver: Påminnelse om ventende gjøremål",
-    "message": "Påminnelse: Gjøremål {chore_name} som er gjort krav på av {kid_name} venter på godkjenning"
+  "reward_approved_kid": {
+    "title": "🎉 Belønning godkjent!",
+    "message": "{reward_name} godkjent!"
   },
-  "reward_claimed_kid": {
-    "title": "Barneoppgaver: Belønning mottatt",
-    "message": "Du krevde belønning {reward_name} for {points} poeng!"
-  },
-  "reward_claimed_parent": {
-    "title": "Barneoppgaver: Belønning mottatt",
-    "message": "{kid_name} krevde belønning {reward_name} for {points} poeng"
-  },
-  "reward_approved": {
-    "title": "Barneoppgaver: Belønning godkjent",
-    "message": "Belønning {reward_name} godkjent!"
-  },
-  "reward_disapproved": {
-    "title": "Barneoppgaver: Belønning ikke godkjent",
-    "message": "Belønning {reward_name} ble ikke godkjent"
-  },
-  "reward_reminder": {
-    "title": "KidsChores: Påminnelse om ventende belønning",
-    "message": "Påminnelse: Belønning {reward_name} som er gjort krav på av {kid_name} venter på godkjenning"
+  "reward_disapproved_kid": {
+    "title": "💭 Belønningsforespørsel returnert",
+    "message": "{reward_name} ble ikke godkjent denne gangen."
   },
   "badge_earned_kid": {
-    "title": "BarneGjørninger: Merke opptjent",
+    "title": "🥇 Merke opptjent!",
     "message": "Du har fortjent {badge_name} -merket!"
   },
-  "badge_earned_parent": {
-    "title": "BarneGjørninger: Merke opptjent",
-    "message": "{kid_name} har fått {badge_name} -merket!"
-  },
   "achievement_earned_kid": {
-    "title": "BarneGjørninger: Oppnådde prestasjoner",
-    "message": "Du oppnådde prestasjonen {achievement_name}!"
-  },
-  "achievement_earned_parent": {
-    "title": "BarneGjørninger: Oppnådde prestasjoner",
-    "message": "{kid_name} oppnådd prestasjon {achievement_name}!"
+    "title": "🏆 Prestasjon oppnådd!",
+    "message": "Du fortjente {achievement_name}! Fortsett det gode arbeidet"
   },
   "challenge_completed_kid": {
-    "title": "Barneoppgaver: Utfordring fullført",
-    "message": "Du fullførte utfordring {challenge_name}!"
+    "title": "🏁 Utfordring fullført!",
+    "message": "Du fullførte {challenge_name}! Fortsett det gode arbeidet."
+  },
+  "penalty_applied_kid": {
+    "title": "⚠️ Straff ilagt",
+    "message": "{penalty_name}: {points} poeng trukket. La oss komme tilbake på sporet!"
+  },
+  "bonus_applied_kid": {
+    "title": "⭐ Bonus benyttet!",
+    "message": "{bonus_name}: Du har tjent {points} bonuspoeng! Bra jobbet"
+  },
+  "_comment_parent_section": "═════════════════════════════════════════════════════════════════════════════════════",
+  "_comment_parent_desc": "FORELDREVARSLER: Informativ, tredjeperson, handlingsrettet. Format: '{kid_name}: Handling'. INGEN 'Barneoppgaver:' prefiks.",
+  "_comment_parent_footer": "═════════════════════════════════════════════════════════════════════════════════════",
+  "chore_claimed_parent": {
+    "title": "✋ {kid_name}: Gjøremål gjort krav på",
+    "message": "{kid_name} har gjort krav på {chore_name} og jobber med det nå"
+  },
+  "chore_reminder_parent": {
+    "title": "⏰ {kid_name}: Godkjenning kreves",
+    "message": "Påminnelse: {chore_name} gjort krav på av {kid_name} venter på din anmeldelse"
+  },
+  "chore_overdue_parent": {
+    "title": "⚠️ {kid_name}: Forfalt husarbeid",
+    "message": "{kid_name}sitt gjøremål {chore_name} er forfalt (forfaller: {due_date})"
+  },
+  "pending_chores_parent": {
+    "title": "📋 {kid_name}: {count} Venter",
+    "message": "{count} gjøremål venter på gjennomgang. Siste: {latest_chore} (+{points} poeng)"
+  },
+  "reward_claimed_parent": {
+    "title": "🎁 {kid_name}: Belønningsforespørsel",
+    "message": "{kid_name} ba om {reward_name} for {points} poeng"
+  },
+  "reward_reminder_parent": {
+    "title": "⏰ {kid_name}: Belønning venter",
+    "message": "Påminnelse: {reward_name} forespurt av {kid_name} venter på din godkjenning"
+  },
+  "badge_earned_parent": {
+    "title": "🏆 {kid_name}: Merke opptjent",
+    "message": "{kid_name} har fått {badge_name} -merket!"
+  },
+  "achievement_earned_parent": {
+    "title": "⭐ {kid_name}: Prestasjon",
+    "message": "{kid_name} opptjent {achievement_name}"
   },
   "challenge_completed_parent": {
-    "title": "Barneoppgaver: Utfordring fullført",
-    "message": "{kid_name} fullførte utfordringen {challenge_name}!"
+    "title": "🎯 {kid_name}: Utfordring ferdig",
+    "message": "{kid_name} fullført {challenge_name}"
   },
-  "penalty_applied": {
-    "title": "Barneoppgaver: Straff ilagt",
-    "message": "Straff {penalty_name} brukt: -{points} poeng"
+  "_comment_system_section": "═════════════════════════════════════════════════════════════════════════════════════",
+  "_comment_system_desc": "SYSTEM-/ADMIN-VARSLER: Databehandlingsoperasjoner",
+  "_comment_system_footer": "═════════════════════════════════════════════════════════════════════════════════════",
+  "data_reset": {
+    "title": "🔄 Barneoppgaver: Tilbakestilling av data",
+    "message": "Systemdataene er tilbakestilt"
   },
-  "bonus_applied": {
-    "title": "Barnearbeid: Bonus benyttet",
-    "message": "Bonus {bonus_name} brukt: +{points} poeng"
+  "data_reset_global": {
+    "title": "🔄 Barneoppgaver: Full tilbakestilling",
+    "message": "Alle systemdata er tilbakestilt til standardinnstillinger"
   },
-  "pending_chores": {
-    "title": "Barneoppgaver: {kid_name}",
-    "message": "{count} gjøremål som venter (siste: {latest_chore} +{points}poeng)"
+  "data_reset_kid": {
+    "title": "🔄 Barneoppgaver: Tilbakestilling av barn",
+    "message": "Datatilbakestilling for {kid_name}"
   },
-  "status_update": {
-    "title": "✅ Barnearbeid",
-    "message": "Status oppdatert"
+  "data_reset_item_type": {
+    "title": "🔄 Barneoppgaver: {item_type} Tilbakestill",
+    "message": "Alle {item_type} data er tilbakestilt"
   },
-  "chore_approved_status": {
-    "title": "✅ Barnearbeid",
-    "message": "{chore_name} godkjent av {parent_name}"
+  "data_reset_item": {
+    "title": "🔄 Barneoppgaver: Tilbakestilling av elementer",
+    "message": "{item_type} '{item_name}' har blitt tilbakestilt"
   },
-  "chore_disapproved_status": {
-    "title": "❌ Barneoppgaver",
-    "message": "{chore_name} ikke godkjent av {parent_name}"
-  },
-  "reward_approved_status": {
-    "title": "✅ Barnearbeid",
-    "message": "{reward_name} belønning godkjent"
-  },
+  "_comment_actions_section": "═════════════════════════════════════════════════════════════════════════════════════",
+  "_comment_actions_desc": "VARSELSKNAPPER: Mykere og mer oppmuntrende språk",
+  "_comment_actions_footer": "═════════════════════════════════════════════════════════════════════════════════════",
   "actions": {
-    "approve": "Vedta",
-    "claim": "✋ Krav nå",
-    "complete": "Fullstendig",
-    "disapprove": "Mislike",
-    "remind_30": "Påminn om 30 min",
-    "skip": "Hopp over",
-    "approve_latest": "✅ Godkjenn nyeste",
-    "review_all": "👀 Anmeld alle"
+    "approve": "✅ Godkjenn",
+    "claim": "✋ Jeg klarte det!",
+    "complete": "✅ Fullført",
+    "disapprove": "↩️ Avvis",
+    "remind_30": "⏰ Påminn om 30 minutter",
+    "skip": "⏭️ Hopp over"
   }
 }

@@ -1,120 +1,130 @@
 {
-  "chore_assigned": {
-    "title": "Otroška opravila: Novo opravilo",
-    "message": "Dodeljena vam je bila nova naloga {chore_name} ! Rok: {due_date}"
+  "_comment_kid_section": "══════════════════════════════════════════════════════════════════════════",
+  "_comment_kid_desc": "OBVESTILA ZA OTROKE: Igrificiran, drugoosebni, spodbuden ton z emojiji. BREZ predpone »KidsChores:«.",
+  "_comment_kid_footer": "══════════════════════════════════════════════════════════════════════════",
+  "chore_approved_kid": {
+    "title": "🎉 Opravilo odobreno!",
+    "message": "{chore_name} odobreno! Zaslužili ste si {points} točk"
   },
-  "chore_claimed": {
-    "title": "Otroška opravila: Zahtevana opravila",
-    "message": "{kid_name} prevzeta opravilna naloga {chore_name}"
+  "chore_disapproved_kid": {
+    "title": "↩️ Opravilo vrnjeno",
+    "message": "{chore_name} potrebuje več dela."
   },
-  "chore_approved": {
-    "title": "Otroška opravila: Odobreno opravilo",
-    "message": "{kid_name}: {chore_name} odobreno! +{points} točk"
+  "chore_overdue_kid": {
+    "title": "⏰ Opravilo je zamujeno",
+    "message": "{chore_name} je že v zamudi! Izpolnite ga zdaj in si prislužite {points} točk"
   },
-  "chore_disapproved": {
-    "title": "Otroška opravila: Opravilo zavrnjeno",
-    "message": "Tvoja opravilna naloga {chore_name} ni bila odobrena"
+  "chore_missed_kid": {
+    "title": "😔 Opravilo je poteklo",
+    "message": "{chore_name} je potekel brez dokončanja."
   },
-  "chore_overdue": {
-    "title": "Otroška opravila: Hišna opravila so zamujena",
-    "message": "{kid_name}: {chore_name} je zapadlo! Rok je bil {due_date}"
+  "chore_due_reminder_kid": {
+    "title": "⏰ Opomnik za opravila",
+    "message": "{chore_name} je zapadlo čez {minutes} minut! Vredno {points} točk"
   },
-  "chore_due_soon": {
-    "title": "⏰ Kmalu za oddajo!",
-    "message": "{chore_name} je predviden čez {minutes} minut (+{points}točk)"
+  "chore_due_window_kid": {
+    "title": "🎯 Rok za opravilo",
+    "message": "Rok za oddajo {chore_name} je zdaj! Izpolnite v {hours} urah in zaslužite {points} točk"
   },
-  "chore_due_reminder": {
-    "title": "⏰ Kmalu za oddajo!",
-    "message": "{chore_name} je predviden čez {minutes} minut (+{points}točk)"
+  "reward_approved_kid": {
+    "title": "🎉 Nagrada odobrena!",
+    "message": "{reward_name} odobreno!"
   },
-  "chore_due_window": {
-    "title": "🔔 Rok za opravilo",
-    "message": "Rok za oddajo {chore_name} je zdaj! Izpolnite jo v {hours} urah in si prislužite {points} točk"
-  },
-  "chore_reminder": {
-    "title": "Otroška opravila: Opomnik za čakajoča opravila",
-    "message": "Opomnik: Naloga {chore_name} , ki jo je zahteval uporabnik {kid_name} , čaka na odobritev"
-  },
-  "reward_claimed_kid": {
-    "title": "Otroška opravila: Zahtevana nagrada",
-    "message": "Prevzel/a si nagrado {reward_name} za {points} točk!"
-  },
-  "reward_claimed_parent": {
-    "title": "Otroška opravila: Zahtevana nagrada",
-    "message": "{kid_name} prevzel nagrado {reward_name} za {points} točk"
-  },
-  "reward_approved": {
-    "title": "Otroška opravila: Nagrada odobrena",
-    "message": "Nagrada {reward_name} odobrena!"
-  },
-  "reward_disapproved": {
-    "title": "Otroška opravila: Nagrada zavrnjena",
-    "message": "Nagrada {reward_name} ni bila odobrena"
-  },
-  "reward_reminder": {
-    "title": "Otroška opravila: Opomnik za čakajočo nagrado",
-    "message": "Opomnik: Nagrada {reward_name} , ki jo je zahteval uporabnik {kid_name} , čaka na odobritev"
+  "reward_disapproved_kid": {
+    "title": "💭 Zahteva za nagrado vrnjena",
+    "message": "{reward_name} tokrat ni bil odobren."
   },
   "badge_earned_kid": {
-    "title": "Otroška opravila: Značka prislužena",
-    "message": "Prislužili ste si značko {badge_name} !"
-  },
-  "badge_earned_parent": {
-    "title": "Otroška opravila: Značka prislužena",
-    "message": "{kid_name} si je prislužil/a značko {badge_name} !"
+    "title": "🥇 Prislužena značka!",
+    "message": "Pridobili ste značko {badge_name}!"
   },
   "achievement_earned_kid": {
-    "title": "Otroška opravila: Dosežen dosežek",
-    "message": "Prislužili ste si dosežek {achievement_name}!"
-  },
-  "achievement_earned_parent": {
-    "title": "Otroška opravila: Dosežen dosežek",
-    "message": "{kid_name} dosežen dosežek {achievement_name}!"
+    "title": "🏆 Dosežek dosežen!",
+    "message": "Zaslužili ste si {achievement_name}! Nadaljujte z odličnim delom."
   },
   "challenge_completed_kid": {
-    "title": "Otroška opravila: Izziv zaključen",
-    "message": "Končal/a si izziv {challenge_name}!"
+    "title": "🏁 Izziv zaključen!",
+    "message": "Končali ste {challenge_name}! Nadaljujte z odličnim delom"
+  },
+  "penalty_applied_kid": {
+    "title": "⚠️ Izrečena kazen",
+    "message": "{penalty_name}: {points} odbitih točk. Gremo nazaj na pravo pot!"
+  },
+  "bonus_applied_kid": {
+    "title": "⭐ Bonus je bil uporabljen!",
+    "message": "{bonus_name}: Prislužili ste si {points} bonus točk! Odlično opravljeno"
+  },
+  "_comment_parent_section": "══════════════════════════════════════════════════════════════════════════",
+  "_comment_parent_desc": "OBVESTILA ZA STARŠE: Informativna, v tretji osebi, z možnostjo ukrepanja. Oblika: '{kid_name}: Dejanje'. BREZ predpone 'KidsChores:'.",
+  "_comment_parent_footer": "══════════════════════════════════════════════════════════════════════════",
+  "chore_claimed_parent": {
+    "title": "✋ {kid_name}: Opravilo prevzeto",
+    "message": "{kid_name} je zahteval {chore_name} in zdaj dela na tem"
+  },
+  "chore_reminder_parent": {
+    "title": "⏰ {kid_name}: Potrebna je odobritev",
+    "message": "Opomnik: {chore_name} , ki ga je zahteval {kid_name} , čaka na vaš pregled"
+  },
+  "chore_overdue_parent": {
+    "title": "⚠️ {kid_name}: Opravilo je zamudilo",
+    "message": "Naloga uporabnika {kid_name} {chore_name} je že v zamudi (rok: {due_date})"
+  },
+  "pending_chores_parent": {
+    "title": "📋 {kid_name}: {count} V teku",
+    "message": "{count} opravil, ki čakajo na pregled. Zadnja: {latest_chore} (+{points} točk)"
+  },
+  "reward_claimed_parent": {
+    "title": "🎁 {kid_name}: Zahteva za nagrado",
+    "message": "{kid_name} je zahteval {reward_name} za {points} točk"
+  },
+  "reward_reminder_parent": {
+    "title": "⏰ {kid_name}: Nagrada čaka",
+    "message": "Opomnik: {reward_name} , ki ga je zahteval {kid_name} , čaka na vašo odobritev"
+  },
+  "badge_earned_parent": {
+    "title": "🏆 {kid_name}: Značka prislužena",
+    "message": "{kid_name} si je prislužil/a značko {badge_name}!"
+  },
+  "achievement_earned_parent": {
+    "title": "⭐ {kid_name}: Dosežek",
+    "message": "{kid_name} zaslužil {achievement_name}"
   },
   "challenge_completed_parent": {
-    "title": "Otroška opravila: Izziv zaključen",
-    "message": "{kid_name} izziv zaključen {challenge_name}!"
+    "title": "🎯 {kid_name}: Izziv opravljen",
+    "message": "{kid_name} končano {challenge_name}"
   },
-  "penalty_applied": {
-    "title": "Otroška opravila: Uporabljena kazen",
-    "message": "Kazen {penalty_name} uporabljena: -{points} točk"
+  "_comment_system_section": "══════════════════════════════════════════════════════════════════════════",
+  "_comment_system_desc": "OBVESTILA SISTEMA/ADMINIRANJA: Postopki upravljanja podatkov",
+  "_comment_system_footer": "══════════════════════════════════════════════════════════════════════════",
+  "data_reset": {
+    "title": "🔄 Otroška opravila: Ponastavitev podatkov",
+    "message": "Sistemski podatki so bili ponastavljeni"
   },
-  "bonus_applied": {
-    "title": "Otroška opravila: Bonus je bil uporabljen",
-    "message": "Bonus {bonus_name} uporabljen: +{points} točk"
+  "data_reset_global": {
+    "title": "🔄 Otroška opravila: Popolna ponastavitev",
+    "message": "Vsi sistemski podatki so bili ponastavljeni na privzete vrednosti"
   },
-  "pending_chores": {
-    "title": "Otroška opravila: {kid_name}",
-    "message": "{count} čakajočih opravil (zadnja: {latest_chore} +{points}točk)"
+  "data_reset_kid": {
+    "title": "🔄 Otroška opravila: Ponastavitev otrok",
+    "message": "Ponastavitev podatkov za {kid_name}"
   },
-  "status_update": {
-    "title": "✅ Otroška opravila",
-    "message": "Stanje posodobljeno"
+  "data_reset_item_type": {
+    "title": "🔄 Otroška opravila: {item_type} Ponastavi",
+    "message": "Vsi podatki {item_type} so bili ponastavljeni"
   },
-  "chore_approved_status": {
-    "title": "✅ Otroška opravila",
-    "message": "{chore_name} odobril/a {parent_name}"
+  "data_reset_item": {
+    "title": "🔄 Otroška opravila: Ponastavitev predmeta",
+    "message": "{item_type} '{item_name}' je bil ponastavljen"
   },
-  "chore_disapproved_status": {
-    "title": "❌ Otroška opravila",
-    "message": "{chore_name} zavrnjeno s strani {parent_name}"
-  },
-  "reward_approved_status": {
-    "title": "✅ Otroška opravila",
-    "message": "{reward_name} nagrada odobrena"
-  },
+  "_comment_actions_section": "══════════════════════════════════════════════════════════════════════════",
+  "_comment_actions_desc": "GUMBI ZA OBVESTILA: Mehkejši, bolj spodbuden jezik",
+  "_comment_actions_footer": "══════════════════════════════════════════════════════════════════════════",
   "actions": {
-    "approve": "Odobritev",
-    "claim": "✋ Zahtevajte zdaj",
-    "complete": "Dokončano",
-    "disapprove": "Ne odobri",
-    "remind_30": "Opomni čez 30 minut",
-    "skip": "Preskoči",
-    "approve_latest": "✅ Odobri najnovejše",
-    "review_all": "👀 Preglej vse"
+    "approve": "✅ Odobritev",
+    "claim": "✋ Uspelo mi je!",
+    "complete": "✅ Dokončano",
+    "disapprove": "↩️ Ne odobravam",
+    "remind_30": "⏰ Opomni čez 30 minut",
+    "skip": "⏭️ Preskoči"
   }
 }

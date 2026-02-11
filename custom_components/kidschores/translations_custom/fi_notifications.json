@@ -1,120 +1,130 @@
 {
-  "chore_assigned": {
-    "title": "Lastenkotitehtävät: Uusi kotitehtävä",
-    "message": "Sinulle on määrätty uusi tehtävä {chore_name} ! Määräaika: {due_date}"
+  "_comment_kid_section": "════════════════════════════════════════════════════════════════════════════════════════",
+  "_comment_kid_desc": "LASTEN ILMOITUKSET: Pelillinen, toisen persoonan, kannustava sävy emojeilla. EI etuliitettä 'KidsChores:'.",
+  "_comment_kid_footer": "════════════════════════════════════════════════════════════════════════════════════════",
+  "chore_approved_kid": {
+    "title": "🎉 Kotityöt hyväksytty!",
+    "message": "{chore_name} hyväksytty! Ansaitsit {points} pistettä"
   },
-  "chore_claimed": {
-    "title": "KidsChores: Kotitehtävä vaadittu",
-    "message": "{kid_name} lunasti tehtävän {chore_name}"
+  "chore_disapproved_kid": {
+    "title": "↩️ Kotityö palautettu",
+    "message": "{chore_name} vaatii lisää työtä."
   },
-  "chore_approved": {
-    "title": "KidsChores: Kotitöiden hyväksyntä",
-    "message": "{kid_name}: {chore_name} hyväksytty! +{points} pistettä"
+  "chore_overdue_kid": {
+    "title": "⏰ Myöhässä oleva kotityö",
+    "message": "{chore_name} on myöhässä! Suorita se nyt ansaitaksesi {points} pistettä"
   },
-  "chore_disapproved": {
-    "title": "KidsChores: Kotitehtävä hylätty",
-    "message": "Työtehtävääsi {chore_name} ei hyväksytty"
+  "chore_missed_kid": {
+    "title": "😔 Työtehtävä vanhentunut",
+    "message": "{chore_name} vanheni ilman valmistumista."
   },
-  "chore_overdue": {
-    "title": "KidsChores: Kotiapu myöhässä",
-    "message": "{kid_name}: {chore_name} on myöhässä! Eräpäivä oli {due_date}"
+  "chore_due_reminder_kid": {
+    "title": "⏰ Kotitöiden muistutus",
+    "message": "{chore_name} erääntyy {minutes} minuutin kuluttua! Arvo {points} pistettä"
   },
-  "chore_due_soon": {
-    "title": "⏰ Pian erääntyy kotityö!",
-    "message": "{chore_name} erääntyy {minutes} minuutin kuluttua (+{points}pistettä)"
+  "chore_due_window_kid": {
+    "title": "🎯 Kotityön eräpäivä",
+    "message": "{chore_name} erääntyy! Suorita {hours} tunnin sisällä ansaitaksesi {points} pistettä"
   },
-  "chore_due_reminder": {
-    "title": "⏰ Pian erääntyy kotityö!",
-    "message": "{chore_name} erääntyy {minutes} minuutin kuluttua (+{points}pistettä)"
+  "reward_approved_kid": {
+    "title": "🎉 Palkinto hyväksytty!",
+    "message": "{reward_name} hyväksytty!"
   },
-  "chore_due_window": {
-    "title": "🔔 Kotityöt erääntyvät",
-    "message": "{chore_name} erääntyy! Suorita se {hours} tunnin sisällä ansaitaksesi {points} pistettä"
-  },
-  "chore_reminder": {
-    "title": "KidsChores: Muistutus odottavista kotitöistä",
-    "message": "Muistutus: Työ {chore_name} , jonka {kid_name} on lunastanut, odottaa hyväksyntää."
-  },
-  "reward_claimed_kid": {
-    "title": "KidsChores: Palkinto lunastettu",
-    "message": "Lunasit palkinnon {reward_name} {points} pisteellä!"
-  },
-  "reward_claimed_parent": {
-    "title": "KidsChores: Palkinto lunastettu",
-    "message": "{kid_name} lunasti palkinnon {reward_name} {points} pisteellä"
-  },
-  "reward_approved": {
-    "title": "KidsChores: Palkinto hyväksytty",
-    "message": "Palkinto {reward_name} hyväksytty!"
-  },
-  "reward_disapproved": {
-    "title": "KidsChores: Palkinto hylätty",
-    "message": "Palkintoa {reward_name} ei hyväksytty"
-  },
-  "reward_reminder": {
-    "title": "KidsChores: Muistutus odottavasta palkinnosta",
-    "message": "Muistutus: Palkinto {reward_name} , jonka {kid_name} on lunastanut, odottaa hyväksyntää."
+  "reward_disapproved_kid": {
+    "title": "💭 Palkintopyyntö palautettu",
+    "message": "{reward_name} ei tällä kertaa hyväksytty."
   },
   "badge_earned_kid": {
-    "title": "KidsChores: Ansaittu merkki",
+    "title": "🥇 Merkki ansaittu!",
     "message": "Ansaitsit {badge_name} -merkin!"
   },
-  "badge_earned_parent": {
-    "title": "KidsChores: Ansaittu merkki",
-    "message": "{kid_name} ansaitsi {badge_name} -merkin!"
-  },
   "achievement_earned_kid": {
-    "title": "KidsChores: Ansaitut saavutukset",
-    "message": "Ansaitsit saavutuksen {achievement_name}!"
-  },
-  "achievement_earned_parent": {
-    "title": "KidsChores: Ansaitut saavutukset",
-    "message": "{kid_name} ansaittu saavutus {achievement_name}!"
+    "title": "🏆 Saavutus ansaittu!",
+    "message": "Ansaitsit {achievement_name}! Jatka samaan malliin"
   },
   "challenge_completed_kid": {
-    "title": "LastenAskareita: Haaste suoritettu",
-    "message": "Suoritit haasteen {challenge_name}!"
+    "title": "🏁 Haaste suoritettu!",
+    "message": "Suoritit {challenge_name}! Jatka samaan malliin!"
+  },
+  "penalty_applied_kid": {
+    "title": "⚠️ Rangaistus sovellettu",
+    "message": "{penalty_name}: {points} pistettä vähennetty. Palataanpa raiteille!"
+  },
+  "bonus_applied_kid": {
+    "title": "⭐ Bonus käytetty!",
+    "message": "{bonus_name}: Ansaitsit {points} bonuspistettä! Hienoa työtä!"
+  },
+  "_comment_parent_section": "════════════════════════════════════════════════════════════════════════════════════════",
+  "_comment_parent_desc": "VANHEMPIEN ILMOITUKSET: Informatiivisia, kolmannen persoonan, toiminnallisia. Muoto: '{kid_name}: Toiminta'. EI 'KidsChores:'-etuliitettä.",
+  "_comment_parent_footer": "════════════════════════════════════════════════════════════════════════════════════════",
+  "chore_claimed_parent": {
+    "title": "✋ {kid_name}: Kotitehtävä lunastettu",
+    "message": "{kid_name} vaati {chore_name} ja työskentelee sen parissa parhaillaan"
+  },
+  "chore_reminder_parent": {
+    "title": "⏰ {kid_name}: Hyväksyntä tarvitaan",
+    "message": "Muistutus: {chore_name} , jonka {kid_name} on vaatimuksensa kohteena, odottaa arviotasi."
+  },
+  "chore_overdue_parent": {
+    "title": "⚠️ {kid_name}: Kotityö myöhässä",
+    "message": "{kid_name}:n tehtävä {chore_name} on myöhässä (eräpäivä: {due_date})"
+  },
+  "pending_chores_parent": {
+    "title": "📋 {kid_name}: {count} Odottaa",
+    "message": "{count} tehtävää odottaa arviointia. Viimeisimmät: {latest_chore} (+{points} pistettä)"
+  },
+  "reward_claimed_parent": {
+    "title": "🎁 {kid_name}: Palkintopyyntö",
+    "message": "{kid_name} pyysi {reward_name} {points} pistettä"
+  },
+  "reward_reminder_parent": {
+    "title": "⏰ {kid_name}: Palkintoa odotetaan",
+    "message": "Muistutus: {reward_name} , käyttäjän {kid_name} pyyntö odottaa hyväksyntääsi"
+  },
+  "badge_earned_parent": {
+    "title": "🏆 {kid_name}: Ansaittu merkki",
+    "message": "{kid_name} ansaitsi {badge_name} -merkin!"
+  },
+  "achievement_earned_parent": {
+    "title": "⭐ {kid_name}: Saavutus",
+    "message": "{kid_name} ansaittu {achievement_name}"
   },
   "challenge_completed_parent": {
-    "title": "LastenAskareita: Haaste suoritettu",
-    "message": "{kid_name} suoritettu haaste {challenge_name}!"
+    "title": "🎯 {kid_name}: Haaste suoritettu",
+    "message": "{kid_name} valmis {challenge_name}"
   },
-  "penalty_applied": {
-    "title": "LastenAskareita: Rangaistus sovellettu",
-    "message": "Rangaistus {penalty_name} sovellettu: -{points} pistettä"
+  "_comment_system_section": "════════════════════════════════════════════════════════════════════════════════════════",
+  "_comment_system_desc": "JÄRJESTELMÄN/JÄRJESTELMÄNVALVOJAN ILMOITUKSET: Tiedonhallintatoiminnot",
+  "_comment_system_footer": "════════════════════════════════════════════════════════════════════════════════════════",
+  "data_reset": {
+    "title": "🔄 KidsChores: Tietojen nollaus",
+    "message": "Järjestelmätiedot on nollattu"
   },
-  "bonus_applied": {
-    "title": "Lastenkotitehtävät: Bonus käytetty",
-    "message": "Bonus {bonus_name} käytetty: +{points} pistettä"
+  "data_reset_global": {
+    "title": "🔄 Lastenkotitehtävät: Täysi nollaus",
+    "message": "Kaikki järjestelmätiedot on palautettu oletusasetuksiin"
   },
-  "pending_chores": {
-    "title": "Lasten askareita: {kid_name}",
-    "message": "{count} odottavaa tehtävää (viimeisin: {latest_chore} +{points}pistettä)"
+  "data_reset_kid": {
+    "title": "🔄 LastenAskareita: Lasten nollaus",
+    "message": "Tietojen nollaus kohteelle {kid_name}"
   },
-  "status_update": {
-    "title": "✅ Lasten kotityöt",
-    "message": "Tila päivitetty"
+  "data_reset_item_type": {
+    "title": "🔄 Lasten askareita: {item_type} Tyhjennä",
+    "message": "Kaikki {item_type} tiedot on nollattu"
   },
-  "chore_approved_status": {
-    "title": "✅ Lasten kotityöt",
-    "message": "{chore_name} hyväksynyt {parent_name}"
+  "data_reset_item": {
+    "title": "🔄 Lastenkodit: Kohteen nollaus",
+    "message": "{item_type} '{item_name}' on nollattu"
   },
-  "chore_disapproved_status": {
-    "title": "❌ Lasten kotityöt",
-    "message": "{chore_name} hylkäsi {parent_name}"
-  },
-  "reward_approved_status": {
-    "title": "✅ Lasten kotityöt",
-    "message": "{reward_name} palkinto hyväksytty"
-  },
+  "_comment_actions_section": "════════════════════════════════════════════════════════════════════════════════════════",
+  "_comment_actions_desc": "ILMOITUSPAINIKKEET: Pehmeämpi ja kannustavampi kieli",
+  "_comment_actions_footer": "════════════════════════════════════════════════════════════════════════════════════════",
   "actions": {
-    "approve": "Hyväksyä",
-    "claim": "✋ Lunasta nyt",
-    "complete": "Täydellinen",
-    "disapprove": "Hylkää",
-    "remind_30": "Muistutus 30 minuutin kuluttua",
-    "skip": "Ohita",
-    "approve_latest": "✅ Hyväksy viimeisimmät",
-    "review_all": "👀 Arvostele kaikki"
+    "approve": "✅ Hyväksy",
+    "claim": "✋ Tein sen!",
+    "complete": "✅ Valmis",
+    "disapprove": "↩️ Hylkää",
+    "remind_30": "⏰ Muistutus 30 minuutin kuluttua",
+    "skip": "⏭️ Ohita"
   }
 }
