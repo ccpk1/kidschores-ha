@@ -84,7 +84,7 @@ class RewardManager(BaseManager):
         )
         const.LOGGER.debug("RewardManager initialized for entry %s", self.entry_id)
 
-    def _on_badge_earned(self, payload: dict[str, Any]) -> None:
+    async def _on_badge_earned(self, payload: dict[str, Any]) -> None:
         """Handle badge earned event - grant free rewards from badge manifest.
 
         Phase 7 Signal-First Logic: Inventory Manager grants rewards from badges.
@@ -102,27 +102,34 @@ class RewardManager(BaseManager):
 
         for reward_id in reward_ids:
             if reward_id in self.coordinator.rewards_data:
-                # Badge rewards are free grants
-                self._grant_to_kid(
-                    kid_id=kid_id,
-                    reward_id=reward_id,
-                    cost_deducted=const.DEFAULT_ZERO,
-                    notif_id=None,
-                    is_pending_claim=False,
+                reward_name = str(
+                    self.coordinator.rewards_data[reward_id].get(
+                        const.DATA_REWARD_NAME, reward_id
+                    )
                 )
-                reward_name = self.coordinator.rewards_data[reward_id].get(
-                    const.DATA_REWARD_NAME, reward_id
-                )
-                const.LOGGER.info(
-                    "RewardManager: Granted reward '%s' to kid %s from badge '%s'",
-                    reward_name,
-                    kid_id,
-                    badge_name,
-                )
-
-        # Persist reward tracking updates
-        self.coordinator._persist()
-        self.coordinator.async_set_updated_data(self.coordinator._data)
+                try:
+                    # Use the same approval flow as normal rewards, but force zero cost
+                    # so badge-granted rewards stay free and listeners remain consistent.
+                    await self.approve(
+                        parent_name=badge_name,
+                        kid_id=kid_id,
+                        reward_id=reward_id,
+                        cost_override=const.DEFAULT_ZERO,
+                    )
+                    const.LOGGER.info(
+                        "RewardManager: Granted reward '%s' to kid %s from badge '%s'",
+                        reward_name,
+                        kid_id,
+                        badge_name,
+                    )
+                except HomeAssistantError as err:
+                    const.LOGGER.warning(
+                        "RewardManager: Failed granting reward '%s' to kid %s from badge '%s': %s",
+                        reward_name,
+                        kid_id,
+                        badge_name,
+                        err,
+                    )
 
     # =========================================================================
     # Lock Management
