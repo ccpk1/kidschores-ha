@@ -677,11 +677,7 @@ class ChoreEngine:
         ):
             return (const.CHORE_STATE_OVERDUE, None)
 
-        # P6 — Waiting (claim restriction: before window opens)
-        # TODO: Add DATA_CHORE_CLAIM_RESTRICTION_ENABLED to const.py
-        claim_restricted = chore_data.get("claim_restriction_enabled", False)
-        if claim_restricted and due_window_start is not None and now < due_window_start:
-            return (const.CHORE_STATE_WAITING, "waiting")
+        # P6 — [REMOVED] Waiting/claim restriction feature was removed
 
         # P7 — Due (inside the claim window)
         if (
@@ -811,8 +807,8 @@ class ChoreEngine:
         # Calculate due window start
         due_window_start = due_date_dt - due_window_td
 
-        # In due window if: due_window_start <= now < due_date
-        return due_window_start <= now < due_date_dt
+        # In due window if: due_window_start <= now <= due_date
+        return due_window_start <= now <= due_date_dt
 
     @staticmethod
     def get_due_window_start(

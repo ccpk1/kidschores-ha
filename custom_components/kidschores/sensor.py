@@ -747,6 +747,7 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
         ctx = self.coordinator.chore_manager.get_chore_status_context(
             self._kid_id, self._chore_id
         )
+
         return ctx["state"]
 
     @staticmethod
@@ -1628,15 +1629,15 @@ class KidBadgesSensor(KidsChoresCoordinatorEntity, SensorEntity):
     @property
     def native_value(self) -> str:
         """Return the badge name of the highest-threshold badge the kid has earned."""
-        kid_info: KidData = cast(
-            "KidData", self.coordinator.kids_data.get(self._kid_id, {})
-        )
-        cumulative_badge_progress_info = kid_info.get(
-            const.DATA_KID_CUMULATIVE_BADGE_PROGRESS, {}
+        # Phase 3A: Use computed progress instead of storage read
+        cumulative_badge_progress_info = (
+            self.coordinator.gamification_manager.get_cumulative_badge_progress(
+                self._kid_id
+            )
         )
         return str(
             cumulative_badge_progress_info.get(
-                const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_HIGHEST_EARNED_BADGE_NAME,
+                const.CUMULATIVE_BADGE_PROGRESS_HIGHEST_EARNED_BADGE_NAME,
                 const.SENTINEL_NONE_TEXT,
             )
         )
@@ -1644,14 +1645,14 @@ class KidBadgesSensor(KidsChoresCoordinatorEntity, SensorEntity):
     @property
     def icon(self):
         """Return the icon for the highest badge."""
-        kid_info: KidData = cast(
-            "KidData", self.coordinator.kids_data.get(self._kid_id, {})
-        )
-        cumulative_badge_progress_info = kid_info.get(
-            const.DATA_KID_CUMULATIVE_BADGE_PROGRESS, {}
+        # Phase 3A: Use computed progress instead of storage read
+        cumulative_badge_progress_info = (
+            self.coordinator.gamification_manager.get_cumulative_badge_progress(
+                self._kid_id
+            )
         )
         highest_badge_id = cumulative_badge_progress_info.get(
-            const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_HIGHEST_EARNED_BADGE_ID,
+            const.CUMULATIVE_BADGE_PROGRESS_HIGHEST_EARNED_BADGE_ID,
             const.SENTINEL_NONE_TEXT,
         )
         highest_badge_info: BadgeData = cast(
@@ -1661,13 +1662,67 @@ class KidBadgesSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        """Provide additional details about the highest cumulative badge,
-        including the points needed to reach the next cumulative badge,
-        reset schedule, maintenance rules, description, and awards if present.
-        Also shows baseline points, cycle points, grace_end_date, and points to maintenance if applicable.
+        """Provide additional details about the highest cumulative badge.
+
+        Phase 3A: Use computed progress instead of storage reads. All derived
+        fields (current/next/highest badge info) are computed on-read, only
+        state fields (status, cycle_points, dates) read from storage.
         """
         kid_info: KidData = cast(
             "KidData", self.coordinator.kids_data.get(self._kid_id, {})
+        )
+
+        # Phase 3A: Get computed progress (all derived fields calculated here)
+        cumulative_badge_progress_info = (
+            self.coordinator.gamification_manager.get_cumulative_badge_progress(
+                self._kid_id
+            )
+        )
+
+        # Extract computed fields from progress dict (using CUMULATIVE_BADGE_PROGRESS_* constants)
+        current_badge_id = cumulative_badge_progress_info.get(
+            const.CUMULATIVE_BADGE_PROGRESS_CURRENT_BADGE_ID, const.SENTINEL_NONE_TEXT
+        )
+        current_badge_name = cumulative_badge_progress_info.get(
+            const.CUMULATIVE_BADGE_PROGRESS_CURRENT_BADGE_NAME,
+            const.SENTINEL_NONE_TEXT,
+        )
+        highest_earned_badge_name = cumulative_badge_progress_info.get(
+            const.CUMULATIVE_BADGE_PROGRESS_HIGHEST_EARNED_BADGE_NAME,
+            const.SENTINEL_NONE_TEXT,
+        )
+        next_higher_badge_id = cumulative_badge_progress_info.get(
+            const.CUMULATIVE_BADGE_PROGRESS_NEXT_HIGHER_BADGE_ID,
+            const.SENTINEL_NONE_TEXT,
+        )
+        next_higher_badge_name = cumulative_badge_progress_info.get(
+            const.CUMULATIVE_BADGE_PROGRESS_NEXT_HIGHER_BADGE_NAME,
+            const.SENTINEL_NONE_TEXT,
+        )
+        next_lower_badge_id = cumulative_badge_progress_info.get(
+            const.CUMULATIVE_BADGE_PROGRESS_NEXT_LOWER_BADGE_ID,
+            const.SENTINEL_NONE_TEXT,
+        )
+        next_lower_badge_name = cumulative_badge_progress_info.get(
+            const.CUMULATIVE_BADGE_PROGRESS_NEXT_LOWER_BADGE_NAME,
+            const.SENTINEL_NONE_TEXT,
+        )
+        badge_status = cumulative_badge_progress_info.get(
+            const.CUMULATIVE_BADGE_PROGRESS_STATUS, const.SENTINEL_NONE_TEXT
+        )
+        highest_badge_threshold_value = cumulative_badge_progress_info.get(
+            const.CUMULATIVE_BADGE_PROGRESS_HIGHEST_EARNED_THRESHOLD,
+            const.DEFAULT_ZERO,
+        )
+        points_to_next_badge = cumulative_badge_progress_info.get(
+            const.CUMULATIVE_BADGE_PROGRESS_NEXT_HIGHER_POINTS_NEEDED,
+            const.DEFAULT_ZERO,
+        )
+        cycle_points = cumulative_badge_progress_info.get(
+            const.CUMULATIVE_BADGE_PROGRESS_CYCLE_POINTS, const.DEFAULT_ZERO
+        )
+        grace_end_date = cumulative_badge_progress_info.get(
+            const.CUMULATIVE_BADGE_PROGRESS_MAINTENANCE_GRACE_END_DATE, None
         )
 
         # Defensive: Handle badges_earned as either dict (v42+) or list (legacy v41)
@@ -1685,62 +1740,7 @@ class KidBadgesSensor(KidsChoresCoordinatorEntity, SensorEntity):
             # Fallback: empty list
             earned_badge_list = []
 
-        cumulative_badge_progress_info = kid_info.get(
-            const.DATA_KID_CUMULATIVE_BADGE_PROGRESS, {}
-        )
-        current_badge_id = cumulative_badge_progress_info.get(
-            const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_CURRENT_BADGE_ID,
-            const.SENTINEL_NONE_TEXT,
-        )
-        current_badge_name = cumulative_badge_progress_info.get(
-            const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_CURRENT_BADGE_NAME,
-            const.SENTINEL_NONE_TEXT,
-        )
-        highest_earned_badge_name = cumulative_badge_progress_info.get(
-            const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_HIGHEST_EARNED_BADGE_NAME,
-            const.SENTINEL_NONE_TEXT,
-        )
-        next_higher_badge_id = cumulative_badge_progress_info.get(
-            const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_NEXT_HIGHER_BADGE_ID,
-            const.SENTINEL_NONE_TEXT,
-        )
-        next_higher_badge_name = cumulative_badge_progress_info.get(
-            const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_NEXT_HIGHER_BADGE_NAME,
-            const.SENTINEL_NONE_TEXT,
-        )
-        next_lower_badge_id = cumulative_badge_progress_info.get(
-            const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_NEXT_LOWER_BADGE_ID,
-            const.SENTINEL_NONE_TEXT,
-        )
-        next_lower_badge_name = cumulative_badge_progress_info.get(
-            const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_NEXT_LOWER_BADGE_NAME,
-            const.SENTINEL_NONE_TEXT,
-        )
-        badge_status = cumulative_badge_progress_info.get(
-            const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_STATUS,
-            const.SENTINEL_NONE_TEXT,
-        )
-        highest_badge_threshold_value = cumulative_badge_progress_info.get(
-            const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_HIGHEST_EARNED_THRESHOLD,
-            const.DEFAULT_ZERO,
-        )
-        points_to_next_badge = cumulative_badge_progress_info.get(
-            const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_NEXT_HIGHER_POINTS_NEEDED,
-            const.DEFAULT_ZERO,
-        )
-        baseline_points = cumulative_badge_progress_info.get(
-            const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_BASELINE,
-            const.DEFAULT_ZERO,
-        )
-        cycle_points = cumulative_badge_progress_info.get(
-            const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_CYCLE_POINTS,
-            const.DEFAULT_ZERO,
-        )
-        grace_end_date = cumulative_badge_progress_info.get(
-            const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_MAINTENANCE_GRACE_END_DATE,
-            None,
-        )
-
+        # Use current_badge_id from computed progress to look up badge details
         current_badge_info: BadgeData = cast(
             "BadgeData", self.coordinator.badges_data.get(current_badge_id, {})
         )
@@ -1781,9 +1781,16 @@ class KidBadgesSensor(KidsChoresCoordinatorEntity, SensorEntity):
         if description:
             extra_attrs[const.DATA_BADGE_DESCRIPTION] = description
 
-        # Add baseline points, cycle points, and grace_end_date using constants
-        extra_attrs[const.ATTR_BADGE_CUMULATIVE_BASELINE_POINTS] = baseline_points
+        # Phase 3A: No baseline field in storage - removed
         extra_attrs[const.ATTR_BADGE_CUMULATIVE_CYCLE_POINTS] = cycle_points
+
+        # Read maintenance_end_date from storage (state field)
+        kid_cumulative_progress_storage = kid_info.get(
+            const.DATA_KID_CUMULATIVE_BADGE_PROGRESS, {}
+        )
+        maintenance_end_date = kid_cumulative_progress_storage.get(
+            const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_MAINTENANCE_END_DATE, None
+        )
 
         target_info = current_badge_info.get(const.DATA_BADGE_TARGET, {})
 

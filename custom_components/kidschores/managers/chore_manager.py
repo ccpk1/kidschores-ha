@@ -480,7 +480,7 @@ class ChoreManager(BaseManager):
 
         # v0.5.0 FSM integration: Calculate resolved state for rotation/due window blocking
         due_date = self.get_due_date(chore_id, kid_id)
-        due_window_start = self.get_due_window_start(kid_id, chore_id)
+        due_window_start = self.get_due_window_start(chore_id, kid_id)
         resolved_state, lock_reason = ChoreEngine.resolve_kid_chore_state(
             chore_data=chore_data,
             kid_id=kid_id,
@@ -2929,7 +2929,7 @@ class ChoreManager(BaseManager):
         # Get resolved state for FSM-based claim blocking (rotation, waiting, missed)
         # Use existing helper methods to get due_date and due_window_start
         due_date = self.get_due_date(chore_id, kid_id)
-        due_window_start = self.get_due_window_start(kid_id, chore_id)
+        due_window_start = self.get_due_window_start(chore_id, kid_id)
 
         resolved_state, lock_reason = ChoreEngine.resolve_kid_chore_state(
             chore_data=chore_data,
@@ -3069,7 +3069,7 @@ class ChoreManager(BaseManager):
         # v0.5.0: Use FSM to derive display state (replaces old priority logic)
         # Get due_date and due_window_start for FSM calculation
         due_date = self.get_due_date(chore_id, kid_id)
-        due_window_start = self.get_due_window_start(kid_id, chore_id)
+        due_window_start = self.get_due_window_start(chore_id, kid_id)
 
         # Resolve state using FSM (8-tier priority: approved > claimed > not_my_turn > missed > overdue > waiting > due > pending)
         display_state, lock_reason = ChoreEngine.resolve_kid_chore_state(
