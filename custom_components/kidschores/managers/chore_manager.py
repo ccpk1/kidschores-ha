@@ -2524,7 +2524,7 @@ class ChoreManager(BaseManager):
         )
 
         # Clean up any orphaned kid-chore entities after assignment changes
-        self._coordinator.hass.async_create_task(
+        self._coordinator.hass.add_job(
             remove_orphaned_kid_chore_entities(
                 self.hass,
                 self._coordinator.config_entry.entry_id,
@@ -2595,7 +2595,7 @@ class ChoreManager(BaseManager):
                 const.LOGGER.debug("Removed chore '%s' from kid chore_data", chore_id)
 
         # Remove orphaned shared chore sensors
-        self.hass.async_create_task(
+        self.hass.add_job(
             remove_orphaned_shared_chore_sensors(
                 self.hass,
                 self._coordinator.config_entry.entry_id,

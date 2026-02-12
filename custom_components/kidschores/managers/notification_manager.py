@@ -24,8 +24,6 @@ import asyncio
 import time
 from typing import TYPE_CHECKING, Any, cast
 
-from homeassistant.core import callback
-
 from .. import const
 from ..engines.chore_engine import ChoreEngine
 from ..helpers import translation_helpers as th
@@ -174,6 +172,10 @@ class NotificationManager(BaseManager):
         # Bonus/Penalty events
         self.listen(const.SIGNAL_SUFFIX_BONUS_APPLIED, self._handle_bonus_applied)
         self.listen(const.SIGNAL_SUFFIX_PENALTY_APPLIED, self._handle_penalty_applied)
+        self.listen(
+            const.SIGNAL_SUFFIX_POINTS_MULTIPLIER_CHANGE_REQUESTED,
+            self._handle_multiplier_changed,
+        )
 
         # Chore due date notification events (v0.6.0+: dual notification types)
         self.listen(const.SIGNAL_SUFFIX_CHORE_DUE_WINDOW, self._handle_chore_due_window)
@@ -190,7 +192,7 @@ class NotificationManager(BaseManager):
         self.listen(const.SIGNAL_SUFFIX_KID_DELETED, self._handle_kid_deleted)
 
         const.LOGGER.debug(
-            "NotificationManager initialized with 14 event subscriptions for entry %s",
+            "NotificationManager initialized with 15 event subscriptions for entry %s",
             self.entry_id,
         )
 
@@ -1663,8 +1665,7 @@ class NotificationManager(BaseManager):
     # Event Handlers (Event-Driven Notifications)
     # =========================================================================
 
-    @callback
-    def _handle_badge_earned(self, payload: dict[str, Any]) -> None:
+    async def _handle_badge_earned(self, payload: dict[str, Any]) -> None:
         """Handle BADGE_EARNED event - send notifications to kid and parents.
 
         Args:
@@ -1692,25 +1693,21 @@ class NotificationManager(BaseManager):
         extra_data = {const.DATA_KID_ID: kid_id, const.DATA_BADGE_ID: badge_id}
 
         # Notify kid
-        self.hass.async_create_task(
-            self.notify_kid_translated(
-                kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_BADGE_EARNED_KID,
-                message_key=const.TRANS_KEY_NOTIF_MESSAGE_BADGE_EARNED_KID,
-                message_data={"badge_name": badge_name},
-                extra_data=extra_data,
-            )
+        await self.notify_kid_translated(
+            kid_id,
+            title_key=const.TRANS_KEY_NOTIF_TITLE_BADGE_EARNED_KID,
+            message_key=const.TRANS_KEY_NOTIF_MESSAGE_BADGE_EARNED_KID,
+            message_data={"badge_name": badge_name},
+            extra_data=extra_data,
         )
 
         # Notify parents
-        self.hass.async_create_task(
-            self.notify_parents_translated(
-                kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_BADGE_EARNED_PARENT,
-                message_key=const.TRANS_KEY_NOTIF_MESSAGE_BADGE_EARNED_PARENT,
-                message_data={"kid_name": kid_name, "badge_name": badge_name},
-                extra_data=extra_data,
-            )
+        await self.notify_parents_translated(
+            kid_id,
+            title_key=const.TRANS_KEY_NOTIF_TITLE_BADGE_EARNED_PARENT,
+            message_key=const.TRANS_KEY_NOTIF_MESSAGE_BADGE_EARNED_PARENT,
+            message_data={"kid_name": kid_name, "badge_name": badge_name},
+            extra_data=extra_data,
         )
 
         const.LOGGER.debug(
@@ -1719,8 +1716,7 @@ class NotificationManager(BaseManager):
             badge_name,
         )
 
-    @callback
-    def _handle_achievement_earned(self, payload: dict[str, Any]) -> None:
+    async def _handle_achievement_earned(self, payload: dict[str, Any]) -> None:
         """Handle ACHIEVEMENT_EARNED event - send notifications to kid and parents.
 
         Args:
@@ -1751,28 +1747,24 @@ class NotificationManager(BaseManager):
         }
 
         # Notify kid
-        self.hass.async_create_task(
-            self.notify_kid_translated(
-                kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_ACHIEVEMENT_EARNED_KID,
-                message_key=const.TRANS_KEY_NOTIF_MESSAGE_ACHIEVEMENT_EARNED_KID,
-                message_data={"achievement_name": achievement_name},
-                extra_data=extra_data,
-            )
+        await self.notify_kid_translated(
+            kid_id,
+            title_key=const.TRANS_KEY_NOTIF_TITLE_ACHIEVEMENT_EARNED_KID,
+            message_key=const.TRANS_KEY_NOTIF_MESSAGE_ACHIEVEMENT_EARNED_KID,
+            message_data={"achievement_name": achievement_name},
+            extra_data=extra_data,
         )
 
         # Notify parents
-        self.hass.async_create_task(
-            self.notify_parents_translated(
-                kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_ACHIEVEMENT_EARNED_PARENT,
-                message_key=const.TRANS_KEY_NOTIF_MESSAGE_ACHIEVEMENT_EARNED_PARENT,
-                message_data={
-                    "kid_name": kid_name,
-                    "achievement_name": achievement_name,
-                },
-                extra_data=extra_data,
-            )
+        await self.notify_parents_translated(
+            kid_id,
+            title_key=const.TRANS_KEY_NOTIF_TITLE_ACHIEVEMENT_EARNED_PARENT,
+            message_key=const.TRANS_KEY_NOTIF_MESSAGE_ACHIEVEMENT_EARNED_PARENT,
+            message_data={
+                "kid_name": kid_name,
+                "achievement_name": achievement_name,
+            },
+            extra_data=extra_data,
         )
 
         const.LOGGER.debug(
@@ -1781,8 +1773,7 @@ class NotificationManager(BaseManager):
             achievement_name,
         )
 
-    @callback
-    def _handle_challenge_completed(self, payload: dict[str, Any]) -> None:
+    async def _handle_challenge_completed(self, payload: dict[str, Any]) -> None:
         """Handle CHALLENGE_COMPLETED event - send notifications to kid and parents.
 
         Args:
@@ -1810,25 +1801,21 @@ class NotificationManager(BaseManager):
         extra_data = {const.DATA_KID_ID: kid_id, const.DATA_CHALLENGE_ID: challenge_id}
 
         # Notify kid
-        self.hass.async_create_task(
-            self.notify_kid_translated(
-                kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_CHALLENGE_COMPLETED_KID,
-                message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHALLENGE_COMPLETED_KID,
-                message_data={"challenge_name": challenge_name},
-                extra_data=extra_data,
-            )
+        await self.notify_kid_translated(
+            kid_id,
+            title_key=const.TRANS_KEY_NOTIF_TITLE_CHALLENGE_COMPLETED_KID,
+            message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHALLENGE_COMPLETED_KID,
+            message_data={"challenge_name": challenge_name},
+            extra_data=extra_data,
         )
 
         # Notify parents
-        self.hass.async_create_task(
-            self.notify_parents_translated(
-                kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_CHALLENGE_COMPLETED_PARENT,
-                message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHALLENGE_COMPLETED_PARENT,
-                message_data={"kid_name": kid_name, "challenge_name": challenge_name},
-                extra_data=extra_data,
-            )
+        await self.notify_parents_translated(
+            kid_id,
+            title_key=const.TRANS_KEY_NOTIF_TITLE_CHALLENGE_COMPLETED_PARENT,
+            message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHALLENGE_COMPLETED_PARENT,
+            message_data={"kid_name": kid_name, "challenge_name": challenge_name},
+            extra_data=extra_data,
         )
 
         const.LOGGER.debug(
@@ -1837,8 +1824,7 @@ class NotificationManager(BaseManager):
             challenge_name,
         )
 
-    @callback
-    def _handle_chore_claimed(self, payload: dict[str, Any]) -> None:
+    async def _handle_chore_claimed(self, payload: dict[str, Any]) -> None:
         """Handle CHORE_CLAIMED event - send notification to parents for approval.
 
         This bridges ChoreManager events to the notification system.
@@ -1902,39 +1888,35 @@ class NotificationManager(BaseManager):
 
         if pending_count > 1:
             # Aggregated notification
-            self.hass.async_create_task(
-                self.notify_parents_translated(
-                    kid_id,
-                    title_key=const.TRANS_KEY_NOTIF_TITLE_PENDING_CHORES_PARENT,
-                    message_key=const.TRANS_KEY_NOTIF_MESSAGE_PENDING_CHORES_PARENT,
-                    message_data={
-                        "kid_name": kid_name,
-                        "count": pending_count,
-                        "latest_chore": chore_name,
-                        "points": int(chore_points),
-                    },
-                    actions=actions,
-                    extra_data=extra_data,
-                    tag_type=const.NOTIFY_TAG_TYPE_STATUS,
-                    tag_identifiers=(chore_id, kid_id),
-                )
+            await self.notify_parents_translated(
+                kid_id,
+                title_key=const.TRANS_KEY_NOTIF_TITLE_PENDING_CHORES_PARENT,
+                message_key=const.TRANS_KEY_NOTIF_MESSAGE_PENDING_CHORES_PARENT,
+                message_data={
+                    "kid_name": kid_name,
+                    "count": pending_count,
+                    "latest_chore": chore_name,
+                    "points": int(chore_points),
+                },
+                actions=actions,
+                extra_data=extra_data,
+                tag_type=const.NOTIFY_TAG_TYPE_STATUS,
+                tag_identifiers=(chore_id, kid_id),
             )
         else:
             # Single chore notification
-            self.hass.async_create_task(
-                self.notify_parents_translated(
-                    kid_id,
-                    title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_CLAIMED_PARENT,
-                    message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_CLAIMED_PARENT,
-                    message_data={
-                        "kid_name": kid_name,
-                        "chore_name": chore_name,
-                    },
-                    actions=actions,
-                    extra_data=extra_data,
-                    tag_type=const.NOTIFY_TAG_TYPE_STATUS,
-                    tag_identifiers=(chore_id, kid_id),
-                )
+            await self.notify_parents_translated(
+                kid_id,
+                title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_CLAIMED_PARENT,
+                message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_CLAIMED_PARENT,
+                message_data={
+                    "kid_name": kid_name,
+                    "chore_name": chore_name,
+                },
+                actions=actions,
+                extra_data=extra_data,
+                tag_type=const.NOTIFY_TAG_TYPE_STATUS,
+                tag_identifiers=(chore_id, kid_id),
             )
 
         # Note: Due-soon reminder tracking is already cleared by ChoreManager.claim_chore()
@@ -1949,12 +1931,8 @@ class NotificationManager(BaseManager):
             const.NOTIFY_TAG_TYPE_DUE_WINDOW, self.entry_id, chore_id, kid_id
         )
 
-        self.hass.async_create_task(
-            self.clear_notification_for_kid(kid_id, overdue_tag)
-        )
-        self.hass.async_create_task(
-            self.clear_notification_for_kid(kid_id, due_window_tag)
-        )
+        await self.clear_notification_for_kid(kid_id, overdue_tag)
+        await self.clear_notification_for_kid(kid_id, due_window_tag)
 
         const.LOGGER.debug(
             "NotificationManager: Sent chore claimed notification for kid=%s, chore=%s",
@@ -1962,8 +1940,7 @@ class NotificationManager(BaseManager):
             chore_name,
         )
 
-    @callback
-    def _handle_reward_claimed(self, payload: dict[str, Any]) -> None:
+    async def _handle_reward_claimed(self, payload: dict[str, Any]) -> None:
         """Handle REWARD_CLAIMED event - send notification to parents for approval.
 
         Args:
@@ -1998,21 +1975,19 @@ class NotificationManager(BaseManager):
         )
 
         # Notify parents
-        self.hass.async_create_task(
-            self.notify_parents_translated(
-                kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_REWARD_CLAIMED_PARENT,
-                message_key=const.TRANS_KEY_NOTIF_MESSAGE_REWARD_CLAIMED_PARENT,
-                message_data={
-                    "kid_name": kid_name,
-                    "reward_name": reward_name,
-                    "points": points,
-                },
-                actions=actions,
-                extra_data=extra_data,
-                tag_type=const.NOTIFY_TAG_TYPE_STATUS,
-                tag_identifiers=(reward_id, kid_id),
-            )
+        await self.notify_parents_translated(
+            kid_id,
+            title_key=const.TRANS_KEY_NOTIF_TITLE_REWARD_CLAIMED_PARENT,
+            message_key=const.TRANS_KEY_NOTIF_MESSAGE_REWARD_CLAIMED_PARENT,
+            message_data={
+                "kid_name": kid_name,
+                "reward_name": reward_name,
+                "points": points,
+            },
+            actions=actions,
+            extra_data=extra_data,
+            tag_type=const.NOTIFY_TAG_TYPE_STATUS,
+            tag_identifiers=(reward_id, kid_id),
         )
 
         const.LOGGER.debug(
@@ -2021,8 +1996,7 @@ class NotificationManager(BaseManager):
             reward_name,
         )
 
-    @callback
-    def _handle_reward_approved(self, payload: dict[str, Any]) -> None:
+    async def _handle_reward_approved(self, payload: dict[str, Any]) -> None:
         """Handle REWARD_APPROVED event - send notification to kid.
 
         Args:
@@ -2038,23 +2012,19 @@ class NotificationManager(BaseManager):
         extra_data = {const.DATA_KID_ID: kid_id, const.DATA_REWARD_ID: reward_id}
 
         # Notify kid
-        self.hass.async_create_task(
-            self.notify_kid_translated(
-                kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_REWARD_APPROVED_KID,
-                message_key=const.TRANS_KEY_NOTIF_MESSAGE_REWARD_APPROVED_KID,
-                message_data={"reward_name": reward_name},
-                extra_data=extra_data,
-            )
+        await self.notify_kid_translated(
+            kid_id,
+            title_key=const.TRANS_KEY_NOTIF_TITLE_REWARD_APPROVED_KID,
+            message_key=const.TRANS_KEY_NOTIF_MESSAGE_REWARD_APPROVED_KID,
+            message_data={"reward_name": reward_name},
+            extra_data=extra_data,
         )
 
         # Clear the original claim notification from parents' devices
-        self.hass.async_create_task(
-            self.clear_notification_for_parents(
-                kid_id,
-                const.NOTIFY_TAG_TYPE_STATUS,
-                reward_id,
-            )
+        await self.clear_notification_for_parents(
+            kid_id,
+            const.NOTIFY_TAG_TYPE_STATUS,
+            reward_id,
         )
 
         const.LOGGER.debug(
@@ -2063,8 +2033,7 @@ class NotificationManager(BaseManager):
             reward_name,
         )
 
-    @callback
-    def _handle_reward_disapproved(self, payload: dict[str, Any]) -> None:
+    async def _handle_reward_disapproved(self, payload: dict[str, Any]) -> None:
         """Handle REWARD_DISAPPROVED event - send notification to kid.
 
         Args:
@@ -2080,23 +2049,19 @@ class NotificationManager(BaseManager):
         extra_data = {const.DATA_KID_ID: kid_id, const.DATA_REWARD_ID: reward_id}
 
         # Notify kid
-        self.hass.async_create_task(
-            self.notify_kid_translated(
-                kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_REWARD_DISAPPROVED_KID,
-                message_key=const.TRANS_KEY_NOTIF_MESSAGE_REWARD_DISAPPROVED_KID,
-                message_data={"reward_name": reward_name},
-                extra_data=extra_data,
-            )
+        await self.notify_kid_translated(
+            kid_id,
+            title_key=const.TRANS_KEY_NOTIF_TITLE_REWARD_DISAPPROVED_KID,
+            message_key=const.TRANS_KEY_NOTIF_MESSAGE_REWARD_DISAPPROVED_KID,
+            message_data={"reward_name": reward_name},
+            extra_data=extra_data,
         )
 
         # Clear the original claim notification from parents' devices
-        self.hass.async_create_task(
-            self.clear_notification_for_parents(
-                kid_id,
-                const.NOTIFY_TAG_TYPE_STATUS,
-                reward_id,
-            )
+        await self.clear_notification_for_parents(
+            kid_id,
+            const.NOTIFY_TAG_TYPE_STATUS,
+            reward_id,
         )
 
         const.LOGGER.debug(
@@ -2105,8 +2070,7 @@ class NotificationManager(BaseManager):
             reward_name,
         )
 
-    @callback
-    def _handle_chore_disapproved(self, payload: dict[str, Any]) -> None:
+    async def _handle_chore_disapproved(self, payload: dict[str, Any]) -> None:
         """Handle CHORE_DISAPPROVED event - send notification to kid.
 
         Args:
@@ -2122,23 +2086,19 @@ class NotificationManager(BaseManager):
         extra_data = {const.DATA_KID_ID: kid_id, const.DATA_CHORE_ID: chore_id}
 
         # Notify kid
-        self.hass.async_create_task(
-            self.notify_kid_translated(
-                kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_DISAPPROVED_KID,
-                message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_DISAPPROVED_KID,
-                message_data={"chore_name": chore_name},
-                extra_data=extra_data,
-            )
+        await self.notify_kid_translated(
+            kid_id,
+            title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_DISAPPROVED_KID,
+            message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_DISAPPROVED_KID,
+            message_data={"chore_name": chore_name},
+            extra_data=extra_data,
         )
 
         # Clear the original claim notification from parents' devices
-        self.hass.async_create_task(
-            self.clear_notification_for_parents(
-                kid_id,
-                const.NOTIFY_TAG_TYPE_STATUS,
-                chore_id,
-            )
+        await self.clear_notification_for_parents(
+            kid_id,
+            const.NOTIFY_TAG_TYPE_STATUS,
+            chore_id,
         )
 
         const.LOGGER.debug(
@@ -2147,8 +2107,7 @@ class NotificationManager(BaseManager):
             chore_name,
         )
 
-    @callback
-    def _handle_chore_approved(self, payload: dict[str, Any]) -> None:
+    async def _handle_chore_approved(self, payload: dict[str, Any]) -> None:
         """Handle CHORE_APPROVED event - notify kid and clear pending notifications.
 
         Sends approval notification to kid if notify_on_approval is enabled.
@@ -2174,25 +2133,21 @@ class NotificationManager(BaseManager):
             const.DEFAULT_NOTIFY_ON_APPROVAL,
         ):
             # Notify kid of approval
-            self.hass.async_create_task(
-                self.notify_kid_translated(
-                    kid_id,
-                    title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_APPROVED_KID,
-                    message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_APPROVED_KID,
-                    message_data={
-                        "chore_name": chore_name,
-                        "points": points,
-                    },
-                )
+            await self.notify_kid_translated(
+                kid_id,
+                title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_APPROVED_KID,
+                message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_APPROVED_KID,
+                message_data={
+                    "chore_name": chore_name,
+                    "points": points,
+                },
             )
 
         # Clear claim notification for parents
-        self.hass.async_create_task(
-            self.clear_notification_for_parents(
-                kid_id,
-                const.NOTIFY_TAG_TYPE_STATUS,
-                chore_id,
-            )
+        await self.clear_notification_for_parents(
+            kid_id,
+            const.NOTIFY_TAG_TYPE_STATUS,
+            chore_id,
         )
 
         # Clear overdue/due window notifications for kid
@@ -2203,12 +2158,8 @@ class NotificationManager(BaseManager):
             const.NOTIFY_TAG_TYPE_DUE_WINDOW, self.entry_id, chore_id, kid_id
         )
 
-        self.hass.async_create_task(
-            self.clear_notification_for_kid(kid_id, overdue_tag)
-        )
-        self.hass.async_create_task(
-            self.clear_notification_for_kid(kid_id, due_window_tag)
-        )
+        await self.clear_notification_for_kid(kid_id, overdue_tag)
+        await self.clear_notification_for_kid(kid_id, due_window_tag)
 
         const.LOGGER.debug(
             "NotificationManager: Cleared notifications for approved chore=%s, kid=%s",
@@ -2216,8 +2167,7 @@ class NotificationManager(BaseManager):
             kid_id,
         )
 
-    @callback
-    def _handle_bonus_applied(self, payload: dict[str, Any]) -> None:
+    async def _handle_bonus_applied(self, payload: dict[str, Any]) -> None:
         """Handle BONUS_APPLIED event - send notification to kid.
 
         Args:
@@ -2234,14 +2184,12 @@ class NotificationManager(BaseManager):
         extra_data = {const.DATA_KID_ID: kid_id, const.DATA_BONUS_ID: bonus_id}
 
         # Notify kid
-        self.hass.async_create_task(
-            self.notify_kid_translated(
-                kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_BONUS_APPLIED_KID,
-                message_key=const.TRANS_KEY_NOTIF_MESSAGE_BONUS_APPLIED_KID,
-                message_data={"bonus_name": bonus_name, "points": points},
-                extra_data=extra_data,
-            )
+        await self.notify_kid_translated(
+            kid_id,
+            title_key=const.TRANS_KEY_NOTIF_TITLE_BONUS_APPLIED_KID,
+            message_key=const.TRANS_KEY_NOTIF_MESSAGE_BONUS_APPLIED_KID,
+            message_data={"bonus_name": bonus_name, "points": points},
+            extra_data=extra_data,
         )
 
         const.LOGGER.debug(
@@ -2250,8 +2198,7 @@ class NotificationManager(BaseManager):
             bonus_name,
         )
 
-    @callback
-    def _handle_penalty_applied(self, payload: dict[str, Any]) -> None:
+    async def _handle_penalty_applied(self, payload: dict[str, Any]) -> None:
         """Handle PENALTY_APPLIED event - send notification to kid.
 
         Args:
@@ -2268,14 +2215,12 @@ class NotificationManager(BaseManager):
         extra_data = {const.DATA_KID_ID: kid_id, const.DATA_PENALTY_ID: penalty_id}
 
         # Notify kid
-        self.hass.async_create_task(
-            self.notify_kid_translated(
-                kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_PENALTY_APPLIED_KID,
-                message_key=const.TRANS_KEY_NOTIF_MESSAGE_PENALTY_APPLIED_KID,
-                message_data={"penalty_name": penalty_name, "points": points},
-                extra_data=extra_data,
-            )
+        await self.notify_kid_translated(
+            kid_id,
+            title_key=const.TRANS_KEY_NOTIF_TITLE_PENALTY_APPLIED_KID,
+            message_key=const.TRANS_KEY_NOTIF_MESSAGE_PENALTY_APPLIED_KID,
+            message_data={"penalty_name": penalty_name, "points": points},
+            extra_data=extra_data,
         )
 
         const.LOGGER.debug(
@@ -2284,8 +2229,66 @@ class NotificationManager(BaseManager):
             penalty_name,
         )
 
-    @callback
-    def _handle_chore_due_window(self, payload: dict[str, Any]) -> None:
+    async def _handle_multiplier_changed(self, payload: dict[str, Any]) -> None:
+        """Handle points multiplier changes - notify kid and parents.
+
+        Args:
+            payload: Event data containing kid_id, old_multiplier, and new_multiplier
+        """
+        kid_id = payload.get("kid_id", "")
+        old_multiplier = payload.get("old_multiplier")
+        new_multiplier = payload.get("new_multiplier", payload.get("multiplier"))
+
+        if not kid_id or old_multiplier is None or new_multiplier is None:
+            return
+
+        old_value = float(old_multiplier)
+        new_value = float(new_multiplier)
+
+        if old_value == new_value:
+            const.LOGGER.debug(
+                "NotificationManager: Skipping multiplier notification (unchanged) for kid=%s",
+                kid_id,
+            )
+            return
+
+        kid_name = ""
+        kid_info = self.coordinator.kids_data.get(kid_id)
+        if kid_info:
+            kid_name = kid_info.get(const.DATA_KID_NAME, "")
+        if not kid_name:
+            return
+
+        message_data = {
+            "old_multiplier": old_value,
+            "new_multiplier": new_value,
+        }
+
+        await self.notify_kid_translated(
+            kid_id,
+            title_key=const.TRANS_KEY_NOTIF_TITLE_MULTIPLIER_CHANGED_KID,
+            message_key=const.TRANS_KEY_NOTIF_MESSAGE_MULTIPLIER_CHANGED_KID,
+            message_data=message_data,
+        )
+
+        await self.notify_parents_translated(
+            kid_id,
+            title_key=const.TRANS_KEY_NOTIF_TITLE_MULTIPLIER_CHANGED_PARENT,
+            message_key=const.TRANS_KEY_NOTIF_MESSAGE_MULTIPLIER_CHANGED_PARENT,
+            message_data={
+                "kid_name": kid_name,
+                **message_data,
+            },
+        )
+
+        const.LOGGER.debug(
+            "NotificationManager: Sent multiplier change notifications for kid=%s (%s -> %s)",
+            kid_id,
+            old_value,
+            new_value,
+        )
+
+    async def _handle_chore_due_window(self, payload: dict[str, Any]) -> None:
         """Handle CHORE_DUE_WINDOW event - notify kid when chore enters due window (v0.6.0+).
 
         Triggered when chore transitions from PENDING → DUE state.
@@ -2329,20 +2332,18 @@ class NotificationManager(BaseManager):
             return
 
         # Notify kid with claim action (using tag for smart replacement)
-        self.hass.async_create_task(
-            self.notify_kid_translated(
-                kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_DUE_WINDOW_KID,
-                message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_DUE_WINDOW_KID,
-                message_data={
-                    "chore_name": chore_name,
-                    "hours": hours,
-                    "points": points,
-                },
-                actions=self.build_claim_action(kid_id, chore_id, self.entry_id),
-                tag_type=const.NOTIFY_TAG_TYPE_STATUS,
-                tag_identifiers=(chore_id, kid_id),
-            )
+        await self.notify_kid_translated(
+            kid_id,
+            title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_DUE_WINDOW_KID,
+            message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_DUE_WINDOW_KID,
+            message_data={
+                "chore_name": chore_name,
+                "hours": hours,
+                "points": points,
+            },
+            actions=self.build_claim_action(kid_id, chore_id, self.entry_id),
+            tag_type=const.NOTIFY_TAG_TYPE_STATUS,
+            tag_identifiers=(chore_id, kid_id),
         )
 
         # Record notification sent (persists to storage)
@@ -2355,8 +2356,7 @@ class NotificationManager(BaseManager):
             hours,
         )
 
-    @callback
-    def _handle_chore_due_reminder(self, payload: dict[str, Any]) -> None:
+    async def _handle_chore_due_reminder(self, payload: dict[str, Any]) -> None:
         """Handle CHORE_DUE_REMINDER event - send reminder to kid with claim button (v0.6.0+).
 
         Renamed from _handle_chore_due_soon to clarify purpose.
@@ -2400,18 +2400,16 @@ class NotificationManager(BaseManager):
             return
 
         # Notify kid with claim action
-        self.hass.async_create_task(
-            self.notify_kid_translated(
-                kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_DUE_REMINDER_KID,
-                message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_DUE_REMINDER_KID,
-                message_data={
-                    "chore_name": chore_name,
-                    "minutes": minutes,
-                    "points": points,
-                },
-                actions=self.build_claim_action(kid_id, chore_id, self.entry_id),
-            )
+        await self.notify_kid_translated(
+            kid_id,
+            title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_DUE_REMINDER_KID,
+            message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_DUE_REMINDER_KID,
+            message_data={
+                "chore_name": chore_name,
+                "minutes": minutes,
+                "points": points,
+            },
+            actions=self.build_claim_action(kid_id, chore_id, self.entry_id),
         )
 
         # Record notification sent (persists to storage)
@@ -2424,8 +2422,7 @@ class NotificationManager(BaseManager):
             minutes,
         )
 
-    @callback
-    def _handle_chore_overdue(self, payload: dict[str, Any]) -> None:
+    async def _handle_chore_overdue(self, payload: dict[str, Any]) -> None:
         """Handle CHORE_OVERDUE event - notify kid and parents with actions.
 
         For rotation chores, notifies ALL assigned kids (steal mechanic).
@@ -2473,16 +2470,16 @@ class NotificationManager(BaseManager):
 
             # Send to all assigned kids
             for target_kid_id in kids_assigned:
-                self._send_overdue_notification_to_kid(
+                await self._send_overdue_notification_to_kid(
                     target_kid_id, chore_id, chore_name, due_date, payload
                 )
         else:
             # Regular chore - send to original kid only
-            self._send_overdue_notification_to_kid(
+            await self._send_overdue_notification_to_kid(
                 kid_id, chore_id, chore_name, due_date, payload
             )
 
-    def _send_overdue_notification_to_kid(
+    async def _send_overdue_notification_to_kid(
         self,
         target_kid_id: str,
         chore_id: str,
@@ -2523,21 +2520,19 @@ class NotificationManager(BaseManager):
         )
 
         # Notify kid with claim action (using tag for smart replacement)
-        self.hass.async_create_task(
-            self.notify_kid_translated(
-                target_kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_OVERDUE_KID,
-                message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_OVERDUE_KID,
-                message_data={
-                    "kid_name": kid_name,
-                    "chore_name": chore_name,
-                    "due_date": formatted_due_date,
-                    "points": chore_points,
-                },
-                actions=self.build_claim_action(target_kid_id, chore_id, self.entry_id),
-                tag_type=const.NOTIFY_TAG_TYPE_STATUS,
-                tag_identifiers=(chore_id, target_kid_id),
-            )
+        await self.notify_kid_translated(
+            target_kid_id,
+            title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_OVERDUE_KID,
+            message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_OVERDUE_KID,
+            message_data={
+                "kid_name": kid_name,
+                "chore_name": chore_name,
+                "due_date": formatted_due_date,
+                "points": chore_points,
+            },
+            actions=self.build_claim_action(target_kid_id, chore_id, self.entry_id),
+            tag_type=const.NOTIFY_TAG_TYPE_STATUS,
+            tag_identifiers=(chore_id, target_kid_id),
         )
 
         # Build parent actions
@@ -2562,20 +2557,18 @@ class NotificationManager(BaseManager):
         parent_language = self.hass.config.language
         formatted_due_date_parent = dt_format_short(due_dt, language=parent_language)
 
-        self.hass.async_create_task(
-            self.notify_parents_translated(
-                target_kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_OVERDUE_PARENT,
-                message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_OVERDUE_PARENT,
-                message_data={
-                    "kid_name": original_kid_name,  # Use original kid name from payload
-                    "chore_name": chore_name,
-                    "due_date": formatted_due_date_parent,
-                },
-                actions=parent_actions,
-                tag_type=const.NOTIFY_TAG_TYPE_STATUS,
-                tag_identifiers=(chore_id, target_kid_id),
-            )
+        await self.notify_parents_translated(
+            target_kid_id,
+            title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_OVERDUE_PARENT,
+            message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_OVERDUE_PARENT,
+            message_data={
+                "kid_name": original_kid_name,  # Use original kid name from payload
+                "chore_name": chore_name,
+                "due_date": formatted_due_date_parent,
+            },
+            actions=parent_actions,
+            tag_type=const.NOTIFY_TAG_TYPE_STATUS,
+            tag_identifiers=(chore_id, target_kid_id),
         )
 
         # Record notification sent (persists to storage)
@@ -2587,8 +2580,7 @@ class NotificationManager(BaseManager):
             target_kid_id,
         )
 
-    @callback
-    def _handle_chore_missed(self, payload: dict[str, Any]) -> None:
+    async def _handle_chore_missed(self, payload: dict[str, Any]) -> None:
         """Handle CHORE_MISSED event - notify kid and parents when chore locked due to missed.
 
         Phase 3 Step 9 (v0.5.0): Missed lock notifications
@@ -2649,20 +2641,18 @@ class NotificationManager(BaseManager):
         kid_name = kid_info.get(const.DATA_KID_NAME, "Unknown Kid")
 
         # Notify kid (NO claim action - chore is locked)
-        self.hass.async_create_task(
-            self.notify_kid_translated(
-                kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_MISSED_KID,
-                message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_MISSED_KID,
-                message_data={
-                    "kid_name": kid_name,
-                    "chore_name": chore_name,
-                    "due_date": formatted_due_date,
-                },
-                actions=None,  # No actions - chore is locked
-                tag_type=const.NOTIFY_TAG_TYPE_STATUS,
-                tag_identifiers=(chore_id, kid_id),
-            )
+        await self.notify_kid_translated(
+            kid_id,
+            title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_MISSED_KID,
+            message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_MISSED_KID,
+            message_data={
+                "kid_name": kid_name,
+                "chore_name": chore_name,
+                "due_date": formatted_due_date,
+            },
+            actions=None,  # No actions - chore is locked
+            tag_type=const.NOTIFY_TAG_TYPE_STATUS,
+            tag_identifiers=(chore_id, kid_id),
         )
 
         # Build parent actions (complete/skip still available for parents)
@@ -2684,20 +2674,18 @@ class NotificationManager(BaseManager):
         parent_language = self.hass.config.language
         formatted_due_date_parent = dt_format_short(due_dt, language=parent_language)
 
-        self.hass.async_create_task(
-            self.notify_parents_translated(
-                kid_id,
-                title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_MISSED_KID,
-                message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_MISSED_KID,
-                message_data={
-                    "kid_name": kid_name_payload,
-                    "chore_name": chore_name,
-                    "due_date": formatted_due_date_parent,
-                },
-                actions=parent_actions,
-                tag_type=const.NOTIFY_TAG_TYPE_STATUS,
-                tag_identifiers=(chore_id, kid_id),
-            )
+        await self.notify_parents_translated(
+            kid_id,
+            title_key=const.TRANS_KEY_NOTIF_TITLE_CHORE_MISSED_KID,
+            message_key=const.TRANS_KEY_NOTIF_MESSAGE_CHORE_MISSED_KID,
+            message_data={
+                "kid_name": kid_name_payload,
+                "chore_name": chore_name,
+                "due_date": formatted_due_date_parent,
+            },
+            actions=parent_actions,
+            tag_type=const.NOTIFY_TAG_TYPE_STATUS,
+            tag_identifiers=(chore_id, kid_id),
         )
 
         # Record notification sent (persists to storage)
@@ -2713,8 +2701,7 @@ class NotificationManager(BaseManager):
     # DELETED Event Handlers - Clear Ghost Notifications (Phase 7.3.7)
     # =========================================================================
 
-    @callback
-    def _handle_chore_deleted(self, payload: dict[str, Any]) -> None:
+    async def _handle_chore_deleted(self, payload: dict[str, Any]) -> None:
         """Handle CHORE_DELETED event - clear any pending notifications for deleted chore.
 
         When a chore is deleted, we need to clear notifications that reference it:
@@ -2749,16 +2736,13 @@ class NotificationManager(BaseManager):
         # Clear notifications for each kid that had this chore assigned
         for kid_id in assigned_kids:
             # Clear STATUS tag notifications (pending approvals, due/overdue)
-            self.hass.async_create_task(
-                self.clear_notification_for_parents(
-                    kid_id,
-                    const.NOTIFY_TAG_TYPE_STATUS,
-                    chore_id,
-                )
+            await self.clear_notification_for_parents(
+                kid_id,
+                const.NOTIFY_TAG_TYPE_STATUS,
+                chore_id,
             )
 
-    @callback
-    def _handle_reward_deleted(self, payload: dict[str, Any]) -> None:
+    async def _handle_reward_deleted(self, payload: dict[str, Any]) -> None:
         """Handle REWARD_DELETED event - clear any pending notifications for deleted reward.
 
         When a reward is deleted, we need to clear notifications that reference it:
@@ -2786,16 +2770,13 @@ class NotificationManager(BaseManager):
         # Clear REWARDS tag notifications for all kids
         # Rewards can be claimed by any kid, so we iterate through all kids
         for kid_id in self.coordinator.kids_data:
-            self.hass.async_create_task(
-                self.clear_notification_for_parents(
-                    kid_id,
-                    const.NOTIFY_TAG_TYPE_REWARDS,
-                    reward_id,
-                )
+            await self.clear_notification_for_parents(
+                kid_id,
+                const.NOTIFY_TAG_TYPE_REWARDS,
+                reward_id,
             )
 
-    @callback
-    def _handle_kid_deleted(self, payload: dict[str, Any]) -> None:
+    async def _handle_kid_deleted(self, payload: dict[str, Any]) -> None:
         """Handle KID_DELETED event - clear all notifications involving deleted kid.
 
         When a kid is deleted, we need to clear all notifications that reference them:
@@ -2847,10 +2828,8 @@ class NotificationManager(BaseManager):
             const.NOTIFY_TAG_TYPE_PENDING,
             const.NOTIFY_TAG_TYPE_SYSTEM,
         ):
-            self.hass.async_create_task(
-                self.clear_notification_for_parents(
-                    kid_id,
-                    tag_type,
-                    kid_id,  # Use kid_id as item_id to match tags like "status-kidid-kidid"
-                )
+            await self.clear_notification_for_parents(
+                kid_id,
+                tag_type,
+                kid_id,  # Use kid_id as item_id to match tags like "status-kidid-kidid"
             )

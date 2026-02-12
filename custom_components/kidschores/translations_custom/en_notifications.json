@@ -55,6 +55,10 @@
     "title": "⭐ Bonus Applied!",
     "message": "{bonus_name}: You earned {points} bonus points! Great job"
   },
+  "multiplier_changed_kid": {
+    "title": "⚖️ Multiplier Updated",
+    "message": "Your points multiplier changed from {old_multiplier}x to {new_multiplier}x"
+  },
 
   "_comment_parent_section": "══════════════════════════════════════════════════════════════════",
   "_comment_parent_desc": "PARENT NOTIFICATIONS: Informative, third-person, actionable. Format: '{kid_name}: Action'. NO 'KidsChores:' prefix.",
@@ -95,6 +99,10 @@
   "challenge_completed_parent": {
     "title": "🏁 {kid_name}: Challenge Done",
     "message": "{kid_name} completed {challenge_name}"
+  },
+  "multiplier_changed_parent": {
+    "title": "⚖️ {kid_name}: Multiplier Updated",
+    "message": "{kid_name}'s points multiplier changed from {old_multiplier}x to {new_multiplier}x"
   },
 
   "_comment_system_section": "══════════════════════════════════════════════════════════════════",

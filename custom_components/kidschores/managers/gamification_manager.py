@@ -695,7 +695,7 @@ class GamificationManager(BaseManager):
 
         self._eval_timer = self.hass.loop.call_later(
             self._debounce_seconds,
-            lambda: self.hass.async_create_task(self._evaluate_pending_kids()),
+            lambda: self.hass.add_job(self._evaluate_pending_kids()),
         )
 
     async def _evaluate_pending_kids(self) -> None:
@@ -899,19 +899,26 @@ class GamificationManager(BaseManager):
             )
             return
 
-        # 2. Maintenance period still open — just accumulate points, no action
+        met = cycle_points >= maintenance_threshold
+
+        # 2. DEMOTED + maintenance met -> immediate re-promotion to ACTIVE
+        # Do not wait for period boundary once threshold is met in demoted state.
+        if status == const.CUMULATIVE_BADGE_STATE_DEMOTED and met:
+            await self._apply_cumulative_maintenance_met(kid_id, badge_id, badge_data)
+            return
+
+        # 3. Maintenance period still open — just accumulate points, no action
         if today_iso < end_date_str:
             return
 
-        # 3. Period ended (today >= end_date) — evaluate
-        met = cycle_points >= maintenance_threshold
+        # 4. Period ended (today >= end_date) — evaluate
 
         if met:
             # Maintenance met: confirm ACTIVE, reset cycle, advance dates, emit rewards
             await self._apply_cumulative_maintenance_met(kid_id, badge_id, badge_data)
             return
 
-        # 4. Not met — check current state for grace/demotion
+        # 5. Not met — check current state for grace/demotion
         if status == const.CUMULATIVE_BADGE_STATE_GRACE:
             # In grace period — check if grace expired
             if grace_end_str and today_iso >= grace_end_str:
@@ -926,7 +933,7 @@ class GamificationManager(BaseManager):
             # else: still within grace window, do nothing
             return
 
-        # 5. Not in grace — enter grace or demote immediately
+        # 6. Not in grace — enter grace or demote immediately
         reset_schedule = badge_data.get(const.DATA_BADGE_RESET_SCHEDULE, {})
         grace_days = int(
             reset_schedule.get(const.DATA_BADGE_RESET_SCHEDULE_GRACE_PERIOD_DAYS, 0)
@@ -1203,7 +1210,7 @@ class GamificationManager(BaseManager):
     ) -> None:
         """Handle cumulative badge maintenance met — confirm ACTIVE, reset cycle.
 
-        Called when maintenance period has ended AND cycle_points >= threshold.
+        Called when maintenance threshold is met.
         Applies regardless of current status (ACTIVE, GRACE, or DEMOTED).
 
         Actions:
@@ -1211,8 +1218,8 @@ class GamificationManager(BaseManager):
         2. Reset cycle_points = 0
         3. Advance maintenance dates for next cycle
         4. Recalculate point multiplier (restores full if was DEMOTED)
-        5. Update badges_earned tracking
-        6. Emit BADGE_EARNED signal with Award Manifest
+        5. If current status is ACTIVE/GRACE: update badges_earned + emit manifest
+        6. If current status is DEMOTED: do not emit award manifest
 
         Args:
             kid_id: Kid's internal ID
@@ -1229,6 +1236,7 @@ class GamificationManager(BaseManager):
             const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_STATUS,
             const.CUMULATIVE_BADGE_STATE_ACTIVE,
         )
+        was_demoted = current_status == const.CUMULATIVE_BADGE_STATE_DEMOTED
 
         # Data corruption repair: DEMOTED when maintenance disabled
         maintenance_enabled = self._badge_maintenance_enabled(badge_data)
@@ -1263,8 +1271,10 @@ class GamificationManager(BaseManager):
             const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_MAINTENANCE_GRACE_END_DATE
         ] = grace_end
 
-        # Update badge tracking (period stats)
-        self.update_badges_earned_for_kid(kid_id, badge_id)
+        # Update badge tracking (period stats) only for non-demoted maintenance cycles.
+        # For DEMOTED -> ACTIVE reactivation we restore status/multiplier only.
+        if not was_demoted:
+            self.update_badges_earned_for_kid(kid_id, badge_id)
 
         # Recalculate multiplier (restore full strength if was DEMOTED)
         self.update_point_multiplier_for_kid(kid_id)
@@ -1279,6 +1289,16 @@ class GamificationManager(BaseManager):
             badge_data.get(const.DATA_BADGE_NAME, badge_id),
             end_date,
         )
+
+        if was_demoted:
+            self.emit(
+                const.SIGNAL_SUFFIX_BADGE_UPDATED,
+                kid_id=kid_id,
+                badge_id=badge_id,
+                status=const.CUMULATIVE_BADGE_STATE_ACTIVE,
+                badge_name=badge_data.get(const.DATA_BADGE_NAME, "Unknown"),
+            )
+            return
 
         # Build and emit Award Manifest
         manifest = self._build_badge_award_manifest(badge_data)
@@ -1953,8 +1973,8 @@ class GamificationManager(BaseManager):
     def update_point_multiplier_for_kid(self, kid_id: str) -> None:
         """Update the kid's points multiplier based on current cumulative badge.
 
-        Phase 3A: Use get_cumulative_badge_levels to compute current badge
-        (no longer read current_badge_id from storage).
+        Phase 3A: Use get_cumulative_badge_progress to compute current badge
+        (demotion-aware, no storage reads).
 
         Phase 3B Landlord/Tenant: GamificationManager calculates the multiplier
         but emits a signal for EconomyManager (the Landlord) to perform the write.
@@ -1966,10 +1986,17 @@ class GamificationManager(BaseManager):
         if not kid_info:
             return
 
-        # Phase 3A: Get current badge via computation (not storage read)
-        current_badge, _, _, _, _ = self.get_cumulative_badge_levels(kid_id)
-        current_badge_id = (
-            current_badge.get(const.DATA_BADGE_INTERNAL_ID) if current_badge else None
+        old_multiplier = float(
+            kid_info.get(
+                const.DATA_KID_POINTS_MULTIPLIER,
+                const.DEFAULT_KID_POINTS_MULTIPLIER,
+            )
+        )
+
+        # Phase 3A: Get current badge via computed progress (demotion-aware)
+        cumulative_badge_progress = self.get_cumulative_badge_progress(kid_id)
+        current_badge_id = cumulative_badge_progress.get(
+            const.CUMULATIVE_BADGE_PROGRESS_CURRENT_BADGE_ID
         )
 
         multiplier: float = const.DEFAULT_KID_POINTS_MULTIPLIER
@@ -1990,6 +2017,8 @@ class GamificationManager(BaseManager):
             const.SIGNAL_SUFFIX_POINTS_MULTIPLIER_CHANGE_REQUESTED,
             kid_id=kid_id,
             multiplier=multiplier,
+            old_multiplier=old_multiplier,
+            new_multiplier=multiplier,
             reference_id=current_badge_id,
         )
 

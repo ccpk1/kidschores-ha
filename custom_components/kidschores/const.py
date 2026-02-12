@@ -2013,6 +2013,13 @@ TRANS_KEY_NOTIF_MESSAGE_BONUS_APPLIED_KID: Final = (
     "notification_message_bonus_applied_kid"
 )
 
+TRANS_KEY_NOTIF_TITLE_MULTIPLIER_CHANGED_KID: Final = (
+    "notification_title_multiplier_changed_kid"
+)
+TRANS_KEY_NOTIF_MESSAGE_MULTIPLIER_CHANGED_KID: Final = (
+    "notification_message_multiplier_changed_kid"
+)
+
 # ─── PARENT-FACING NOTIFICATIONS ─────────────────────────────────────────────────────────────────
 
 # Parent: Chore Claim/Approval Workflow
@@ -2081,6 +2088,13 @@ TRANS_KEY_NOTIF_TITLE_CHALLENGE_COMPLETED_PARENT: Final = (
 )
 TRANS_KEY_NOTIF_MESSAGE_CHALLENGE_COMPLETED_PARENT: Final = (
     "notification_message_challenge_completed_parent"
+)
+
+TRANS_KEY_NOTIF_TITLE_MULTIPLIER_CHANGED_PARENT: Final = (
+    "notification_title_multiplier_changed_parent"
+)
+TRANS_KEY_NOTIF_MESSAGE_MULTIPLIER_CHANGED_PARENT: Final = (
+    "notification_message_multiplier_changed_parent"
 )
 
 # ─── ADMIN/SYSTEM NOTIFICATIONS ──────────────────────────────────────────────────────────────────
@@ -2404,6 +2418,7 @@ ATTR_END_DATE: Final = "end_date"
 ATTR_FRIENDLY_NAME: Final = "friendly_name"
 ATTR_GLOBAL_STATE: Final = "global_state"
 ATTR_HIGHEST_BADGE_THRESHOLD_VALUE: Final = "highest_badge_threshold_value"
+ATTR_HIGHEST_EARNED_BADGE_EID: Final = "highest_earned_badge_eid"
 ATTR_HIGHEST_EARNED_BADGE_NAME: Final = "highest_earned_badge_name"
 ATTR_KID_NAME: Final = "kid_name"
 ATTR_KIDS_ASSIGNED: Final = "kids_assigned"
@@ -2509,6 +2524,7 @@ ATTR_APPROVALS: Final = "approvals"
 ATTR_POINTS: Final = "points"
 ATTR_APPLIED: Final = "applied"
 ATTR_BADGE_EARNED: Final = "earned"
+ATTR_EARNED_COUNT: Final = "earned_count"
 
 # Primary Group Values
 PRIMARY_GROUP_TODAY = "today"

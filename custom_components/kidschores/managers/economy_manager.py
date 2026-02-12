@@ -153,9 +153,8 @@ class EconomyManager(BaseManager):
             return
 
         self._update_multiplier(kid_id, float(multiplier), reference_id)
-        self._coordinator._persist()
 
-    def _on_badge_earned(self, payload: dict[str, Any]) -> None:
+    async def _on_badge_earned(self, payload: dict[str, Any]) -> None:
         """Handle badge earned event - process full Award Manifest.
 
         Phase 7 Signal-First Logic: The "Banker" (EconomyManager) owns all
@@ -179,46 +178,53 @@ class EconomyManager(BaseManager):
         # 1. Points - deposit to kid's balance
         points = payload.get("points", 0.0)
         if points > 0:
-            self.hass.loop.call_soon_threadsafe(
-                self.hass.async_create_task,
-                self.deposit(
-                    kid_id,
-                    points,
-                    source=const.POINTS_SOURCE_BADGES,
-                    reference_id=badge_id,
-                    item_name=badge_name,
-                ),
+            await self.deposit(
+                kid_id,
+                points,
+                source=const.POINTS_SOURCE_BADGES,
+                reference_id=badge_id,
+                item_name=badge_name,
             )
 
         # 2. Multiplier - Banker owns currency rules
         multiplier = payload.get("multiplier")
         if multiplier is not None:
-            self._update_multiplier(kid_id, float(multiplier), badge_id)
+            kid_info = self._get_kid(kid_id)
+            if kid_info:
+                old_multiplier = float(
+                    kid_info.get(
+                        const.DATA_KID_POINTS_MULTIPLIER,
+                        const.DEFAULT_KID_POINTS_MULTIPLIER,
+                    )
+                )
+                new_multiplier = float(multiplier)
+                self.emit(
+                    const.SIGNAL_SUFFIX_POINTS_MULTIPLIER_CHANGE_REQUESTED,
+                    kid_id=kid_id,
+                    multiplier=new_multiplier,
+                    old_multiplier=old_multiplier,
+                    new_multiplier=new_multiplier,
+                    reference_id=badge_id,
+                )
 
         # 3. Bonuses - apply each bonus
         bonus_ids = payload.get("bonus_ids", [])
         for bonus_id in bonus_ids:
             if bonus_id in self._coordinator.bonuses_data:
-                self.hass.loop.call_soon_threadsafe(
-                    self.hass.async_create_task,
-                    self.apply_bonus(
-                        "Badge Award",
-                        kid_id,
-                        bonus_id,
-                    ),
+                await self.apply_bonus(
+                    "Badge Award",
+                    kid_id,
+                    bonus_id,
                 )
 
         # 4. Penalties - apply each penalty
         penalty_ids = payload.get("penalty_ids", [])
         for penalty_id in penalty_ids:
             if penalty_id in self._coordinator.penalties_data:
-                self.hass.loop.call_soon_threadsafe(
-                    self.hass.async_create_task,
-                    self.apply_penalty(
-                        "Badge Award",
-                        kid_id,
-                        penalty_id,
-                    ),
+                await self.apply_penalty(
+                    "Badge Award",
+                    kid_id,
+                    penalty_id,
                 )
 
     def _update_multiplier(
@@ -249,7 +255,7 @@ class EconomyManager(BaseManager):
             )
             self._coordinator._persist_and_update()
 
-    def _on_achievement_earned(self, payload: dict[str, Any]) -> None:
+    async def _on_achievement_earned(self, payload: dict[str, Any]) -> None:
         """Handle achievement earned event - deposit award points.
 
         Args:
@@ -260,17 +266,14 @@ class EconomyManager(BaseManager):
         achievement_points = payload.get("achievement_points", 0.0)
 
         if achievement_points > 0 and kid_id:
-            self.hass.loop.call_soon_threadsafe(
-                self.hass.async_create_task,
-                self.deposit(
-                    kid_id,
-                    achievement_points,
-                    source=const.POINTS_SOURCE_ACHIEVEMENTS,
-                    reference_id=achievement_id,
-                ),
+            await self.deposit(
+                kid_id,
+                achievement_points,
+                source=const.POINTS_SOURCE_ACHIEVEMENTS,
+                reference_id=achievement_id,
             )
 
-    def _on_challenge_completed(self, payload: dict[str, Any]) -> None:
+    async def _on_challenge_completed(self, payload: dict[str, Any]) -> None:
         """Handle challenge completed event - deposit award points.
 
         Args:
@@ -281,14 +284,11 @@ class EconomyManager(BaseManager):
         challenge_points = payload.get("challenge_points", 0.0)
 
         if challenge_points > 0 and kid_id:
-            self.hass.loop.call_soon_threadsafe(
-                self.hass.async_create_task,
-                self.deposit(
-                    kid_id,
-                    challenge_points,
-                    source=const.POINTS_SOURCE_CHALLENGES,
-                    reference_id=challenge_id,
-                ),
+            await self.deposit(
+                kid_id,
+                challenge_points,
+                source=const.POINTS_SOURCE_CHALLENGES,
+                reference_id=challenge_id,
             )
 
     async def _on_chore_approved(self, payload: dict[str, Any]) -> None:

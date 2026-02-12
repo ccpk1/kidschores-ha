@@ -1031,7 +1031,8 @@
                     {%- if earned_badges | length > 0 -%}
                       {%- for badge in earned_badges -%}
                         {%- set badge_icon = state_attr(badge.eid, 'icon') | default('mdi:medal-outline') -%}
-                        {%- set ns.earned_badges_display = ns.earned_badges_display ~ '\n- <ha-icon icon=\'' ~ badge_icon ~ '\'></ha-icon> ' ~ badge.name -%}
+                        {%- set badge_earned_count = badge.earned_count | int(default=1) -%}
+                        {%- set ns.earned_badges_display = ns.earned_badges_display ~ '\n- <ha-icon icon=\'' ~ badge_icon ~ '\'></ha-icon> ' ~ badge.name ~ ' (x' ~ badge_earned_count ~ ')' -%}
                       {%- endfor -%}
                     {%- else -%}
                       {%- set ns.earned_badges_display = '&nbsp;' ~ ui.get('none', 'err-none') -%}
@@ -1123,6 +1124,7 @@
                 m_award_count=0,
                 points_to_next=0,
                 current_badge_eid='',
+                highest_earned_badge_eid='',
                 next_higher_badge_eid='',
                 next_lower_badge_eid='',
                 has_earned_any=false
@@ -1176,14 +1178,26 @@
                   {%- set ns.m_award_count = hb_attrs.get('award_count', 0) | int(default=0) -%}
                   {#-- Get entity IDs directly from sensor --#}
                   {%- set ns.current_badge_eid = hb_attrs.get('current_badge_eid') -%}
+                  {%- set ns.highest_earned_badge_eid = hb_attrs.get('highest_earned_badge_eid') -%}
                   {%- set ns.next_higher_badge_eid = hb_attrs.get('next_higher_badge_eid') -%}
                   {%- set ns.next_lower_badge_eid = hb_attrs.get('next_lower_badge_eid') -%}
                   {%- set ns.has_earned_any = ns.current_badge_eid is not none and ns.current_badge_eid not in ['', 'None', 'unknown', 'unavailable'] -%}
 
+                  {#-- During demotion, keep highest earned badge as middle card --#}
+                  {%- set middle_badge_eid = ns.current_badge_eid -%}
+                  {%- if ns.m_status == 'demoted' and ns.highest_earned_badge_eid and ns.highest_earned_badge_eid not in ['', 'None', 'unknown', 'unavailable'] -%}
+                    {%- set middle_badge_eid = ns.highest_earned_badge_eid -%}
+                  {%- endif -%}
+
+                  {#-- Avoid duplicate lower card when middle already points to lower badge --#}
+                  {%- if ns.next_lower_badge_eid == middle_badge_eid -%}
+                    {%- set ns.next_lower_badge_eid = none -%}
+                  {%- endif -%}
+
                   {#-- Build ordered badge list: [next_higher (future), current (earned), next_lower (past)] --#}
                   {%- set badge_entries = [
                     {'eid': ns.next_higher_badge_eid, 'role': 'next_higher', 'earned': false},
-                    {'eid': ns.current_badge_eid, 'role': 'current', 'earned': true},
+                    {'eid': middle_badge_eid, 'role': 'current', 'earned': true},
                     {'eid': ns.next_lower_badge_eid, 'role': 'next_lower', 'earned': true}
                   ] -%}
 

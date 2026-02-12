@@ -208,8 +208,7 @@ class StatisticsManager(BaseManager):
         const.LOGGER.info("StatisticsManager: Midnight rollover - clearing cache")
         self.invalidate_cache()
 
-    @callback
-    def _on_points_changed(self, payload: dict[str, Any]) -> None:
+    async def _on_points_changed(self, payload: dict[str, Any]) -> None:
         """Handle POINTS_CHANGED event - update point statistics.
 
         This is called whenever EconomyManager.deposit() or .withdraw() is invoked.
@@ -380,8 +379,7 @@ class StatisticsManager(BaseManager):
         # Signal cascade continues
         self.emit(const.SIGNAL_SUFFIX_STATS_READY)
 
-    @callback
-    def _on_chore_approved(self, payload: dict[str, Any]) -> None:
+    async def _on_chore_approved(self, payload: dict[str, Any]) -> None:
         """Handle CHORE_APPROVED event - update approval statistics.
 
         Records approved count and points to period buckets.
@@ -409,8 +407,7 @@ class StatisticsManager(BaseManager):
                 points_awarded,
             )
 
-    @callback
-    def _on_chore_completed(self, payload: dict[str, Any]) -> None:
+    async def _on_chore_completed(self, payload: dict[str, Any]) -> None:
         """Handle CHORE_COMPLETED event - update completion and streak statistics.
 
         Called when completion criteria is satisfied:
@@ -540,8 +537,7 @@ class StatisticsManager(BaseManager):
             kid_ids,
         )
 
-    @callback
-    def _on_chore_claimed(self, payload: dict[str, Any]) -> None:
+    async def _on_chore_claimed(self, payload: dict[str, Any]) -> None:
         """Handle CHORE_CLAIMED event - record claim count to period buckets."""
         kid_id = payload.get("kid_id", "")
         chore_id = payload.get("chore_id", "")
@@ -558,8 +554,7 @@ class StatisticsManager(BaseManager):
                 chore_id,
             )
 
-    @callback
-    def _on_chore_disapproved(self, payload: dict[str, Any]) -> None:
+    async def _on_chore_disapproved(self, payload: dict[str, Any]) -> None:
         """Handle CHORE_DISAPPROVED event - record disapproval to period buckets."""
         kid_id = payload.get("kid_id", "")
         chore_id = payload.get("chore_id", "")
@@ -576,8 +571,7 @@ class StatisticsManager(BaseManager):
                 chore_id,
             )
 
-    @callback
-    def _on_chore_overdue(self, payload: dict[str, Any]) -> None:
+    async def _on_chore_overdue(self, payload: dict[str, Any]) -> None:
         """Handle CHORE_OVERDUE event - record overdue to period buckets.
 
         Enforces max 1 overdue per day by checking today's bucket value before
@@ -632,8 +626,7 @@ class StatisticsManager(BaseManager):
                 chore_id,
             )
 
-    @callback
-    def _on_chore_missed(self, payload: dict[str, Any]) -> None:
+    async def _on_chore_missed(self, payload: dict[str, Any]) -> None:
         """Handle CHORE_MISSED event - record missed to period buckets.
 
         Phase 5: Handles missed_streak_tally from signal, writes to daily bucket.
@@ -729,8 +722,7 @@ class StatisticsManager(BaseManager):
                 chore_id,
             )
 
-    @callback
-    def _on_chore_status_reset(self, payload: dict[str, Any]) -> None:
+    async def _on_chore_status_reset(self, payload: dict[str, Any]) -> None:
         """Handle CHORE_STATUS_RESET event - refresh snapshot counts.
 
         STATUS_RESET is a quiet transition (no bucket writes needed).
@@ -758,8 +750,7 @@ class StatisticsManager(BaseManager):
                 chore_id,
             )
 
-    @callback
-    def _on_chore_undone(self, payload: dict[str, Any]) -> None:
+    async def _on_chore_undone(self, payload: dict[str, Any]) -> None:
         """Handle CHORE_UNDONE event - refresh snapshot counts.
 
         UNDONE is a quiet transition (no bucket writes needed).
@@ -790,8 +781,7 @@ class StatisticsManager(BaseManager):
                 chore_id,
             )
 
-    @callback
-    def _on_reward_approved(self, payload: dict[str, Any]) -> None:
+    async def _on_reward_approved(self, payload: dict[str, Any]) -> None:
         """Handle REWARD_APPROVED signal.
 
         Signal emitted by RewardManager when a reward is approved by parent.
@@ -860,8 +850,7 @@ class StatisticsManager(BaseManager):
             cost,
         )
 
-    @callback
-    def _on_reward_claimed(self, payload: dict[str, Any]) -> None:
+    async def _on_reward_claimed(self, payload: dict[str, Any]) -> None:
         """Handle REWARD_CLAIMED signal.
 
         Signal emitted by RewardManager when a kid claims a reward.
@@ -919,8 +908,7 @@ class StatisticsManager(BaseManager):
             reward_id,
         )
 
-    @callback
-    def _on_reward_disapproved(self, payload: dict[str, Any]) -> None:
+    async def _on_reward_disapproved(self, payload: dict[str, Any]) -> None:
         """Handle REWARD_DISAPPROVED signal.
 
         Signal emitted by RewardManager when a parent disapproves a reward.
@@ -978,8 +966,7 @@ class StatisticsManager(BaseManager):
             reward_id,
         )
 
-    @callback
-    def _on_badge_earned(self, payload: dict[str, Any]) -> None:
+    async def _on_badge_earned(self, payload: dict[str, Any]) -> None:
         """Handle BADGE_EARNED signal.
 
         Signal emitted by GamificationManager when a badge is awarded to a kid.
@@ -1064,8 +1051,7 @@ class StatisticsManager(BaseManager):
             badge_id,
         )
 
-    @callback
-    def _on_bonus_applied(self, payload: dict[str, Any]) -> None:
+    async def _on_bonus_applied(self, payload: dict[str, Any]) -> None:
         """Handle BONUS_APPLIED signal.
 
         Signal emitted by EconomyManager when a bonus is applied to a kid.
@@ -1157,8 +1143,7 @@ class StatisticsManager(BaseManager):
             points,
         )
 
-    @callback
-    def _on_penalty_applied(self, payload: dict[str, Any]) -> None:
+    async def _on_penalty_applied(self, payload: dict[str, Any]) -> None:
         """Handle PENALTY_APPLIED signal.
 
         Signal emitted by EconomyManager when a penalty is applied to a kid.
@@ -1250,8 +1235,7 @@ class StatisticsManager(BaseManager):
             points,
         )
 
-    @callback
-    def _on_data_reset_complete(self, payload: dict[str, Any]) -> None:
+    async def _on_data_reset_complete(self, payload: dict[str, Any]) -> None:
         """Handle data reset completion - invalidate affected caches.
 
         When any domain manager completes a data reset operation, we need to

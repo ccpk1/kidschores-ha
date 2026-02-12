@@ -1690,6 +1690,10 @@ class KidBadgesSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.CUMULATIVE_BADGE_PROGRESS_CURRENT_BADGE_NAME,
             const.SENTINEL_NONE_TEXT,
         )
+        highest_earned_badge_id = cumulative_badge_progress_info.get(
+            const.CUMULATIVE_BADGE_PROGRESS_HIGHEST_EARNED_BADGE_ID,
+            const.SENTINEL_NONE_TEXT,
+        )
         highest_earned_badge_name = cumulative_badge_progress_info.get(
             const.CUMULATIVE_BADGE_PROGRESS_HIGHEST_EARNED_BADGE_NAME,
             const.SENTINEL_NONE_TEXT,
@@ -1743,9 +1747,21 @@ class KidBadgesSensor(KidsChoresCoordinatorEntity, SensorEntity):
             # Fallback: empty list
             earned_badge_list = []
 
+        maintenance_badge_id = (
+            highest_earned_badge_id
+            if highest_earned_badge_id
+            and highest_earned_badge_id != const.SENTINEL_NONE_TEXT
+            else current_badge_id
+        )
+
         # Use current_badge_id from computed progress to look up badge details
         current_badge_info: BadgeData = cast(
             "BadgeData", self.coordinator.badges_data.get(current_badge_id, {})
+        )
+
+        # Maintenance metadata should always come from highest earned badge context
+        maintenance_badge_info: BadgeData = cast(
+            "BadgeData", self.coordinator.badges_data.get(maintenance_badge_id, {})
         )
 
         stored_labels = current_badge_info.get(const.DATA_BADGE_LABELS, [])
@@ -1754,11 +1770,11 @@ class KidBadgesSensor(KidsChoresCoordinatorEntity, SensorEntity):
             for label in cast("list", stored_labels)
         ]
 
-        # Get last awarded date and award count for the current badge (if earned)
+        # Get last awarded date and award count for the highest earned badge (if any)
         # Defensive: Handle badges_earned as either dict (v42+) or list (legacy v41)
         badges_earned_data = kid_info.get(const.DATA_KID_BADGES_EARNED, {})
         if isinstance(badges_earned_data, dict):
-            badge_earned = badges_earned_data.get(current_badge_id, {})
+            badge_earned = badges_earned_data.get(maintenance_badge_id, {})
         else:
             # Legacy v41: list format, no per-badge metadata
             badge_earned = {}
@@ -1795,7 +1811,7 @@ class KidBadgesSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_MAINTENANCE_END_DATE, None
         )
 
-        target_info = current_badge_info.get(const.DATA_BADGE_TARGET, {})
+        target_info = maintenance_badge_info.get(const.DATA_BADGE_TARGET, {})
 
         # maintenance_rules is an int inside target_info
         maintenance_rules = target_info.get(const.DATA_BADGE_MAINTENANCE_RULES, 0)
@@ -1816,7 +1832,7 @@ class KidBadgesSensor(KidsChoresCoordinatorEntity, SensorEntity):
             )
 
         # Add reset_schedule fields if recurring_frequency is present
-        reset_schedule = current_badge_info.get(const.DATA_BADGE_RESET_SCHEDULE, {})
+        reset_schedule = maintenance_badge_info.get(const.DATA_BADGE_RESET_SCHEDULE, {})
         if reset_schedule:
             extra_attrs[const.DATA_BADGE_RESET_SCHEDULE] = reset_schedule
 
@@ -1825,7 +1841,7 @@ class KidBadgesSensor(KidsChoresCoordinatorEntity, SensorEntity):
             extra_attrs[const.DATA_BADGE_TARGET] = target_info
 
         # Add awards if present
-        awards_info = current_badge_info.get(const.DATA_BADGE_AWARDS, {})
+        awards_info = maintenance_badge_info.get(const.DATA_BADGE_AWARDS, {})
         if awards_info:
             extra_attrs[const.DATA_BADGE_AWARDS] = awards_info
 
@@ -1833,6 +1849,7 @@ class KidBadgesSensor(KidsChoresCoordinatorEntity, SensorEntity):
         # These allow the dashboard to directly reference badge definition sensors
         badge_eid_map = [
             (current_badge_id, const.ATTR_CURRENT_BADGE_EID),
+            (highest_earned_badge_id, const.ATTR_HIGHEST_EARNED_BADGE_EID),
             (next_higher_badge_id, const.ATTR_NEXT_HIGHER_BADGE_EID),
             (next_lower_badge_id, const.ATTR_NEXT_LOWER_BADGE_EID),
         ]
@@ -1868,6 +1885,9 @@ class KidBadgesSensor(KidsChoresCoordinatorEntity, SensorEntity):
             ),
             # Highest earned badge
             const.ATTR_HIGHEST_EARNED_BADGE_NAME: highest_earned_badge_name,
+            const.ATTR_HIGHEST_EARNED_BADGE_EID: badge_entity_ids.get(
+                const.ATTR_HIGHEST_EARNED_BADGE_EID
+            ),
             # Next higher badge (goal/target)
             const.ATTR_NEXT_HIGHER_BADGE_NAME: next_higher_badge_name,
             const.ATTR_NEXT_HIGHER_BADGE_EID: badge_entity_ids.get(
@@ -3868,7 +3888,7 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
         # Check if sensor exists; if not, schedule async creation
         if not self.coordinator.ui_manager.is_translation_sensor_created(lang_code):
             # Create new sensor asynchronously - entity will update on next cycle
-            self.hass.async_create_task(
+            self.hass.add_job(
                 self.coordinator.ui_manager.ensure_translation_sensor_exists(lang_code)
             )
             # Return None for now (sensor will exist after async creation completes)
@@ -4554,6 +4574,21 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
                 # Check if badge is earned (in badges_earned dict)
                 badges_earned = kid_info.get(const.DATA_KID_BADGES_EARNED, {})
                 is_earned = badge_id in badges_earned
+                badge_earned = (
+                    badges_earned.get(badge_id, {})
+                    if isinstance(badges_earned, dict)
+                    else {}
+                )
+                periods = badge_earned.get(const.DATA_KID_BADGES_EARNED_PERIODS, {})
+                period_key_mapping = {
+                    const.PERIOD_ALL_TIME: const.DATA_KID_BADGES_EARNED_PERIODS_ALL_TIME
+                }
+                earned_count = self.coordinator.stats.get_period_total(
+                    periods,
+                    const.PERIOD_ALL_TIME,
+                    const.DATA_KID_BADGES_EARNED_AWARD_COUNT,
+                    period_key_mapping=period_key_mapping,
+                )
 
                 # Get badge status from kid's badge progress (only for non-cumulative)
                 badge_status = const.SENTINEL_NONE
@@ -4571,6 +4606,7 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
                             const.ATTR_BADGE_TYPE: badge_type,
                             const.ATTR_STATUS: badge_status,
                             const.ATTR_BADGE_EARNED: is_earned,
+                            const.ATTR_EARNED_COUNT: earned_count,
                         }
                     )
                 else:
@@ -4581,6 +4617,7 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
                             const.ATTR_NAME: badge_name,
                             const.ATTR_BADGE_TYPE: badge_type,
                             const.ATTR_BADGE_EARNED: is_earned,
+                            const.ATTR_EARNED_COUNT: earned_count,
                         }
                     )
 

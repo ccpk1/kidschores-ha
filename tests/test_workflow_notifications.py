@@ -905,6 +905,228 @@ class TestDueDateReminders:
         assert kid_notifications[0]["kid_id"] == kid_id
 
 
+class TestMultiplierChangeNotifications:
+    """Tests for multiplier-change notifications to kid and parents."""
+
+    @pytest.mark.asyncio
+    async def test_multiplier_change_notifies_kid_and_parents(
+        self,
+        hass: HomeAssistant,
+        scenario_notifications: SetupResult,
+    ) -> None:
+        """Changed multiplier sends neutral notifications to kid and parents."""
+        from custom_components.kidschores import const
+
+        coordinator = scenario_notifications.coordinator
+        kid_id = scenario_notifications.kid_ids["Zoë"]
+
+        kid_calls: list[dict[str, Any]] = []
+        parent_calls: list[dict[str, Any]] = []
+
+        async def capture_kid_notification(
+            kid_id_arg: str,
+            title_key: str,
+            message_key: str,
+            **kwargs: Any,
+        ) -> None:
+            kid_calls.append(
+                {
+                    "kid_id": kid_id_arg,
+                    "title_key": title_key,
+                    "message_key": message_key,
+                    **kwargs,
+                }
+            )
+
+        async def capture_parent_notification(
+            kid_id_arg: str,
+            title_key: str,
+            message_key: str,
+            **kwargs: Any,
+        ) -> None:
+            parent_calls.append(
+                {
+                    "kid_id": kid_id_arg,
+                    "title_key": title_key,
+                    "message_key": message_key,
+                    **kwargs,
+                }
+            )
+
+        with (
+            patch.object(
+                coordinator.notification_manager,
+                "notify_kid_translated",
+                new=capture_kid_notification,
+            ),
+            patch.object(
+                coordinator.notification_manager,
+                "notify_parents_translated",
+                new=capture_parent_notification,
+            ),
+        ):
+            coordinator.gamification_manager.emit(
+                const.SIGNAL_SUFFIX_POINTS_MULTIPLIER_CHANGE_REQUESTED,
+                kid_id=kid_id,
+                old_multiplier=1.0,
+                new_multiplier=0.8,
+                multiplier=0.8,
+            )
+            await hass.async_block_till_done()
+
+        assert len(kid_calls) == 1
+        assert kid_calls[0]["kid_id"] == kid_id
+        assert (
+            kid_calls[0]["title_key"]
+            == const.TRANS_KEY_NOTIF_TITLE_MULTIPLIER_CHANGED_KID
+        )
+        assert (
+            kid_calls[0]["message_key"]
+            == const.TRANS_KEY_NOTIF_MESSAGE_MULTIPLIER_CHANGED_KID
+        )
+        assert kid_calls[0]["message_data"]["old_multiplier"] == 1.0
+        assert kid_calls[0]["message_data"]["new_multiplier"] == 0.8
+
+        assert len(parent_calls) == 1
+        assert parent_calls[0]["kid_id"] == kid_id
+        assert (
+            parent_calls[0]["title_key"]
+            == const.TRANS_KEY_NOTIF_TITLE_MULTIPLIER_CHANGED_PARENT
+        )
+        assert (
+            parent_calls[0]["message_key"]
+            == const.TRANS_KEY_NOTIF_MESSAGE_MULTIPLIER_CHANGED_PARENT
+        )
+
+    @pytest.mark.asyncio
+    async def test_multiplier_change_notification_skipped_when_unchanged(
+        self,
+        hass: HomeAssistant,
+        scenario_notifications: SetupResult,
+    ) -> None:
+        """Unchanged multiplier does not send kid or parent notifications."""
+        from custom_components.kidschores import const
+
+        coordinator = scenario_notifications.coordinator
+        kid_id = scenario_notifications.kid_ids["Zoë"]
+
+        kid_calls = 0
+        parent_calls = 0
+
+        async def capture_kid_notification(*args: Any, **kwargs: Any) -> None:
+            nonlocal kid_calls
+            kid_calls += 1
+
+        async def capture_parent_notification(*args: Any, **kwargs: Any) -> None:
+            nonlocal parent_calls
+            parent_calls += 1
+
+        with (
+            patch.object(
+                coordinator.notification_manager,
+                "notify_kid_translated",
+                new=capture_kid_notification,
+            ),
+            patch.object(
+                coordinator.notification_manager,
+                "notify_parents_translated",
+                new=capture_parent_notification,
+            ),
+        ):
+            coordinator.gamification_manager.emit(
+                const.SIGNAL_SUFFIX_POINTS_MULTIPLIER_CHANGE_REQUESTED,
+                kid_id=kid_id,
+                old_multiplier=1.0,
+                new_multiplier=1.0,
+                multiplier=1.0,
+            )
+            await hass.async_block_till_done()
+
+        assert kid_calls == 0
+        assert parent_calls == 0
+
+    @pytest.mark.asyncio
+    async def test_badge_earned_multiplier_change_triggers_notifications(
+        self,
+        hass: HomeAssistant,
+        scenario_notifications: SetupResult,
+    ) -> None:
+        """Badge-earned multiplier updates should trigger multiplier notifications."""
+        from custom_components.kidschores import const
+
+        coordinator = scenario_notifications.coordinator
+        kid_id = scenario_notifications.kid_ids["Zoë"]
+
+        coordinator.kids_data[kid_id][const.DATA_KID_POINTS_MULTIPLIER] = 1.0
+
+        kid_calls: list[dict[str, Any]] = []
+        parent_calls: list[dict[str, Any]] = []
+
+        async def capture_kid_notification(
+            kid_id_arg: str,
+            title_key: str,
+            message_key: str,
+            **kwargs: Any,
+        ) -> None:
+            if title_key == const.TRANS_KEY_NOTIF_TITLE_MULTIPLIER_CHANGED_KID:
+                kid_calls.append(
+                    {
+                        "kid_id": kid_id_arg,
+                        "title_key": title_key,
+                        "message_key": message_key,
+                        **kwargs,
+                    }
+                )
+
+        async def capture_parent_notification(
+            kid_id_arg: str,
+            title_key: str,
+            message_key: str,
+            **kwargs: Any,
+        ) -> None:
+            if title_key == const.TRANS_KEY_NOTIF_TITLE_MULTIPLIER_CHANGED_PARENT:
+                parent_calls.append(
+                    {
+                        "kid_id": kid_id_arg,
+                        "title_key": title_key,
+                        "message_key": message_key,
+                        **kwargs,
+                    }
+                )
+
+        with (
+            patch.object(
+                coordinator.notification_manager,
+                "notify_kid_translated",
+                new=capture_kid_notification,
+            ),
+            patch.object(
+                coordinator.notification_manager,
+                "notify_parents_translated",
+                new=capture_parent_notification,
+            ),
+        ):
+            await coordinator.economy_manager._on_badge_earned(
+                {
+                    "kid_id": kid_id,
+                    "badge_id": "test_badge",
+                    "badge_name": "Test Badge",
+                    "points": 0.0,
+                    "multiplier": 1.2,
+                    "reward_ids": [],
+                    "bonus_ids": [],
+                    "penalty_ids": [],
+                }
+            )
+            await hass.async_block_till_done()
+
+        assert coordinator.kids_data[kid_id][const.DATA_KID_POINTS_MULTIPLIER] == 1.2
+        assert len(kid_calls) == 1
+        assert len(parent_calls) == 1
+        assert kid_calls[0]["message_data"]["old_multiplier"] == 1.0
+        assert kid_calls[0]["message_data"]["new_multiplier"] == 1.2
+
+
 class TestRaceConditionPrevention:
     """Tests for race condition prevention in approval methods (v0.5.0+)."""
 
