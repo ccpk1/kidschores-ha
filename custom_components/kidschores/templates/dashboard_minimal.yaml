@@ -106,12 +106,12 @@
                     {%- set todays_completed = state_attr(total_sensor, 'chore_stat_approved_today') | int(default=0) -%}
                     {%- set highest_badge = states(highest_badge_entity) or 'None' -%}
                     {%- set highest_badge_icon = state_attr(highest_badge_entity, 'icon') or 'mdi:medal-outline' -%}
-                    {%- set highest_badge_multiplier = (state_attr(highest_badge_entity, 'awards') or {}).get('points_multiplier') | float(default=1) -%}
+                    {%- set points_multiplier = state_attr(points_sensor, 'points_multiplier') | float(default=1) -%}
 
                     {#-- 4. Build Display --#}
                     {%- if highest_badge not in ['None', 'unknown', 'Unknown', 'unavailable'] -%}
-                      {%- if highest_badge_multiplier > 1 -%}
-                        {%- set badge_display = "<ha-icon icon='" ~ highest_badge_icon ~ "'></ha-icon> " ~ highest_badge ~ " (x" ~ highest_badge_multiplier|string ~ ")  \n" -%}
+                      {%- if points_multiplier > 1 -%}
+                        {%- set badge_display = "<ha-icon icon='" ~ highest_badge_icon ~ "'></ha-icon> " ~ highest_badge ~ " (x" ~ points_multiplier|string ~ ")  \n" -%}
                       {%- else -%}
                         {%- set badge_display = "<ha-icon icon='" ~ highest_badge_icon ~ "'></ha-icon> " ~ highest_badge ~ "  \n" -%}
                       {%- endif -%}

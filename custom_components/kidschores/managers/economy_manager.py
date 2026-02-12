@@ -179,14 +179,15 @@ class EconomyManager(BaseManager):
         # 1. Points - deposit to kid's balance
         points = payload.get("points", 0.0)
         if points > 0:
-            self.hass.async_create_task(
+            self.hass.loop.call_soon_threadsafe(
+                self.hass.async_create_task,
                 self.deposit(
-                    kid_id=kid_id,
-                    amount=points,
+                    kid_id,
+                    points,
                     source=const.POINTS_SOURCE_BADGES,
                     reference_id=badge_id,
                     item_name=badge_name,
-                )
+                ),
             )
 
         # 2. Multiplier - Banker owns currency rules
@@ -198,24 +199,26 @@ class EconomyManager(BaseManager):
         bonus_ids = payload.get("bonus_ids", [])
         for bonus_id in bonus_ids:
             if bonus_id in self._coordinator.bonuses_data:
-                self.hass.async_create_task(
+                self.hass.loop.call_soon_threadsafe(
+                    self.hass.async_create_task,
                     self.apply_bonus(
-                        parent_name="Badge Award",
-                        kid_id=kid_id,
-                        bonus_id=bonus_id,
-                    )
+                        "Badge Award",
+                        kid_id,
+                        bonus_id,
+                    ),
                 )
 
         # 4. Penalties - apply each penalty
         penalty_ids = payload.get("penalty_ids", [])
         for penalty_id in penalty_ids:
             if penalty_id in self._coordinator.penalties_data:
-                self.hass.async_create_task(
+                self.hass.loop.call_soon_threadsafe(
+                    self.hass.async_create_task,
                     self.apply_penalty(
-                        parent_name="Badge Award",
-                        kid_id=kid_id,
-                        penalty_id=penalty_id,
-                    )
+                        "Badge Award",
+                        kid_id,
+                        penalty_id,
+                    ),
                 )
 
     def _update_multiplier(
@@ -244,6 +247,7 @@ class EconomyManager(BaseManager):
                 multiplier,
                 reference_id or "manual",
             )
+            self._coordinator._persist_and_update()
 
     def _on_achievement_earned(self, payload: dict[str, Any]) -> None:
         """Handle achievement earned event - deposit award points.
@@ -256,14 +260,14 @@ class EconomyManager(BaseManager):
         achievement_points = payload.get("achievement_points", 0.0)
 
         if achievement_points > 0 and kid_id:
-            # Use async_create_task since dispatcher callbacks are sync
-            self.hass.async_create_task(
+            self.hass.loop.call_soon_threadsafe(
+                self.hass.async_create_task,
                 self.deposit(
-                    kid_id=kid_id,
-                    amount=achievement_points,
+                    kid_id,
+                    achievement_points,
                     source=const.POINTS_SOURCE_ACHIEVEMENTS,
                     reference_id=achievement_id,
-                )
+                ),
             )
 
     def _on_challenge_completed(self, payload: dict[str, Any]) -> None:
@@ -277,14 +281,14 @@ class EconomyManager(BaseManager):
         challenge_points = payload.get("challenge_points", 0.0)
 
         if challenge_points > 0 and kid_id:
-            # Use async_create_task since dispatcher callbacks are sync
-            self.hass.async_create_task(
+            self.hass.loop.call_soon_threadsafe(
+                self.hass.async_create_task,
                 self.deposit(
-                    kid_id=kid_id,
-                    amount=challenge_points,
+                    kid_id,
+                    challenge_points,
                     source=const.POINTS_SOURCE_CHALLENGES,
                     reference_id=challenge_id,
-                )
+                ),
             )
 
     async def _on_chore_approved(self, payload: dict[str, Any]) -> None:

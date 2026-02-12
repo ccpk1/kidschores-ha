@@ -1863,9 +1863,9 @@ def build_badge(
             const.DATA_BADGE_MAINTENANCE_RULES: maintenance_rules_input,
         }
 
-        # Set target_type: cumulative badges always use "points", others use input or default
+        # Set target_type: cumulative badges always use "points_all_time", others use input or default
         if badge_type == const.BADGE_TYPE_CUMULATIVE:
-            target_type = const.BADGE_TARGET_THRESHOLD_TYPE_POINTS
+            target_type = const.BADGE_TARGET_THRESHOLD_TYPE_POINTS_ALL_TIME
         elif const.CFOF_BADGES_INPUT_TARGET_TYPE in user_input:
             target_type = user_input[const.CFOF_BADGES_INPUT_TARGET_TYPE]
         elif existing_target:

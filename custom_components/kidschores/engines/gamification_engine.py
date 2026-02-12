@@ -82,8 +82,13 @@ class GamificationEngine:
         4. Manager handles side effects (awarding, notifications, storage)
 
     Badge Evaluation Modes:
-        - Acquisition: Check if kid should EARN the badge (first time or re-earn)
-        - Retention: Check if kid should KEEP the badge (maintenance period)
+        CUMULATIVE BADGES (never lost, only demoted):
+        - evaluate_badge(): First-time award based on total lifetime points
+        - check_cumulative_maintenance(): ACTIVE vs DEMOTED based on cycle points
+
+        PERIODIC BADGES (never lost, re-awarded when criteria met again):
+        - evaluate_badge(): First-time award based on current period stats
+        - Re-awards use same evaluate_badge() logic (criteria unchanged)
     """
 
     # =========================================================================
@@ -211,12 +216,9 @@ class GamificationEngine:
         for target in targets:
             target_type = target.get(const.DATA_BADGE_TARGET_TYPE)
 
-            # Route cumulative badges with points target to specialized handler
+            # Route cumulative badges with all-time points target to specialized handler
             badge_type = badge_data.get(const.DATA_BADGE_TYPE)
-            if (
-                badge_type == const.BADGE_TYPE_CUMULATIVE
-                and target_type == const.BADGE_TARGET_THRESHOLD_TYPE_POINTS
-            ):
+            if badge_type == const.BADGE_TYPE_CUMULATIVE:
                 result = cls._evaluate_cumulative_points(context, target)
                 criterion_results.append(result)
                 if not result["met"]:
@@ -265,110 +267,6 @@ class GamificationEngine:
             criteria_met=all_met,
             overall_progress=avg_progress,
             criterion_results=criterion_results,
-        )
-
-    @classmethod
-    def check_acquisition(
-        cls,
-        context: EvaluationContext,
-        badge_data: dict[str, Any],
-    ) -> EvaluationResult:
-        """Check if kid should EARN the badge.
-
-        Used when kid doesn't currently have the badge.
-        Evaluates against acquisition thresholds.
-
-        Args:
-            context: EvaluationContext with kid data
-            badge_data: Badge definition
-
-        Returns:
-            EvaluationResult indicating if badge should be awarded
-        """
-        return cls.evaluate_badge(context, badge_data)
-
-    @classmethod
-    def check_retention(
-        cls,
-        context: EvaluationContext,
-        badge_data: dict[str, Any],
-    ) -> EvaluationResult:
-        """Check if kid should KEEP the badge.
-
-        Used for badges with maintenance requirements.
-        Evaluates against retention thresholds (may differ from acquisition).
-
-        For cumulative badges: Evaluates cycle_points vs maintenance_rules.
-        For other badge types: Uses same logic as acquisition.
-
-        Args:
-            context: EvaluationContext with kid data
-            badge_data: Badge definition
-
-        Returns:
-            EvaluationResult indicating if badge should be retained
-        """
-        badge_type = badge_data.get(const.DATA_BADGE_TYPE, "")
-        if badge_type == const.BADGE_TYPE_CUMULATIVE:
-            return cls._evaluate_cumulative_retention(context, badge_data)
-        # Periodic and other badges: retention == acquisition logic
-        return cls.evaluate_badge(context, badge_data)
-
-    @classmethod
-    def _evaluate_cumulative_retention(
-        cls,
-        context: EvaluationContext,
-        badge_data: dict[str, Any],
-    ) -> EvaluationResult:
-        """Evaluate cumulative badge retention using maintenance cycle points.
-
-        Cumulative badge retention is based on cycle_points earned during
-        the current maintenance cycle, NOT total lifetime points.
-
-        Args:
-            context: EvaluationContext with cumulative_badge_progress
-            badge_data: Badge definition with maintenance_rules
-
-        Returns:
-            EvaluationResult with maintenance-based criteria evaluation
-        """
-        badge_id = badge_data.get(const.DATA_BADGE_ID, "unknown")
-        badge_name = badge_data.get(const.DATA_BADGE_NAME, "Unknown Badge")
-        target = badge_data.get(const.DATA_BADGE_TARGET, {})
-        maintenance_threshold = float(target.get(const.DATA_BADGE_MAINTENANCE_RULES, 0))
-
-        # Get cycle_points from cumulative badge progress in context
-        cumulative_progress = context.get("cumulative_badge_progress") or {}
-        cycle_points = float(
-            cumulative_progress.get(
-                const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_CYCLE_POINTS, 0
-            )
-        )
-
-        # maintenance_threshold == 0 means no maintenance requirement
-        if maintenance_threshold <= 0:
-            criteria_met = True
-            progress = 1.0
-        else:
-            progress = min(1.0, cycle_points / maintenance_threshold)
-            criteria_met = cycle_points >= maintenance_threshold
-
-        return cls._make_result(
-            entity_id=badge_id,
-            entity_name=badge_name,
-            entity_type="badge",
-            criteria_met=criteria_met,
-            overall_progress=progress,
-            criterion_results=[
-                cls._make_criterion_result(
-                    criterion_type="cumulative_maintenance",
-                    met=criteria_met,
-                    progress=progress,
-                    threshold=maintenance_threshold,
-                    current_value=cycle_points,
-                    reason=f"Cycle points: {cycle_points}/{maintenance_threshold}",
-                )
-            ],
         )
 
     @classmethod

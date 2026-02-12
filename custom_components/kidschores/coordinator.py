@@ -338,7 +338,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
                 self.emit(SIGNAL_SUFFIX_CHORE_CLAIMED, chore_id=chore_id)
         """
         self._persist(immediate=immediate)
-        self.async_update_listeners()
+        self.hass.loop.call_soon_threadsafe(self.async_update_listeners)
 
     # -------------------------------------------------------------------------------------
     # Properties for Easy Access

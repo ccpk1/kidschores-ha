@@ -1621,6 +1621,7 @@
     "target_type": {
       "options": {
         "points": "Points",
+        "points_all_time": "Points (All-Time)",
         "points_chores": "Points from Chores",
         "chore_count": "Chore Count",
         "days_all_chores": "Days Selected Chores Completed",
@@ -2649,6 +2650,9 @@
           },
           "kid_name": {
             "name": "Kid Name"
+          },
+          "points_multiplier": {
+            "name": "Points Multiplier"
           },
           "point_stat_points_earned_today": {
             "name": "Earned Today"

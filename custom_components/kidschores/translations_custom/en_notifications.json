@@ -85,15 +85,15 @@
     "message": "Reminder: {reward_name} requested by {kid_name} is waiting for your approval"
   },
   "badge_earned_parent": {
-    "title": "🏆 {kid_name}: Badge Earned",
+    "title": "🥇 {kid_name}: Badge Earned",
     "message": "{kid_name} earned the {badge_name} badge!"
   },
   "achievement_earned_parent": {
-    "title": "⭐ {kid_name}: Achievement",
+    "title": "🏆 {kid_name}: Achievement",
     "message": "{kid_name} earned {achievement_name}"
   },
   "challenge_completed_parent": {
-    "title": "🎯 {kid_name}: Challenge Done",
+    "title": "🏁 {kid_name}: Challenge Done",
     "message": "{kid_name} completed {challenge_name}"
   },
 

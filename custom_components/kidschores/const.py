@@ -223,7 +223,6 @@ SIGNAL_SUFFIX_CHALLENGE_EXPIRED: Final = "challenge_expired"
 # Gamification Events (GamificationManager) - Engine Coordination
 SIGNAL_SUFFIX_GAMIFICATION_EVALUATED: Final = "gamification_evaluated"
 SIGNAL_SUFFIX_BADGE_CRITERIA_MET: Final = "badge_criteria_met"
-SIGNAL_SUFFIX_BADGE_MAINTENANCE_CHECK: Final = "badge_maintenance_check"
 SIGNAL_SUFFIX_GAMIFICATION_BATCH_COMPLETE: Final = "gamification_batch_complete"
 
 # System/Entity Lifecycle Events - Kid
@@ -1795,6 +1794,7 @@ DEFAULT_SYSTEM_SETTINGS: Final = {
 # Badge Target Types for all supported badge logic
 
 BADGE_TARGET_THRESHOLD_TYPE_POINTS: Final = "points"
+BADGE_TARGET_THRESHOLD_TYPE_POINTS_ALL_TIME: Final = "points_all_time"
 BADGE_TARGET_THRESHOLD_TYPE_POINTS_CHORES: Final = "points_chores"
 BADGE_TARGET_THRESHOLD_TYPE_CHORE_COUNT: Final = "chore_count"
 BADGE_TARGET_THRESHOLD_TYPE_DAYS_SELECTED_CHORES: Final = "days_all_chores"

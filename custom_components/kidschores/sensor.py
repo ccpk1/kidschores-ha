@@ -1287,6 +1287,9 @@ class KidPointsSensor(KidsChoresCoordinatorEntity, SensorEntity):
         attributes: dict[str, Any] = {
             const.ATTR_PURPOSE: const.TRANS_KEY_PURPOSE_POINTS,
             const.ATTR_KID_NAME: self._kid_name,
+            const.ATTR_POINTS_MULTIPLIER: kid_info.get(
+                const.DATA_KID_POINTS_MULTIPLIER, const.DEFAULT_KID_POINTS_MULTIPLIER
+            ),
         }
 
         # === Phase 7G.1: Get persistent all_time stats using get_period_total ===
@@ -1328,6 +1331,9 @@ class KidPointsSensor(KidsChoresCoordinatorEntity, SensorEntity):
         attributes[f"{const.ATTR_PREFIX_POINT_STAT}points_earned_all_time"] = (
             earned_all_time
         )
+        attributes[f"{const.ATTR_PREFIX_POINT_STAT}highest_balance_all_time"] = (
+            highest_balance
+        )
         attributes[f"{const.ATTR_PREFIX_POINT_STAT}points_spent_all_time"] = (
             spent_all_time
         )
@@ -1336,9 +1342,6 @@ class KidPointsSensor(KidsChoresCoordinatorEntity, SensorEntity):
         )
         attributes[f"{const.ATTR_PREFIX_POINT_STAT}points_by_source_all_time"] = (
             by_source_all_time
-        )
-        attributes[f"{const.ATTR_PREFIX_POINT_STAT}highest_balance_all_time"] = (
-            highest_balance
         )
 
         # === Add temporal stats from presentation cache ===

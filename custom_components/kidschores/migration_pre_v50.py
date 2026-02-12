@@ -1309,13 +1309,53 @@ class PreV50Migrator:
                     new_grace,
                 )
 
-        if status_repaired > 0 or dates_initialised > 0 or progress_created > 0:
+        # Task 5: Convert cumulative badge target_type from "points" to "points_all_time"
+        # This clarifies the architectural distinction between periodic points (daily/weekly)
+        # and all-time lifetime points used by cumulative badges.
+        target_type_migrated = 0
+        for _badge_id, badge_data in badges.items():
+            badge_type = badge_data.get(const.DATA_BADGE_TYPE)
+            if badge_type != const.BADGE_TYPE_CUMULATIVE:
+                continue  # Only cumulative badges need this migration
+
+            target = badge_data.get(const.DATA_BADGE_TARGET)
+            if not target:
+                continue  # No target to migrate
+
+            current_target_type = target.get(const.DATA_BADGE_TARGET_TYPE)
+            if current_target_type == const.BADGE_TARGET_THRESHOLD_TYPE_POINTS:
+                # Migrate to the explicit all-time points target type
+                target[const.DATA_BADGE_TARGET_TYPE] = (
+                    const.BADGE_TARGET_THRESHOLD_TYPE_POINTS_ALL_TIME
+                )
+                target_type_migrated += 1
+                const.LOGGER.debug(
+                    "Badge migration: Converted cumulative badge %s target_type "
+                    "from 'points' to 'points_all_time'",
+                    _badge_id,
+                )
+
+        if target_type_migrated > 0:
+            const.LOGGER.info(
+                "Badge target type migration: Converted %d cumulative badges "
+                "from 'points' to 'points_all_time'",
+                target_type_migrated,
+            )
+
+        if (
+            status_repaired > 0
+            or dates_initialised > 0
+            or progress_created > 0
+            or target_type_migrated > 0
+        ):
             const.LOGGER.info(
                 "Badge data integrity: Repaired %d invalid DEMOTED states, "
-                "initialised %d maintenance date sets, created %d missing progress dicts",
+                "initialised %d maintenance date sets, created %d missing progress dicts, "
+                "migrated %d cumulative badge target types",
                 status_repaired,
                 dates_initialised,
                 progress_created,
+                target_type_migrated,
             )
 
         # Stamp schema 44

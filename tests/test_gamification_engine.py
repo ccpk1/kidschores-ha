@@ -9,7 +9,6 @@ Test Categories:
 - Daily completion criterion evaluation (_evaluate_daily_completion)
 - Streak criterion evaluation (_evaluate_streak)
 - Badge evaluation full flow (evaluate_badge)
-- Acquisition vs retention logic (check_acquisition, check_retention)
 - Achievement evaluation (evaluate_achievement)
 - Challenge evaluation (evaluate_challenge)
 """
@@ -518,57 +517,6 @@ class TestEvaluateBadge:
 
         assert result["criteria_met"] is False
         assert "No target" in result["reason"]
-
-
-# =============================================================================
-# TEST: check_acquisition vs check_retention
-# =============================================================================
-
-
-class TestAcquisitionRetention:
-    """Tests for acquisition vs retention logic separation."""
-
-    def test_check_acquisition_returns_criteria_met(self) -> None:
-        """check_acquisition returns whether badge criteria met."""
-        context = make_context(total_points_earned=100)
-        badge = make_badge(threshold=50)
-
-        result = GamificationEngine.check_acquisition(context, badge)
-
-        assert result["criteria_met"] is True
-
-    def test_check_acquisition_not_met(self) -> None:
-        """check_acquisition returns not met when below threshold."""
-        context = make_context(total_points_earned=25)
-        badge = make_badge(threshold=100)
-
-        result = GamificationEngine.check_acquisition(context, badge)
-
-        assert result["criteria_met"] is False
-
-        assert result["criteria_met"] is False
-
-    def test_check_retention_criteria_met(self) -> None:
-        """check_retention returns criteria_met=True when threshold still met."""
-        # For cumulative badge: baseline=0, cycle_points=100 → total=100 >= 50
-        badge = make_badge(threshold=50)
-        context = make_context(cumulative_baseline=0, cumulative_cycle_points=100)
-        # Mark badge as already earned to trigger maintenance mode
-        context["badges_earned"] = {badge[const.DATA_BADGE_ID]: True}
-
-        result = GamificationEngine.check_retention(context, badge)
-
-        assert result["criteria_met"] is True
-
-    def test_check_retention_criteria_not_met(self) -> None:
-        """check_retention returns criteria_met=False when below threshold."""
-        # For cumulative badge: cycle_points=25 < maintenance_rules=100
-        context = make_context(cumulative_baseline=0, cumulative_cycle_points=25)
-        badge = make_badge(threshold=100, maintenance_rules=100)
-
-        result = GamificationEngine.check_retention(context, badge)
-
-        assert result["criteria_met"] is False
 
 
 # =============================================================================
