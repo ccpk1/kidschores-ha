@@ -1863,18 +1863,20 @@ def build_badge(
             const.DATA_BADGE_MAINTENANCE_RULES: maintenance_rules_input,
         }
 
-        # Cumulative badges don't need target_type (they always use points)
-        if badge_type != const.BADGE_TYPE_CUMULATIVE:
-            if const.CFOF_BADGES_INPUT_TARGET_TYPE in user_input:
-                target_type = user_input[const.CFOF_BADGES_INPUT_TARGET_TYPE]
-            elif existing_target:
-                target_type = existing_target.get(
-                    const.DATA_BADGE_TARGET_TYPE,
-                    const.DEFAULT_BADGE_TARGET_TYPE,
-                )
-            else:
-                target_type = const.DEFAULT_BADGE_TARGET_TYPE
-            target_dict[const.DATA_BADGE_TARGET_TYPE] = target_type
+        # Set target_type: cumulative badges always use "points", others use input or default
+        if badge_type == const.BADGE_TYPE_CUMULATIVE:
+            target_type = const.BADGE_TARGET_THRESHOLD_TYPE_POINTS
+        elif const.CFOF_BADGES_INPUT_TARGET_TYPE in user_input:
+            target_type = user_input[const.CFOF_BADGES_INPUT_TARGET_TYPE]
+        elif existing_target:
+            target_type = existing_target.get(
+                const.DATA_BADGE_TARGET_TYPE,
+                const.DEFAULT_BADGE_TARGET_TYPE,
+            )
+        else:
+            target_type = const.DEFAULT_BADGE_TARGET_TYPE
+
+        target_dict[const.DATA_BADGE_TARGET_TYPE] = target_type
 
         badge_data[const.DATA_BADGE_TARGET] = target_dict
 

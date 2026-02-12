@@ -1031,49 +1031,36 @@ DATA_KID_CHORE_DATA_APPROVED_LAST_DATE: Final = "approved_last_date"
 # --- Badge Progress Tracking ---
 DATA_KID_CUMULATIVE_BADGE_PROGRESS: Final = "cumulative_badge_progress"
 
-# Current badge (in effect)
-DATA_KID_CUMULATIVE_BADGE_PROGRESS_CURRENT_BADGE_ID: Final = "current_badge_id"
-DATA_KID_CUMULATIVE_BADGE_PROGRESS_CURRENT_BADGE_NAME: Final = "current_badge_name"
-DATA_KID_CUMULATIVE_BADGE_PROGRESS_CURRENT_THRESHOLD: Final = "current_threshold"
-
-# Highest earned badge (lifetime)
-DATA_KID_CUMULATIVE_BADGE_PROGRESS_HIGHEST_EARNED_BADGE_ID: Final = (
-    "highest_earned_badge_id"
-)
-DATA_KID_CUMULATIVE_BADGE_PROGRESS_HIGHEST_EARNED_BADGE_NAME = (
-    "highest_earned_badge_name"
-)
-DATA_KID_CUMULATIVE_BADGE_PROGRESS_HIGHEST_EARNED_THRESHOLD: Final = (
-    "highest_earned_threshold"
-)
-
-# Next higher badge
-DATA_KID_CUMULATIVE_BADGE_PROGRESS_NEXT_HIGHER_BADGE_ID: Final = "next_higher_badge_id"
-DATA_KID_CUMULATIVE_BADGE_PROGRESS_NEXT_HIGHER_BADGE_NAME: Final = (
-    "next_higher_badge_name"
-)
-DATA_KID_CUMULATIVE_BADGE_PROGRESS_NEXT_HIGHER_THRESHOLD: Final = (
-    "next_higher_threshold"
-)
-DATA_KID_CUMULATIVE_BADGE_PROGRESS_NEXT_HIGHER_POINTS_NEEDED = (
-    "next_higher_points_needed"
-)
-
-# Next lower badge
-DATA_KID_CUMULATIVE_BADGE_PROGRESS_NEXT_LOWER_BADGE_ID: Final = "next_lower_badge_id"
-DATA_KID_CUMULATIVE_BADGE_PROGRESS_NEXT_LOWER_BADGE_NAME: Final = (
-    "next_lower_badge_name"
-)
-DATA_KID_CUMULATIVE_BADGE_PROGRESS_NEXT_LOWER_THRESHOLD: Final = "next_lower_threshold"
-
-# Maintenance tracking
-DATA_KID_CUMULATIVE_BADGE_PROGRESS_BASELINE: Final = "baseline"
+# Phase 3A: Only state fields stored - derived fields computed on-read
+# Maintenance tracking (state fields)
 DATA_KID_CUMULATIVE_BADGE_PROGRESS_CYCLE_POINTS: Final = "cycle_points"
 DATA_KID_CUMULATIVE_BADGE_PROGRESS_STATUS: Final = "status"
 DATA_KID_CUMULATIVE_BADGE_PROGRESS_MAINTENANCE_END_DATE: Final = "maintenance_end_date"
 DATA_KID_CUMULATIVE_BADGE_PROGRESS_MAINTENANCE_GRACE_END_DATE = (
     "maintenance_grace_end_date"
 )
+
+# Cumulative Badge Progress Computed Fields (Phase 3A)
+# Dict keys for get_cumulative_badge_progress() return values
+CUMULATIVE_BADGE_PROGRESS_STATUS: Final = "status"
+CUMULATIVE_BADGE_PROGRESS_CYCLE_POINTS: Final = "cycle_points"
+CUMULATIVE_BADGE_PROGRESS_MAINTENANCE_GRACE_END_DATE: Final = (
+    "maintenance_grace_end_date"
+)
+CUMULATIVE_BADGE_PROGRESS_HIGHEST_EARNED_BADGE_ID: Final = "highest_earned_badge_id"
+CUMULATIVE_BADGE_PROGRESS_HIGHEST_EARNED_BADGE_NAME: Final = "highest_earned_badge_name"
+CUMULATIVE_BADGE_PROGRESS_HIGHEST_EARNED_THRESHOLD: Final = "highest_earned_threshold"
+CUMULATIVE_BADGE_PROGRESS_CURRENT_BADGE_ID: Final = "current_badge_id"
+CUMULATIVE_BADGE_PROGRESS_CURRENT_BADGE_NAME: Final = "current_badge_name"
+CUMULATIVE_BADGE_PROGRESS_CURRENT_THRESHOLD: Final = "current_threshold"
+CUMULATIVE_BADGE_PROGRESS_NEXT_HIGHER_BADGE_ID: Final = "next_higher_badge_id"
+CUMULATIVE_BADGE_PROGRESS_NEXT_HIGHER_BADGE_NAME: Final = "next_higher_badge_name"
+CUMULATIVE_BADGE_PROGRESS_NEXT_HIGHER_THRESHOLD: Final = "next_higher_threshold"
+CUMULATIVE_BADGE_PROGRESS_NEXT_HIGHER_POINTS_NEEDED: Final = "next_higher_points_needed"
+CUMULATIVE_BADGE_PROGRESS_NEXT_LOWER_BADGE_ID: Final = "next_lower_badge_id"
+CUMULATIVE_BADGE_PROGRESS_NEXT_LOWER_BADGE_NAME: Final = "next_lower_badge_name"
+CUMULATIVE_BADGE_PROGRESS_NEXT_LOWER_THRESHOLD: Final = "next_lower_threshold"
+
 DATA_KID_CURRENT_STREAK: Final = "current_streak"
 DATA_KID_HA_USER_ID: Final = "ha_user_id"
 DATA_KID_ID: Final = "kid_id"

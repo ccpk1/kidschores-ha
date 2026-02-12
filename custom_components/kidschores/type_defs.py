@@ -397,34 +397,17 @@ class KidCumulativeBadgeProgress(TypedDict, total=False):
     """Cumulative badge progress tracking for a kid.
 
     Single structure per kid (not per-badge).
+
+    Phase 3A: Compute-on-Read architecture - only store state fields.
+    All derived fields (current/next/highest badge info) computed on-read
+    via GamificationManager.get_cumulative_badge_progress().
     """
 
+    # State fields (stored)
     status: str  # active, grace, demoted
     cycle_points: float
     maintenance_end_date: NotRequired[str | None]  # ISO date string or None
     maintenance_grace_end_date: NotRequired[str | None]  # ISO date string or None
-    baseline: NotRequired[float]
-
-    # Current badge info (denormalized)
-    current_badge_id: NotRequired[str]
-    current_badge_name: NotRequired[str]
-    current_threshold: NotRequired[float]
-
-    # Next badge info
-    next_higher_badge_id: NotRequired[str]
-    next_higher_badge_name: NotRequired[str]
-    next_higher_threshold: NotRequired[float]
-    next_higher_points_needed: NotRequired[float]
-
-    # Demotion info
-    next_lower_badge_id: NotRequired[str]
-    next_lower_badge_name: NotRequired[str]
-    next_lower_threshold: NotRequired[float]
-
-    # Highest earned
-    highest_earned_badge_id: NotRequired[str]
-    highest_earned_badge_name: NotRequired[str]
-    highest_earned_threshold: NotRequired[float]
 
 
 # =============================================================================

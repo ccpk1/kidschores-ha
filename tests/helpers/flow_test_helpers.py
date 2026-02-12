@@ -289,15 +289,16 @@ class FlowTestHelper:
         }
 
         if badge_type == BADGE_TYPE_CUMULATIVE:
-            # For cumulative badges: target_threshold_value and maintenance_rules
+            # For cumulative badges: threshold_value and maintenance_rules
+            # YAML uses "threshold_value"; also accept "target_threshold_value"
             form_data[CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE] = yaml_badge.get(
-                "target_threshold_value", 10
+                "threshold_value", yaml_badge.get("target_threshold_value", 10)
             )
             # Maintenance rules required by validation (default 0 = no maintenance)
             form_data[CFOF_BADGES_INPUT_MAINTENANCE_RULES] = yaml_badge.get(
                 "maintenance_rules", 0
             )
-            # Note: target_type is NOT in schema for cumulative badges
+            # target_type handled internally by data_builders.py (forced to "points")
         elif badge_type in (BADGE_TYPE_PERIODIC, BADGE_TYPE_DAILY):
             # Periodic/Daily badges have target_type and threshold
             form_data[CFOF_BADGES_INPUT_TARGET_TYPE] = yaml_badge.get(

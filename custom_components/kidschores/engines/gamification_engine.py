@@ -210,6 +210,20 @@ class GamificationEngine:
 
         for target in targets:
             target_type = target.get(const.DATA_BADGE_TARGET_TYPE)
+
+            # Route cumulative badges with points target to specialized handler
+            badge_type = badge_data.get(const.DATA_BADGE_TYPE)
+            if (
+                badge_type == const.BADGE_TYPE_CUMULATIVE
+                and target_type == const.BADGE_TARGET_THRESHOLD_TYPE_POINTS
+            ):
+                result = cls._evaluate_cumulative_points(context, target)
+                criterion_results.append(result)
+                if not result["met"]:
+                    all_met = False
+                total_progress += result["progress"]
+                continue
+
             handler = cls._CRITERION_HANDLERS.get(target_type)
 
             if handler is None:
@@ -284,6 +298,9 @@ class GamificationEngine:
         Used for badges with maintenance requirements.
         Evaluates against retention thresholds (may differ from acquisition).
 
+        For cumulative badges: Evaluates cycle_points vs maintenance_rules.
+        For other badge types: Uses same logic as acquisition.
+
         Args:
             context: EvaluationContext with kid data
             badge_data: Badge definition
@@ -291,9 +308,68 @@ class GamificationEngine:
         Returns:
             EvaluationResult indicating if badge should be retained
         """
-        # For now, retention uses same logic as acquisition
-        # Badge maintenance logic in Manager handles grace periods, etc.
+        badge_type = badge_data.get(const.DATA_BADGE_TYPE, "")
+        if badge_type == const.BADGE_TYPE_CUMULATIVE:
+            return cls._evaluate_cumulative_retention(context, badge_data)
+        # Periodic and other badges: retention == acquisition logic
         return cls.evaluate_badge(context, badge_data)
+
+    @classmethod
+    def _evaluate_cumulative_retention(
+        cls,
+        context: EvaluationContext,
+        badge_data: dict[str, Any],
+    ) -> EvaluationResult:
+        """Evaluate cumulative badge retention using maintenance cycle points.
+
+        Cumulative badge retention is based on cycle_points earned during
+        the current maintenance cycle, NOT total lifetime points.
+
+        Args:
+            context: EvaluationContext with cumulative_badge_progress
+            badge_data: Badge definition with maintenance_rules
+
+        Returns:
+            EvaluationResult with maintenance-based criteria evaluation
+        """
+        badge_id = badge_data.get(const.DATA_BADGE_ID, "unknown")
+        badge_name = badge_data.get(const.DATA_BADGE_NAME, "Unknown Badge")
+        target = badge_data.get(const.DATA_BADGE_TARGET, {})
+        maintenance_threshold = float(target.get(const.DATA_BADGE_MAINTENANCE_RULES, 0))
+
+        # Get cycle_points from cumulative badge progress in context
+        cumulative_progress = context.get("cumulative_badge_progress") or {}
+        cycle_points = float(
+            cumulative_progress.get(
+                const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_CYCLE_POINTS, 0
+            )
+        )
+
+        # maintenance_threshold == 0 means no maintenance requirement
+        if maintenance_threshold <= 0:
+            criteria_met = True
+            progress = 1.0
+        else:
+            progress = min(1.0, cycle_points / maintenance_threshold)
+            criteria_met = cycle_points >= maintenance_threshold
+
+        return cls._make_result(
+            entity_id=badge_id,
+            entity_name=badge_name,
+            entity_type="badge",
+            criteria_met=criteria_met,
+            overall_progress=progress,
+            criterion_results=[
+                cls._make_criterion_result(
+                    criterion_type="cumulative_maintenance",
+                    met=criteria_met,
+                    progress=progress,
+                    threshold=maintenance_threshold,
+                    current_value=cycle_points,
+                    reason=f"Cycle points: {cycle_points}/{maintenance_threshold}",
+                )
+            ],
+        )
 
     @classmethod
     def evaluate_achievement(
@@ -500,10 +576,10 @@ class GamificationEngine:
         context: EvaluationContext,
         target: dict[str, Any],
     ) -> CriterionResult:
-        """Evaluate points-based badge criterion (PERIODIC BADGES ONLY).
+        """Evaluate points-based criterion for PERIODIC badges.
 
-        Checks if kid has earned enough total points (from any source).
-        Uses per-badge cycle count plus today's points.
+        Uses per-badge cycle count (resets on badge cycle) plus today's points.
+        NOT for cumulative badges - see _evaluate_cumulative_points instead.
 
         Args:
             context: EvaluationContext with point tracking data
@@ -537,6 +613,40 @@ class GamificationEngine:
             threshold=threshold,
             current_value=current_value,
             reason=f"Points: {current_value}/{threshold}",
+        )
+
+    @staticmethod
+    def _evaluate_cumulative_points(
+        context: EvaluationContext,
+        target: dict[str, Any],
+    ) -> CriterionResult:
+        """Evaluate points-based criterion for CUMULATIVE badges.
+
+        Uses all-time total points earned (never resets).
+        This is for badge tier progression based on lifetime achievement.
+
+        Args:
+            context: EvaluationContext with total_points_earned
+            target: Badge target with threshold_value
+
+        Returns:
+            CriterionResult with met status and progress
+        """
+        threshold = target.get(const.DATA_BADGE_TARGET_THRESHOLD_VALUE, 0)
+
+        # Use all-time total points for cumulative badge tier determination
+        current_value = context.get("total_points_earned", 0.0)
+
+        progress = min(1.0, current_value / threshold) if threshold > 0 else 0.0
+        criteria_met = current_value >= threshold
+
+        return GamificationEngine._make_criterion_result(
+            criterion_type="cumulative_points",
+            met=criteria_met,
+            progress=progress,
+            threshold=threshold,
+            current_value=current_value,
+            reason=f"Cumulative points: {current_value}/{threshold}",
         )
 
     @staticmethod

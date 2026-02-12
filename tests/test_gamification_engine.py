@@ -101,12 +101,16 @@ def make_badge_target(
     *,
     target_type: str = const.BADGE_TARGET_THRESHOLD_TYPE_POINTS,
     threshold: int = 100,
+    maintenance_rules: int | None = None,
 ) -> dict[str, Any]:
     """Build a minimal badge target dict."""
-    return {
+    target = {
         const.DATA_BADGE_TARGET_TYPE: target_type,
         const.DATA_BADGE_TARGET_THRESHOLD_VALUE: threshold,
     }
+    if maintenance_rules is not None:
+        target[const.DATA_BADGE_MAINTENANCE_RULES] = maintenance_rules
+    return target
 
 
 def make_badge(
@@ -116,6 +120,7 @@ def make_badge(
     target_type: str = const.BADGE_TARGET_THRESHOLD_TYPE_POINTS,
     threshold: int = 100,
     badge_type: str = const.BADGE_TYPE_CUMULATIVE,
+    maintenance_rules: int | None = None,
 ) -> dict[str, Any]:
     """Build a minimal badge definition."""
     return {
@@ -125,6 +130,7 @@ def make_badge(
         const.DATA_BADGE_TARGET: make_badge_target(
             target_type=target_type,
             threshold=threshold,
+            maintenance_rules=maintenance_rules,
         ),
     }
 
@@ -481,7 +487,7 @@ class TestEvaluateBadge:
     def test_badge_meets_criteria(self) -> None:
         """Badge criteria met returns criteria_met=True."""
         context = make_context(today_points=100)
-        badge = make_badge(threshold=50)
+        badge = make_badge(threshold=50, badge_type=const.BADGE_TYPE_PERIODIC)
 
         result = GamificationEngine.evaluate_badge(context, badge)
 
@@ -492,7 +498,7 @@ class TestEvaluateBadge:
     def test_badge_not_met_below_threshold(self) -> None:
         """Badge not met when below threshold."""
         context = make_context(today_points=25)
-        badge = make_badge(threshold=100)
+        badge = make_badge(threshold=100, badge_type=const.BADGE_TYPE_PERIODIC)
 
         result = GamificationEngine.evaluate_badge(context, badge)
 
@@ -556,9 +562,9 @@ class TestAcquisitionRetention:
 
     def test_check_retention_criteria_not_met(self) -> None:
         """check_retention returns criteria_met=False when below threshold."""
-        # For cumulative badge: baseline=0, cycle_points=25 → total=25 < 100
+        # For cumulative badge: cycle_points=25 < maintenance_rules=100
         context = make_context(cumulative_baseline=0, cumulative_cycle_points=25)
-        badge = make_badge(threshold=100)
+        badge = make_badge(threshold=100, maintenance_rules=100)
 
         result = GamificationEngine.check_retention(context, badge)
 
@@ -740,7 +746,7 @@ class TestHandlerRegistry:
         GamificationEngine._register_handlers()
 
         context = make_context(points_cycle_count=50)
-        badge_data = make_badge(threshold=100)
+        badge_data = make_badge(threshold=100, badge_type=const.BADGE_TYPE_PERIODIC)
         target = badge_data[const.DATA_BADGE_TARGET]
 
         handler = GamificationEngine._CRITERION_HANDLERS.get(
@@ -748,7 +754,7 @@ class TestHandlerRegistry:
         )
         assert handler is not None
 
-        result = handler(context, target, badge_data)
+        result = handler(context, target)
 
         # Verify CriterionResult structure
         assert "met" in result

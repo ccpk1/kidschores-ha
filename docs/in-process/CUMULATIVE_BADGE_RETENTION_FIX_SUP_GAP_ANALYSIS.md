@@ -36,12 +36,12 @@
 
 **What it does**: Applies evaluation result. Current logic matrix:
 
-| criteria_met | already_earned | Action |
-|:---:|:---:|---|
-| ✅ | ❌ | **Award badge** (calls `_record_badge_earned`, emits `BADGE_EARNED`) |
-| ❌ | ✅ | **Demote** (cumulative only → calls `demote_cumulative_badge`) |
-| ✅ | ✅ | ⚠️ **NO BRANCH — falls through silently** (re-promotion missing) |
-| ❌ | ❌ | No action (correct — nothing to do) |
+| criteria_met | already_earned | Action                                                               |
+| :----------: | :------------: | -------------------------------------------------------------------- |
+|      ✅      |       ❌       | **Award badge** (calls `_record_badge_earned`, emits `BADGE_EARNED`) |
+|      ❌      |       ✅       | **Demote** (cumulative only → calls `demote_cumulative_badge`)       |
+|      ✅      |       ✅       | ⚠️ **NO BRANCH — falls through silently** (re-promotion missing)     |
+|      ❌      |       ❌       | No action (correct — nothing to do)                                  |
 
 - **Critical gap**: The `criteria_met=True + already_earned=True` case has no handler. A demoted kid who regains enough points is never re-promoted.
 
@@ -138,11 +138,11 @@ Works correctly for **acquisition**: compares `total_points_earned >= threshold`
 
 All 3 locations use `self.coordinator.stats.get_period_total()`:
 
-| Location | Line | Purpose |
-|----------|------|---------|
-| `_build_evaluation_context()` | ~L1062 | Sets `total_points_earned` in evaluation context |
-| `get_cumulative_badge_levels()` | ~L1327 | Determines which tier badges are earned |
-| `get_cumulative_badge_progress()` | ~L1611 | Populates progress display dict |
+| Location                          | Line   | Purpose                                          |
+| --------------------------------- | ------ | ------------------------------------------------ |
+| `_build_evaluation_context()`     | ~L1062 | Sets `total_points_earned` in evaluation context |
+| `get_cumulative_badge_levels()`   | ~L1327 | Determines which tier badges are earned          |
+| `get_cumulative_badge_progress()` | ~L1611 | Populates progress display dict                  |
 
 **No location** uses the old `baseline + cycle_points` formula for tier determination. ✅
 
@@ -150,32 +150,32 @@ All 3 locations use `self.coordinator.stats.get_period_total()`:
 
 ## 5. Constants Reference
 
-| Constant | Location | Value | Status |
-|----------|----------|-------|--------|
-| `DATA_KID_CUMULATIVE_BADGE_PROGRESS_CYCLE_POINTS` | const.py ~L1071 | `"cycle_points"` | ✅ Used |
-| `DATA_KID_CUMULATIVE_BADGE_PROGRESS_STATUS` | const.py ~L1072 | `"status"` | ✅ Used |
-| `DATA_BADGE_MAINTENANCE_RULES` | const.py ~L1589 | `"maintenance_rules"` | ✅ Stored, never read at runtime |
-| `DEFAULT_BADGE_MAINTENANCE_THRESHOLD` | const.py ~L1718 | `0` | ✅ Used as default |
-| `CUMULATIVE_BADGE_STATE_ACTIVE` | const.py ~L1904 | `"active"` | ✅ Used |
-| `CUMULATIVE_BADGE_STATE_GRACE` | const.py ~L1905 | `"grace"` | ❌ Dead |
-| `CUMULATIVE_BADGE_STATE_DEMOTED` | const.py ~L1906 | `"demoted"` | ✅ Used |
-| `SIGNAL_SUFFIX_BADGE_MAINTENANCE_CHECK` | const.py | `"badge_maintenance_check"` | ❌ Dead |
-| `DATA_KID_CUMULATIVE_BADGE_PROGRESS_MAINTENANCE_END_DATE` | const.py | `"maintenance_end_date"` | ⚠️ Stored, never evaluated |
-| `DATA_KID_CUMULATIVE_BADGE_PROGRESS_MAINTENANCE_GRACE_END_DATE` | const.py | `"maintenance_grace_end_date"` | ⚠️ Stored, never evaluated |
+| Constant                                                        | Location        | Value                          | Status                           |
+| --------------------------------------------------------------- | --------------- | ------------------------------ | -------------------------------- |
+| `DATA_KID_CUMULATIVE_BADGE_PROGRESS_CYCLE_POINTS`               | const.py ~L1071 | `"cycle_points"`               | ✅ Used                          |
+| `DATA_KID_CUMULATIVE_BADGE_PROGRESS_STATUS`                     | const.py ~L1072 | `"status"`                     | ✅ Used                          |
+| `DATA_BADGE_MAINTENANCE_RULES`                                  | const.py ~L1589 | `"maintenance_rules"`          | ✅ Stored, never read at runtime |
+| `DEFAULT_BADGE_MAINTENANCE_THRESHOLD`                           | const.py ~L1718 | `0`                            | ✅ Used as default               |
+| `CUMULATIVE_BADGE_STATE_ACTIVE`                                 | const.py ~L1904 | `"active"`                     | ✅ Used                          |
+| `CUMULATIVE_BADGE_STATE_GRACE`                                  | const.py ~L1905 | `"grace"`                      | ❌ Dead                          |
+| `CUMULATIVE_BADGE_STATE_DEMOTED`                                | const.py ~L1906 | `"demoted"`                    | ✅ Used                          |
+| `SIGNAL_SUFFIX_BADGE_MAINTENANCE_CHECK`                         | const.py        | `"badge_maintenance_check"`    | ❌ Dead                          |
+| `DATA_KID_CUMULATIVE_BADGE_PROGRESS_MAINTENANCE_END_DATE`       | const.py        | `"maintenance_end_date"`       | ⚠️ Stored, never evaluated       |
+| `DATA_KID_CUMULATIVE_BADGE_PROGRESS_MAINTENANCE_GRACE_END_DATE` | const.py        | `"maintenance_grace_end_date"` | ⚠️ Stored, never evaluated       |
 
 ---
 
 ## 6. Summary: What Must Be Built
 
-| Gap | Severity | Where to Build |
-|-----|----------|----------------|
-| Engine: `check_retention()` for cumulative | 🔴 Critical | Engine (Phase 1) |
-| Manager: Maintenance processing method | 🔴 Critical | Manager (Phase 2) |
-| Manager: cycle_points reset at cycle boundary | 🔴 Critical | Manager (Phase 2) |
-| Manager: GRACE state transition | 🟡 Medium | Manager (Phase 2) |
-| Manager: Re-promotion DEMOTED→ACTIVE (time-based) | 🔴 Critical | Manager (Phase 2) |
-| Manager: Re-promotion DEMOTED→ACTIVE (immediate) | 🔴 Critical | Manager `_apply_badge_result` (Phase 3) |
-| Manager: Midnight rollover subscription | 🔴 Critical | Manager (Phase 3) |
-| Manager: First-time date initialization | 🟡 Medium | Manager (Phase 2) |
-| Wire `SIGNAL_SUFFIX_BADGE_MAINTENANCE_CHECK` | 🟢 Low | Phase 3 |
-| Display: GRACE status in progress sensor | 🟢 Low | Already handled if status is set |
+| Gap                                               | Severity    | Where to Build                          |
+| ------------------------------------------------- | ----------- | --------------------------------------- |
+| Engine: `check_retention()` for cumulative        | 🔴 Critical | Engine (Phase 1)                        |
+| Manager: Maintenance processing method            | 🔴 Critical | Manager (Phase 2)                       |
+| Manager: cycle_points reset at cycle boundary     | 🔴 Critical | Manager (Phase 2)                       |
+| Manager: GRACE state transition                   | 🟡 Medium   | Manager (Phase 2)                       |
+| Manager: Re-promotion DEMOTED→ACTIVE (time-based) | 🔴 Critical | Manager (Phase 2)                       |
+| Manager: Re-promotion DEMOTED→ACTIVE (immediate)  | 🔴 Critical | Manager `_apply_badge_result` (Phase 3) |
+| Manager: Midnight rollover subscription           | 🔴 Critical | Manager (Phase 3)                       |
+| Manager: First-time date initialization           | 🟡 Medium   | Manager (Phase 2)                       |
+| Wire `SIGNAL_SUFFIX_BADGE_MAINTENANCE_CHECK`      | 🟢 Low      | Phase 3                                 |
+| Display: GRACE status in progress sensor          | 🟢 Low      | Already handled if status is set        |

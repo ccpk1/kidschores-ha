@@ -1028,8 +1028,10 @@ class StatisticsManager(BaseManager):
             return
 
         # Get periods bucket (Landlord should have created this)
+        # Note: Use `is None` check, NOT `if not periods`, because Landlord
+        # correctly creates an empty dict {} which is falsy but valid.
         periods = badge_entry.get(const.DATA_KID_BADGES_EARNED_PERIODS)
-        if not periods:
+        if periods is None:
             const.LOGGER.warning(
                 "StatisticsManager._on_badge_earned: Periods bucket missing (Landlord should create): kid=%s, badge=%s",
                 kid_id,

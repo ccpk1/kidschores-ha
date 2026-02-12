@@ -253,27 +253,27 @@ chores:
 #   - assigned_to: List of kid names (required)
 #   - award_points: Points awarded when badge earned (default: 0)
 #   - target_type: "chore_count"/"points_earned" (for cumulative, default: "chore_count")
-#   - target_threshold_value: Numeric target (required for cumulative)
+#   - threshold_value: Numeric target (required for cumulative)
 #   - icon: MDI icon (default: "mdi:medal")
 #   - start_date: ISO date string (optional)
 #   - end_date: ISO date string (optional)
 badges:
-  # Test: Cumulative badge - chore count target
+  # Test: Cumulative badge - total all-time points only
   - name: "Chore Stär Champion"
     type: "cumulative"
     assigned_to: ["Zoë"]
     award_points: 50
-    target_type: "chore_count"
-    target_threshold_value: 100
+    target_type: "points"
+    threshold_value: 100
     icon: "mdi:medal-outline"
 
-  # Test: Cumulative badge - points earned target (multi-kid)
+  # Test: Cumulative badge - total all-time points (multi-kid)
   - name: "Team Player Badge"
     type: "cumulative"
     assigned_to: ["Max!", "Lila"]
     award_points: 30
-    target_type: "points_earned"
-    target_threshold_value: 500
+    target_type: "points"
+    threshold_value: 500
     icon: "mdi:account-group"
 
 # Rewards (maps to REWARD_COUNT + REWARDS steps)

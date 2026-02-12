@@ -25,7 +25,13 @@ from . import const, data_builders as db
 from .helpers import backup_helpers as bh, entity_helpers as eh
 from .helpers.entity_helpers import get_item_id_by_name
 from .store import KidsChoresStore
-from .utils.dt_utils import dt_now_local, dt_to_utc, dt_today_iso
+from .utils.dt_utils import (
+    dt_add_interval,
+    dt_next_schedule,
+    dt_now_local,
+    dt_to_utc,
+    dt_today_iso,
+)
 from .utils.math_utils import parse_points_adjust_values
 
 if TYPE_CHECKING:
@@ -1047,10 +1053,28 @@ class PreV50Migrator:
             )
 
         # Cumulative Badge Progress Cleanup (v0.5.0-beta4)
-        # Remove deprecated baseline field and reset cycle_points for badges without maintenance
-        badges_data = self.coordinator._data.get(const.DATA_BADGES, {})
+        # Remove deprecated baseline field, derived fields (now computed on-read),
+        # and reset cycle_points for badges without maintenance
         baseline_removed = 0
+        derived_removed = 0
         cycle_reset = 0
+
+        # Fields to strip from cumulative_badge_progress (computed on-read now)
+        DERIVED_PROGRESS_FIELDS = [
+            "current_badge_id",
+            "current_badge_name",
+            "current_threshold",
+            "highest_earned_badge_id",
+            "highest_earned_badge_name",
+            "highest_earned_threshold",
+            "next_higher_badge_id",
+            "next_higher_badge_name",
+            "next_higher_threshold",
+            "next_higher_points_needed",
+            "next_lower_badge_id",
+            "next_lower_badge_name",
+            "next_lower_threshold",
+        ]
 
         for kid_data in kids.values():
             progress = kid_data.get(const.DATA_KID_CUMULATIVE_BADGE_PROGRESS, {})
@@ -1058,36 +1082,240 @@ class PreV50Migrator:
                 continue
 
             # Remove baseline field (deprecated - acquisition uses total_points_earned)
-            if const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_BASELINE in progress:
-                del progress[const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_BASELINE]
+            if "baseline" in progress:
+                del progress["baseline"]
                 baseline_removed += 1
 
-            # Reset cycle_points to 0 if current badge doesn't have maintenance enabled
-            current_badge_id = progress.get(
-                const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_CURRENT_BADGE_ID
-            )
-            if current_badge_id:
-                badge_info = badges_data.get(current_badge_id, {})
-                maintenance_rules = badge_info.get(
-                    const.DATA_BADGE_MAINTENANCE_RULES, {}
-                )
-                has_maintenance = bool(maintenance_rules)
-                if not has_maintenance:
-                    current_cycle = progress.get(
-                        const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_CYCLE_POINTS, 0
-                    )
-                    if current_cycle != 0:
-                        progress[
-                            const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_CYCLE_POINTS
-                        ] = 0.0
-                        cycle_reset += 1
+            # Remove all derived fields (now computed via get_cumulative_badge_progress)
+            for field in DERIVED_PROGRESS_FIELDS:
+                if field in progress:
+                    del progress[field]
+                    derived_removed += 1
 
-        if baseline_removed > 0 or cycle_reset > 0:
+            # Reset cycle_points to 0 if current badge doesn't have maintenance enabled
+            # Note: Must use get_cumulative_badge_levels() since current_badge_id no longer stored
+            # For migration simplicity, we skip this check - cycle_points will naturally
+            # reset to 0 on next maintenance cycle or demotion
+            # Original logic kept for reference but disabled:
+            # current_badge_id = progress.get(const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_CURRENT_BADGE_ID)
+            # This field no longer exists after derived field removal above
+
+        if baseline_removed > 0 or derived_removed > 0 or cycle_reset > 0:
             const.LOGGER.info(
                 "Cumulative badge progress cleanup: Removed %d baseline fields, "
-                "reset %d cycle_points for badges without maintenance",
+                "%d derived fields, reset %d cycle_points for badges without maintenance",
                 baseline_removed,
+                derived_removed,
                 cycle_reset,
+            )
+
+        # --- Cumulative Badge Data Integrity (v0.5.0-beta4 hotfix) ---
+        # Fixes corrupted data where kids have invalid DEMOTED status with null
+        # maintenance dates (causes infinite re-promotion loop at runtime).
+        # Also deduplicates earned_by lists and initialises missing progress dicts.
+        badges = self.coordinator._data.get(const.DATA_BADGES, {})
+
+        # Build lookup: badge_id → maintenance_enabled (bool)
+        cumulative_badges_by_id: dict[str, dict[str, Any]] = {}
+        for bid, bdata in badges.items():
+            if bdata.get(const.DATA_BADGE_TYPE) != const.BADGE_TYPE_CUMULATIVE:
+                continue
+            cumulative_badges_by_id[bid] = bdata
+
+        def _badge_maintenance_enabled(bdata: dict[str, Any]) -> bool:
+            """Return True if badge has active maintenance schedule."""
+            target = bdata.get(const.DATA_BADGE_TARGET, {})
+            maint_threshold = float(target.get(const.DATA_BADGE_MAINTENANCE_RULES, 0))
+            rs = bdata.get(const.DATA_BADGE_RESET_SCHEDULE, {})
+            freq = rs.get(
+                const.DATA_BADGE_RESET_SCHEDULE_RECURRING_FREQUENCY,
+                const.FREQUENCY_NONE,
+            )
+            return freq != const.FREQUENCY_NONE and maint_threshold > 0
+
+        def _compute_maintenance_dates(
+            bdata: dict[str, Any],
+        ) -> tuple[str | None, str | None]:
+            """Compute (end_date, grace_end_date) from badge reset_schedule."""
+            rs = bdata.get(const.DATA_BADGE_RESET_SCHEDULE, {})
+            freq = rs.get(
+                const.DATA_BADGE_RESET_SCHEDULE_RECURRING_FREQUENCY,
+                const.FREQUENCY_NONE,
+            )
+            if freq == const.FREQUENCY_NONE:
+                return (None, None)
+
+            today_iso = dt_today_iso()
+            next_end: str | None = None
+
+            if freq == const.FREQUENCY_CUSTOM:
+                c_interval = rs.get(const.DATA_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL)
+                c_unit = rs.get(const.DATA_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL_UNIT)
+                if c_interval and c_unit:
+                    result = dt_add_interval(
+                        today_iso,
+                        interval_unit=c_unit,
+                        delta=int(c_interval),
+                        require_future=True,
+                        return_type=const.HELPER_RETURN_ISO_DATE,
+                    )
+                    next_end = str(result) if result else None
+            else:
+                result = dt_next_schedule(
+                    today_iso,
+                    interval_type=freq,
+                    require_future=True,
+                    return_type=const.HELPER_RETURN_ISO_DATE,
+                )
+                next_end = str(result) if result else None
+
+            next_grace: str | None = None
+            grace_days = int(
+                rs.get(const.DATA_BADGE_RESET_SCHEDULE_GRACE_PERIOD_DAYS, 0)
+            )
+            if next_end:
+                if grace_days > 0:
+                    g_result = dt_add_interval(
+                        next_end,
+                        interval_unit=const.TIME_UNIT_DAYS,
+                        delta=grace_days,
+                        return_type=const.HELPER_RETURN_ISO_DATE,
+                    )
+                    next_grace = str(g_result) if g_result else next_end
+                else:
+                    # No grace period — grace end matches maintenance end
+                    next_grace = next_end
+
+            return (next_end, next_grace)
+
+        # Task 1: Dedup earned_by lists on all badges
+        dedup_count = 0
+        for bdata in badges.values():
+            earned_by = bdata.get(const.DATA_BADGE_EARNED_BY)
+            if earned_by and isinstance(earned_by, list):
+                unique = list(dict.fromkeys(earned_by))  # preserves order
+                if len(unique) != len(earned_by):
+                    bdata[const.DATA_BADGE_EARNED_BY] = unique
+                    dedup_count += 1
+
+        if dedup_count > 0:
+            const.LOGGER.info(
+                "Badge migration: Deduplicated earned_by on %d badge(s)",
+                dedup_count,
+            )
+
+        # Task 2-4: Per-kid progress repair
+        status_repaired = 0
+        dates_initialised = 0
+        progress_created = 0
+
+        # Build sorted cumulative badge list (lowest → highest threshold)
+        sorted_cumulative = sorted(
+            cumulative_badges_by_id.items(),
+            key=lambda item: float(
+                item[1]
+                .get(const.DATA_BADGE_TARGET, {})
+                .get(const.DATA_BADGE_TARGET_THRESHOLD_VALUE, 0)
+            ),
+        )
+
+        for kid_id, kid_data in kids.items():
+            # Task 2: Ensure cumulative_badge_progress exists
+            progress = kid_data.get(const.DATA_KID_CUMULATIVE_BADGE_PROGRESS)
+            if progress is None:
+                kid_data[const.DATA_KID_CUMULATIVE_BADGE_PROGRESS] = {
+                    const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_CYCLE_POINTS: 0,
+                    const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_STATUS: (
+                        const.CUMULATIVE_BADGE_STATE_ACTIVE
+                    ),
+                    const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_MAINTENANCE_END_DATE: None,
+                    const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_MAINTENANCE_GRACE_END_DATE: None,
+                }
+                progress_created += 1
+                continue  # freshly initialised, no further repair needed
+
+            if not isinstance(progress, dict):
+                continue
+
+            # Find kid's highest earned cumulative badge
+            badges_earned = kid_data.get(const.DATA_KID_BADGES_EARNED, {})
+            highest_badge_data: dict[str, Any] | None = None
+            for bid, bdata in sorted_cumulative:
+                # Check assignment: empty list = all kids
+                assigned = bdata.get(const.DATA_BADGE_ASSIGNED_TO, [])
+                if assigned and kid_id not in assigned:
+                    continue
+                if bid in badges_earned:
+                    highest_badge_data = bdata
+
+            current_status = progress.get(
+                const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_STATUS
+            )
+            end_date = progress.get(
+                const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_MAINTENANCE_END_DATE
+            )
+
+            # Task 3: Repair invalid DEMOTED status when maintenance is not enabled
+            if (
+                current_status == const.CUMULATIVE_BADGE_STATE_DEMOTED
+                and highest_badge_data is not None
+                and not _badge_maintenance_enabled(highest_badge_data)
+            ):
+                progress[const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_STATUS] = (
+                    const.CUMULATIVE_BADGE_STATE_ACTIVE
+                )
+                progress[const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_CYCLE_POINTS] = 0
+                progress[
+                    const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_MAINTENANCE_END_DATE
+                ] = None
+                progress[
+                    const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_MAINTENANCE_GRACE_END_DATE
+                ] = None
+                status_repaired += 1
+                const.LOGGER.debug(
+                    "Badge migration: Repaired DEMOTED→ACTIVE for kid %s "
+                    "(badge has no maintenance)",
+                    kid_id,
+                )
+                continue  # dates correctly set to None
+
+            # Task 4: Initialise maintenance dates for DEMOTED/ACTIVE with maintenance
+            # enabled but null dates (legacy data corruption)
+            if (
+                highest_badge_data is not None
+                and _badge_maintenance_enabled(highest_badge_data)
+                and end_date is None
+            ):
+                new_end, new_grace = _compute_maintenance_dates(highest_badge_data)
+                progress[
+                    const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_MAINTENANCE_END_DATE
+                ] = new_end
+                progress[
+                    const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_MAINTENANCE_GRACE_END_DATE
+                ] = new_grace
+                # If status was DEMOTED with null dates, repair to ACTIVE
+                if current_status == const.CUMULATIVE_BADGE_STATE_DEMOTED:
+                    progress[const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_STATUS] = (
+                        const.CUMULATIVE_BADGE_STATE_ACTIVE
+                    )
+                    progress[const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_CYCLE_POINTS] = 0
+                    status_repaired += 1
+                dates_initialised += 1
+                const.LOGGER.debug(
+                    "Badge migration: Initialised maintenance dates for kid %s "
+                    "(end=%s, grace=%s)",
+                    kid_id,
+                    new_end,
+                    new_grace,
+                )
+
+        if status_repaired > 0 or dates_initialised > 0 or progress_created > 0:
+            const.LOGGER.info(
+                "Badge data integrity: Repaired %d invalid DEMOTED states, "
+                "initialised %d maintenance date sets, created %d missing progress dicts",
+                status_repaired,
+                dates_initialised,
+                progress_created,
             )
 
         # Stamp schema 44
@@ -3198,21 +3426,11 @@ class PreV50Migrator:
                     highest_badge = badge_info
 
             # Set the current cumulative badge progress for this kid
+            # Phase 3A: Only write state fields - derived fields computed on-read
             if highest_badge:
                 progress = kid_info.setdefault(
                     const.DATA_KID_CUMULATIVE_BADGE_PROGRESS,
                     {},  # type: ignore[typeddict-item]
-                )
-                progress[const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_CURRENT_BADGE_ID] = (
-                    highest_badge.get(const.DATA_BADGE_INTERNAL_ID)
-                )
-                progress[
-                    const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_CURRENT_BADGE_NAME
-                ] = highest_badge.get(const.DATA_BADGE_NAME)
-                progress[const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_CURRENT_THRESHOLD] = (
-                    highest_badge.get(const.DATA_BADGE_TARGET, {}).get(
-                        const.DATA_BADGE_TARGET_THRESHOLD_VALUE, 0
-                    )
                 )
                 # Set cycle points to current points balance to avoid losing progress
                 progress[const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_CYCLE_POINTS] = (
@@ -4119,15 +4337,10 @@ class PreV50Migrator:
                                     values_rounded += 1
 
             # --- cumulative_badge_progress ---
+            # Only cycle_points remains after Phase 3A cleanup (derived fields removed)
             cumulative = kid_info.get(const.DATA_KID_CUMULATIVE_BADGE_PROGRESS, {})
             for field in [
-                const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_BASELINE,
                 const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_CYCLE_POINTS,
-                const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_CURRENT_THRESHOLD,
-                const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_HIGHEST_EARNED_THRESHOLD,
-                const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_NEXT_HIGHER_THRESHOLD,
-                const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_NEXT_HIGHER_POINTS_NEEDED,
-                const.DATA_KID_CUMULATIVE_BADGE_PROGRESS_NEXT_LOWER_THRESHOLD,
             ]:
                 if field in cumulative and isinstance(cumulative[field], (int, float)):
                     old_val = cumulative[field]

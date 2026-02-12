@@ -1861,12 +1861,9 @@ def validate_badge_common_inputs(
             )
             user_input[const.CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE] = 1
 
-        # Cumulative badge handling - force target type to points
+        # Cumulative badge handling
         elif is_cumulative:
-            # Force cumulative badges to use points
-            user_input[const.CFOF_BADGES_INPUT_TARGET_TYPE] = (
-                const.BADGE_TARGET_THRESHOLD_TYPE_POINTS
-            )
+            # Cumulative badges always use points - set in data_builders.py
 
             # Validate threshold value
             target_threshold = user_input.get(
