@@ -30,8 +30,7 @@
      - Scope is **kid claim buttons only** (`KidChoreClaimButton`, `KidRewardRedeemButton`), not a global auth bypass.
      - Service-level authorization in `services.py` remains unchanged.
      - Default is secure (`kiosk mode` disabled).
-
-- **Completion confirmation**: `[x]` All follow-up items completed (tests, docs, risk text, validation gates) before requesting owner approval.
+  - **Completion confirmation**: `[x]` All follow-up items completed (tests, docs, risk text, validation gates) before requesting owner approval.
 
 ## Tracking expectations
 

@@ -2750,6 +2750,7 @@ def build_general_options_schema(default: dict | None = None) -> vol.Schema:
     default_show_legacy_entities = default.get(
         const.CONF_SHOW_LEGACY_ENTITIES, const.DEFAULT_SHOW_LEGACY_ENTITIES
     )
+    default_kiosk_mode = default.get(const.CONF_KIOSK_MODE, const.DEFAULT_KIOSK_MODE)
 
     return vol.Schema(
         {
@@ -2770,6 +2771,10 @@ def build_general_options_schema(default: dict | None = None) -> vol.Schema:
             vol.Required(
                 const.CFOF_SYSTEM_INPUT_SHOW_LEGACY_ENTITIES,
                 default=default_show_legacy_entities,
+            ): selector.BooleanSelector(),
+            vol.Required(
+                const.CFOF_SYSTEM_INPUT_KIOSK_MODE,
+                default=default_kiosk_mode,
             ): selector.BooleanSelector(),
             vol.Required(
                 const.CFOF_SYSTEM_INPUT_BACKUPS_MAX_RETAINED,

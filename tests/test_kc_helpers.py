@@ -22,6 +22,7 @@ import pytest
 
 from custom_components.kidschores import const
 from custom_components.kidschores.helpers.auth_helpers import (
+    is_kiosk_mode_enabled,
     is_user_authorized_for_global_action,
 )
 from custom_components.kidschores.helpers.entity_helpers import (
@@ -234,6 +235,33 @@ class TestAuthorizationHelpers:
 
         # Parent users ARE authorized when registered in coordinator.parents_data
         assert is_authorized is True
+
+    async def test_kiosk_mode_defaults_to_disabled(
+        self,
+        hass: HomeAssistant,
+        scenario_minimal: SetupResult,
+    ) -> None:
+        """Kiosk mode should default to disabled when option is not set."""
+        assert is_kiosk_mode_enabled(hass) is False
+
+    async def test_kiosk_mode_enabled_when_option_set(
+        self,
+        hass: HomeAssistant,
+        scenario_minimal: SetupResult,
+    ) -> None:
+        """Kiosk mode helper should read enabled state from config entry options."""
+        config_entry = scenario_minimal.config_entry
+
+        hass.config_entries.async_update_entry(
+            config_entry,
+            options={
+                **config_entry.options,
+                const.CONF_KIOSK_MODE: True,
+            },
+        )
+        await hass.async_block_till_done()
+
+        assert is_kiosk_mode_enabled(hass) is True
 
 
 class TestDatetimeBoundaryHandling:

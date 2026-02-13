@@ -14,7 +14,7 @@
 | Phase 1 – Contract alignment     | Reconcile plan intent vs current code and docs               | 0%         | `waiting` state exists but P6 branch is removed in engine |
 | Phase 2 – Core logic restoration | Re-enable due-window waiting path using existing fields      | 0%         | No new storage fields; derive from `due_window_offset`    |
 | Phase 3 – Flow/service parity    | Keep create/update UX aligned with existing options/services | 0%         | No new form fields required                               |
-| Phase 4 – Tests & validation     | Add focused regression tests around waiting/can-claim        | 0%         | Emphasize manager + engine + sensor contract              |
+| Phase 4 – Tests & validation     | Add focused regression tests around waiting/can-claim        | 0%         | Emphasize manager + engine + sensor `Lock_reason` contract |
 
 1. **Key objective** – Reinstate Phase 5 “claim restriction before due window” behavior by using existing `due_window_offset` and current `can_claim` pipeline, returning `waiting` as a calculated lock state.
 2. **Summary of recent work** – Audit confirms `CHORE_STATE_WAITING` is defined and translated, but `resolve_kid_chore_state()` currently has `P6 — [REMOVED]` and never emits `waiting`.
@@ -75,6 +75,9 @@
   3. - [ ] Align manager error propagation in [custom_components/kidschores/managers/chore_manager.py](../../custom_components/kidschores/managers/chore_manager.py#L615) for lock reasons `waiting|not_my_turn|missed`.
      - Add explicit branch or translation mapping instead of falling through default error.
   4. - [ ] Verify read-path parity in [custom_components/kidschores/managers/chore_manager.py](../../custom_components/kidschores/managers/chore_manager.py#L2948) and status-context path (~L3156) still uses same engine-derived state for both dashboard and claim validation.
+  5. - [ ] Populate chore status sensor `Lock_reason` attribute from resolved lock context so waiting/claim locks are visible without inferring from state alone.
+    - Files: `custom_components/kidschores/managers/chore_manager.py` (status context builder) and corresponding chore status sensor entity platform.
+    - Rule: expose lock reason token (`waiting`, `not_my_turn`, `missed`, etc.) when locked; set `None` when claim is currently allowed.
 - **Key issues**
   - Lock reason strings are state tokens, while exception paths currently prefer translation keys; mismatch can produce wrong user-facing error text.
 
@@ -98,7 +101,9 @@
      - in-window returns `due` or `pending` depending on due timing.
   2. - [ ] Add manager-level tests in [tests/test_chore_scheduling.py](../../tests/test_chore_scheduling.py#L2200) or a dedicated file to validate `can_claim_chore()` rejects before window and allows once window opens.
   3. - [ ] Add sensor/status contract checks in [tests/test_ui_manager.py](../../tests/test_ui_manager.py) or existing dashboard-helper tests to verify `lock_reason=waiting` and `available_at` when waiting.
-  4. - [ ] Run quality gates:
+  4. - [ ] Add chore status sensor attribute assertions verifying `Lock_reason` mirrors lock context across locked vs claimable states.
+    - Target tests: existing chore status sensor tests (or add focused test file if missing coverage).
+  5. - [ ] Run quality gates:
      - `./utils/quick_lint.sh --fix`
      - `mypy custom_components/kidschores/`
      - `python -m pytest tests/test_chore_engine.py tests/test_chore_scheduling.py -v --tb=line`

@@ -823,6 +823,7 @@ CFOF_SYSTEM_INPUT_POINTS_ADJUST_VALUES: Final = "points_adjust_values"
 # Additional system settings form inputs (General Options)
 CFOF_SYSTEM_INPUT_RETENTION_PERIODS: Final = "retention_periods"
 CFOF_SYSTEM_INPUT_SHOW_LEGACY_ENTITIES: Final = "show_legacy_entities"
+CFOF_SYSTEM_INPUT_KIOSK_MODE: Final = "kiosk_mode"
 CFOF_SYSTEM_INPUT_BACKUPS_MAX_RETAINED: Final = "backups_max_retained"
 
 # Dashboard Generator Input Fields (OptionsFlow)
@@ -859,6 +860,7 @@ NOTIFICATION_EVENT: Final = "mobile_app_notification_action"
 
 # Legacy / Extra Entity Settings
 CONF_SHOW_LEGACY_ENTITIES: Final = "show_legacy_entities"
+CONF_KIOSK_MODE: Final = "kiosk_mode"
 
 # Badge Types
 BADGE_TYPE_ACHIEVEMENT_LINKED: Final = "achievement_linked"
@@ -1751,6 +1753,7 @@ DEFAULT_DUE_TIME = {"hour": 23, "minute": 59, "second": 0}
 DEFAULT_HOUR: Final = 0
 DEFAULT_KID_POINTS_MULTIPLIER: Final = 1
 DEFAULT_SHOW_LEGACY_ENTITIES: Final = False
+DEFAULT_KIOSK_MODE: Final = False
 DEFAULT_MONTHLY_RESET_DAY: Final = 1
 DEFAULT_MULTIPLE_CLAIMS_PER_DAY = False
 DEFAULT_NOTIFY_DELAY_REMINDER: Final = 24

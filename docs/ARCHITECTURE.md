@@ -168,7 +168,7 @@ DATA_READY → ChoreManager → CHORES_READY
 
 ### System Settings (config_entry.options)
 
-These 10 settings are stored in `config_entry.options` and require integration reload to take effect:
+These settings are stored in `config_entry.options` and require integration reload to take effect:
 
 | Setting                | Type   | Default                 | Used By             | Why Reload Required               |
 | ---------------------- | ------ | ----------------------- | ------------------- | --------------------------------- |
@@ -182,6 +182,8 @@ These 10 settings are stored in `config_entry.options` and require integration r
 | `retention_monthly`    | int    | 3 (months)              | Stats cleanup       | Runtime read (no reload needed\*) |
 | `retention_yearly`     | int    | 3 (years)               | Stats cleanup       | Runtime read (no reload needed\*) |
 | `points_adjust_values` | list   | `[+1,-1,+2,-2,+10,-10]` | Button entities     | Entity creation/removal           |
+| `show_legacy_entities` | bool   | `false`                 | Entity setup        | Conditional entity creation       |
+| `kiosk_mode`           | bool   | `false`                 | Kid claim buttons   | Authorization behavior toggle     |
 
 **Note**: Retention settings are kept in `config_entry.options` for consistency even though they don't strictly require reload (runtime reads via `self.config_entry.options.get(...)`). This keeps all user-configurable settings in one place.
 
@@ -193,7 +195,7 @@ async def _update_system_settings_and_reload(self):
     """Update system settings in config entry and reload integration."""
     self.hass.config_entries.async_update_entry(
         self.config_entry,
-        options=self._entry_options  # Only 9 system settings
+        options=self._entry_options  # System settings and feature flags
     )
     # Full integration reload triggered automatically
 ```
@@ -727,7 +729,7 @@ The KidsChores integration utilizes a **Direct-to-Storage** architecture that de
 - **Single Source of Truth via `data_builders.py`**: All entity validation and building logic is centralized in `data_builders.py`, which serves **three entry points**: Config Flow, Options Flow, and Services. This architectural decision eliminates duplicate validation code and ensures consistent business rules across UI forms and programmatic CRUD operations.
 - **CFOF Key Alignment (v0.5.0)**: Form field keys (`CFOF_*`) align with storage keys (`DATA_*`) where possible, allowing `user_input` to pass directly to `data_builders.build_*()` without mapping. Complex entities (chores, badges) still use transform functions.
 - **Direct Storage Writing**: User input is written directly to persistent storage at `.storage/kidschores_data` using **Schema 42**. This approach treats storage as the immediate source of truth, bypassing intermediate configuration entry merging.
-- **Lightweight System Settings**: The `config_entry.options` object is reserved exclusively for nine system-level settings, such as `points_label` and `update_interval`. This keeps the core configuration entry lightweight and easy to validate.
+- **Lightweight System Settings**: The `config_entry.options` object is reserved exclusively for system-level settings and feature flags, such as `points_label`, `update_interval`, and `kiosk_mode`. This keeps the core configuration entry lightweight and easy to validate.
 
 ### Operational Workflows
 
@@ -745,7 +747,7 @@ The configuration process follows a streamlined four-step path:
 The Options Flow manages modifications without unnecessary system overhead:
 
 - **Entity Management**: Operations for adding, editing, or deleting entities are performed directly against storage data. The Coordinator handles persistence via `_persist()` and notifies active entities through `async_update_listeners()`, eliminating the need for a full integration reload.
-- **System Settings Update**: When the nine core system settings are modified, the flow updates the configuration entry via `self.hass.config_entries.async_update_entry()`. This action triggers a standard Home Assistant integration reload to apply global changes.
+- **System Settings Update**: When system settings or feature flags are modified, the flow updates the configuration entry via `self.hass.config_entries.async_update_entry()`. This action triggers a standard Home Assistant integration reload to apply global changes.
 
 ### Key Benefits
 

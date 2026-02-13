@@ -4318,6 +4318,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 const.DEFAULT_SHOW_LEGACY_ENTITIES,
             )
             self._entry_options[const.CONF_SHOW_LEGACY_ENTITIES] = new_extra_enabled
+            self._entry_options[const.CONF_KIOSK_MODE] = user_input.get(
+                const.CFOF_SYSTEM_INPUT_KIOSK_MODE,
+                const.DEFAULT_KIOSK_MODE,
+            )
 
             # Update backup retention (count-based)
             self._entry_options[const.CONF_BACKUPS_MAX_RETAINED] = user_input.get(
@@ -4328,12 +4332,13 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 "General Options Updated: Points Adjust Values=%s, "
                 "Update Interval=%s, Calendar Period to Show=%s, "
                 "Retention Periods=%s, "
-                "Show Legacy Entities=%s, Backup Retention=%s",
+                "Show Legacy Entities=%s, Kiosk Mode=%s, Backup Retention=%s",
                 self._entry_options.get(const.CONF_POINTS_ADJUST_VALUES),
                 self._entry_options.get(const.CONF_UPDATE_INTERVAL),
                 self._entry_options.get(const.CONF_CALENDAR_SHOW_PERIOD),
                 retention_str,
                 self._entry_options.get(const.CONF_SHOW_LEGACY_ENTITIES),
+                self._entry_options.get(const.CONF_KIOSK_MODE),
                 self._entry_options.get(const.CONF_BACKUPS_MAX_RETAINED),
             )
 

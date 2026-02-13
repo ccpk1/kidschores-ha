@@ -1648,6 +1648,8 @@ class ChoreManager(BaseManager):
             return
 
         marked_count = 0
+        skipped_already_overdue = 0
+        skipped_already_overdue_chore_names: set[str] = set()
         # Accumulate signal data for batch emission after persist (Phase 1: Persist→Emit pattern)
         signals_to_emit: list[dict[str, Any]] = []
 
@@ -1662,10 +1664,9 @@ class ChoreManager(BaseManager):
             current_state = kid_chore_data.get(const.DATA_KID_CHORE_DATA_STATE)
 
             if current_state == const.CHORE_STATE_OVERDUE:
-                const.LOGGER.debug(
-                    "Chore '%s' for kid '%s' already OVERDUE, skipping duplicate processing",
-                    chore_info.get(const.DATA_CHORE_NAME, chore_id),
-                    kid_id,
+                skipped_already_overdue += 1
+                skipped_already_overdue_chore_names.add(
+                    str(chore_info.get(const.DATA_CHORE_NAME, chore_id))
                 )
                 continue
 
@@ -1713,7 +1714,6 @@ class ChoreManager(BaseManager):
 
                 marked_count += 1
                 continue  # Skip normal overdue processing
-
             # Calculate and apply state transition via Engine (normal overdue path)
             effects = ChoreEngine.calculate_transition(
                 chore_data=chore_data,
@@ -1744,6 +1744,15 @@ class ChoreManager(BaseManager):
             )
 
             marked_count += 1
+
+        if skipped_already_overdue:
+            sample_names = sorted(skipped_already_overdue_chore_names)[:5]
+            const.LOGGER.debug(
+                "Overdue processing skip summary: %d already-overdue entries skipped across %d chores (sample: %s)",
+                skipped_already_overdue,
+                len(skipped_already_overdue_chore_names),
+                ", ".join(sample_names),
+            )
 
         if marked_count > 0:
             const.LOGGER.debug(

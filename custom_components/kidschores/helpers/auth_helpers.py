@@ -45,6 +45,26 @@ def _get_kidschores_coordinator(
     return None
 
 
+def is_kiosk_mode_enabled(hass: HomeAssistant) -> bool:
+    """Return whether kiosk mode is enabled in active KidsChores options.
+
+    Args:
+        hass: HomeAssistant instance
+
+    Returns:
+        True when kiosk mode option is enabled, False otherwise
+    """
+    entries = hass.config_entries.async_entries(const.DOMAIN)
+    if not entries:
+        return const.DEFAULT_KIOSK_MODE
+
+    for entry in entries:
+        if entry.state.name == "LOADED":
+            return entry.options.get(const.CONF_KIOSK_MODE, const.DEFAULT_KIOSK_MODE)
+
+    return const.DEFAULT_KIOSK_MODE
+
+
 # ==============================================================================
 # Authorization Checks
 # ==============================================================================

@@ -26,6 +26,7 @@ from . import const
 from .coordinator import KidsChoresConfigEntry, KidsChoresDataCoordinator
 from .entity import KidsChoresCoordinatorEntity
 from .helpers.auth_helpers import (
+    is_kiosk_mode_enabled,
     is_user_authorized_for_global_action,
     is_user_authorized_for_kid,
 )
@@ -429,16 +430,25 @@ class KidChoreClaimButton(KidsChoresCoordinatorEntity, ButtonEntity):
         """Handle the button press event."""
         try:
             user_id = self._context.user_id if self._context else None
-            if user_id and not await is_user_authorized_for_kid(
-                self.hass, user_id, self._kid_id
-            ):
-                raise HomeAssistantError(
-                    translation_domain=const.DOMAIN,
-                    translation_key=const.TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION,
-                    translation_placeholders={
-                        "action": const.ERROR_ACTION_CLAIM_CHORES
-                    },
-                )
+            if user_id:
+                if is_kiosk_mode_enabled(self.hass):
+                    const.LOGGER.debug(
+                        "Kiosk mode enabled: skipping kid auth check for chore claim button"
+                    )
+                elif not await is_user_authorized_for_kid(
+                    self.hass, user_id, self._kid_id
+                ):
+                    raise HomeAssistantError(
+                        translation_domain=const.DOMAIN,
+                        translation_key=const.TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION,
+                        translation_placeholders={
+                            "action": const.ERROR_ACTION_CLAIM_CHORES
+                        },
+                    )
+                else:
+                    const.LOGGER.debug(
+                        "Kiosk mode disabled: enforcing kid auth check for chore claim button"
+                    )
 
             user_obj = await self.hass.auth.async_get_user(user_id) if user_id else None
             user_name = (user_obj.name if user_obj else None) or const.DISPLAY_UNKNOWN
@@ -855,16 +865,25 @@ class KidRewardRedeemButton(KidsChoresCoordinatorEntity, ButtonEntity):
         """
         try:
             user_id = self._context.user_id if self._context else None
-            if user_id and not await is_user_authorized_for_kid(
-                self.hass, user_id, self._kid_id
-            ):
-                raise HomeAssistantError(
-                    translation_domain=const.DOMAIN,
-                    translation_key=const.TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION,
-                    translation_placeholders={
-                        "action": const.ERROR_ACTION_REDEEM_REWARDS
-                    },
-                )
+            if user_id:
+                if is_kiosk_mode_enabled(self.hass):
+                    const.LOGGER.debug(
+                        "Kiosk mode enabled: skipping kid auth check for reward redeem button"
+                    )
+                elif not await is_user_authorized_for_kid(
+                    self.hass, user_id, self._kid_id
+                ):
+                    raise HomeAssistantError(
+                        translation_domain=const.DOMAIN,
+                        translation_key=const.TRANS_KEY_ERROR_NOT_AUTHORIZED_ACTION,
+                        translation_placeholders={
+                            "action": const.ERROR_ACTION_REDEEM_REWARDS
+                        },
+                    )
+                else:
+                    const.LOGGER.debug(
+                        "Kiosk mode disabled: enforcing kid auth check for reward redeem button"
+                    )
 
             user_obj = await self.hass.auth.async_get_user(user_id) if user_id else None
             parent_name = (user_obj.name if user_obj else None) or const.DISPLAY_UNKNOWN
