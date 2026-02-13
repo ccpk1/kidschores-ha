@@ -135,6 +135,84 @@ class TestValidation:
         assert exc_info.value.translation_key == const.TRANS_KEY_ERROR_NOT_FOUND
 
 
+class TestTimeScanCache:
+    """Tests for Phase 3 time-scan caching helpers."""
+
+    def test_parse_due_datetime_cache_reuses_dt_to_utc(
+        self,
+        chore_manager: ChoreManager,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Same due string should be parsed only once."""
+        calls = {"count": 0}
+
+        def _fake_dt_to_utc(_value: str | None):
+            calls["count"] += 1
+            return dt_now_utc()
+
+        monkeypatch.setattr(
+            "custom_components.kidschores.managers.chore_manager.dt_to_utc",
+            _fake_dt_to_utc,
+        )
+
+        due_str = "2026-01-01T10:00:00+00:00"
+        first = chore_manager._parse_due_datetime_cached(due_str)
+        second = chore_manager._parse_due_datetime_cached(due_str)
+
+        assert first is not None
+        assert second is not None
+        assert calls["count"] == 1
+
+    def test_get_chore_offsets_cached_reuses_parsed_offsets(
+        self,
+        chore_manager: ChoreManager,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Offset parsing should run once when chore strings are unchanged."""
+        calls = {"count": 0}
+
+        def _fake_parse_duration(_value: str | None):
+            calls["count"] += 1
+            return timedelta(hours=1)
+
+        monkeypatch.setattr(
+            "custom_components.kidschores.managers.chore_manager.dt_parse_duration",
+            _fake_parse_duration,
+        )
+
+        chore_info = {
+            const.DATA_CHORE_DUE_WINDOW_OFFSET: "P1DT0H",
+            const.DATA_CHORE_DUE_REMINDER_OFFSET: "PT4H",
+        }
+
+        first = chore_manager._get_chore_offsets_cached("chore-1", chore_info)
+        second = chore_manager._get_chore_offsets_cached("chore-1", chore_info)
+
+        assert first == second
+        assert calls["count"] == 2
+
+    @pytest.mark.asyncio
+    async def test_time_scan_signal_handler_clears_caches(
+        self,
+        chore_manager: ChoreManager,
+    ) -> None:
+        """Mutation signal handler should clear due and offset caches."""
+        chore_manager._parsed_due_datetime_cache["2026-01-01T00:00:00+00:00"] = (
+            dt_now_utc()
+        )
+        chore_manager._offset_cache["chore-1"] = (
+            "P1DT0H",
+            "PT4H",
+            timedelta(days=1),
+            timedelta(hours=4),
+        )
+
+        await chore_manager._on_time_scan_inputs_changed({"chore_id": "chore-1"})
+
+        assert chore_manager._parsed_due_datetime_cache == {}
+        assert chore_manager._offset_cache == {}
+
+
 # ============================================================================
 # Test Class: Claim Workflow
 # ============================================================================

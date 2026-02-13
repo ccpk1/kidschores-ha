@@ -11,8 +11,9 @@ import datetime
 from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.components.calendar import CalendarEntity, CalendarEvent
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
@@ -20,7 +21,11 @@ from . import const
 from .coordinator import KidsChoresConfigEntry
 from .engines.schedule_engine import RecurrenceEngine
 from .helpers.device_helpers import create_kid_device_info_from_coordinator
-from .helpers.entity_helpers import is_shadow_kid, should_create_entity
+from .helpers.entity_helpers import (
+    get_event_signal,
+    is_shadow_kid,
+    should_create_entity,
+)
 from .utils.dt_utils import dt_now_local, dt_parse, parse_daily_multi_times
 
 if TYPE_CHECKING:
@@ -101,6 +106,125 @@ class KidScheduleCalendar(CalendarEntity):
         self._attr_device_info = create_kid_device_info_from_coordinator(
             self.coordinator, kid_id, kid_name, config_entry
         )
+        self._events_cache: dict[tuple[str, str, int], list[CalendarEvent]] = {}
+        self._max_cache_entries = 8
+        self._recurrence_engine_cache: dict[
+            tuple[str, int, str, tuple[int, ...], str], RecurrenceEngine
+        ] = {}
+        self._rrule_cache: dict[tuple[str, int, str, tuple[int, ...], str], str] = {}
+
+    async def async_added_to_hass(self) -> None:
+        """Subscribe to mutation signals that invalidate calendar caches."""
+        await super().async_added_to_hass()
+
+        invalidation_signals = (
+            const.SIGNAL_SUFFIX_CHORE_CREATED,
+            const.SIGNAL_SUFFIX_CHORE_UPDATED,
+            const.SIGNAL_SUFFIX_CHORE_DELETED,
+            const.SIGNAL_SUFFIX_CHORE_RESCHEDULED,
+            const.SIGNAL_SUFFIX_CHORE_STATUS_RESET,
+            const.SIGNAL_SUFFIX_CHALLENGE_CREATED,
+            const.SIGNAL_SUFFIX_CHALLENGE_UPDATED,
+            const.SIGNAL_SUFFIX_CHALLENGE_DELETED,
+        )
+
+        for suffix in invalidation_signals:
+            signal = get_event_signal(self._config_entry.entry_id, suffix)
+            self.async_on_remove(
+                async_dispatcher_connect(
+                    self.hass, signal, self._on_calendar_data_changed
+                )
+            )
+
+    def _clear_event_caches(self) -> None:
+        """Clear all read-path caches used by this calendar entity."""
+        self._events_cache.clear()
+        self._recurrence_engine_cache.clear()
+        self._rrule_cache.clear()
+
+    @callback
+    def _on_calendar_data_changed(self, _payload: dict[str, Any] | None = None) -> None:
+        """Invalidate cached event artifacts when underlying data mutates."""
+        self._clear_event_caches()
+        self.async_write_ha_state()
+
+    def _build_cache_revision(self) -> int:
+        """Build a lightweight revision token for this kid's visible calendar data."""
+        revision = 0
+
+        for chore in self.coordinator.chores_data.values():
+            if self._kid_id not in chore.get(const.DATA_CHORE_ASSIGNED_KIDS, []):
+                continue
+            if not chore.get(const.DATA_CHORE_SHOW_ON_CALENDAR, True):
+                continue
+
+            completion_criteria = chore.get(
+                const.DATA_CHORE_COMPLETION_CRITERIA, const.SENTINEL_EMPTY
+            )
+            if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
+                due_date = chore.get(const.DATA_CHORE_PER_KID_DUE_DATES, {}).get(
+                    self._kid_id
+                )
+                applicable_days = tuple(
+                    chore.get(const.DATA_CHORE_PER_KID_APPLICABLE_DAYS, {}).get(
+                        self._kid_id, []
+                    )
+                )
+            else:
+                due_date = chore.get(const.DATA_CHORE_DUE_DATE)
+                applicable_days = tuple(chore.get(const.DATA_CHORE_APPLICABLE_DAYS, []))
+
+            chore_token = (
+                chore.get(const.DATA_CHORE_INTERNAL_ID, const.SENTINEL_EMPTY),
+                chore.get(
+                    const.DATA_CHORE_RECURRING_FREQUENCY,
+                    const.FREQUENCY_NONE,
+                ),
+                due_date,
+                chore.get(const.DATA_CHORE_DAILY_MULTI_TIMES, const.SENTINEL_EMPTY),
+                applicable_days,
+                chore.get(const.DATA_CHORE_CUSTOM_INTERVAL, 1),
+                chore.get(const.DATA_CHORE_CUSTOM_INTERVAL_UNIT, const.TIME_UNIT_DAYS),
+            )
+            revision ^= hash(chore_token)
+
+        for challenge in self.coordinator.challenges_data.values():
+            if self._kid_id not in challenge.get(
+                const.DATA_CHALLENGE_ASSIGNED_KIDS, []
+            ):
+                continue
+
+            challenge_token = (
+                challenge.get(const.DATA_CHALLENGE_INTERNAL_ID, const.SENTINEL_EMPTY),
+                challenge.get(const.DATA_CHALLENGE_START_DATE),
+                challenge.get(const.DATA_CHALLENGE_END_DATE),
+            )
+            revision ^= hash(challenge_token)
+
+        return revision
+
+    def _get_cached_events(
+        self,
+        window_start: datetime.datetime,
+        window_end: datetime.datetime,
+    ) -> list[CalendarEvent]:
+        """Return cached events for a window or generate and cache them."""
+        cache_key = (
+            window_start.isoformat(),
+            window_end.isoformat(),
+            self._build_cache_revision(),
+        )
+        cached = self._events_cache.get(cache_key)
+        if cached is not None:
+            return list(cached)
+
+        events = self._generate_all_events(window_start, window_end)
+        self._events_cache[cache_key] = events
+        if len(self._events_cache) > self._max_cache_entries:
+            oldest_key = next(iter(self._events_cache))
+            del self._events_cache[oldest_key]
+
+        return list(events)
 
     async def async_get_events(
         self,
@@ -119,30 +243,7 @@ class KidScheduleCalendar(CalendarEntity):
             start_date = start_date.replace(tzinfo=local_tz)
         if end_date.tzinfo is None:
             end_date = end_date.replace(tzinfo=local_tz)
-
-        events: list[CalendarEvent] = []
-
-        # 1) Generate chore events (filtered by show_on_calendar flag)
-        for chore in self.coordinator.chores_data.values():
-            # Skip chores not assigned to this kid
-            if self._kid_id not in chore.get(const.DATA_CHORE_ASSIGNED_KIDS, []):
-                continue
-
-            # Skip chores with show_on_calendar set to False
-            if not chore.get(const.DATA_CHORE_SHOW_ON_CALENDAR, True):
-                continue
-
-            events.extend(self._generate_events_for_chore(chore, start_date, end_date))
-
-        # 2) Generate challenge events
-        for challenge in self.coordinator.challenges_data.values():
-            if self._kid_id in challenge.get(const.DATA_CHALLENGE_ASSIGNED_KIDS, []):
-                evs = self._generate_events_for_challenge(
-                    challenge, start_date, end_date
-                )
-                events.extend(evs)
-
-        return events
+        return self._get_cached_events(start_date, end_date)
 
     async def async_create_event(self, **kwargs) -> None:
         """Create a new event - not supported for read-only calendar."""
@@ -291,6 +392,21 @@ class KidScheduleCalendar(CalendarEntity):
                 self._add_event_if_overlaps(events, e, window_start, window_end)
             current += datetime.timedelta(days=1)
 
+    def _daily_horizon_days(self) -> int:
+        """Return the calendar expansion horizon in days for daily frequencies."""
+        return max(1, self._calendar_duration.days // 3)
+
+    def _daily_window_end(
+        self,
+        window_start: datetime.datetime,
+        window_end: datetime.datetime,
+    ) -> datetime.datetime:
+        """Return capped generation end for daily and daily-multi recurrences."""
+        return min(
+            window_end,
+            window_start + datetime.timedelta(days=self._daily_horizon_days()),
+        )
+
     def _generate_recurring_daily_with_due_date(
         self,
         events: list[CalendarEvent],
@@ -341,36 +457,45 @@ class KidScheduleCalendar(CalendarEntity):
             window_end: Calendar window end
             applicable_days: Weekday constraints (0=Mon, 6=Sun), or None/[]
         """
-        const.LOGGER.debug(
-            "Calendar: Creating recurring 1-hour events (RRULE) for '%s' starting at %s",
-            summary,
-            due_dt,
-        )
-
         # Build ScheduleConfig for RecurrenceEngine
         # Convert applicable_days format if provided
         app_days = applicable_days if applicable_days else []
 
-        schedule_config = {
-            "frequency": recurring,
-            "interval": interval,
-            "interval_unit": unit,
-            "base_date": due_dt.isoformat(),
-            "applicable_days": app_days,
-        }
+        engine_cache_key = (
+            recurring,
+            interval,
+            unit,
+            tuple(app_days),
+            due_dt.isoformat(),
+        )
 
-        try:
-            engine = RecurrenceEngine(cast("ScheduleConfig", schedule_config))
-        except Exception as err:  # pylint: disable=broad-except
-            const.LOGGER.warning(
-                "Calendar: Failed to create RecurrenceEngine for %s: %s",
-                summary,
-                err,
-            )
-            return
+        engine = self._recurrence_engine_cache.get(engine_cache_key)
+        if engine is None:
+            schedule_config = {
+                "frequency": recurring,
+                "interval": interval,
+                "interval_unit": unit,
+                "base_date": due_dt.isoformat(),
+                "applicable_days": app_days,
+            }
+
+            try:
+                engine = RecurrenceEngine(cast("ScheduleConfig", schedule_config))
+            except Exception as err:  # pylint: disable=broad-except
+                const.LOGGER.warning(
+                    "Calendar: Failed to create RecurrenceEngine for %s: %s",
+                    summary,
+                    err,
+                )
+                return
+
+            self._recurrence_engine_cache[engine_cache_key] = engine
 
         # Generate RRULE string for iCal export (add to TIMED events only)
-        rrule_str = engine.to_rrule_string()
+        rrule_str = self._rrule_cache.get(engine_cache_key)
+        if rrule_str is None:
+            rrule_str = engine.to_rrule_string()
+            self._rrule_cache[engine_cache_key] = rrule_str
 
         # Get all occurrences in the window using engine
         try:
@@ -665,17 +790,8 @@ class KidScheduleCalendar(CalendarEntity):
 
         # --- Recurring chores with a due_date ---
         if due_dt:
-            const.LOGGER.debug(
-                "Calendar: Chore '%s' (recurring=%s) has due_date %s",
-                summary,
-                recurring,
-                due_dt,
-            )
             cutoff = min(due_dt, window_end)
             if cutoff < window_start:
-                const.LOGGER.debug(
-                    "Calendar: Due date cutoff outside window, skipping '%s'", summary
-                )
                 return events
 
             if recurring == const.FREQUENCY_DAILY:
@@ -690,9 +806,6 @@ class KidScheduleCalendar(CalendarEntity):
                 const.FREQUENCY_CUSTOM_FROM_COMPLETE,
             ):
                 # All intervals > 1 day with due_date create recurring 1-hour timed events
-                const.LOGGER.debug(
-                    "Calendar: Using unified recurring 1-hour handler for '%s'", summary
-                )
                 interval = chore.get(const.DATA_CHORE_CUSTOM_INTERVAL, 1)
                 unit = chore.get(
                     const.DATA_CHORE_CUSTOM_INTERVAL_UNIT, const.TIME_UNIT_DAYS
@@ -711,13 +824,14 @@ class KidScheduleCalendar(CalendarEntity):
                 )
             elif recurring == const.FREQUENCY_DAILY_MULTI:
                 # CFE-2026-001 Feature 2: Multiple times per day
+                daily_window_end = self._daily_window_end(window_start, window_end)
                 self._generate_recurring_daily_multi_with_due_date(
                     events,
                     summary,
                     description,
                     chore,
                     window_start,
-                    window_end,
+                    daily_window_end,
                 )
             return events
 
@@ -727,6 +841,7 @@ class KidScheduleCalendar(CalendarEntity):
             datetime.datetime.now() + self._calendar_duration
         )
         cutoff = min(window_end, future_limit)
+        daily_window_end = self._daily_window_end(window_start, window_end)
 
         if recurring == const.FREQUENCY_DAILY:
             self._generate_recurring_daily_without_due_date(
@@ -735,7 +850,7 @@ class KidScheduleCalendar(CalendarEntity):
                 description,
                 applicable_days,
                 gen_start,
-                cutoff,
+                min(cutoff, daily_window_end),
                 window_start,
                 window_end,
             )
@@ -786,7 +901,7 @@ class KidScheduleCalendar(CalendarEntity):
                 description,
                 chore,
                 window_start,
-                window_end,
+                daily_window_end,
             )
 
         return events
@@ -874,7 +989,7 @@ class KidScheduleCalendar(CalendarEntity):
         now = dt_util.as_local(dt_util.now())
         window_start = now - datetime.timedelta(hours=1)
         window_end = now + datetime.timedelta(hours=1)
-        all_events = self._generate_all_events(window_start, window_end)
+        all_events = self._get_cached_events(window_start, window_end)
         for e in all_events:
             # Convert date->datetime for comparison
             tz = dt_util.get_time_zone(self.hass.config.time_zone)
@@ -900,6 +1015,8 @@ class KidScheduleCalendar(CalendarEntity):
         # chores
         for chore in self.coordinator.chores_data.values():
             if self._kid_id in chore.get(const.DATA_CHORE_ASSIGNED_KIDS, []):
+                if not chore.get(const.DATA_CHORE_SHOW_ON_CALENDAR, True):
+                    continue
                 events.extend(
                     self._generate_events_for_chore(chore, window_start, window_end)
                 )

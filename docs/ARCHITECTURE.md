@@ -548,6 +548,13 @@ Calendar events for timed recurring chores now include RFC 5545 RRULE strings, e
 
 Covers 9 scenarios (EC-01 through EC-09): monthly clamping, leap year handling, year boundary crossing, applicable_days constraints, period-end calculations, DST transitions, midnight boundaries, custom base dates, and iteration safety limits.
 
+### Runtime optimization notes (v0.5.0 hardening)
+
+- **Daily expansion cap**: Calendar generation for `FREQUENCY_DAILY` and `FREQUENCY_DAILY_MULTI` is intentionally capped to `max(1, floor(calendar_show_period / 3))` days. Non-daily frequencies continue to use full show period.
+- **Read-path caching**: `KidScheduleCalendar` caches generated event windows by `(window_start, window_end, revision)` and reuses those results for `async_get_events` and `event` to avoid duplicate expansion work.
+- **Signal-first invalidation**: Calendar and recurrence artifacts are invalidated by explicit chore/challenge mutation signals rather than polling, preserving consistency with manager event architecture.
+- **Manager scan caching**: `ChoreManager` keeps derived parse caches for due datetimes and reminder/window offsets; these caches are cleared on chore/kid mutation signals.
+
 ---
 
 ## Statistics Engine Architecture

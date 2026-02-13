@@ -444,6 +444,13 @@ rrule_str = engine.to_rrule_string()  # For iCal export
 
 **Benefits**: Unified logic, RFC 5545 RRULE generation, edge case handling (monthly clamping, leap years, DST).
 
+**Implementation Notes (Scheduling Cache Rules)**:
+
+- Keep recurrence semantics in `RecurrenceEngine` unchanged; optimize call patterns around it (cache/reuse), not recurrence math itself.
+- Any new schedule/calendar cache MUST have explicit signal-driven invalidation on relevant mutations (chore/challenge/kid updates and deletions).
+- Calendar optimizations must preserve non-daily behavior: only DAILY and DAILY_MULTI use the 1/3 horizon cap.
+- Tests asserting period buckets must use `StatisticsEngine.get_period_keys()` (local-period source of truth), not ad hoc UTC date strings.
+
 ---
 
 ### 5. Code Quality & Performance Standards

@@ -306,6 +306,7 @@ class TestAutomatedMissRecording:
         # Trigger periodic update - Phase A finds overdue chore and records miss
         await coordinator.chore_manager._on_periodic_update(now_utc=dt_now_utc())
         await hass.async_block_till_done()
+        today_key = coordinator.stats.get_period_keys()["daily"]
 
         # Verify all kids have last_missed timestamp
         for kid_id in assigned_kids:
@@ -314,9 +315,12 @@ class TestAutomatedMissRecording:
             assert isinstance(last_missed, str)
 
             # Verify missed_streak_tally written to daily bucket (Phase 5)
-            today = dt_now_utc().strftime("%Y-%m-%d")
             missed_count = get_missed_count_from_period(
-                coordinator, kid_id, chore_id, DATA_KID_CHORE_DATA_PERIODS_DAILY, today
+                coordinator,
+                kid_id,
+                chore_id,
+                DATA_KID_CHORE_DATA_PERIODS_DAILY,
+                today_key,
             )
             assert missed_count == 1  # First miss recorded
 
@@ -376,6 +380,7 @@ class TestAutomatedMissRecording:
         # Trigger periodic update - Phase A finds overdue chore and records miss
         await coordinator.chore_manager._on_periodic_update(now_utc=dt_now_utc())
         await hass.async_block_till_done()
+        today_key = coordinator.stats.get_period_keys()["daily"]
 
         # Verify last_missed timestamp was set
         last_missed = get_kid_chore_last_missed(coordinator, zoe_id, chore_id)
@@ -383,9 +388,12 @@ class TestAutomatedMissRecording:
         assert isinstance(last_missed, str)
 
         # Verify missed_streak_tally written to daily bucket (Phase 5)
-        today = dt_now_utc().strftime("%Y-%m-%d")
         missed_count = get_missed_count_from_period(
-            coordinator, zoe_id, chore_id, DATA_KID_CHORE_DATA_PERIODS_DAILY, today
+            coordinator,
+            zoe_id,
+            chore_id,
+            DATA_KID_CHORE_DATA_PERIODS_DAILY,
+            today_key,
         )
         assert missed_count == 1  # First miss recorded
 
@@ -438,9 +446,13 @@ class TestSkipChoreWithMissMarking:
 
         # Verify missed_streak_tally written to daily bucket (Phase 5)
         await hass.async_block_till_done()  # Allow signal processing
-        today = dt_now_utc().strftime("%Y-%m-%d")
+        today_key = coordinator.stats.get_period_keys()["daily"]
         missed_count = get_missed_count_from_period(
-            coordinator, zoe_id, chore_id, DATA_KID_CHORE_DATA_PERIODS_DAILY, today
+            coordinator,
+            zoe_id,
+            chore_id,
+            DATA_KID_CHORE_DATA_PERIODS_DAILY,
+            today_key,
         )
         assert missed_count == 1  # First miss recorded
 
@@ -487,7 +499,7 @@ class TestSkipChoreWithMissMarking:
 
         # Verify all kids have miss recorded
         await hass.async_block_till_done()  # Allow signal processing
-        today = dt_now_utc().strftime("%Y-%m-%d")
+        today_key = coordinator.stats.get_period_keys()["daily"]
         for kid_id in assigned_kids:
             last_missed = get_kid_chore_last_missed(coordinator, kid_id, chore_id)
             assert last_missed is not None
@@ -495,7 +507,11 @@ class TestSkipChoreWithMissMarking:
 
             # Verify missed_streak_tally written to daily bucket (Phase 5)
             missed_count = get_missed_count_from_period(
-                coordinator, kid_id, chore_id, DATA_KID_CHORE_DATA_PERIODS_DAILY, today
+                coordinator,
+                kid_id,
+                chore_id,
+                DATA_KID_CHORE_DATA_PERIODS_DAILY,
+                today_key,
             )
             assert missed_count == 1  # First miss recorded
 

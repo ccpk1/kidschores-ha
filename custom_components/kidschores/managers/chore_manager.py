@@ -18,7 +18,7 @@ for cross-domain communication (economy, notifications, achievements).
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
@@ -109,6 +109,16 @@ class ChoreManager(BaseManager):
             set()
         )  # (kid_id, chore_id)
 
+        # Phase 3: Time-scan caches (read-only derived values)
+        # - due datetime cache: raw ISO string -> parsed UTC datetime
+        # - offset cache: chore_id -> source strings + parsed timedeltas
+        self._parsed_due_datetime_cache: dict[str, datetime | None] = {}
+        self._offset_cache: dict[
+            str,
+            tuple[str | None, str | None, timedelta | None, timedelta | None],
+        ] = {}
+        self._max_due_cache_entries = 2048
+
     async def async_setup(self) -> None:
         """Set up the ChoreManager.
 
@@ -130,7 +140,92 @@ class ChoreManager(BaseManager):
         # Listen for periodic updates to perform interval maintenance
         self.listen(const.SIGNAL_SUFFIX_PERIODIC_UPDATE, self._on_periodic_update)
 
+        # Phase 3: Invalidate time-scan caches on data mutation signals
+        self.listen(
+            const.SIGNAL_SUFFIX_CHORE_CREATED, self._on_time_scan_inputs_changed
+        )
+        self.listen(
+            const.SIGNAL_SUFFIX_CHORE_UPDATED, self._on_time_scan_inputs_changed
+        )
+        self.listen(
+            const.SIGNAL_SUFFIX_CHORE_DELETED, self._on_time_scan_inputs_changed
+        )
+        self.listen(
+            const.SIGNAL_SUFFIX_CHORE_RESCHEDULED, self._on_time_scan_inputs_changed
+        )
+        self.listen(
+            const.SIGNAL_SUFFIX_CHORE_STATUS_RESET, self._on_time_scan_inputs_changed
+        )
+        self.listen(const.SIGNAL_SUFFIX_KID_UPDATED, self._on_time_scan_inputs_changed)
+        self.listen(const.SIGNAL_SUFFIX_KID_DELETED, self._on_time_scan_inputs_changed)
+
         const.LOGGER.debug("ChoreManager initialized for entry %s", self.entry_id)
+
+    def _clear_time_scan_caches(self) -> None:
+        """Clear cached derived values used by process_time_checks."""
+        self._parsed_due_datetime_cache.clear()
+        self._offset_cache.clear()
+
+    async def _on_time_scan_inputs_changed(
+        self, payload: dict[str, Any] | None = None
+    ) -> None:
+        """Invalidate time-scan caches when chore scheduling inputs change."""
+        self._clear_time_scan_caches()
+
+    def _parse_due_datetime_cached(self, due_str: str | None) -> datetime | None:
+        """Parse due datetime once per unique ISO string and reuse thereafter."""
+        if not due_str:
+            return None
+
+        if due_str in self._parsed_due_datetime_cache:
+            return self._parsed_due_datetime_cache[due_str]
+
+        parsed = dt_to_utc(due_str)
+        self._parsed_due_datetime_cache[due_str] = parsed
+
+        if len(self._parsed_due_datetime_cache) > self._max_due_cache_entries:
+            self._parsed_due_datetime_cache.clear()
+
+        return parsed
+
+    def _get_chore_offsets_cached(
+        self,
+        chore_id: str,
+        chore_info: dict[str, Any],
+    ) -> tuple[timedelta | None, timedelta | None]:
+        """Return parsed due window/reminder offsets with per-chore caching."""
+        due_window_offset_str = cast(
+            "str | None",
+            chore_info.get(
+                const.DATA_CHORE_DUE_WINDOW_OFFSET,
+                const.DEFAULT_DUE_WINDOW_OFFSET,
+            ),
+        )
+        reminder_offset_str = cast(
+            "str | None",
+            chore_info.get(
+                const.DATA_CHORE_DUE_REMINDER_OFFSET,
+                const.DEFAULT_DUE_REMINDER_OFFSET,
+            ),
+        )
+
+        cached = self._offset_cache.get(chore_id)
+        if (
+            cached is not None
+            and cached[0] == due_window_offset_str
+            and cached[1] == reminder_offset_str
+        ):
+            return cached[2], cached[3]
+
+        due_window_offset = dt_parse_duration(due_window_offset_str)
+        reminder_offset = dt_parse_duration(reminder_offset_str)
+        self._offset_cache[chore_id] = (
+            due_window_offset_str,
+            reminder_offset_str,
+            due_window_offset,
+            reminder_offset,
+        )
+        return due_window_offset, reminder_offset
 
     def _track_state_modification(self, kid_id: str, chore_id: str) -> None:
         """Track state modification for guard rail assertion (debug mode).
@@ -1371,24 +1466,10 @@ class ChoreManager(BaseManager):
             )
             can_be_overdue = overdue_handling != const.OVERDUE_HANDLING_NEVER_OVERDUE
 
-            # Parse offsets once per chore
-            due_window_offset = dt_parse_duration(
-                cast(
-                    "str | None",
-                    chore_info.get(
-                        const.DATA_CHORE_DUE_WINDOW_OFFSET,
-                        const.DEFAULT_DUE_WINDOW_OFFSET,
-                    ),
-                )
-            )
-            reminder_offset = dt_parse_duration(
-                cast(
-                    "str | None",
-                    chore_info.get(
-                        const.DATA_CHORE_DUE_REMINDER_OFFSET,
-                        const.DEFAULT_DUE_REMINDER_OFFSET,
-                    ),
-                )
+            # Parse offsets once per chore revision
+            due_window_offset, reminder_offset = self._get_chore_offsets_cached(
+                chore_id,
+                cast("dict[str, Any]", chore_info),
             )
 
             # ─── APPROVAL BOUNDARY CONFIG (once per chore) ───
@@ -1413,7 +1494,7 @@ class ChoreManager(BaseManager):
                 # For AT_MIDNIGHT_*: Process if no due date OR past due date
                 # For AT_DUE_DATE_*: Only process if past due date
                 chore_due_str = chore_info.get(const.DATA_CHORE_DUE_DATE)
-                chore_due_utc = dt_to_utc(chore_due_str) if chore_due_str else None
+                chore_due_utc = self._parse_due_datetime_cached(chore_due_str)
 
                 # Determine if this chore should be included in reset scan
                 include_in_reset = False
@@ -2779,7 +2860,7 @@ class ChoreManager(BaseManager):
             chore_id, {}
         )
         due_str = ChoreEngine.get_due_date_for_kid(chore_info, kid_id)
-        return dt_to_utc(due_str) if due_str else None
+        return self._parse_due_datetime_cached(due_str)
 
     def get_due_window_start(
         self, chore_id: str, kid_id: str | None = None
