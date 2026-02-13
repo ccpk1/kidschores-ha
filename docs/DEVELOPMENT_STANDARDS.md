@@ -114,7 +114,7 @@ vol.Required(const.CFOF_PARENTS_INPUT_NAME, default=name): str
 
 - **Pattern**: Item-type-scoped scanner constants for type-safe dictionary access
 - **Usage**: Internal API contracts for scanner methods that categorize items by status
-- **Context**: 
+- **Context**:
   - `process_time_checks(trigger=const.CHORE_SCAN_TRIGGER_MIDNIGHT)`
   - `scan[const.CHORE_SCAN_RESULT_OVERDUE]`
   - `entry[const.CHORE_SCAN_ENTRY_KID_ID]`
@@ -179,11 +179,12 @@ async def update_kid_points(self, kid_id: str, points: int) -> None:
 
 **Two Persist Methods**:
 
-| Method | When to Use | Entity Update? |
-|--------|-------------|----------------|
+| Method                                 | When to Use                                                                                                       | Entity Update?                            |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
 | `_persist_and_update(immediate=False)` | **Default** - All workflow operations that change user-visible state (claim, approve, timer-triggered, rotations) | ✅ YES - Calls `async_update_listeners()` |
-| `_persist(immediate=False)` | Internal bookkeeping only (notification metadata, system config cleanup, statistics flushes) | ❌ NO - Data not read by entities |
-```
+| `_persist(immediate=False)`            | Internal bookkeeping only (notification metadata, system config cleanup, statistics flushes)                      | ❌ NO - Data not read by entities         |
+
+````
 
 #### Forbidden Patterns
 
@@ -201,7 +202,7 @@ async def handle_claim_chore(call: ServiceCall) -> None:
     """Service handler delegates to manager."""
     chore_id = call.data[SERVICE_FIELD_CHORE_ID]
     await coordinator.chore_manager.claim_chore(chore_id)  # ✅ Manager handles everything
-```
+````
 
 #### Automatic Metadata
 
@@ -776,6 +777,35 @@ class NotificationManager(BaseManager):
             message_key="chore_approved_message",
         )
 ```
+
+##### Async Listener Standards (Dispatcher Callbacks)
+
+These rules apply to signal listener callbacks (`self.listen(...)`) and complement §5.4 method-level async guidance.
+
+- State-modifying listeners must be `async def`.
+- Read-only/log-only listeners may remain sync.
+- Remove obsolete manual thread marshaling during async migration.
+- Preserve signal payload keys/defaults while changing callback type.
+- Keep migrations scoped to async/thread-safety behavior (no opportunistic feature refactors).
+
+❌ **WRONG**: Sync listener manually scheduling async work
+
+```python
+def _on_badge_earned(self, payload: BadgeEarnedEvent) -> None:
+    self.hass.loop.call_soon_threadsafe(
+        self.hass.async_create_task,
+        self._apply_award(payload),
+    )
+```
+
+✅ **CORRECT**: Async listener with direct await
+
+```python
+async def _on_badge_earned(self, payload: BadgeEarnedEvent) -> None:
+    await self._apply_award(payload)
+```
+
+**Validation for listener migrations**: `./utils/quick_lint.sh --fix`, `mypy custom_components/kidschores/`, targeted workflow tests, and runtime log audit for thread-misuse warnings.
 
 ##### Event Payload TypedDicts
 

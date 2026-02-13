@@ -69,6 +69,12 @@ For ongoing reference and to maintain Platinum certification, consult:
 
 **Event-Driven Orchestration**: Managers communicate via the Dispatcher (e.g., `SIGNAL_SUFFIX_KID_UPDATED`). Direct cross-manager calls are forbidden to prevent tight coupling.
 
+**Async Listener Contract**: Dispatcher listeners that modify state, persist data, update entities, or call async APIs must be `async def`. Sync listeners are allowed only for read-only or log-only handlers.
+
+**Thread-Safe Scheduling Rule**: In manager listener paths, avoid manual thread marshaling patterns such as `call_soon_threadsafe(...async_create_task...)` when direct awaited async handlers are possible. Use loop-safe scheduling (`hass.add_job`) only for intentional fire-and-forget operations.
+
+**Payload Contract Stability**: Async listener migrations must preserve existing signal payload keys and defaults.
+
 **Automatic Metadata**: All data builders must set `updated_at` timestamps. Managers never manually set timestamps.
 
 ### Infrastructure Coordinator Pattern
