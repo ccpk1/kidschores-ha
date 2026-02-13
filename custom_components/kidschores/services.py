@@ -256,7 +256,7 @@ DELETE_REWARD_SCHEMA = vol.Schema(
 # Field validation:
 # - name: required for create, optional for update
 # - assigned_kids: required for create (list of kid names resolved to UUIDs)
-# - completion_criteria: CREATE ONLY (immutable after creation)
+# - completion_criteria: allowed for create and update (validated in Manager)
 # - Other fields use defaults from const.DEFAULT_*
 
 # Enum validators for select fields
@@ -341,6 +341,9 @@ CREATE_CHORE_SCHEMA = vol.Schema(
         vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_OVERDUE_HANDLING): vol.In(
             _OVERDUE_HANDLING_VALUES
         ),
+        vol.Optional(
+            const.SERVICE_FIELD_CHORE_CRUD_CLAIM_LOCK_UNTIL_WINDOW
+        ): cv.boolean,
         vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_AUTO_APPROVE): cv.boolean,
         vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_DUE_DATE): cv.datetime,
         vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_DUE_WINDOW_OFFSET): vol.All(
@@ -385,6 +388,9 @@ UPDATE_CHORE_SCHEMA = vol.Schema(
         vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_OVERDUE_HANDLING): vol.In(
             _OVERDUE_HANDLING_VALUES
         ),
+        vol.Optional(
+            const.SERVICE_FIELD_CHORE_CRUD_CLAIM_LOCK_UNTIL_WINDOW
+        ): cv.boolean,
         vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_AUTO_APPROVE): cv.boolean,
         vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_DUE_DATE): cv.datetime,
         vol.Optional(const.SERVICE_FIELD_CHORE_CRUD_DUE_WINDOW_OFFSET): vol.All(
@@ -420,6 +426,7 @@ _SERVICE_TO_CHORE_DATA_MAPPING: dict[str, str] = {
     const.SERVICE_FIELD_CHORE_CRUD_APPROVAL_RESET: const.DATA_CHORE_APPROVAL_RESET_TYPE,
     const.SERVICE_FIELD_CHORE_CRUD_PENDING_CLAIMS: const.DATA_CHORE_APPROVAL_RESET_PENDING_CLAIM_ACTION,
     const.SERVICE_FIELD_CHORE_CRUD_OVERDUE_HANDLING: const.DATA_CHORE_OVERDUE_HANDLING_TYPE,
+    const.SERVICE_FIELD_CHORE_CRUD_CLAIM_LOCK_UNTIL_WINDOW: const.DATA_CHORE_CLAIM_LOCK_UNTIL_WINDOW,
     const.SERVICE_FIELD_CHORE_CRUD_AUTO_APPROVE: const.DATA_CHORE_AUTO_APPROVE,
     const.SERVICE_FIELD_CHORE_CRUD_DUE_WINDOW_OFFSET: const.DATA_CHORE_DUE_WINDOW_OFFSET,
     const.SERVICE_FIELD_CHORE_CRUD_DUE_REMINDER_OFFSET: const.DATA_CHORE_DUE_REMINDER_OFFSET,

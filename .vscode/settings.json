@@ -27,16 +27,6 @@
   // Python language server settings
   "python.analysis.diagnosticMode": "workspace",
   "python.analysis.autoImportCompletions": true,
-  "python.analysis.extraPaths": [".", "./custom_components", "./tests"],
-  "python.analysis.exclude": [
-    "**/.venv/**",
-    "**/venv/**",
-    "**/.tox/**",
-    "**/__pycache__/**",
-    "**/.mypy_cache/**",
-    "**/.ruff_cache/**"
-  ],
-  "python.analysis.ignore": ["**/.venv/**", "**/venv/**", "**/.tox/**"],
 
   // Test configuration
   "python.testing.pytestEnabled": true,

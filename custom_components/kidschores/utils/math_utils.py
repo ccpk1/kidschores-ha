@@ -187,7 +187,7 @@ def parse_points_adjust_values(raw_input: str | list | None = None) -> list[floa
                 _LOGGER.error("Invalid number '%s' in points adjust values", part)
 
         # Return parsed values or defaults if nothing valid
-        return values if values else default_values
+        return values or default_values
 
     # Unknown type
     _LOGGER.error(

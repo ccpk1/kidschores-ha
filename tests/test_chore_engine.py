@@ -6,6 +6,8 @@ requiring any Home Assistant mocking or integration setup.
 
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
+
 from custom_components.kidschores import const
 from custom_components.kidschores.engines.chore_engine import (
     CHORE_ACTION_APPROVE,
@@ -400,6 +402,84 @@ class TestSkipStatsFlag:
         )
 
         assert all(e.update_stats is False for e in effects)
+
+
+# =============================================================================
+# TEST: STATE RESOLUTION - WAITING LOCK (P6)
+# =============================================================================
+
+
+class TestResolveKidChoreStateWaiting:
+    """Test P6 waiting lock behavior in chore state resolution."""
+
+    def test_pre_window_returns_waiting_with_lock_reason(self) -> None:
+        """Before due window opens, lock-until-window chore resolves to WAITING."""
+        now = datetime(2026, 1, 15, 10, 0, tzinfo=UTC)
+        due_window_start = now + timedelta(hours=2)
+        due_date = now + timedelta(hours=6)
+
+        chore_data = {
+            const.DATA_CHORE_CLAIM_LOCK_UNTIL_WINDOW: True,
+        }
+
+        state, lock_reason = ChoreEngine.resolve_kid_chore_state(
+            chore_data=chore_data,
+            kid_id="kid-1",
+            now=now,
+            is_approved_in_period=False,
+            has_pending_claim=False,
+            due_date=due_date,
+            due_window_start=due_window_start,
+        )
+
+        assert state == const.CHORE_STATE_WAITING
+        assert lock_reason == const.CHORE_STATE_WAITING
+
+    def test_in_window_returns_due_without_lock_reason(self) -> None:
+        """Inside due window, chore resolves to DUE and is claimable."""
+        now = datetime(2026, 1, 15, 12, 0, tzinfo=UTC)
+        due_window_start = now - timedelta(minutes=30)
+        due_date = now + timedelta(hours=2)
+
+        chore_data = {
+            const.DATA_CHORE_CLAIM_LOCK_UNTIL_WINDOW: True,
+        }
+
+        state, lock_reason = ChoreEngine.resolve_kid_chore_state(
+            chore_data=chore_data,
+            kid_id="kid-1",
+            now=now,
+            is_approved_in_period=False,
+            has_pending_claim=False,
+            due_date=due_date,
+            due_window_start=due_window_start,
+        )
+
+        assert state == const.CHORE_STATE_DUE
+        assert lock_reason is None
+
+    def test_pre_window_lock_disabled_returns_pending(self) -> None:
+        """Before due window, lock-disabled chore remains PENDING."""
+        now = datetime(2026, 1, 15, 10, 0, tzinfo=UTC)
+        due_window_start = now + timedelta(hours=2)
+        due_date = now + timedelta(hours=6)
+
+        chore_data = {
+            const.DATA_CHORE_CLAIM_LOCK_UNTIL_WINDOW: False,
+        }
+
+        state, lock_reason = ChoreEngine.resolve_kid_chore_state(
+            chore_data=chore_data,
+            kid_id="kid-1",
+            now=now,
+            is_approved_in_period=False,
+            has_pending_claim=False,
+            due_date=due_date,
+            due_window_start=due_window_start,
+        )
+
+        assert state == const.CHORE_STATE_PENDING
+        assert lock_reason is None
 
 
 # =============================================================================

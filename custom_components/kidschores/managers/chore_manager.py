@@ -616,6 +616,26 @@ class ChoreManager(BaseManager):
         )
 
         if not can_claim:
+            lock_reason_error_map = {
+                const.CHORE_STATE_WAITING: const.TRANS_KEY_ERROR_CHORE_WAITING,
+                const.CHORE_STATE_NOT_MY_TURN: const.TRANS_KEY_ERROR_CHORE_NOT_MY_TURN,
+                const.CHORE_STATE_MISSED: const.TRANS_KEY_ERROR_CHORE_MISSED_LOCKED,
+            }
+            normalized_error_key = (
+                lock_reason_error_map.get(error_key, error_key)
+                if error_key is not None
+                else None
+            )
+
+            if normalized_error_key in (
+                const.TRANS_KEY_ERROR_CHORE_WAITING,
+                const.TRANS_KEY_ERROR_CHORE_NOT_MY_TURN,
+                const.TRANS_KEY_ERROR_CHORE_MISSED_LOCKED,
+            ):
+                raise HomeAssistantError(
+                    translation_domain=const.DOMAIN,
+                    translation_key=normalized_error_key,
+                )
             if error_key == const.TRANS_KEY_ERROR_CHORE_COMPLETED_BY_OTHER:
                 claimed_by = kid_chore_data.get(
                     const.DATA_CHORE_CLAIMED_BY, "another kid"
@@ -630,6 +650,11 @@ class ChoreManager(BaseManager):
                     translation_domain=const.DOMAIN,
                     translation_key=const.TRANS_KEY_ERROR_CHORE_PENDING_CLAIM,
                     translation_placeholders={"entity": chore_name},
+                )
+            if error_key == const.TRANS_KEY_ERROR_CHORE_ALREADY_APPROVED:
+                raise HomeAssistantError(
+                    translation_domain=const.DOMAIN,
+                    translation_key=const.TRANS_KEY_ERROR_CHORE_ALREADY_APPROVED,
                 )
             # Default: already approved
             raise HomeAssistantError(
@@ -1748,7 +1773,7 @@ class ChoreManager(BaseManager):
         if skipped_already_overdue:
             sample_names = sorted(skipped_already_overdue_chore_names)[:5]
             const.LOGGER.debug(
-                "Overdue processing skip summary: %d already-overdue entries skipped across %d chores (sample: %s)",
+                "Overdue processing skip summary: %d already OVERDUE entries skipped across %d chores (sample: %s)",
                 skipped_already_overdue,
                 len(skipped_already_overdue_chore_names),
                 ", ".join(sample_names),
@@ -3103,9 +3128,11 @@ class ChoreManager(BaseManager):
             - is_completed_by_other: bool
             - can_claim: bool
             - can_claim_error: str | None
+            - lock_reason: str | None
             - can_approve: bool
             - can_approve_error: str | None
             - due_date: str | None
+            - available_at: str | None
             - last_completed: str | None
 
         Display state priority:
@@ -3121,21 +3148,34 @@ class ChoreManager(BaseManager):
 
         # These require Manager context (approval_period_start lookup)
         is_approved = self.chore_is_approved_in_period(kid_id, chore_id)
-        can_claim, claim_error = self.can_claim_chore(kid_id, chore_id)
-        can_approve, approve_error = self.can_approve_chore(kid_id, chore_id)
 
-        # Compute is_completed_by_other for SHARED_FIRST chores (Phase 2)
-        # Another kid is claimed/approved = this kid is blocked
-        is_completed_by_other = False
+        # Compute shared-first context and use one FSM resolution for both
+        # display state and claimability checks.
         chore_data: ChoreData | dict[str, Any] = self._coordinator.chores_data.get(
             chore_id, {}
         )
+        due_dt = self.get_due_date(chore_id, kid_id)
+        due_window_start = self.get_due_window_start(chore_id, kid_id)
+
+        display_state, lock_reason = ChoreEngine.resolve_kid_chore_state(
+            chore_data=chore_data,
+            kid_id=kid_id,
+            now=dt_util.now(),
+            is_approved_in_period=is_approved,
+            has_pending_claim=has_pending,
+            due_date=due_dt,
+            due_window_start=due_window_start,
+        )
+
         completion_criteria = chore_data.get(
             const.DATA_CHORE_COMPLETION_CRITERIA,
             const.COMPLETION_CRITERIA_INDEPENDENT,
         )
+        other_kid_states = None
+        is_completed_by_other = False
         if completion_criteria == const.COMPLETION_CRITERIA_SHARED_FIRST:
             kids_assigned = chore_data.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
+            other_kid_states = {}
             for other_kid_id in kids_assigned:
                 if other_kid_id != kid_id and other_kid_id:
                     other_kid_chore_data = self._get_kid_chore_data(
@@ -3144,6 +3184,7 @@ class ChoreManager(BaseManager):
                     other_state = other_kid_chore_data.get(
                         const.DATA_KID_CHORE_DATA_STATE, const.CHORE_STATE_PENDING
                     )
+                    other_kid_states[other_kid_id] = other_state
                     if other_state in (
                         const.CHORE_STATE_CLAIMED,
                         const.CHORE_STATE_APPROVED,
@@ -3151,50 +3192,57 @@ class ChoreManager(BaseManager):
                         is_completed_by_other = True
                         break
 
+        can_claim, claim_error = ChoreEngine.can_claim_chore(
+            kid_chore_data=kid_chore_data,
+            chore_data=chore_data,
+            has_pending_claim=has_pending,
+            is_approved_in_period=is_approved,
+            other_kid_states=other_kid_states,
+            resolved_state=display_state,
+            lock_reason=lock_reason,
+        )
+        can_approve, approve_error = self.can_approve_chore(kid_id, chore_id)
+
         # Raw stored state
         stored_state = kid_chore_data.get(
             const.DATA_KID_CHORE_DATA_STATE, const.CHORE_STATE_PENDING
         )
 
-        # v0.5.0: Use FSM to derive display state (replaces old priority logic)
-        # Get due_date and due_window_start for FSM calculation
-        due_date = self.get_due_date(chore_id, kid_id)
-        due_window_start = self.get_due_window_start(chore_id, kid_id)
-
-        # Resolve state using FSM (8-tier priority: approved > claimed > not_my_turn > missed > overdue > waiting > due > pending)
-        display_state, lock_reason = ChoreEngine.resolve_kid_chore_state(
-            chore_data=chore_data,
-            kid_id=kid_id,
-            now=dt_util.now(),
-            is_approved_in_period=is_approved,
-            has_pending_claim=has_pending,
-            due_date=due_date,
-            due_window_start=due_window_start,
-        )
-
         # Fall back to completed_by_other for SHARED_FIRST if another kid active
         # (This is a display-only state not in FSM)
         if is_completed_by_other and display_state == const.CHORE_STATE_PENDING:
-            display_state = "completed_by_other"
+            display_state = const.CHORE_STATE_COMPLETED_BY_OTHER
+
+        context_lock_reason = None
+        if not can_claim and lock_reason in (
+            const.CHORE_STATE_WAITING,
+            const.CHORE_STATE_NOT_MY_TURN,
+            const.CHORE_STATE_MISSED,
+        ):
+            context_lock_reason = lock_reason
+
+        available_at = None
+        if context_lock_reason == const.CHORE_STATE_WAITING and due_window_start:
+            available_at = due_window_start.isoformat()
 
         return {
-            "state": display_state,
-            "stored_state": stored_state,
-            "is_overdue": is_overdue,
-            "is_due": is_due,
-            "has_pending_claim": has_pending,
-            "is_approved_in_period": is_approved,
-            "is_completed_by_other": is_completed_by_other,
-            "can_claim": can_claim,
-            "can_claim_error": claim_error,
-            "can_approve": can_approve,
-            "can_approve_error": approve_error,
-            "due_date": (
-                due_dt.isoformat()
-                if (due_dt := self.get_due_date(chore_id, kid_id))
-                else None
+            const.CHORE_CTX_STATE: display_state,
+            const.CHORE_CTX_STORED_STATE: stored_state,
+            const.CHORE_CTX_IS_OVERDUE: is_overdue,
+            const.CHORE_CTX_IS_DUE: is_due,
+            const.CHORE_CTX_HAS_PENDING_CLAIM: has_pending,
+            const.CHORE_CTX_IS_APPROVED_IN_PERIOD: is_approved,
+            const.CHORE_CTX_IS_COMPLETED_BY_OTHER: is_completed_by_other,
+            const.CHORE_CTX_CAN_CLAIM: can_claim,
+            const.CHORE_CTX_CAN_CLAIM_ERROR: claim_error,
+            const.CHORE_CTX_LOCK_REASON: context_lock_reason,
+            const.CHORE_CTX_CAN_APPROVE: can_approve,
+            const.CHORE_CTX_CAN_APPROVE_ERROR: approve_error,
+            const.CHORE_CTX_DUE_DATE: due_dt.isoformat() if due_dt else None,
+            const.CHORE_CTX_AVAILABLE_AT: available_at,
+            const.CHORE_CTX_LAST_COMPLETED: self.get_chore_last_completed(
+                chore_id, kid_id
             ),
-            "last_completed": self.get_chore_last_completed(chore_id, kid_id),
         }
 
     def get_chore_data_for_kid(
@@ -4037,7 +4085,14 @@ class ChoreManager(BaseManager):
 
         # Apply state change
         if effect.new_state:
-            kid_chore_data[const.DATA_KID_CHORE_DATA_STATE] = effect.new_state
+            state_to_persist = effect.new_state
+            if state_to_persist not in const.CHORE_PERSISTED_KID_STATES:
+                const.LOGGER.debug(
+                    "Normalizing non-persisted chore state to pending: %s",
+                    state_to_persist,
+                )
+                state_to_persist = const.CHORE_STATE_PENDING
+            kid_chore_data[const.DATA_KID_CHORE_DATA_STATE] = state_to_persist
 
         # Phase 2: completed_by_other_chores list management removed
         # SHARED_FIRST blocking is now computed dynamically in can_claim_chore()
@@ -4232,7 +4287,7 @@ class ChoreManager(BaseManager):
         if not chore_info:
             return
 
-        now_iso = timestamp if timestamp else dt_now_iso()
+        now_iso = timestamp or dt_now_iso()
         completion_criteria = chore_info.get(
             const.DATA_CHORE_COMPLETION_CRITERIA, const.COMPLETION_CRITERIA_SHARED
         )

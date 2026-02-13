@@ -667,7 +667,7 @@ create_chore:
             - "sun"
     completion_criteria:
       name: "Completion Criteria"
-      description: "How the chore is completed when multiple kids are assigned: independent (each kid completes separately), shared_first (first kid to complete earns points), or shared_all (all kids must complete). Cannot be changed after creation."
+      description: "How the chore is completed when multiple kids are assigned: independent (each kid completes separately), shared_first (first kid to complete earns points), or shared_all (all kids must complete)."
       example: "independent"
       required: false
       selector:
@@ -712,6 +712,13 @@ create_chore:
             - "never_overdue"
             - "at_due_date_clear_at_approval_reset"
             - "at_due_date_clear_immediate_on_late"
+    chore_claim_lock_until_window:
+      name: "Lock Claim Until Window Opens"
+      description: "If enabled, kids cannot claim this chore before the due window begins."
+      example: false
+      required: false
+      selector:
+        boolean:
     auto_approve:
       name: "Auto Approve"
       description: "Automatically approve the chore when claimed."
@@ -743,7 +750,7 @@ create_chore:
 
 update_chore:
   name: "Update Chore"
-  description: "Update an existing chore's properties. Provide either id OR name to identify the chore. Only provided fields will be updated. Note: completion_criteria cannot be changed after creation. Returns the chore_id of the updated chore."
+  description: "Update an existing chore's properties. Provide either id OR name to identify the chore. Only provided fields will be updated. Returns the chore_id of the updated chore."
   fields:
     id:
       name: "Chore ID"
@@ -873,6 +880,13 @@ update_chore:
             - "never_overdue"
             - "at_due_date_clear_at_approval_reset"
             - "at_due_date_clear_immediate_on_late"
+    chore_claim_lock_until_window:
+      name: "Lock Claim Until Window Opens"
+      description: "If enabled, kids cannot claim this chore before the due window begins."
+      example: true
+      required: false
+      selector:
+        boolean:
     auto_approve:
       name: "Auto Approve"
       description: "New auto approve setting."

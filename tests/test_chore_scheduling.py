@@ -74,7 +74,7 @@ Coordinator method: _process_time_checks()
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from homeassistant.core import HomeAssistant
+from homeassistant.core import Context, HomeAssistant
 import pytest
 
 from custom_components.kidschores.utils.dt_utils import dt_now_utc, dt_to_utc
@@ -82,19 +82,17 @@ from tests.helpers import (
     APPROVAL_RESET_AT_DUE_DATE_MULTI,
     APPROVAL_RESET_AT_DUE_DATE_ONCE,
     APPROVAL_RESET_AT_MIDNIGHT_MULTI,
-    # Approval reset types
     APPROVAL_RESET_AT_MIDNIGHT_ONCE,
     APPROVAL_RESET_PENDING_CLAIM_AUTO_APPROVE,
     APPROVAL_RESET_PENDING_CLAIM_CLEAR,
-    # Pending claim actions
     APPROVAL_RESET_PENDING_CLAIM_HOLD,
     APPROVAL_RESET_UPON_COMPLETION,
-    # Chore states
+    ATTR_CAN_CLAIM,
     CHORE_STATE_APPROVED,
     CHORE_STATE_CLAIMED,
     CHORE_STATE_OVERDUE,
     CHORE_STATE_PENDING,
-    # Completion criteria
+    CHORE_STATE_WAITING,
     COMPLETION_CRITERIA_INDEPENDENT,
     COMPLETION_CRITERIA_SHARED,
     DATA_CHORE_APPLICABLE_DAYS,
@@ -105,7 +103,6 @@ from tests.helpers import (
     DATA_CHORE_COMPLETION_CRITERIA,
     DATA_CHORE_DEFAULT_POINTS,
     DATA_CHORE_DUE_DATE,
-    # Data keys - chore
     DATA_CHORE_NAME,
     DATA_CHORE_OVERDUE_HANDLING_TYPE,
     DATA_CHORE_PER_KID_DUE_DATES,
@@ -113,21 +110,21 @@ from tests.helpers import (
     DATA_KID_CHORE_DATA,
     DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START,
     DATA_KID_CHORE_DATA_STATE,
-    # Data keys - kid
     DATA_KID_NAME,
     DATA_KID_POINTS,
-    # Frequencies
+    DOMAIN,
     FREQUENCY_DAILY,
     FREQUENCY_NONE,
     FREQUENCY_WEEKLY,
-    # Overdue handling types
     OVERDUE_HANDLING_AT_DUE_DATE,
     OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_AT_APPROVAL_RESET,
     OVERDUE_HANDLING_NEVER_OVERDUE,
-    # Translation keys
+    SERVICE_UPDATE_CHORE,
     TRANS_KEY_ERROR_CHORE_ALREADY_APPROVED,
-    # Setup
     SetupResult,
+    claim_chore,
+    find_chore,
+    get_dashboard_helper,
     setup_from_yaml,
 )
 
@@ -2780,3 +2777,268 @@ class TestApprovalResetEdgeCases:
         assert can_claim, (
             f"After reset: Should still be able to claim chore (error: {error_key})"
         )
+
+
+# =============================================================================
+# TEST CLASS: Due Window Claim Lock Behavior
+# =============================================================================
+
+
+class TestDueWindowClaimLockBehavior:
+    """Test waiting lock transitions around due-window boundaries."""
+
+    @pytest.mark.asyncio
+    async def test_can_claim_blocks_before_window_then_allows_in_window(
+        self,
+        hass: HomeAssistant,
+        scheduling_scenario: SetupResult,
+        mock_hass_users: dict[str, Any],
+    ) -> None:
+        """Workflow path: lock blocks button claim before window, allows claim in window."""
+        chore_id = scheduling_scenario.chore_ids["Reset Due Date Once"]
+        zoe_id = scheduling_scenario.kid_ids["Zoë"]
+        kid_context = Context(user_id=mock_hass_users["kid1"].id)
+        now = datetime.now(UTC)
+
+        # Configure waiting lock + due window via service API (no direct data injection)
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_UPDATE_CHORE,
+            {
+                "id": chore_id,
+                "chore_claim_lock_until_window": True,
+                "due_window_offset": "2h",
+                "due_date": now + timedelta(hours=6),
+            },
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+
+        dashboard_before = get_dashboard_helper(hass, "zoe")
+        chore_before = find_chore(dashboard_before, "Reset Due Date Once")
+        assert chore_before is not None, "Chore must exist in dashboard helper"
+
+        chore_sensor_before = hass.states.get(chore_before["eid"])
+        assert chore_sensor_before is not None
+        assert chore_sensor_before.state == CHORE_STATE_WAITING
+        assert chore_sensor_before.attributes.get(ATTR_CAN_CLAIM) is False
+        assert chore_sensor_before.attributes.get("lock_reason") == CHORE_STATE_WAITING
+        assert chore_sensor_before.attributes.get("available_at") is not None
+
+        # Phase 5 contract: waiting is display-only (derived), not persisted
+        kid_chore_data = scheduling_scenario.coordinator.kids_data[zoe_id][
+            DATA_KID_CHORE_DATA
+        ][chore_id]
+        assert kid_chore_data.get(DATA_KID_CHORE_DATA_STATE) == CHORE_STATE_PENDING
+
+        blocked_claim = await claim_chore(
+            hass,
+            "zoe",
+            "Reset Due Date Once",
+            kid_context,
+        )
+        assert blocked_claim.state_before == CHORE_STATE_WAITING
+        assert blocked_claim.state_after == CHORE_STATE_WAITING
+        assert blocked_claim.points_changed == 0.0
+
+        chore_sensor_after_block = hass.states.get(chore_before["eid"])
+        assert chore_sensor_after_block is not None
+        assert chore_sensor_after_block.state == CHORE_STATE_WAITING
+
+        # Move due date into active window: due in 1h with 2h window => claim now allowed
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_UPDATE_CHORE,
+            {
+                "id": chore_id,
+                "due_date": now + timedelta(hours=1),
+            },
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+
+        dashboard_in_window = get_dashboard_helper(hass, "zoe")
+        chore_in_window = find_chore(dashboard_in_window, "Reset Due Date Once")
+        assert chore_in_window is not None
+
+        chore_sensor_in_window = hass.states.get(chore_in_window["eid"])
+        assert chore_sensor_in_window is not None
+        assert chore_sensor_in_window.attributes.get(ATTR_CAN_CLAIM) is True
+        assert chore_sensor_in_window.attributes.get("lock_reason") is None
+
+        allowed_claim = await claim_chore(
+            hass,
+            "zoe",
+            "Reset Due Date Once",
+            kid_context,
+        )
+        assert allowed_claim.success, (
+            f"Claim should succeed in due window: {allowed_claim.error}"
+        )
+
+        chore_sensor_after_claim = hass.states.get(chore_in_window["eid"])
+        assert chore_sensor_after_claim is not None
+        assert chore_sensor_after_claim.state == CHORE_STATE_CLAIMED
+
+    @pytest.mark.asyncio
+    async def test_manager_can_claim_transitions_from_waiting_to_allowed(
+        self,
+        hass: HomeAssistant,
+        scheduling_scenario: SetupResult,
+    ) -> None:
+        """Manager path: can_claim_chore blocks before window and allows in window."""
+        coordinator = scheduling_scenario.coordinator
+        zoe_id = scheduling_scenario.kid_ids["Zoë"]
+        chore_id = scheduling_scenario.chore_ids["Reset Due Date Once"]
+        now = datetime.now(UTC)
+
+        # Pre-window: waiting lock should block manager-level can_claim check
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_UPDATE_CHORE,
+            {
+                "id": chore_id,
+                "chore_claim_lock_until_window": True,
+                "due_window_offset": "2h",
+                "due_date": now + timedelta(hours=6),
+            },
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+
+        can_claim_pre, error_pre = coordinator.chore_manager.can_claim_chore(
+            zoe_id, chore_id
+        )
+        assert not can_claim_pre
+        assert error_pre is not None
+
+        status_ctx_pre = coordinator.chore_manager.get_chore_status_context(
+            zoe_id, chore_id
+        )
+        assert status_ctx_pre["state"] == CHORE_STATE_WAITING
+        assert status_ctx_pre["lock_reason"] == CHORE_STATE_WAITING
+        assert status_ctx_pre["available_at"] is not None
+
+        # In-window: waiting lock clears and claim becomes allowed
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_UPDATE_CHORE,
+            {
+                "id": chore_id,
+                "due_date": now + timedelta(hours=1),
+            },
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+
+        can_claim_in_window, error_in_window = (
+            coordinator.chore_manager.can_claim_chore(zoe_id, chore_id)
+        )
+        assert can_claim_in_window
+        assert error_in_window is None
+
+        status_ctx_in_window = coordinator.chore_manager.get_chore_status_context(
+            zoe_id, chore_id
+        )
+        assert status_ctx_in_window["lock_reason"] is None
+        assert status_ctx_in_window["available_at"] is None
+
+    @pytest.mark.asyncio
+    async def test_sensor_available_at_present_only_while_waiting(
+        self,
+        hass: HomeAssistant,
+        scheduling_scenario: SetupResult,
+    ) -> None:
+        """Sensor contract: available_at exists only during waiting lock."""
+        chore_id = scheduling_scenario.chore_ids["Reset Due Date Once"]
+        now = datetime.now(UTC)
+
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_UPDATE_CHORE,
+            {
+                "id": chore_id,
+                "chore_claim_lock_until_window": True,
+                "due_window_offset": "90m",
+                "due_date": now + timedelta(hours=4),
+            },
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+
+        dashboard_waiting = get_dashboard_helper(hass, "zoe")
+        chore_waiting = find_chore(dashboard_waiting, "Reset Due Date Once")
+        assert chore_waiting is not None
+        waiting_sensor = hass.states.get(chore_waiting["eid"])
+        assert waiting_sensor is not None
+        assert waiting_sensor.state == CHORE_STATE_WAITING
+        assert waiting_sensor.attributes.get("lock_reason") == CHORE_STATE_WAITING
+        assert waiting_sensor.attributes.get("available_at") is not None
+
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_UPDATE_CHORE,
+            {
+                "id": chore_id,
+                "due_date": now + timedelta(minutes=30),
+            },
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+
+        dashboard_due = get_dashboard_helper(hass, "zoe")
+        chore_due = find_chore(dashboard_due, "Reset Due Date Once")
+        assert chore_due is not None
+        due_sensor = hass.states.get(chore_due["eid"])
+        assert due_sensor is not None
+        assert due_sensor.attributes.get(ATTR_CAN_CLAIM) is True
+        assert due_sensor.attributes.get("lock_reason") is None
+        assert due_sensor.attributes.get("available_at") is None
+
+    @pytest.mark.asyncio
+    async def test_lock_disabled_keeps_pending_without_waiting_attributes(
+        self,
+        hass: HomeAssistant,
+        scheduling_scenario: SetupResult,
+    ) -> None:
+        """When lock-until-window is disabled, future due date stays claimable."""
+        coordinator = scheduling_scenario.coordinator
+        zoe_id = scheduling_scenario.kid_ids["Zoë"]
+        chore_id = scheduling_scenario.chore_ids["Reset Due Date Once"]
+        now = datetime.now(UTC)
+
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_UPDATE_CHORE,
+            {
+                "id": chore_id,
+                "chore_claim_lock_until_window": False,
+                "due_window_offset": "3h",
+                "due_date": now + timedelta(hours=6),
+            },
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+
+        can_claim, error_key = coordinator.chore_manager.can_claim_chore(
+            zoe_id, chore_id
+        )
+        assert can_claim
+        assert error_key is None
+
+        status_ctx = coordinator.chore_manager.get_chore_status_context(
+            zoe_id, chore_id
+        )
+        assert status_ctx["state"] == CHORE_STATE_PENDING
+        assert status_ctx["lock_reason"] is None
+        assert status_ctx["available_at"] is None
+
+        dashboard = get_dashboard_helper(hass, "zoe")
+        chore = find_chore(dashboard, "Reset Due Date Once")
+        assert chore is not None
+        chore_sensor = hass.states.get(chore["eid"])
+        assert chore_sensor is not None
+        assert chore_sensor.state == CHORE_STATE_PENDING
+        assert chore_sensor.attributes.get(ATTR_CAN_CLAIM) is True
+        assert chore_sensor.attributes.get("lock_reason") is None
+        assert chore_sensor.attributes.get("available_at") is None

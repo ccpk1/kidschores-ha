@@ -16,6 +16,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from custom_components.kidschores import const
+from custom_components.kidschores.engines.chore_engine import TransitionEffect
 from custom_components.kidschores.managers.chore_manager import ChoreManager
 from custom_components.kidschores.utils.dt_utils import dt_now_utc
 
@@ -670,3 +671,45 @@ class TestLockManagement:
         lock1 = chore_manager._get_lock("kid-1", "chore-1")
         lock2 = chore_manager._get_lock("kid-2", "chore-1")
         assert lock1 is not lock2
+
+
+class TestStatePersistenceContract:
+    """Tests for persisted-vs-derived chore state write contract."""
+
+    def test_apply_effect_normalizes_derived_state_to_pending(
+        self,
+        chore_manager: ChoreManager,
+    ) -> None:
+        """Derived display states must never be persisted in kid_chore_data."""
+        effect = TransitionEffect(
+            kid_id="kid-1",
+            new_state=const.CHORE_STATE_WAITING,
+        )
+
+        chore_manager._apply_effect(effect, "chore-1")
+
+        kid_chore_data = chore_manager._coordinator.kids_data["kid-1"][
+            const.DATA_KID_CHORE_DATA
+        ]["chore-1"]
+        assert (
+            kid_chore_data[const.DATA_KID_CHORE_DATA_STATE] == const.CHORE_STATE_PENDING
+        )
+
+    def test_apply_effect_persists_missed_checkpoint_state(
+        self,
+        chore_manager: ChoreManager,
+    ) -> None:
+        """Missed is a persisted lock/checkpoint state for boundary workflows."""
+        effect = TransitionEffect(
+            kid_id="kid-1",
+            new_state=const.CHORE_STATE_MISSED,
+        )
+
+        chore_manager._apply_effect(effect, "chore-1")
+
+        kid_chore_data = chore_manager._coordinator.kids_data["kid-1"][
+            const.DATA_KID_CHORE_DATA
+        ]["chore-1"]
+        assert (
+            kid_chore_data[const.DATA_KID_CHORE_DATA_STATE] == const.CHORE_STATE_MISSED
+        )

@@ -640,6 +640,7 @@ CFOF_CHORES_INPUT_NOTIFY_ON_DUE_WINDOW: Final = "notify_on_due_window"
 CFOF_CHORES_INPUT_NOTIFY_DUE_REMINDER: Final = "notify_due_reminder"
 CFOF_CHORES_INPUT_DUE_WINDOW_OFFSET: Final = "chore_due_window_offset"
 CFOF_CHORES_INPUT_DUE_REMINDER_OFFSET: Final = "chore_due_reminder_offset"
+CFOF_CHORES_INPUT_CLAIM_LOCK_UNTIL_WINDOW: Final = "chore_claim_lock_until_window"
 CFOF_CHORES_INPUT_RECURRING_FREQUENCY: Final = "recurring_frequency"
 CFOF_CHORES_INPUT_DAILY_MULTI_TIMES: Final = "daily_multi_times"  # CFE-2026-001 F2
 CFOF_CHORES_INPUT_SHARED_CHORE: Final = "shared_chore"
@@ -1440,6 +1441,8 @@ DATA_CHORE_NOTIFY_ON_DUE_WINDOW: Final = "notify_on_due_window"
 DATA_CHORE_NOTIFY_DUE_REMINDER: Final = "notify_due_reminder"
 DATA_CHORE_DUE_WINDOW_OFFSET: Final = "chore_due_window_offset"
 DATA_CHORE_DUE_REMINDER_OFFSET: Final = "chore_due_reminder_offset"
+CHORE_CLAIM_LOCK_UNTIL_WINDOW: Final = "chore_claim_lock_until_window"
+DATA_CHORE_CLAIM_LOCK_UNTIL_WINDOW: Final = CHORE_CLAIM_LOCK_UNTIL_WINDOW
 DATA_CHORE_AUTO_APPROVE: Final = "auto_approve"
 DATA_CHORE_RECURRING_FREQUENCY: Final = "recurring_frequency"
 DATA_CHORE_DAILY_MULTI_TIMES: Final = "daily_multi_times"  # CFE-2026-001 F2
@@ -1739,6 +1742,7 @@ DEFAULT_BADGE_TARGET = {
 }
 DEFAULT_BONUS_POINTS: Final = 1
 DEFAULT_CALENDAR_SHOW_PERIOD: Final = 90
+DEFAULT_CHORE_CLAIM_LOCK_UNTIL_WINDOW: Final = False
 DEFAULT_CHORE_AUTO_APPROVE: Final = False
 DEFAULT_CHORE_SHOW_ON_CALENDAR: Final = True
 DEFAULT_CHALLENGE_REWARD_POINTS: Final = 0
@@ -1837,22 +1841,75 @@ BADGE_THRESHOLD_TYPE_POINTS: Final = "points"
 # States
 # ------------------------------------------------------------------------------------------------
 
-# Chore States
+# Chore states persisted in backend records
 CHORE_STATE_APPROVED = "approved"
 CHORE_STATE_APPROVED_IN_PART = "approved_in_part"
 CHORE_STATE_CLAIMED = "claimed"
 CHORE_STATE_CLAIMED_IN_PART = "claimed_in_part"
-# CHORE_STATE_COMPLETED_BY_OTHER removed in v0.5.0+ (Phase 2)
-# SHARED_FIRST blocking now computed in can_claim_chore(), not stored as state
-CHORE_STATE_DUE = "due"  # Active within due window (before due date)
 CHORE_STATE_INDEPENDENT = "independent"
 CHORE_STATE_OVERDUE = "overdue"
 CHORE_STATE_PENDING = "pending"
 CHORE_STATE_UNKNOWN = "unknown"
-# Calculated states (v0.5.0 Chore Logic - not persisted)
-CHORE_STATE_WAITING = "waiting"  # Due window claim restriction
-CHORE_STATE_NOT_MY_TURN = "not_my_turn"  # Rotation blocking
-CHORE_STATE_MISSED = "missed"  # Locked due to miss
+CHORE_STATE_MISSED = "missed"
+
+# Chore states used for display context only (not persisted)
+CHORE_STATE_COMPLETED_BY_OTHER = "completed_by_other"
+
+# Chore states calculated at runtime (not persisted)
+CHORE_STATE_DUE = "due"
+CHORE_STATE_WAITING = "waiting"
+CHORE_STATE_NOT_MY_TURN = "not_my_turn"
+
+# State source-of-truth contracts (Phase 5)
+# - Kid-level persisted state: workflow checkpoints stored in kid_chore_data
+# - Kid-level derived state: display/claimability states resolved at runtime
+# - Chore-level persisted state: aggregate snapshot stored on chore record
+CHORE_PERSISTED_KID_STATES: Final[frozenset[str]] = frozenset(
+    {
+        CHORE_STATE_PENDING,
+        CHORE_STATE_CLAIMED,
+        CHORE_STATE_APPROVED,
+        CHORE_STATE_OVERDUE,
+        CHORE_STATE_MISSED,
+    }
+)
+CHORE_DERIVED_KID_STATES: Final[frozenset[str]] = frozenset(
+    {
+        CHORE_STATE_DUE,
+        CHORE_STATE_WAITING,
+        CHORE_STATE_NOT_MY_TURN,
+        CHORE_STATE_COMPLETED_BY_OTHER,
+    }
+)
+CHORE_PERSISTED_GLOBAL_STATES: Final[frozenset[str]] = frozenset(
+    {
+        CHORE_STATE_PENDING,
+        CHORE_STATE_CLAIMED,
+        CHORE_STATE_APPROVED,
+        CHORE_STATE_OVERDUE,
+        CHORE_STATE_CLAIMED_IN_PART,
+        CHORE_STATE_APPROVED_IN_PART,
+        CHORE_STATE_INDEPENDENT,
+        CHORE_STATE_UNKNOWN,
+    }
+)
+
+# Chore status context keys (get_chore_status_context return contract)
+CHORE_CTX_STATE: Final = "state"
+CHORE_CTX_STORED_STATE: Final = "stored_state"
+CHORE_CTX_IS_OVERDUE: Final = "is_overdue"
+CHORE_CTX_IS_DUE: Final = "is_due"
+CHORE_CTX_HAS_PENDING_CLAIM: Final = "has_pending_claim"
+CHORE_CTX_IS_APPROVED_IN_PERIOD: Final = "is_approved_in_period"
+CHORE_CTX_IS_COMPLETED_BY_OTHER: Final = "is_completed_by_other"
+CHORE_CTX_CAN_CLAIM: Final = "can_claim"
+CHORE_CTX_CAN_CLAIM_ERROR: Final = "can_claim_error"
+CHORE_CTX_LOCK_REASON: Final = "lock_reason"
+CHORE_CTX_CAN_APPROVE: Final = "can_approve"
+CHORE_CTX_CAN_APPROVE_ERROR: Final = "can_approve_error"
+CHORE_CTX_DUE_DATE: Final = "due_date"
+CHORE_CTX_AVAILABLE_AT: Final = "available_at"
+CHORE_CTX_LAST_COMPLETED: Final = "last_completed"
 
 # ==============================================================================
 # Chore Scanner API (ChoreManager Internal)
@@ -2864,6 +2921,7 @@ SERVICE_FIELD_CHORE_CRUD_COMPLETION_CRITERIA: Final = "completion_criteria"
 SERVICE_FIELD_CHORE_CRUD_APPROVAL_RESET: Final = "approval_reset_type"
 SERVICE_FIELD_CHORE_CRUD_PENDING_CLAIMS: Final = "pending_claims"
 SERVICE_FIELD_CHORE_CRUD_OVERDUE_HANDLING: Final = "overdue_handling"
+SERVICE_FIELD_CHORE_CRUD_CLAIM_LOCK_UNTIL_WINDOW: Final = CHORE_CLAIM_LOCK_UNTIL_WINDOW
 SERVICE_FIELD_CHORE_CRUD_AUTO_APPROVE: Final = "auto_approve"
 SERVICE_FIELD_CHORE_CRUD_DUE_DATE: Final = "due_date"
 SERVICE_FIELD_CHORE_CRUD_DUE_WINDOW_OFFSET: Final = "due_window_offset"
@@ -3161,6 +3219,15 @@ TRANS_KEY_ERROR_CHORE_ALREADY_APPROVED: Final = (
 TRANS_KEY_ERROR_CHORE_PENDING_CLAIM: Final = (
     "chore_pending_claim"  # Chore has a pending claim awaiting approval
 )
+TRANS_KEY_ERROR_CHORE_WAITING: Final = (
+    "chore_waiting"  # Chore cannot be claimed before due window opens
+)
+TRANS_KEY_ERROR_CHORE_NOT_MY_TURN: Final = (
+    "chore_not_my_turn"  # Chore is rotation-locked to another kid
+)
+TRANS_KEY_ERROR_CHORE_MISSED_LOCKED: Final = (
+    "chore_missed_locked"  # Chore was missed and is now locked
+)
 TRANS_KEY_ERROR_CHORE_COMPLETED_BY_OTHER: Final = (
     "chore_completed_by_other"  # SHARED_FIRST chore already completed by another kid
 )
@@ -3171,9 +3238,6 @@ TRANS_KEY_ERROR_MISSING_CHORE_IDENTIFIER: Final = (
     "missing_chore_identifier"  # Must provide chore_id or chore_name
 )
 # v0.5.0 Chore Logic: Rotation & claim restriction translations
-TRANS_KEY_STATE_WAITING: Final = "waiting"
-TRANS_KEY_STATE_NOT_MY_TURN: Final = "not_my_turn"
-TRANS_KEY_STATE_MISSED: Final = "missed"
 TRANS_KEY_CRITERIA_ROTATION_SIMPLE: Final = "rotation_simple"
 TRANS_KEY_CRITERIA_ROTATION_SMART: Final = "rotation_smart"
 TRANS_KEY_OVERDUE_AT_DUE_DATE_MARK_MISSED_AND_LOCK: Final = (

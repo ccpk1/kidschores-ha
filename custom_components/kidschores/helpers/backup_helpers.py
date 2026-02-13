@@ -21,6 +21,22 @@ if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
 
+def _read_text_file(path: str) -> str:
+    """Read a UTF-8 text file from disk.
+
+    This helper is used with hass.async_add_executor_job in async contexts.
+    """
+    return Path(path).read_text(encoding="utf-8")
+
+
+def _write_text_file(path: str, content: str) -> None:
+    """Write UTF-8 text content to disk.
+
+    This helper is used with hass.async_add_executor_job in async contexts.
+    """
+    Path(path).write_text(content, encoding="utf-8")
+
+
 def augment_backup_with_settings(
     backup_data: dict[str, Any],
     config_entry_options: dict[str, Any],
@@ -140,7 +156,7 @@ async def create_timestamped_backup(
             try:
                 # Read backup file
                 backup_str = await hass.async_add_executor_job(
-                    lambda: Path(backup_path).read_text(encoding="utf-8")
+                    _read_text_file, backup_path
                 )
                 backup_data = json.loads(backup_str)
 
@@ -151,9 +167,9 @@ async def create_timestamped_backup(
 
                 # Write augmented version back
                 await hass.async_add_executor_job(
-                    lambda: Path(backup_path).write_text(
-                        json.dumps(augmented, indent=2), encoding="utf-8"
-                    )
+                    _write_text_file,
+                    backup_path,
+                    json.dumps(augmented, indent=2),
                 )
                 const.LOGGER.debug(
                     "Augmented backup %s with config_entry settings", filename

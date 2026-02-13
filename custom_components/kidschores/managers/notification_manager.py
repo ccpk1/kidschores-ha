@@ -920,11 +920,11 @@ class NotificationManager(BaseManager):
                 title,
                 message,
                 actions=actions,
-                extra_data=final_extra_data if final_extra_data else None,
+                extra_data=final_extra_data or None,
             )
         elif persistent_enabled:
             # Use tag for notification_id when available for smart replacement
-            notification_id = notification_tag if notification_tag else f"kid_{kid_id}"
+            notification_id = notification_tag or f"kid_{kid_id}"
             await self.hass.services.async_call(
                 const.NOTIFY_PERSISTENT_NOTIFICATION,
                 const.NOTIFY_CREATE,
@@ -1214,7 +1214,7 @@ class NotificationManager(BaseManager):
                             title,
                             message,
                             actions=translated_actions,
-                            extra_data=final_extra_data if final_extra_data else None,
+                            extra_data=final_extra_data or None,
                         ),
                     )
                 )

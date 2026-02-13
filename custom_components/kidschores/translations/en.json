@@ -124,6 +124,7 @@
           "approval_reset_type": "➡️ Completions Allowed and Approval Reset Timing",
           "approval_reset_pending_claim_action": "➡️ Pending Claims Handling at Approval Reset",
           "overdue_handling_type": "⏰ Overdue: Handling",
+          "chore_claim_lock_until_window": "🔒 Lock Claim Until Due Window Opens?",
           "auto_approve": "✅ Auto-Approve Claims?",
           "recurring_frequency": "🔄 Schedule: Frequency",
           "custom_interval": "🔄 Schedule: Custom Interval (for Custom Frequency)",
@@ -146,6 +147,7 @@
           "approval_reset_type": "Controls when the chore's approval cycle boundary fires (midnight, due date, upon completion, or manual trigger).",
           "approval_reset_pending_claim_action": "This is what happens to claims still waiting for approval when the approval reset occurs.",
           "overdue_handling_type": "Action after due date: Hide overdue status, remain overdue until claimed, or reset to pending at next approval cycle.",
+          "chore_claim_lock_until_window": "When enabled, kids cannot claim this chore before the due window starts.",
           "auto_approve": "When enabled, claims are instantly approved without parent review.",
           "recurring_frequency": "How often the chore recurs: Daily, Weekly, Monthly, Yearly, Custom, or None.",
           "custom_interval": "Number of time units between repetitions (e.g., 3 for 'every 3 weeks'). Only used with Custom frequency.",
@@ -492,6 +494,7 @@
           "approval_reset_type": "➡️ Completions Allowed and Approval Reset Timing",
           "approval_reset_pending_claim_action": "➡️ Pending Claims Handling at Approval Reset",
           "overdue_handling_type": "⏰ Overdue: Handling",
+          "chore_claim_lock_until_window": "🔒 Lock Claim Until Due Window Opens?",
           "auto_approve": "✅ Auto-Approve Claims?",
           "recurring_frequency": "🔄 Schedule: Frequency",
           "custom_interval": "🔄 Schedule: Custom Interval (for Custom Frequency)",
@@ -515,6 +518,7 @@
           "approval_reset_type": "Controls when the chore's approval cycle boundary fires (midnight, due date, upon completion, or manual trigger).",
           "approval_reset_pending_claim_action": "Controls what happens to unapproved claims when the approval reset boundary fires.",
           "overdue_handling_type": "Controls what happens when the due date passes and what happens to overdue chores at the approval reset boundary.",
+          "chore_claim_lock_until_window": "When enabled, kids cannot claim this chore before the due window starts.",
           "auto_approve": "When enabled, claims are instantly approved without parent review.",
           "recurring_frequency": "How often the chore recurs: Daily, Weekly, Monthly, Yearly, Custom, or None. If you select 'Daily - Multiple times per day', an additional screen will appear to configure the specific times.",
           "custom_interval": "Number of time units between repetitions (e.g., 3 for 'every 3 weeks'). Only used with Custom frequency.",
@@ -889,6 +893,7 @@
           "approval_reset_type": "➡️ Completions Allowed and Approval Reset Timing",
           "approval_reset_pending_claim_action": "➡️ Pending Claims Handling at Approval Reset",
           "overdue_handling_type": "⏰ Overdue: Handling",
+          "chore_claim_lock_until_window": "🔒 Lock Claim Until Due Window Opens?",
           "auto_approve": "✅ Auto-Approve Claims?",
           "recurring_frequency": "🔄 Schedule: Frequency",
           "custom_interval": "🔄 Schedule: Custom Interval (for Custom Frequency)",
@@ -912,6 +917,7 @@
           "approval_reset_type": "Controls when the chore's approval cycle boundary fires (midnight, due date, upon completion, or manual trigger).",
           "approval_reset_pending_claim_action": "Controls what happens to unapproved claims when the approval reset boundary fires.",
           "overdue_handling_type": "Controls what happens when the due date passes and what happens to overdue chores at the approval reset boundary.",
+          "chore_claim_lock_until_window": "When enabled, kids cannot claim this chore before the due window starts.",
           "auto_approve": "When enabled, claims are instantly approved without parent review.",
           "recurring_frequency": "How often the chore recurs: Daily, Weekly, Monthly, Yearly, Custom, or None. If you select 'Daily - Multiple times per day', an additional screen will appear to configure the specific times.",
           "custom_interval": "Number of time units between repetitions (e.g., 3 for 'every 3 weeks'). Only used with Custom frequency.",
@@ -2115,6 +2121,11 @@
           "description": "Controls what happens when the due date passes and what happens to overdue chores at the approval reset boundary.",
           "example": "at_due_date"
         },
+        "chore_claim_lock_until_window": {
+          "name": "Lock Claim Until Window Opens",
+          "description": "If true, kids cannot claim this chore before the due window begins.",
+          "example": "false"
+        },
         "auto_approve": {
           "name": "Auto Approve",
           "description": "If true, the chore is automatically approved when claimed.",
@@ -2139,7 +2150,7 @@
     },
     "update_chore": {
       "name": "Update Chore",
-      "description": "Update an existing chore's properties. Provide either id OR name to identify the chore. Only provided fields will be updated. Note: completion_criteria cannot be changed after creation.",
+      "description": "Update an existing chore's properties. Provide either id OR name to identify the chore. Only provided fields will be updated.",
       "fields": {
         "id": {
           "name": "Chore ID",
@@ -2200,6 +2211,11 @@
           "name": "Overdue Handling",
           "description": "New overdue handling behavior.",
           "example": "never_overdue"
+        },
+        "chore_claim_lock_until_window": {
+          "name": "Lock Claim Until Window Opens",
+          "description": "If true, kids cannot claim this chore before the due window begins.",
+          "example": "true"
         },
         "auto_approve": {
           "name": "Auto Approve",
@@ -4164,6 +4180,15 @@
     },
     "chore_pending_claim": {
       "message": "Chore has a pending claim awaiting approval or disapproval"
+    },
+    "chore_waiting": {
+      "message": "This chore cannot be claimed yet. The due window has not opened."
+    },
+    "chore_not_my_turn": {
+      "message": "This chore is rotation-locked. It is currently another kid's turn."
+    },
+    "chore_missed_locked": {
+      "message": "This chore is marked missed and locked for the current cycle."
     },
     "chore_completed_by_other": {
       "message": "This chore has already been completed by another kid this period"

@@ -222,7 +222,7 @@ class ChoreData(TypedDict):
     ]  # Boolean: temp allow any kid to claim (cleared on advancement)
 
     # Claims restriction (v0.5.0 Chore Logic - blocks claims before due window)
-    claim_restriction_enabled: NotRequired[bool]
+    chore_claim_lock_until_window: NotRequired[bool]
 
 
 # =============================================================================

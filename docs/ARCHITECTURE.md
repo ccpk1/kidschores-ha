@@ -773,6 +773,16 @@ Chore state is determined by the interaction of **five configuration drivers**:
 
 **State Formula**: `State = f(CompletionCriteria, Frequency, ApprovalResetType, PendingClaimAction, OverdueHandling)`
 
+### Chore state source-of-truth matrix (Phase 5)
+
+| Storage key | State | Persisted? | Classification | Notes |
+| --- | --- | --- | --- | --- |
+| `DATA_KID_CHORE_DATA_STATE` | `pending`, `claimed`, `approved`, `overdue`, `missed` | ✅ Yes | Workflow checkpoint | Kid-level source-of-truth states written by manager transitions/boundaries |
+| `DATA_KID_CHORE_DATA_STATE` | `due`, `waiting`, `not_my_turn`, `completed_by_other` | ❌ No | Derived/display | Resolved at runtime via `resolve_kid_chore_state()` + `get_chore_status_context()` |
+| `DATA_CHORE_STATE` | `pending`, `claimed`, `approved`, `overdue`, `claimed_in_part`, `approved_in_part`, `independent`, `unknown` | ✅ Yes | Aggregate snapshot | Derived from per-kid persisted states in `_update_global_state()` and stored for fast reads |
+
+**Guardrail**: Manager write paths must normalize non-persisted kid-level states to `pending` before storage write. Display-only states must be emitted only in runtime status context/sensor views.
+
 ### Processing Boundaries
 
 Chore state changes occur at two distinct boundaries:

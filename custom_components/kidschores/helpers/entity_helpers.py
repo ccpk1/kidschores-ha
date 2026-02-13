@@ -823,7 +823,7 @@ async def remove_orphaned_manual_adjustment_buttons(
             return False
         try:
             # Extract the part before the suffix
-            prefix_part = unique_id.split(button_suffix)[0]
+            prefix_part = unique_id.split(button_suffix, maxsplit=1)[0]
             # Get last segment which is the slugified delta
             delta_slug = prefix_part.split("_")[-1]
             # Convert slugified delta back to float (replace 'neg' prefix and 'p' decimal)

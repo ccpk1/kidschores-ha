@@ -635,6 +635,16 @@ def build_chore_schema(
             )
         ),
         vol.Required(
+            const.CFOF_CHORES_INPUT_CLAIM_LOCK_UNTIL_WINDOW,
+            default=default.get(
+                const.CFOF_CHORES_INPUT_CLAIM_LOCK_UNTIL_WINDOW,
+                default.get(
+                    const.DATA_CHORE_CLAIM_LOCK_UNTIL_WINDOW,
+                    const.DEFAULT_CHORE_CLAIM_LOCK_UNTIL_WINDOW,
+                ),
+            ),
+        ): selector.BooleanSelector(),
+        vol.Required(
             const.CFOF_CHORES_INPUT_AUTO_APPROVE,
             default=default.get(
                 const.CFOF_CHORES_INPUT_AUTO_APPROVE,
@@ -1016,7 +1026,7 @@ def transform_chore_cfof_to_data(
             if day in const.WEEKDAY_NAME_TO_INT
         ],
         const.DATA_CHORE_DAILY_MULTI_TIMES: user_input.get(
-            const.CFOF_CHORES_INPUT_DAILY_MULTI_TIMES, None
+            const.CFOF_CHORES_INPUT_DAILY_MULTI_TIMES
         ),
         # Notification fields from consolidated selector
         const.DATA_CHORE_NOTIFY_ON_CLAIM: (
@@ -1034,6 +1044,10 @@ def transform_chore_cfof_to_data(
         const.DATA_CHORE_SHOW_ON_CALENDAR: user_input.get(
             const.CFOF_CHORES_INPUT_SHOW_ON_CALENDAR,
             const.DEFAULT_CHORE_SHOW_ON_CALENDAR,
+        ),
+        const.DATA_CHORE_CLAIM_LOCK_UNTIL_WINDOW: user_input.get(
+            const.CFOF_CHORES_INPUT_CLAIM_LOCK_UNTIL_WINDOW,
+            const.DEFAULT_CHORE_CLAIM_LOCK_UNTIL_WINDOW,
         ),
         const.DATA_CHORE_AUTO_APPROVE: user_input.get(
             const.CFOF_CHORES_INPUT_AUTO_APPROVE,

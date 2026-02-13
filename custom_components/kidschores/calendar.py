@@ -459,7 +459,7 @@ class KidScheduleCalendar(CalendarEntity):
         """
         # Build ScheduleConfig for RecurrenceEngine
         # Convert applicable_days format if provided
-        app_days = applicable_days if applicable_days else []
+        app_days = applicable_days or []
 
         engine_cache_key = (
             recurring,
@@ -518,7 +518,7 @@ class KidScheduleCalendar(CalendarEntity):
                     start=occurrence_utc,
                     end=occurrence_utc + datetime.timedelta(hours=1),
                     description=description,
-                    rrule=rrule_str if rrule_str else None,
+                    rrule=rrule_str or None,
                 )
                 self._add_event_if_overlaps(events, e, window_start, window_end)
 

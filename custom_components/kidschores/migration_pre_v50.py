@@ -1037,8 +1037,7 @@ class PreV50Migrator:
             chore_data_map = kid_data.get(const.DATA_KID_CHORE_DATA, {})
             for chore_data in chore_data_map.values():
                 current_state = chore_data.get(const.DATA_KID_CHORE_DATA_STATE)
-                # Use string literal since CHORE_STATE_COMPLETED_BY_OTHER removed
-                if current_state == "completed_by_other":
+                if current_state == const.CHORE_STATE_COMPLETED_BY_OTHER:
                     chore_data[const.DATA_KID_CHORE_DATA_STATE] = (
                         const.CHORE_STATE_PENDING
                     )

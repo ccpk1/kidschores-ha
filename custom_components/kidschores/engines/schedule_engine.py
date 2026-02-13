@@ -147,7 +147,7 @@ class RecurrenceEngine:
             return None
 
         # Default reference to now if not provided
-        reference_utc = after if after else dt_now_utc()
+        reference_utc = after or dt_now_utc()
 
         # Route to appropriate handler
         if self._frequency == const.FREQUENCY_DAILY_MULTI:
@@ -1172,7 +1172,7 @@ def calculate_next_due_date_from_chore_info(
         # This allows intervals like "every 3 days from when they actually completed"
         assert custom_unit is not None
         assert custom_interval is not None
-        base_date = completion_timestamp if completion_timestamp else current_due_utc
+        base_date = completion_timestamp or current_due_utc
         if base_date is None:
             const.LOGGER.warning(
                 "Consolidation Helper - No base date for CUSTOM_FROM_COMPLETE: %s",

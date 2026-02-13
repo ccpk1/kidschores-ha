@@ -748,7 +748,7 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
             self._kid_id, self._chore_id
         )
 
-        return ctx["state"]
+        return ctx[const.CHORE_CTX_STATE]
 
     @staticmethod
     def _format_claimed_completed_by(value: str | list[str] | None) -> str | None:
@@ -800,7 +800,7 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
         # Calculate time until window start
         result = dt_time_until(due_window_start)
         # If already past (None), return 0d 0h 0m
-        return result if result else "0d 0h 0m"
+        return result or "0d 0h 0m"
 
     def _get_time_until_overdue(self) -> str | None:
         """Get human-readable time remaining until due date (overdue).
@@ -815,7 +815,7 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
         result = dt_time_until(due_date)
         # If already past (None), return 0d 0h 0m
-        return result if result else "0d 0h 0m"
+        return result or "0d 0h 0m"
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -979,16 +979,7 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
         ctx = self.coordinator.chore_manager.get_chore_status_context(
             self._kid_id, self._chore_id
         )
-        current_state = ctx["state"]
-
-        # lock_reason: Maps directly from certain states (waiting/not_my_turn/missed)
-        lock_reason = None
-        if current_state in [
-            const.CHORE_STATE_WAITING,
-            const.CHORE_STATE_NOT_MY_TURN,
-            const.CHORE_STATE_MISSED,
-        ]:
-            lock_reason = current_state
+        lock_reason = ctx.get(const.CHORE_CTX_LOCK_REASON)
 
         # turn_kid_name: resolve rotation_current_kid_id to kid name (if rotation mode)
         turn_kid_name = None
@@ -1001,10 +992,7 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
                     self.coordinator, current_turn_kid_id
                 )
 
-        # available_at: ISO datetime when due window opens (only when state is "waiting")
-        available_at = None
-        if current_state == const.CHORE_STATE_WAITING:
-            available_at = self._get_due_window_start_iso()
+        available_at = ctx.get(const.CHORE_CTX_AVAILABLE_AT)
 
         attributes = {
             # --- 1. Identity & Meta ---
@@ -2514,7 +2502,7 @@ class SystemChoreSharedStateSensor(KidsChoresCoordinatorEntity, SensorEntity):
         # Calculate time until window start
         result = dt_time_until(due_window_start)
         # If already past (None), return 0d 0h 0m
-        return result if result else "0d 0h 0m"
+        return result or "0d 0h 0m"
 
     def _get_time_until_overdue(self) -> str | None:
         """Get human-readable time remaining until due date (overdue).
@@ -2527,7 +2515,7 @@ class SystemChoreSharedStateSensor(KidsChoresCoordinatorEntity, SensorEntity):
 
         result = dt_time_until(due_date)
         # If already past (None), return 0d 0h 0m
-        return result if result else "0d 0h 0m"
+        return result or "0d 0h 0m"
 
     @property
     def icon(self) -> str | None:
@@ -3988,9 +3976,9 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
         ctx = self.coordinator.chore_manager.get_chore_status_context(
             self._kid_id, chore_id
         )
-        status = ctx["state"]
-        due_date_str = ctx["due_date"]
-        is_due = ctx["is_due"]
+        status = ctx[const.CHORE_CTX_STATE]
+        due_date_str = ctx[const.CHORE_CTX_DUE_DATE]
+        is_due = ctx[const.CHORE_CTX_IS_DUE]
 
         # Get chore labels (always a list, even if empty)
         chore_labels = chore_info.get(const.DATA_CHORE_LABELS, [])
@@ -4022,17 +4010,9 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
         )
 
         # Phase 4: Calculate rotation-aware attributes using ChoreEngine
-        lock_reason = None
+        lock_reason = ctx.get(const.CHORE_CTX_LOCK_REASON)
         turn_kid_name = None
-        available_at = None
-
-        # Calculate lock reason using engine (waiting, not_my_turn, missed)
-        if status in [
-            const.CHORE_STATE_WAITING,
-            const.CHORE_STATE_NOT_MY_TURN,
-            const.CHORE_STATE_MISSED,
-        ]:
-            lock_reason = status
+        available_at = ctx.get(const.CHORE_CTX_AVAILABLE_AT)
 
         # For rotation chores, get current turn holder name
         if ChoreEngine.is_rotation_mode(chore_info):
@@ -4044,36 +4024,6 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
                     current_turn_kid_id, {}
                 )
                 turn_kid_name = turn_kid_info.get(const.DATA_KID_NAME)
-
-        # Calculate available_at for waiting state (due window claim restrictions)
-        # If due_window_offset exists, calculate when the window opens
-        if status == const.CHORE_STATE_WAITING and due_date_str:
-            # Calculate due window start time using basic offset parsing
-            due_window_offset = chore_info.get(const.DATA_CHORE_DUE_WINDOW_OFFSET)
-            if (
-                due_date_utc
-                and due_window_offset
-                and isinstance(due_window_offset, str)
-            ):
-                try:
-                    # Simple parsing for formats like "30m", "1h", "2h30m"
-                    offset_minutes = 0
-                    if "h" in due_window_offset:
-                        parts = due_window_offset.split("h")
-                        offset_minutes += int(parts[0]) * 60
-                        if len(parts) > 1 and parts[1] and "m" in parts[1]:
-                            offset_minutes += int(parts[1].replace("m", ""))
-                    elif "m" in due_window_offset:
-                        offset_minutes += int(due_window_offset.replace("m", ""))
-
-                    # Subtract the offset from due date to get available_at time
-                    from datetime import timedelta
-
-                    due_window_start = due_date_utc - timedelta(minutes=offset_minutes)
-                    available_at = due_window_start.isoformat()
-                except (ValueError, AttributeError, TypeError):
-                    # Fallback if offset parsing fails
-                    available_at = due_date_str
 
         # Return the 9 fields needed for Phase 4 dashboard rendering
         return {
@@ -4159,7 +4109,13 @@ class KidDashboardHelperSensor(KidsChoresCoordinatorEntity, SensorEntity):
             ctx = self.coordinator.chore_manager.get_chore_status_context(
                 self._kid_id, chore_id
             )
-            chores.append({"id": chore_id, "name": chore_name, "status": ctx["state"]})
+            chores.append(
+                {
+                    "id": chore_id,
+                    "name": chore_name,
+                    "status": ctx[const.CHORE_CTX_STATE],
+                }
+            )
 
         # Rewards: list name and cost
         rewards = []

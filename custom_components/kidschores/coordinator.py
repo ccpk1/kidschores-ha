@@ -194,7 +194,7 @@ class KidsChoresDataCoordinator(DataUpdateCoordinator):
         )
 
         # Set data pointer (use stored data or fresh structure from Store)
-        self._data = stored_data if stored_data else self.store.get_default_structure()
+        self._data = stored_data or self.store.get_default_structure()
 
         # 2. Version Check (Read-only, for passing to SystemManager)
         meta = self._data.get(const.DATA_META, {})

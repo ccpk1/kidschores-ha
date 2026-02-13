@@ -448,7 +448,14 @@ class ChoreEngine:
             const.CHORE_STATE_WAITING,
             const.CHORE_STATE_NOT_MY_TURN,
         ):
-            return (False, lock_reason or resolved_state)
+            claim_lock_reason = lock_reason or resolved_state
+            if claim_lock_reason == const.CHORE_STATE_WAITING:
+                return (False, const.TRANS_KEY_ERROR_CHORE_WAITING)
+            if claim_lock_reason == const.CHORE_STATE_NOT_MY_TURN:
+                return (False, const.TRANS_KEY_ERROR_CHORE_NOT_MY_TURN)
+            if claim_lock_reason == const.CHORE_STATE_MISSED:
+                return (False, const.TRANS_KEY_ERROR_CHORE_MISSED_LOCKED)
+            return (False, const.TRANS_KEY_ERROR_ALREADY_CLAIMED)
 
         # Check multi-claim allowed
         allow_multiple = ChoreEngine.chore_allows_multiple_claims(chore_data)
@@ -655,10 +662,16 @@ class ChoreEngine:
                     if due_date is not None and now > due_date:
                         pass  # Fall through — steal window is active
                     else:
-                        return (const.CHORE_STATE_NOT_MY_TURN, "not_my_turn")
+                        return (
+                            const.CHORE_STATE_NOT_MY_TURN,
+                            const.CHORE_STATE_NOT_MY_TURN,
+                        )
                 else:
                     # Simple and Smart without steal: strict turn enforcement
-                    return (const.CHORE_STATE_NOT_MY_TURN, "not_my_turn")
+                    return (
+                        const.CHORE_STATE_NOT_MY_TURN,
+                        const.CHORE_STATE_NOT_MY_TURN,
+                    )
 
         # P4 — Missed lock (strict: no claiming allowed)
         overdue_type = chore_data.get(const.DATA_CHORE_OVERDUE_HANDLING_TYPE)
@@ -667,7 +680,7 @@ class ChoreEngine:
             and due_date is not None
             and now > due_date
         ):
-            return (const.CHORE_STATE_MISSED, "missed")
+            return (const.CHORE_STATE_MISSED, const.CHORE_STATE_MISSED)
 
         # P5 — Overdue (relaxed: still claimable)
         if (
@@ -677,7 +690,20 @@ class ChoreEngine:
         ):
             return (const.CHORE_STATE_OVERDUE, None)
 
-        # P6 — [REMOVED] Waiting/claim restriction feature was removed
+        # P6 — Waiting (claim window has not opened yet)
+        claim_lock_until_window = bool(
+            chore_data.get(
+                const.DATA_CHORE_CLAIM_LOCK_UNTIL_WINDOW,
+                const.DEFAULT_CHORE_CLAIM_LOCK_UNTIL_WINDOW,
+            )
+        )
+        if (
+            claim_lock_until_window
+            and due_window_start is not None
+            and due_date is not None
+            and now < due_window_start
+        ):
+            return (const.CHORE_STATE_WAITING, const.CHORE_STATE_WAITING)
 
         # P7 — Due (inside the claim window)
         if (

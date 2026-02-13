@@ -4473,7 +4473,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             storage_path = Path(store.get_storage_path())
 
             # Create safety backup if file exists
-            if storage_path.exists():
+            storage_file_exists = await self.hass.async_add_executor_job(
+                storage_path.exists
+            )
+            if storage_file_exists:
                 backup_name = await bh.create_timestamped_backup(
                     self.hass, store, const.BACKUP_TAG_RECOVERY
                 )
@@ -4503,7 +4506,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             # Get storage path without creating storage manager yet
             storage_path = Path(self.hass.config.path(".storage", const.STORAGE_KEY))
 
-            if not storage_path.exists():
+            storage_file_exists = await self.hass.async_add_executor_job(
+                storage_path.exists
+            )
+            if not storage_file_exists:
                 return self.async_abort(reason="file_not_found")
 
             # Validate JSON
@@ -4633,7 +4639,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             storage_path = Path(self.hass.config.path(".storage", const.STORAGE_KEY))
             backup_path = storage_path.parent / backup_filename
 
-            if not backup_path.exists():
+            backup_file_exists = await self.hass.async_add_executor_job(
+                backup_path.exists
+            )
+            if not backup_file_exists:
                 const.LOGGER.error("Backup file not found: %s", backup_filename)
                 return self.async_abort(reason="file_not_found")
 
@@ -4656,7 +4665,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 return self.async_abort(reason="invalid_structure")
 
             # Create safety backup of current file if it exists
-            if storage_path.exists():
+            storage_file_exists = await self.hass.async_add_executor_job(
+                storage_path.exists
+            )
+            if storage_file_exists:
                 # Create storage manager only for safety backup creation
                 store = KidsChoresStore(self.hass)
                 safety_backup = await bh.create_timestamped_backup(

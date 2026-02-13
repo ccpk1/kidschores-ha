@@ -657,7 +657,7 @@ def parse_daily_multi_times(
     else:
         # Try to parse string date
         parsed = dt_parse_date(reference_date)
-        base_date = parsed if parsed else dt_today_local()
+        base_date = parsed or dt_today_local()
 
     # Default to system timezone if none provided
     tz_info = timezone_info or DEFAULT_TIME_ZONE

@@ -1548,6 +1548,12 @@ def build_chore(
                     const.DEFAULT_CHORE_SHOW_ON_CALENDAR,
                 )
             ),
+            const.DATA_CHORE_CLAIM_LOCK_UNTIL_WINDOW: bool(
+                get_field(
+                    const.DATA_CHORE_CLAIM_LOCK_UNTIL_WINDOW,
+                    const.DEFAULT_CHORE_CLAIM_LOCK_UNTIL_WINDOW,
+                )
+            ),
             const.DATA_CHORE_AUTO_APPROVE: bool(
                 get_field(
                     const.DATA_CHORE_AUTO_APPROVE,
@@ -1627,6 +1633,7 @@ _CHORE_DATA_RESET_PRESERVE_FIELDS: frozenset[str] = frozenset(
         const.DATA_CHORE_NOTIFY_ON_OVERDUE,
         # Calendar and features
         const.DATA_CHORE_SHOW_ON_CALENDAR,
+        const.DATA_CHORE_CLAIM_LOCK_UNTIL_WINDOW,
         const.DATA_CHORE_AUTO_APPROVE,
         # Completion criteria
         const.DATA_CHORE_COMPLETION_CRITERIA,

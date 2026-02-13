@@ -36,8 +36,7 @@
      - Do **not** add `claim_restriction_enabled` to storage constants/forms/services; existing `type_defs.py` optional key remains unused legacy typing and should not drive behavior.
      - Use existing pipeline only: `resolve_kid_chore_state()` → `can_claim_chore()` (engine) → `ChoreManager.can_claim_chore()` and `claim_chore()` guards.
      - Do **not** overload unrelated selectors (`approval_reset_type`, `completion_criteria`, `overdue_handling_type`) to encode claim restriction.
-
-- **Completion confirmation**: `[x]` All follow-up items completed before requesting owner approval.
+  - **Completion confirmation**: `[x]` All follow-up items completed before requesting owner approval.
 
 ## Tracking expectations
 

@@ -209,7 +209,10 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             storage_path = Path(store.get_storage_path())
 
             # Create safety backup if file exists
-            if storage_path.exists():
+            storage_file_exists = await self.hass.async_add_executor_job(
+                storage_path.exists
+            )
+            if storage_file_exists:
                 backup_name = await bh.create_timestamped_backup(
                     self.hass, store, const.BACKUP_TAG_RECOVERY
                 )
@@ -238,7 +241,10 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             # Get storage path without creating storage manager yet
             storage_path = Path(self.hass.config.path(".storage", const.STORAGE_KEY))
 
-            if not storage_path.exists():
+            storage_file_exists = await self.hass.async_add_executor_job(
+                storage_path.exists
+            )
+            if not storage_file_exists:
                 return self.async_abort(
                     reason=const.TRANS_KEY_CFOP_ERROR_FILE_NOT_FOUND
                 )
@@ -312,7 +318,10 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             storage_path = Path(self.hass.config.path(".storage", const.STORAGE_KEY))
             backup_path = storage_path.parent / backup_filename
 
-            if not backup_path.exists():
+            backup_file_exists = await self.hass.async_add_executor_job(
+                backup_path.exists
+            )
+            if not backup_file_exists:
                 const.LOGGER.error("Backup file not found: %s", backup_filename)
                 return self.async_abort(
                     reason=const.TRANS_KEY_CFOP_ERROR_FILE_NOT_FOUND
@@ -339,7 +348,10 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
                 )
 
             # Create safety backup of current file if it exists
-            if storage_path.exists():
+            storage_file_exists = await self.hass.async_add_executor_job(
+                storage_path.exists
+            )
+            if storage_file_exists:
                 # Create storage manager only for safety backup creation
                 store = KidsChoresStore(self.hass)
                 # Note: config_entry not available yet in config flow, settings will be defaults
@@ -1386,7 +1398,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             for kid_id, kid_data in self._kids_temp.items()
         }
         all_chores = self._chores_temp
-        default_data = user_input if user_input else None
+        default_data = user_input or None
         challenge_schema = fh.build_challenge_schema(
             kids_dict=kids_dict,
             chores_dict=all_chores,

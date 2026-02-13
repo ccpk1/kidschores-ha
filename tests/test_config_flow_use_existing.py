@@ -44,7 +44,11 @@ async def test_config_flow_use_existing_v40beta1(
     v40beta1_data = json.loads(sample_path.read_text())
 
     # Write wrapped data (v40beta1 already has wrapper)
-    storage_path.write_text(json.dumps(v40beta1_data, indent=2), encoding="utf-8")
+    await hass.async_add_executor_job(
+        storage_path.write_text,
+        json.dumps(v40beta1_data, indent=2),
+        "utf-8",
+    )
 
     # Start config flow
     result = await hass.config_entries.flow.async_init(
@@ -72,7 +76,11 @@ async def test_config_flow_use_existing_v40beta1(
     assert len(mock_setup_entry.mock_calls) == 1
 
     # Verify storage file still has proper version wrapper (unchanged)
-    stored_data = json.loads(storage_path.read_text(encoding="utf-8"))
+    stored_data_str = await hass.async_add_executor_job(
+        storage_path.read_text,
+        "utf-8",
+    )
+    stored_data = json.loads(stored_data_str)
     assert "version" in stored_data
     assert "data" in stored_data
     assert stored_data["version"] == 1
@@ -96,7 +104,11 @@ async def test_config_flow_use_existing_v30(
     v30_data = json.loads(sample_path.read_text())
 
     # Write raw data (no version wrapper) - simulates old installation
-    storage_path.write_text(json.dumps(v30_data, indent=2), encoding="utf-8")
+    await hass.async_add_executor_job(
+        storage_path.write_text,
+        json.dumps(v30_data, indent=2),
+        "utf-8",
+    )
 
     # Start config flow
     result = await hass.config_entries.flow.async_init(
@@ -124,7 +136,11 @@ async def test_config_flow_use_existing_v30(
     assert len(mock_setup_entry.mock_calls) == 1
 
     # Verify storage file now has proper version wrapper
-    stored_data = json.loads(storage_path.read_text(encoding="utf-8"))
+    stored_data_str = await hass.async_add_executor_job(
+        storage_path.read_text,
+        "utf-8",
+    )
+    stored_data = json.loads(stored_data_str)
     assert "version" in stored_data
     assert "data" in stored_data
     assert stored_data["version"] == 1
@@ -146,7 +162,11 @@ async def test_config_flow_use_existing_already_wrapped(
     wrapped_data = json.loads(sample_path.read_text())
 
     # Write the already-wrapped data
-    storage_path.write_text(json.dumps(wrapped_data, indent=2), encoding="utf-8")
+    await hass.async_add_executor_job(
+        storage_path.write_text,
+        json.dumps(wrapped_data, indent=2),
+        "utf-8",
+    )
 
     # Start config flow
     result = await hass.config_entries.flow.async_init(
@@ -174,5 +194,9 @@ async def test_config_flow_use_existing_already_wrapped(
     assert len(mock_setup_entry.mock_calls) == 1
 
     # Verify storage file still has proper format (unchanged)
-    stored_data = json.loads(storage_path.read_text(encoding="utf-8"))
+    stored_data_str = await hass.async_add_executor_job(
+        storage_path.read_text,
+        "utf-8",
+    )
+    stored_data = json.loads(stored_data_str)
     assert stored_data == wrapped_data
