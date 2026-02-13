@@ -5,21 +5,21 @@
 - **Name / Code**: CHORE_LOGIC Phase 5 — Waiting Claim Path Reinstatement
 - **Target release / milestone**: v0.5.0-beta4 follow-up patch (no schema bump)
 - **Owner / driver(s)**: KidsChores core team
-- **Status**: Not started
+- **Status**: Phase 1 complete (validation blocked by pre-existing test failure)
 
 ## Summary & immediate steps
 
 | Phase / Step                     | Description                                                  | % complete | Quick notes                                               |
 | -------------------------------- | ------------------------------------------------------------ | ---------- | --------------------------------------------------------- |
-| Phase 1 – Contract alignment     | Reconcile plan intent vs current code and docs               | 0%         | `waiting` state exists but P6 branch is removed in engine |
+| Phase 1 – Contract alignment     | Reconcile plan intent vs current code and docs               | 100%       | ✅ Completed; docs aligned to implementation gap            |
 | Phase 2 – Core logic restoration | Re-enable due-window waiting path using existing fields      | 0%         | No new storage fields; derive from `due_window_offset`    |
 | Phase 3 – Flow/service parity    | Keep create/update UX aligned with existing options/services | 0%         | No new form fields required                               |
-| Phase 4 – Tests & validation     | Add focused regression tests around waiting/can-claim        | 0%         | Emphasize manager + engine + sensor `Lock_reason` contract |
+| Phase 4 – Tests & validation     | Add focused regression tests around waiting/can-claim        | 0%         | Validation gate blocked by unrelated failing baseline test |
 
 1. **Key objective** – Reinstate Phase 5 “claim restriction before due window” behavior by using existing `due_window_offset` and current `can_claim` pipeline, returning `waiting` as a calculated lock state.
-2. **Summary of recent work** – Audit confirms `CHORE_STATE_WAITING` is defined and translated, but `resolve_kid_chore_state()` currently has `P6 — [REMOVED]` and never emits `waiting`.
-3. **Next steps (short term)** – Restore P6 logic in engine, normalize error-key handling for lock reasons, and add regression tests.
-4. **Risks / blockers** – Existing tests may assume pre-window chores are plain `pending`; these must be updated intentionally.
+2. **Summary of recent work** – Phase 1 completed: doc contract mismatch corrected across architecture/standards/initiative references, including explicit note that `waiting` is currently not emitted due to removed P6 branch.
+3. **Next steps (short term)** – Start Phase 2 core logic restoration (P6 re-enable + lock reason propagation path).
+4. **Risks / blockers** – Current baseline test failure: `tests/test_phase4_pipeline_guards.py::test_idempotency_overdue_already_overdue` (assertion: expected idempotency debug log).
 5. **References**
    - [docs/ARCHITECTURE.md](../ARCHITECTURE.md)
    - [docs/DEVELOPMENT_STANDARDS.md](../DEVELOPMENT_STANDARDS.md)
@@ -47,17 +47,18 @@
 
 - **Goal**: Remove ambiguity between blueprint intent and present implementation behavior.
 - **Steps / detailed work items**
-  1. - [ ] Update decision notes in [docs/in-process/CHORE_LOGIC_V050_IN-PROCESS.md](CHORE_LOGIC_V050_IN-PROCESS.md#L229) to reflect actual implementation gap: `waiting` currently not emitted.
+    1. - [x] Update decision notes in [docs/in-process/CHORE_LOGIC_V050_IN-PROCESS.md](CHORE_LOGIC_V050_IN-PROCESS.md#L229) to reflect actual implementation gap: `waiting` currently not emitted.
      - File: `docs/in-process/CHORE_LOGIC_V050_IN-PROCESS.md`
      - Hint: around current D-04 + Phase 5 sections (~L229, ~L608).
-  2. - [ ] Add short architecture note in [docs/ARCHITECTURE.md](../ARCHITECTURE.md) under chore FSM section clarifying `waiting` is derived (not persisted) and gated by due-window math.
+    2. - [x] Add short architecture note in [docs/ARCHITECTURE.md](../ARCHITECTURE.md) under chore FSM section clarifying `waiting` is derived (not persisted) and gated by due-window math.
      - File: `docs/ARCHITECTURE.md`
      - Hint: chore state resolution / manager-engine boundaries section.
-  3. - [ ] Add implementation guardrail note in [docs/DEVELOPMENT_STANDARDS.md](../DEVELOPMENT_STANDARDS.md): avoid introducing dedicated claim-restriction field; use existing due-window field.
+    3. - [x] Add implementation guardrail note in [docs/DEVELOPMENT_STANDARDS.md](../DEVELOPMENT_STANDARDS.md): avoid introducing dedicated claim-restriction field; use existing due-window field.
      - File: `docs/DEVELOPMENT_STANDARDS.md`
      - Hint: choreography/logic placement and no-duplication rules.
 - **Key issues**
   - Existing plan docs imply feature complete while code path is disabled; this mismatch risks future regressions.
+    - Validation blocker while closing phase: `tests/test_phase4_pipeline_guards.py::test_idempotency_overdue_already_overdue` fails in baseline with assertion "Expected idempotency debug log".
 
 ### Phase 2 – Core logic restoration
 

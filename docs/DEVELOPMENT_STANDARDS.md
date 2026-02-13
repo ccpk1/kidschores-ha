@@ -25,6 +25,34 @@ To maintain a clean history and stable environment use a **Traffic Controller** 
 - **Sync Protocol**: Regularly merge `l10n-staging` back into your active feature branches to receive the latest translations from Crowdin.
 - **Commit Style**: Use **Conventional Commits** (e.g., `feat:`, `fix:`, `refactor:`, `chore(l10n):`) to ensure a readable, professional history.
 
+### 1.1 Development environment lock (VS Code)
+
+To keep editor diagnostics stable across contributors, this repository uses a locked interpreter in workspace settings:
+
+- **Locked interpreter**: `/home/vscode/.local/ha-venv/bin/python`
+- **Type authority**: MyPy is authoritative; Pylance `typeCheckingMode` remains `off`
+- **Noise prevention**: `.venv`, `venv`, and `.tox` paths are excluded/ignored in Pylance analysis
+
+**Why this is required**:
+
+- Prevents accidental local `.venv` creation from becoming the active interpreter
+- Avoids large false-positive waves from analyzing vendored site-packages
+- Keeps diagnostics aligned with CI validation gates (`ruff` + `mypy` + `pytest`)
+
+**Temporary override policy**:
+
+- Short-lived local overrides for debugging are allowed
+- Before commits/PRs, restore the locked interpreter and workspace settings
+
+### 1.2 Quality gate snapshot (concise)
+
+- **Primary local gate**: `./utils/quick_lint.sh --fix` runs Ruff check/format, MyPy, and boundary checks in one pass.
+- **Lint/format source**: Ruff config is centralized in `pyproject.toml` (Python 3.13 target, formatter + lint rules + per-file ignores).
+- **Type source of truth**: MyPy is authoritative for CI and local validation; Pylance stays low-noise for editor productivity.
+- **Architecture enforcement**: `utils/check_boundaries.py` is a required gate, not optional.
+- **Test default behavior**: Pytest excludes `performance` and `stress` markers unless explicitly requested.
+- **Definition of done**: Lint gate + zero MyPy errors + relevant pytest pass.
+
 ---
 
 ### 2. Localization & Translation Standards
