@@ -32,6 +32,7 @@ from homeassistant.core import callback
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import async_track_time_change
+from homeassistant.util import dt as dt_util
 
 from .. import const
 from ..helpers import backup_helpers as bh
@@ -110,6 +111,9 @@ class SystemManager(BaseManager):
         self.listen(const.SIGNAL_SUFFIX_REWARD_DELETED, self._handle_reward_deleted)
         self.listen(const.SIGNAL_SUFFIX_BADGE_DELETED, self._handle_badge_deleted)
 
+        # 3. Startup reliability safety net: catch missed midnight rollover
+        await self._run_startup_midnight_catchup()
+
         const.LOGGER.debug(
             "SystemManager initialized: timer registered, 4 DELETED signal subscriptions for entry %s",
             self.entry_id,
@@ -126,6 +130,58 @@ class SystemManager(BaseManager):
         """
         const.LOGGER.debug("SystemManager: Midnight rollover triggered")
         self.emit(const.SIGNAL_SUFFIX_MIDNIGHT_ROLLOVER)
+        self._stamp_midnight_processed()
+
+    def _stamp_midnight_processed(self) -> None:
+        """Persist the timestamp of the most recent midnight rollover handling."""
+        meta = self.coordinator._data.setdefault(const.DATA_META, {})
+        meta[const.DATA_META_LAST_MIDNIGHT_PROCESSED] = dt_util.utcnow().isoformat()
+        self.coordinator._persist()
+
+    def _get_last_midnight_processed_utc(self) -> datetime | None:
+        """Return parsed last-midnight timestamp in UTC, or None if unavailable."""
+        meta = self.coordinator._data.get(const.DATA_META, {})
+        raw_timestamp = meta.get(const.DATA_META_LAST_MIDNIGHT_PROCESSED)
+        if not isinstance(raw_timestamp, str) or not raw_timestamp:
+            return None
+
+        parsed = dt_util.parse_datetime(raw_timestamp)
+        if parsed is None:
+            const.LOGGER.warning(
+                "SystemManager: Invalid last_midnight_processed timestamp '%s'",
+                raw_timestamp,
+            )
+            return None
+
+        return dt_util.as_utc(parsed)
+
+    async def _run_startup_midnight_catchup(self) -> None:
+        """Emit midnight rollover on startup when last processed day is stale."""
+        local_now = dt_util.now()
+        local_today_midnight = local_now.replace(
+            hour=0,
+            minute=0,
+            second=0,
+            microsecond=0,
+        )
+        today_midnight_utc = dt_util.as_utc(local_today_midnight)
+
+        last_processed_utc = self._get_last_midnight_processed_utc()
+        if last_processed_utc is not None and last_processed_utc >= today_midnight_utc:
+            const.LOGGER.debug(
+                "SystemManager: Midnight catch-up not needed (last_processed=%s)",
+                last_processed_utc.isoformat(),
+            )
+            return
+
+        const.LOGGER.info(
+            "SystemManager: Startup midnight catch-up triggered "
+            "(last_processed=%s, today_midnight=%s)",
+            last_processed_utc.isoformat() if last_processed_utc else "missing",
+            today_midnight_utc.isoformat(),
+        )
+        self.emit(const.SIGNAL_SUFFIX_MIDNIGHT_ROLLOVER, catch_up=True)
+        self._stamp_midnight_processed()
 
     # =========================================================================
     # Data Integrity (Boot Cascade - called from Coordinator)

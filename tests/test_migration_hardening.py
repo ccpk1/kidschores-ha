@@ -12,6 +12,7 @@ All cascade, fallback, and schema-44 logic lives in migration_pre_v50.py
 """
 
 import copy
+from datetime import UTC, datetime
 import json
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -714,3 +715,119 @@ class TestFullCascade:
             )
 
         mock_migrator_cls.assert_not_called()
+
+
+class TestSystemManagerMidnightCatchup:
+    """Test startup midnight catch-up reliability behavior."""
+
+    async def test_async_setup_runs_startup_midnight_catchup(
+        self, system_manager
+    ) -> None:
+        """SystemManager async_setup should trigger catch-up check."""
+        with (
+            patch(
+                "custom_components.kidschores.managers.system_manager.async_track_time_change"
+            ),
+            patch.object(
+                system_manager,
+                "_run_startup_midnight_catchup",
+                new_callable=AsyncMock,
+            ) as mock_catchup,
+        ):
+            await system_manager.async_setup()
+
+        mock_catchup.assert_called_once()
+
+    async def test_startup_midnight_catchup_emits_when_stale(
+        self, system_manager
+    ) -> None:
+        """Catch-up emits rollover and stamps meta when last processed is stale."""
+        system_manager.coordinator._data[const.DATA_META] = {
+            const.DATA_META_SCHEMA_VERSION: const.SCHEMA_VERSION_BETA4,
+            const.DATA_META_LAST_MIDNIGHT_PROCESSED: "2026-02-10T00:00:00+00:00",
+        }
+
+        fixed_now_local = datetime(2026, 2, 11, 12, 0, tzinfo=UTC)
+        fixed_now_utc = datetime(2026, 2, 11, 12, 0, tzinfo=UTC)
+
+        with (
+            patch(
+                "custom_components.kidschores.managers.system_manager.dt_util.now",
+                return_value=fixed_now_local,
+            ),
+            patch(
+                "custom_components.kidschores.managers.system_manager.dt_util.utcnow",
+                return_value=fixed_now_utc,
+            ),
+            patch.object(system_manager, "emit") as mock_emit,
+            patch.object(system_manager.coordinator, "_persist") as mock_persist,
+        ):
+            await system_manager._run_startup_midnight_catchup()
+
+        mock_emit.assert_called_once_with(
+            const.SIGNAL_SUFFIX_MIDNIGHT_ROLLOVER,
+            catch_up=True,
+        )
+        mock_persist.assert_called_once()
+        assert (
+            system_manager.coordinator._data[const.DATA_META][
+                const.DATA_META_LAST_MIDNIGHT_PROCESSED
+            ]
+            == fixed_now_utc.isoformat()
+        )
+
+    async def test_startup_midnight_catchup_skips_when_already_processed_today(
+        self, system_manager
+    ) -> None:
+        """Catch-up does not emit when midnight was already processed today."""
+        system_manager.coordinator._data[const.DATA_META] = {
+            const.DATA_META_SCHEMA_VERSION: const.SCHEMA_VERSION_BETA4,
+            const.DATA_META_LAST_MIDNIGHT_PROCESSED: "2026-02-11T00:00:00+00:00",
+        }
+
+        fixed_now_local = datetime(2026, 2, 11, 12, 0, tzinfo=UTC)
+
+        with (
+            patch(
+                "custom_components.kidschores.managers.system_manager.dt_util.now",
+                return_value=fixed_now_local,
+            ),
+            patch.object(system_manager, "emit") as mock_emit,
+            patch.object(system_manager.coordinator, "_persist") as mock_persist,
+        ):
+            await system_manager._run_startup_midnight_catchup()
+
+        mock_emit.assert_not_called()
+        mock_persist.assert_not_called()
+
+    async def test_startup_midnight_catchup_treats_invalid_timestamp_as_stale(
+        self, system_manager
+    ) -> None:
+        """Invalid meta timestamp should safely trigger catch-up."""
+        system_manager.coordinator._data[const.DATA_META] = {
+            const.DATA_META_SCHEMA_VERSION: const.SCHEMA_VERSION_BETA4,
+            const.DATA_META_LAST_MIDNIGHT_PROCESSED: "not-a-datetime",
+        }
+
+        fixed_now_local = datetime(2026, 2, 11, 12, 0, tzinfo=UTC)
+        fixed_now_utc = datetime(2026, 2, 11, 12, 0, tzinfo=UTC)
+
+        with (
+            patch(
+                "custom_components.kidschores.managers.system_manager.dt_util.now",
+                return_value=fixed_now_local,
+            ),
+            patch(
+                "custom_components.kidschores.managers.system_manager.dt_util.utcnow",
+                return_value=fixed_now_utc,
+            ),
+            patch.object(system_manager, "emit") as mock_emit,
+            patch.object(system_manager.coordinator, "_persist") as mock_persist,
+        ):
+            await system_manager._run_startup_midnight_catchup()
+
+        mock_emit.assert_called_once_with(
+            const.SIGNAL_SUFFIX_MIDNIGHT_ROLLOVER,
+            catch_up=True,
+        )
+        mock_persist.assert_called_once()

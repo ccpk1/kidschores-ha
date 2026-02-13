@@ -310,6 +310,7 @@ DATA_META_SCHEMA_VERSION: Final = "schema_version"
 DATA_META_LAST_MIGRATION_DATE: Final = "last_migration_date"
 DATA_META_MIGRATIONS_APPLIED: Final = "migrations_applied"
 DATA_META_PENDING_EVALUATIONS: Final = "pending_evaluations"
+DATA_META_LAST_MIDNIGHT_PROCESSED: Final = "last_midnight_processed"
 
 # Storage Data Keys (Phase 2b)
 # Top-level keys in .storage/kidschores_data (not entity-specific DATA_KID_*, DATA_CHORE_*, etc.)
