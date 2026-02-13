@@ -113,6 +113,76 @@
       "chores": {
         "title": "Add Chore",
         "description": "Create a new chore with points, assignments, and recurring schedule.",
+        "sections": {
+          "section_root_form": {
+            "name": "Definition",
+            "description": "Identity, assignment, and core contract settings.",
+            "data": {
+              "name": "📋 Chore Name",
+              "chore_description": "📋 Description (optional)",
+              "icon": "📋 Icon (mdi:xxx)",
+              "default_points": "💰 Points Awarded",
+              "assigned_kids": "👥 Assigned Kids",
+              "completion_criteria": "👥 Completion Criteria"
+            },
+            "data_description": {
+              "name": "Unique name displayed throughout the system.",
+              "chore_description": "Optional instructions or details about how to complete this chore.",
+              "icon": "Material Design Icon (e.g., mdi:broom, mdi:dishwasher).",
+              "default_points": "Points earned when completed.",
+              "assigned_kids": "Kids who can see and claim this chore.",
+              "completion_criteria": "Controls how the chore is completed when multiple kids are assigned: individual tracking, shared completion, or turn-based rotation."
+            }
+          },
+          "section_schedule": {
+            "name": "Schedule",
+            "description": "Timing, access window, and recurring interval settings.",
+            "data": {
+              "recurring_frequency": "🔄 Schedule: Frequency",
+              "due_date": "📅 Schedule: Due Date (optional)",
+              "clear_due_date": "🗑️ Clear Due Date",
+              "applicable_days": "📅 Schedule: Applicable Days (optional)",
+              "chore_due_window_offset": "⏱️ Due Window: Offset Before Due Date",
+              "chore_claim_lock_until_window": "🔒 Lock Claim Until Due Window Opens?",
+              "custom_interval": "🔄 Schedule: Custom Interval (for Custom Frequency)",
+              "custom_interval_unit": "🔄 Schedule: Custom Interval Unit"
+            },
+            "data_description": {
+              "recurring_frequency": "How often the chore recurs: Daily, Weekly, Monthly, Yearly, Custom, or None.",
+              "due_date": "Optional deadline. Can be combined with recurring schedules.",
+              "clear_due_date": "Check this box to remove the due date from this chore.",
+              "applicable_days": "Leave blank for all days. ONLY Select specific days to restrict.",
+              "chore_due_window_offset": "When the chore state changes from Pending to Due. Format: '1d 6h 30m' or just '30' for minutes. Enter '0' to disable. Example: '1d' means chore shows as 'Due' 1 day before deadline.",
+              "chore_claim_lock_until_window": "When enabled, kids cannot claim this chore before the due window starts.",
+              "custom_interval": "Number of time units between repetitions (e.g., 3 for 'every 3 weeks'). Only used with Custom frequency.",
+              "custom_interval_unit": "Time unit for custom interval (days, weeks, months). Only used with Custom frequency."
+            }
+          },
+          "section_advanced_configurations": {
+            "name": "Advanced Configurations",
+            "description": "Lifecycle automation, notifications, visibility, and metadata.",
+            "data": {
+              "approval_reset_type": "➡️ Completions Allowed and Approval Reset Timing",
+              "approval_reset_pending_claim_action": "➡️ Pending Claims Handling at Approval Reset",
+              "auto_approve": "✅ Auto-Approve Claims?",
+              "overdue_handling_type": "⏰ Overdue: Handling",
+              "chore_due_reminder_offset": "🔔 Due Reminder: Offset Before Due Date",
+              "chore_notifications": "🔔 Notification Events (optional)",
+              "show_on_calendar": "📅 Show on Calendar?",
+              "chore_labels": "📋 Labels (optional)"
+            },
+            "data_description": {
+              "approval_reset_type": "Controls when the chore's approval cycle boundary fires (midnight, due date, upon completion, or manual trigger).",
+              "approval_reset_pending_claim_action": "This is what happens to claims still waiting for approval when the approval reset occurs.",
+              "auto_approve": "When enabled, claims are instantly approved without parent review.",
+              "overdue_handling_type": "Action after due date: Hide overdue status, remain overdue until claimed, or reset to pending at next approval cycle.",
+              "chore_due_reminder_offset": "When to send the due reminder notification. Format: '1d 6h 30m' or just '30' for minutes. Default: 30m (30 minutes before due). Enter '0' to disable.",
+              "chore_notifications": "When to send notifications: On claim, on approval, on rejection, or any combination.",
+              "show_on_calendar": "Display this chore on the calendar view.",
+              "chore_labels": "Tags to organize chores (e.g., 'kitchen', 'outdoor'). Leave blank if not needed."
+            }
+          }
+        },
         "data": {
           "name": "📋 Chore Name",
           "chore_description": "📋 Description (optional)",
@@ -358,6 +428,7 @@
       "invalid_challenge_name": "Invalid challenge name",
       "invalid_chore": "Invalid chore",
       "invalid_chore_count": "Invalid chore count",
+      "rotation_min_kids": "Rotation chores require at least 2 assigned kids",
       "invalid_chore_name": "Invalid chore name",
       "invalid_points": "Points must be zero or greater",
       "invalid_overdue_reset_combination": "The 'At due date then reset' overdue handling only works with midnight reset types. Please select 'At midnight (once)' or 'At midnight (repeating)' for the approval reset type.",
@@ -483,6 +554,76 @@
       "add_chore": {
         "title": "Add Chore",
         "description": "Create a new chore with points, assignments, and recurring schedule.\n\n📖 [Configuration Guide]({documentation_url})",
+        "sections": {
+          "section_root_form": {
+            "name": "Definition",
+            "description": "Identity, assignment, and core contract settings.",
+            "data": {
+              "name": "📋 Chore Name",
+              "chore_description": "📋 Description (optional)",
+              "icon": "📋 Icon (mdi:xxx)",
+              "default_points": "💰 Points Awarded",
+              "assigned_kids": "👥 Assigned Kids",
+              "completion_criteria": "👥 Completion Criteria"
+            },
+            "data_description": {
+              "name": "Unique name displayed throughout the system.",
+              "chore_description": "Optional instructions or details about how to complete this chore.",
+              "icon": "Material Design Icon (e.g., mdi:broom, mdi:dishwasher).",
+              "default_points": "Points earned when completed.",
+              "assigned_kids": "Kids who can see and claim this chore.",
+              "completion_criteria": "Controls how the chore is completed when multiple kids are assigned: individual tracking, shared completion, or turn-based rotation."
+            }
+          },
+          "section_schedule": {
+            "name": "Schedule",
+            "description": "Timing, access window, and recurring interval settings.",
+            "data": {
+              "recurring_frequency": "🔄 Schedule: Frequency",
+              "due_date": "📅 Schedule: Due Date (optional)",
+              "clear_due_date": "🗑️ Clear Due Date",
+              "applicable_days": "📅 Schedule: Applicable Days (optional)",
+              "chore_due_window_offset": "⏱️ Due Window: Offset Before Due Date",
+              "chore_claim_lock_until_window": "🔒 Lock Claim Until Due Window Opens?",
+              "custom_interval": "🔄 Schedule: Custom Interval (for Custom Frequency)",
+              "custom_interval_unit": "🔄 Schedule: Custom Interval Unit"
+            },
+            "data_description": {
+              "recurring_frequency": "How often the chore recurs: Daily, Weekly, Monthly, Yearly, Custom, or None. If you select 'Daily - Multiple times per day', an additional screen will appear to configure the specific times.",
+              "due_date": "Optional deadline. Can be combined with recurring schedules. For INDEPENDENT chores, this serves as a template—an additional screen will appear allowing individual dates per kid.",
+              "clear_due_date": "Check this box to remove the due date from this chore.",
+              "applicable_days": "Leave blank for all days. ONLY Select specific days to restrict.",
+              "chore_due_window_offset": "When the chore state changes from Pending to Due. Format: '1d 6h 30m' or just '30' for minutes. Enter '0' to disable. Example: '1d' means chore shows as 'Due' 1 day before deadline.",
+              "chore_claim_lock_until_window": "When enabled, kids cannot claim this chore before the due window starts.",
+              "custom_interval": "Number of time units between repetitions (e.g., 3 for 'every 3 weeks'). Only used with Custom frequency.",
+              "custom_interval_unit": "Time unit for custom interval (days, weeks, months). Only used with Custom frequency."
+            }
+          },
+          "section_advanced_configurations": {
+            "name": "Advanced Configurations",
+            "description": "Lifecycle automation, notifications, visibility, and metadata.",
+            "data": {
+              "approval_reset_type": "➡️ Completions Allowed and Approval Reset Timing",
+              "approval_reset_pending_claim_action": "➡️ Pending Claims Handling at Approval Reset",
+              "auto_approve": "✅ Auto-Approve Claims?",
+              "overdue_handling_type": "⏰ Overdue: Handling",
+              "chore_due_reminder_offset": "🔔 Due Reminder: Offset Before Due Date",
+              "chore_notifications": "🔔 Notification Events (optional)",
+              "show_on_calendar": "📅 Show on Calendar?",
+              "chore_labels": "📋 Labels (optional)"
+            },
+            "data_description": {
+              "approval_reset_type": "Controls when the chore's approval cycle boundary fires (midnight, due date, upon completion, or manual trigger).",
+              "approval_reset_pending_claim_action": "Controls what happens to unapproved claims when the approval reset boundary fires.",
+              "auto_approve": "When enabled, claims are instantly approved without parent review.",
+              "overdue_handling_type": "Controls what happens when the due date passes and what happens to overdue chores at the approval reset boundary.",
+              "chore_due_reminder_offset": "When to send the due reminder notification. Format: '1d 6h 30m' or just '30' for minutes. Default: 30m (30 minutes before due). Enter '0' to disable.",
+              "chore_notifications": "When to send notifications: On claim, on approval, on rejection, or any combination.",
+              "show_on_calendar": "Display this chore on the calendar view.",
+              "chore_labels": "Tags to organize chores (e.g., 'kitchen', 'outdoor'). Leave blank if not needed."
+            }
+          }
+        },
         "data": {
           "name": "📋 Chore Name",
           "chore_description": "📋 Description (optional)",
@@ -881,6 +1022,76 @@
       "edit_chore": {
         "title": "Edit Chore",
         "description": "Modify the details of the selected chore.\n\n📖 [Configuration Guide]({documentation_url})",
+        "sections": {
+          "section_root_form": {
+            "name": "Definition",
+            "description": "Identity, assignment, and core contract settings.",
+            "data": {
+              "name": "📋 Chore Name",
+              "chore_description": "📋 Description (optional)",
+              "icon": "📋 Icon (mdi:xxx)",
+              "default_points": "💰 Points Awarded",
+              "assigned_kids": "👥 Assigned Kids",
+              "completion_criteria": "👥 Completion Criteria"
+            },
+            "data_description": {
+              "name": "Unique name displayed throughout the system.",
+              "chore_description": "Optional instructions or details about how to complete this chore.",
+              "icon": "Material Design Icon (e.g., mdi:broom, mdi:dishwasher).",
+              "default_points": "Points earned when completed.",
+              "assigned_kids": "Kids who can see and claim this chore.",
+              "completion_criteria": "Controls how the chore is completed when multiple kids are assigned: individual tracking, shared completion, or turn-based rotation."
+            }
+          },
+          "section_schedule": {
+            "name": "Schedule",
+            "description": "Timing, access window, and recurring interval settings.",
+            "data": {
+              "recurring_frequency": "🔄 Schedule: Frequency",
+              "due_date": "📅 Schedule: Due Date (optional)",
+              "clear_due_date": "🗑️ Clear Due Date",
+              "applicable_days": "📅 Schedule: Applicable Days (optional)",
+              "chore_due_window_offset": "⏱️ Due Window: Offset Before Due Date",
+              "chore_claim_lock_until_window": "🔒 Lock Claim Until Due Window Opens?",
+              "custom_interval": "🔄 Schedule: Custom Interval (for Custom Frequency)",
+              "custom_interval_unit": "🔄 Schedule: Custom Interval Unit"
+            },
+            "data_description": {
+              "recurring_frequency": "How often the chore recurs: Daily, Weekly, Monthly, Yearly, Custom, or None. If you select 'Daily - Multiple times per day', an additional screen will appear to configure the specific times.",
+              "due_date": "Optional deadline. Can be combined with recurring schedules. For INDEPENDENT chores, this serves as a template—an additional screen will appear allowing individual dates per kid.",
+              "clear_due_date": "Check this box to remove the due date from this chore.",
+              "applicable_days": "Leave blank for all days. ONLY Select specific days to restrict.",
+              "chore_due_window_offset": "When the chore state changes from Pending to Due. Format: '1d 6h 30m' or just '30' for minutes. Enter '0' to disable. Example: '1d' means chore shows as 'Due' 1 day before deadline.",
+              "chore_claim_lock_until_window": "When enabled, kids cannot claim this chore before the due window starts.",
+              "custom_interval": "Number of time units between repetitions (e.g., 3 for 'every 3 weeks'). Only used with Custom frequency.",
+              "custom_interval_unit": "Time unit for custom interval (days, weeks, months). Only used with Custom frequency."
+            }
+          },
+          "section_advanced_configurations": {
+            "name": "Advanced Configurations",
+            "description": "Lifecycle automation, notifications, visibility, and metadata.",
+            "data": {
+              "approval_reset_type": "➡️ Completions Allowed and Approval Reset Timing",
+              "approval_reset_pending_claim_action": "➡️ Pending Claims Handling at Approval Reset",
+              "auto_approve": "✅ Auto-Approve Claims?",
+              "overdue_handling_type": "⏰ Overdue: Handling",
+              "chore_due_reminder_offset": "🔔 Due Reminder: Offset Before Due Date",
+              "chore_notifications": "🔔 Notification Events (optional)",
+              "show_on_calendar": "📅 Show on Calendar?",
+              "chore_labels": "📋 Labels (optional)"
+            },
+            "data_description": {
+              "approval_reset_type": "Controls when the chore's approval cycle boundary fires (midnight, due date, upon completion, or manual trigger).",
+              "approval_reset_pending_claim_action": "Controls what happens to unapproved claims when the approval reset boundary fires.",
+              "auto_approve": "When enabled, claims are instantly approved without parent review.",
+              "overdue_handling_type": "Controls what happens when the due date passes and what happens to overdue chores at the approval reset boundary.",
+              "chore_due_reminder_offset": "When to send the due reminder notification. Format: '1d 6h 30m' or just '30' for minutes. Default: 30m (30 minutes before due). Enter '0' to disable.",
+              "chore_notifications": "When to send notifications: On claim, on approval, on rejection, or any combination.",
+              "show_on_calendar": "Display this chore on the calendar view.",
+              "chore_labels": "Tags to organize chores (e.g., 'kitchen', 'outdoor'). Leave blank if not needed."
+            }
+          }
+        },
         "data": {
           "name": "📋 Chore Name",
           "chore_description": "📋 Description (optional)",
@@ -1485,6 +1696,9 @@
       "invalid_badge_count": "Invalid badge count",
       "invalid_chore": "Invalid chore",
       "invalid_chore_count": "Invalid chore count",
+      "invalid_chore_name": "Invalid chore name",
+      "invalid_points": "Points must be zero or greater",
+      "invalid_overdue_reset_combination": "The 'At due date then reset' overdue handling only works with midnight reset types. Please select 'At midnight (once)' or 'At midnight (repeating)' for the approval reset type.",
       "invalid_due_date": "Invalid due date",
       "date_required_for_frequency": "A due date is required for this recurring frequency. Clear dates only works with None, Daily, or Weekly frequency.",
       "invalid_end_date": "Invalid end date.",
@@ -1513,6 +1727,7 @@
       "error_daily_multi_times_too_few": "At least 2 times are required for 'Multiple times per day' frequency. For a single time, use regular 'Daily' frequency.",
       "error_daily_multi_times_too_many": "Maximum 6 times allowed per day for 'Multiple times per day' frequency.",
       "error_daily_multi_due_date_required": "'Multiple times per day' frequency requires a due date to be set. The date determines when scheduling starts and the times determine availability windows each day.",
+      "rotation_min_kids": "Rotation chores require at least 2 assigned kids",
       "error_allow_steal_incompatible": "Allow Steal overdue handling is only compatible with Rotation chores (rotation_simple or rotation_smart), 'Once per day' reset type, and requires a due date to define when the steal window opens.",
       "error_at_due_date_reset_requires_due_date": "'At Due Date' approval reset types (Once or Multi) require a due date to be set. Without a due date, the approval reset will never trigger and the chore will remain approved indefinitely.",
       "error_per_kid_applicable_days_invalid": "Invalid applicable days format for one or more kids. Days must be integers 0-6 (Monday-Sunday) with no duplicates.",

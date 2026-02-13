@@ -129,6 +129,7 @@ import datetime
 from typing import Any, cast
 
 from homeassistant.core import HomeAssistant
+from homeassistant.data_entry_flow import section
 from homeassistant.helpers import config_validation as cv, selector
 import voluptuous as vol
 
@@ -503,6 +504,125 @@ def validate_parents_inputs(
 # CHORES SCHEMA (Layer 1: Schema + Layer 2: UI Validation Wrapper)
 # ----------------------------------------------------------------------------------
 
+CHORE_SECTION_ROOT_FORM = "section_root_form"
+CHORE_SECTION_SCHEDULE = "section_schedule"
+CHORE_SECTION_ADVANCED_CONFIGURATIONS = "section_advanced_configurations"
+
+CHORE_SECTION_KEYS = (
+    CHORE_SECTION_ROOT_FORM,
+    CHORE_SECTION_SCHEDULE,
+    CHORE_SECTION_ADVANCED_CONFIGURATIONS,
+)
+
+CHORE_ROOT_FORM_FIELDS = (
+    const.CFOF_CHORES_INPUT_NAME,
+    const.CFOF_CHORES_INPUT_DESCRIPTION,
+    const.CFOF_CHORES_INPUT_ICON,
+    const.CFOF_CHORES_INPUT_DEFAULT_POINTS,
+    const.CFOF_CHORES_INPUT_ASSIGNED_KIDS,
+    const.CFOF_CHORES_INPUT_COMPLETION_CRITERIA,
+)
+
+CHORE_SCHEDULE_FIELDS = (
+    const.CFOF_CHORES_INPUT_RECURRING_FREQUENCY,
+    const.CFOF_CHORES_INPUT_DUE_DATE,
+    const.CFOF_CHORES_INPUT_CLEAR_DUE_DATE,
+    const.CFOF_CHORES_INPUT_APPLICABLE_DAYS,
+    const.CFOF_CHORES_INPUT_DUE_WINDOW_OFFSET,
+    const.CFOF_CHORES_INPUT_CLAIM_LOCK_UNTIL_WINDOW,
+    const.CFOF_CHORES_INPUT_CUSTOM_INTERVAL,
+    const.CFOF_CHORES_INPUT_CUSTOM_INTERVAL_UNIT,
+)
+
+CHORE_ADVANCED_CONFIGURATION_FIELDS = (
+    const.CFOF_CHORES_INPUT_APPROVAL_RESET_TYPE,
+    const.CFOF_CHORES_INPUT_APPROVAL_RESET_PENDING_CLAIM_ACTION,
+    const.CFOF_CHORES_INPUT_AUTO_APPROVE,
+    const.CFOF_CHORES_INPUT_OVERDUE_HANDLING_TYPE,
+    const.CFOF_CHORES_INPUT_DUE_REMINDER_OFFSET,
+    const.CFOF_CHORES_INPUT_NOTIFICATIONS,
+    const.CFOF_CHORES_INPUT_SHOW_ON_CALENDAR,
+    const.CFOF_CHORES_INPUT_LABELS,
+)
+
+
+def normalize_chore_form_input(user_input: dict[str, Any]) -> dict[str, Any]:
+    """Normalize chore form input for sectioned and non-sectioned payloads.
+
+    Home Assistant `section()` wraps form values under section keys. This helper
+    flattens those values so existing validation and transform logic can remain
+    unchanged.
+    """
+    normalized: dict[str, Any] = dict(user_input)
+    for section_key in CHORE_SECTION_KEYS:
+        section_data = normalized.pop(section_key, None)
+        if isinstance(section_data, dict):
+            normalized.update(section_data)
+    return normalized
+
+
+def build_chore_section_suggested_values(flat_values: dict[str, Any]) -> dict[str, Any]:
+    """Build sectioned suggested values from a flat chore form dictionary."""
+    return {
+        CHORE_SECTION_ROOT_FORM: {
+            key: flat_values[key]
+            for key in CHORE_ROOT_FORM_FIELDS
+            if key in flat_values
+        },
+        CHORE_SECTION_SCHEDULE: {
+            key: flat_values[key] for key in CHORE_SCHEDULE_FIELDS if key in flat_values
+        },
+        CHORE_SECTION_ADVANCED_CONFIGURATIONS: {
+            key: flat_values[key]
+            for key in CHORE_ADVANCED_CONFIGURATION_FIELDS
+            if key in flat_values
+        },
+    }
+
+
+def map_chore_form_errors(errors: dict[str, str]) -> dict[str, str]:
+    """Map chore validation errors to form field keys for sectioned UI rendering.
+
+    Preserves original keys and adds aliases for current form field keys.
+    For sectioned forms, also maps field errors to the parent section key.
+
+    Home Assistant's expandable form renderer binds error records at the
+    section container level, so nested child keys are not always displayed.
+    Emitting section-level keys ensures validation errors remain visible in the
+    sectioned UX while keeping flat-key compatibility for tests and any legacy
+    payloads.
+    """
+
+    mapped_errors: dict[str, str] = {}
+
+    # Validation may emit historical/legacy field aliases.
+    field_aliases = {
+        const.CFOP_ERROR_CHORE_POINTS: const.CFOF_CHORES_INPUT_DEFAULT_POINTS,
+    }
+
+    field_to_section: dict[str, str] = {
+        **dict.fromkeys(CHORE_ROOT_FORM_FIELDS, CHORE_SECTION_ROOT_FORM),
+        **dict.fromkeys(CHORE_SCHEDULE_FIELDS, CHORE_SECTION_SCHEDULE),
+        **dict.fromkeys(
+            CHORE_ADVANCED_CONFIGURATION_FIELDS, CHORE_SECTION_ADVANCED_CONFIGURATIONS
+        ),
+    }
+
+    for error_field, translation_key in errors.items():
+        mapped_errors[error_field] = translation_key
+
+        normalized_field = field_aliases.get(error_field, error_field)
+        mapped_errors[normalized_field] = translation_key
+
+        if normalized_field == const.CFOP_ERROR_BASE:
+            continue
+
+        if section_key := field_to_section.get(normalized_field):
+            mapped_errors[section_key] = translation_key
+            mapped_errors[f"{section_key}.{normalized_field}"] = translation_key
+
+    return mapped_errors
+
 
 def build_chore_schema(
     kids_dict: dict[str, str],
@@ -529,13 +649,8 @@ def build_chore_schema(
 
     kid_choices = {k: k for k in kids_dict}
 
-    # Check if there's an existing due date (for edit mode)
-    existing_due_date = default.get(const.CFOF_CHORES_INPUT_DUE_DATE) or default.get(
-        const.DATA_CHORE_DUE_DATE
-    )
-
-    # Build schema fields dict
-    schema_fields: dict[Any, Any] = {
+    # Build schema fields in approved UX order grouped by sections
+    root_form_fields: dict[Any, Any] = {
         vol.Required(const.CFOF_CHORES_INPUT_NAME, default=const.SENTINEL_EMPTY): str,
         vol.Optional(
             const.CFOF_CHORES_INPUT_DESCRIPTION,
@@ -545,10 +660,6 @@ def build_chore_schema(
             const.CFOF_CHORES_INPUT_ICON,
             default=const.SENTINEL_EMPTY,
         ): selector.IconSelector(),
-        vol.Optional(
-            const.CFOF_CHORES_INPUT_LABELS,
-            default=[],
-        ): selector.LabelSelector(selector.LabelSelectorConfig(multiple=True)),
         vol.Required(
             const.CFOF_CHORES_INPUT_DEFAULT_POINTS,
             default=default.get(
@@ -587,6 +698,98 @@ def build_chore_schema(
                 mode=selector.SelectSelectorMode.DROPDOWN,
             )
         ),
+    }
+
+    schedule_fields: dict[Any, Any] = {
+        vol.Required(
+            const.CFOF_CHORES_INPUT_RECURRING_FREQUENCY,
+            default=default.get(
+                const.CFOF_CHORES_INPUT_RECURRING_FREQUENCY, const.FREQUENCY_NONE
+            ),
+        ): selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=frequency_options,
+                translation_key=const.TRANS_KEY_FLOW_HELPERS_RECURRING_FREQUENCY,
+            )
+        ),
+        vol.Optional(
+            const.CFOF_CHORES_INPUT_DUE_DATE,
+            default=default.get(const.CFOF_CHORES_INPUT_DUE_DATE),
+        ): vol.Any(None, selector.DateTimeSelector()),
+        # Keep clear_due_date directly under due_date for consistent UX.
+        vol.Optional(
+            const.CFOF_CHORES_INPUT_CLEAR_DUE_DATE,
+            default=False,
+        ): selector.BooleanSelector(),
+        vol.Optional(
+            const.CFOF_CHORES_INPUT_APPLICABLE_DAYS,
+            # Explicitly check for None to preserve empty list [] (when user clears all days)
+            # Storage may have null when per_kid_applicable_days is source of truth
+            default=(
+                default.get(const.CFOF_CHORES_INPUT_APPLICABLE_DAYS)
+                if default.get(const.CFOF_CHORES_INPUT_APPLICABLE_DAYS) is not None
+                else const.DEFAULT_APPLICABLE_DAYS
+            ),
+        ): selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=cast(
+                    "list[selector.SelectOptionDict]",
+                    [
+                        {"value": key, "label": label}
+                        for key, label in const.WEEKDAY_OPTIONS.items()
+                    ],
+                ),
+                multiple=True,
+                translation_key=const.TRANS_KEY_FLOW_HELPERS_APPLICABLE_DAYS,
+            )
+        ),
+        vol.Optional(
+            const.CFOF_CHORES_INPUT_DUE_WINDOW_OFFSET,
+            default=default.get(
+                const.CFOF_CHORES_INPUT_DUE_WINDOW_OFFSET,
+                const.DEFAULT_DUE_WINDOW_OFFSET,
+            ),
+        ): selector.TextSelector(
+            selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT)
+        ),
+        vol.Required(
+            const.CFOF_CHORES_INPUT_CLAIM_LOCK_UNTIL_WINDOW,
+            default=default.get(
+                const.CFOF_CHORES_INPUT_CLAIM_LOCK_UNTIL_WINDOW,
+                default.get(
+                    const.DATA_CHORE_CLAIM_LOCK_UNTIL_WINDOW,
+                    const.DEFAULT_CHORE_CLAIM_LOCK_UNTIL_WINDOW,
+                ),
+            ),
+        ): selector.BooleanSelector(),
+        vol.Optional(
+            const.CFOF_CHORES_INPUT_CUSTOM_INTERVAL,
+            default=default.get(const.CFOF_CHORES_INPUT_CUSTOM_INTERVAL, None),
+        ): vol.Any(
+            None,
+            selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    mode=selector.NumberSelectorMode.BOX, min=1, step=1
+                )
+            ),
+        ),
+        vol.Optional(
+            const.CFOF_CHORES_INPUT_CUSTOM_INTERVAL_UNIT,
+            default=default.get(const.CFOF_CHORES_INPUT_CUSTOM_INTERVAL_UNIT, None),
+        ): vol.Any(
+            None,
+            selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=const.CUSTOM_INTERVAL_UNIT_OPTIONS,
+                    translation_key=const.TRANS_KEY_FLOW_HELPERS_CUSTOM_INTERVAL_UNIT,
+                    multiple=False,
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                )
+            ),
+        ),
+    }
+
+    advanced_configuration_fields: dict[Any, Any] = {
         vol.Required(
             const.CFOF_CHORES_INPUT_APPROVAL_RESET_TYPE,
             default=default.get(
@@ -619,6 +822,13 @@ def build_chore_schema(
             )
         ),
         vol.Required(
+            const.CFOF_CHORES_INPUT_AUTO_APPROVE,
+            default=default.get(
+                const.CFOF_CHORES_INPUT_AUTO_APPROVE,
+                const.DEFAULT_CHORE_AUTO_APPROVE,
+            ),
+        ): selector.BooleanSelector(),
+        vol.Required(
             const.CFOF_CHORES_INPUT_OVERDUE_HANDLING_TYPE,
             default=default.get(
                 const.CFOF_CHORES_INPUT_OVERDUE_HANDLING_TYPE,
@@ -634,148 +844,55 @@ def build_chore_schema(
                 mode=selector.SelectSelectorMode.DROPDOWN,
             )
         ),
-        vol.Required(
-            const.CFOF_CHORES_INPUT_CLAIM_LOCK_UNTIL_WINDOW,
-            default=default.get(
-                const.CFOF_CHORES_INPUT_CLAIM_LOCK_UNTIL_WINDOW,
-                default.get(
-                    const.DATA_CHORE_CLAIM_LOCK_UNTIL_WINDOW,
-                    const.DEFAULT_CHORE_CLAIM_LOCK_UNTIL_WINDOW,
-                ),
-            ),
-        ): selector.BooleanSelector(),
-        vol.Required(
-            const.CFOF_CHORES_INPUT_AUTO_APPROVE,
-            default=default.get(
-                const.CFOF_CHORES_INPUT_AUTO_APPROVE,
-                const.DEFAULT_CHORE_AUTO_APPROVE,
-            ),
-        ): selector.BooleanSelector(),
-        vol.Required(
-            const.CFOF_CHORES_INPUT_RECURRING_FREQUENCY,
-            default=default.get(
-                const.CFOF_CHORES_INPUT_RECURRING_FREQUENCY, const.FREQUENCY_NONE
-            ),
-        ): selector.SelectSelector(
-            selector.SelectSelectorConfig(
-                options=frequency_options,
-                translation_key=const.TRANS_KEY_FLOW_HELPERS_RECURRING_FREQUENCY,
-            )
-        ),
-        vol.Optional(
-            const.CFOF_CHORES_INPUT_CUSTOM_INTERVAL,
-            default=default.get(const.CFOF_CHORES_INPUT_CUSTOM_INTERVAL, None),
-        ): vol.Any(
-            None,
-            selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    mode=selector.NumberSelectorMode.BOX, min=1, step=1
-                )
-            ),
-        ),
-        vol.Optional(
-            const.CFOF_CHORES_INPUT_CUSTOM_INTERVAL_UNIT,
-            default=default.get(const.CFOF_CHORES_INPUT_CUSTOM_INTERVAL_UNIT, None),
-        ): vol.Any(
-            None,
-            selector.SelectSelector(
-                selector.SelectSelectorConfig(
-                    options=const.CUSTOM_INTERVAL_UNIT_OPTIONS,
-                    translation_key=const.TRANS_KEY_FLOW_HELPERS_CUSTOM_INTERVAL_UNIT,
-                    multiple=False,
-                    mode=selector.SelectSelectorMode.DROPDOWN,
-                )
-            ),
-        ),
-        vol.Optional(
-            const.CFOF_CHORES_INPUT_APPLICABLE_DAYS,
-            # Explicitly check for None to preserve empty list [] (when user clears all days)
-            # Storage may have null when per_kid_applicable_days is source of truth
-            default=(
-                default.get(const.CFOF_CHORES_INPUT_APPLICABLE_DAYS)
-                if default.get(const.CFOF_CHORES_INPUT_APPLICABLE_DAYS) is not None
-                else const.DEFAULT_APPLICABLE_DAYS
-            ),
-        ): selector.SelectSelector(
-            selector.SelectSelectorConfig(
-                options=cast(
-                    "list[selector.SelectOptionDict]",
-                    [
-                        {"value": key, "label": label}
-                        for key, label in const.WEEKDAY_OPTIONS.items()
-                    ],
-                ),
-                multiple=True,
-                translation_key=const.TRANS_KEY_FLOW_HELPERS_APPLICABLE_DAYS,
-            )
-        ),
-        vol.Optional(
-            const.CFOF_CHORES_INPUT_DUE_DATE,
-            default=default.get(const.CFOF_CHORES_INPUT_DUE_DATE),
-        ): vol.Any(None, selector.DateTimeSelector()),
-    }
-
-    # Add "Clear due date" checkbox only when there's an existing date
-    if existing_due_date:
-        schema_fields[
-            vol.Optional(const.CFOF_CHORES_INPUT_CLEAR_DUE_DATE, default=False)
-        ] = selector.BooleanSelector()
-
-    # Add due window offset field (duration string like "1d 6h 30m", default minutes)
-    schema_fields[
-        vol.Optional(
-            const.CFOF_CHORES_INPUT_DUE_WINDOW_OFFSET,
-            default=default.get(
-                const.CFOF_CHORES_INPUT_DUE_WINDOW_OFFSET,
-                const.DEFAULT_DUE_WINDOW_OFFSET,
-            ),
-        )
-    ] = selector.TextSelector(
-        selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT)
-    )
-
-    # Add due reminder offset field (duration string like "30m", default minutes)
-    schema_fields[
         vol.Optional(
             const.CFOF_CHORES_INPUT_DUE_REMINDER_OFFSET,
             default=default.get(
                 const.CFOF_CHORES_INPUT_DUE_REMINDER_OFFSET,
                 const.DEFAULT_DUE_REMINDER_OFFSET,
             ),
-        )
-    ] = selector.TextSelector(
-        selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT)
-    )
-
-    # Add remaining fields
-    schema_fields[
+        ): selector.TextSelector(
+            selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT)
+        ),
         vol.Optional(
             const.CFOF_CHORES_INPUT_NOTIFICATIONS,
             default=_build_notification_defaults(default),
-        )
-    ] = selector.SelectSelector(
-        selector.SelectSelectorConfig(
-            options=[
-                const.DATA_CHORE_NOTIFY_ON_CLAIM,
-                const.DATA_CHORE_NOTIFY_ON_APPROVAL,
-                const.DATA_CHORE_NOTIFY_ON_DISAPPROVAL,
-                const.DATA_CHORE_NOTIFY_ON_OVERDUE,
-                const.DATA_CHORE_NOTIFY_ON_DUE_WINDOW,
-                const.DATA_CHORE_NOTIFY_DUE_REMINDER,
-            ],
-            multiple=True,
-            translation_key=const.TRANS_KEY_FLOW_HELPERS_CHORE_NOTIFICATIONS,
-        )
-    )
-
-    schema_fields[
+        ): selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=[
+                    const.DATA_CHORE_NOTIFY_ON_CLAIM,
+                    const.DATA_CHORE_NOTIFY_ON_APPROVAL,
+                    const.DATA_CHORE_NOTIFY_ON_DISAPPROVAL,
+                    const.DATA_CHORE_NOTIFY_ON_OVERDUE,
+                    const.DATA_CHORE_NOTIFY_ON_DUE_WINDOW,
+                    const.DATA_CHORE_NOTIFY_DUE_REMINDER,
+                ],
+                multiple=True,
+                translation_key=const.TRANS_KEY_FLOW_HELPERS_CHORE_NOTIFICATIONS,
+            )
+        ),
         vol.Required(
             const.CFOF_CHORES_INPUT_SHOW_ON_CALENDAR,
             default=default.get(const.CFOF_CHORES_INPUT_SHOW_ON_CALENDAR, True),
-        )
-    ] = selector.BooleanSelector()
+        ): selector.BooleanSelector(),
+        vol.Optional(
+            const.CFOF_CHORES_INPUT_LABELS,
+            default=[],
+        ): selector.LabelSelector(selector.LabelSelectorConfig(multiple=True)),
+    }
 
-    return vol.Schema(schema_fields)
+    schema_fields: dict[Any, Any] = {
+        vol.Optional(CHORE_SECTION_ROOT_FORM): section(vol.Schema(root_form_fields)),
+        vol.Optional(CHORE_SECTION_SCHEDULE): section(
+            vol.Schema(schedule_fields), {"collapsed": True}
+        ),
+        vol.Optional(CHORE_SECTION_ADVANCED_CONFIGURATIONS): section(
+            vol.Schema(advanced_configuration_fields), {"collapsed": True}
+        ),
+    }
+
+    # Keep backward compatibility for flat test payloads while rendering
+    # sectioned UI for real flows.
+    return vol.Schema(schema_fields, extra=vol.ALLOW_EXTRA)
 
 
 def validate_chores_inputs(

@@ -801,6 +801,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         chores_dict = coordinator.chores_data
 
         if user_input is not None:
+            user_input = fh.normalize_chore_form_input(user_input)
+
             # Build kids_dict for name→UUID conversion
             kids_dict = {
                 data[const.DATA_KID_NAME]: eid
@@ -811,11 +813,15 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             errors, due_date_str = fh.validate_chores_inputs(
                 user_input, kids_dict, chores_dict
             )
+            errors = fh.map_chore_form_errors(errors)
 
             if errors:
-                schema = fh.build_chore_schema(kids_dict, default=user_input)
-                # Apply user's input as suggested values to preserve data on error
-                schema = self.add_suggested_values_to_schema(schema, user_input)
+                schema = fh.build_chore_schema(kids_dict)
+                schema = self.add_suggested_values_to_schema(
+                    schema,
+                    fh.build_chore_section_suggested_values(user_input),
+                )
+                schema = vol.Schema(schema.schema, extra=vol.ALLOW_EXTRA)
                 return self.async_show_form(
                     step_id=const.OPTIONS_FLOW_STEP_ADD_CHORE,
                     data_schema=schema,
@@ -1044,6 +1050,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         chore_data = chores_dict[internal_id]
 
         if user_input is not None:
+            user_input = fh.normalize_chore_form_input(user_input)
+
             # Build kids_dict for name→UUID conversion
             kids_dict = {
                 data[const.DATA_KID_NAME]: eid
@@ -1068,13 +1076,17 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             errors, due_date_str = fh.validate_chores_inputs(
                 user_input, kids_dict, chores_for_validation
             )
+            errors = fh.map_chore_form_errors(errors)
 
             if errors:
                 # Merge original chore data with user's attempted input
                 merged_defaults = {**chore_data, **user_input}
-                schema = fh.build_chore_schema(kids_dict, default=merged_defaults)
-                # Apply merged values as suggestions to preserve data on error
-                schema = self.add_suggested_values_to_schema(schema, merged_defaults)
+                schema = fh.build_chore_schema(kids_dict)
+                schema = self.add_suggested_values_to_schema(
+                    schema,
+                    fh.build_chore_section_suggested_values(merged_defaults),
+                )
+                schema = vol.Schema(schema.schema, extra=vol.ALLOW_EXTRA)
                 return self.async_show_form(
                     step_id=const.OPTIONS_FLOW_STEP_EDIT_CHORE,
                     data_schema=schema,
@@ -1538,11 +1550,13 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             notifications_list.append(const.DATA_CHORE_NOTIFY_ON_OVERDUE)
         suggested_values[const.CFOF_CHORES_INPUT_NOTIFICATIONS] = notifications_list
 
-        # Build schema with suggested values as defaults
-        # (this enables "clear due date" checkbox when existing_due_date is set)
-        schema = fh.build_chore_schema(kids_dict, default=suggested_values)
-        # Apply current values as suggestions for UI presentation
-        schema = self.add_suggested_values_to_schema(schema, suggested_values)
+        # Build schema and apply suggested values
+        schema = fh.build_chore_schema(kids_dict)
+        schema = self.add_suggested_values_to_schema(
+            schema,
+            fh.build_chore_section_suggested_values(suggested_values),
+        )
+        schema = vol.Schema(schema.schema, extra=vol.ALLOW_EXTRA)
 
         return self.async_show_form(
             step_id=const.OPTIONS_FLOW_STEP_EDIT_CHORE,

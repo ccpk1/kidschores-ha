@@ -15,7 +15,15 @@ from homeassistant.data_entry_flow import FlowResultType
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from custom_components.kidschores.helpers.flow_helpers import (
+    CHORE_SECTION_ADVANCED_CONFIGURATIONS,
+    CHORE_SECTION_ROOT_FORM,
+    CHORE_SECTION_SCHEDULE,
+)
 from tests.helpers import (
+    APPROVAL_RESET_AT_DUE_DATE_ONCE,
+    APPROVAL_RESET_AT_MIDNIGHT_ONCE,
+    APPROVAL_RESET_UPON_COMPLETION,
     BADGE_TYPE_CUMULATIVE,
     CFOF_BADGES_INPUT_ASSIGNED_TO,
     CFOF_BADGES_INPUT_AWARD_POINTS,
@@ -23,13 +31,26 @@ from tests.helpers import (
     CFOF_BADGES_INPUT_NAME,
     CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE,
     CFOF_BADGES_INPUT_TYPE,
+    CFOF_CHORES_INPUT_APPROVAL_RESET_TYPE,
+    CFOF_CHORES_INPUT_ASSIGNED_KIDS,
+    CFOF_CHORES_INPUT_COMPLETION_CRITERIA,
+    CFOF_CHORES_INPUT_DEFAULT_POINTS,
+    CFOF_CHORES_INPUT_DESCRIPTION,
+    CFOF_CHORES_INPUT_DUE_DATE,
+    CFOF_CHORES_INPUT_ICON,
     CFOF_CHORES_INPUT_NAME,
+    CFOF_CHORES_INPUT_OVERDUE_HANDLING_TYPE,
+    CFOF_CHORES_INPUT_RECURRING_FREQUENCY,
     CFOF_KIDS_INPUT_KID_NAME,
+    COMPLETION_CRITERIA_INDEPENDENT,
+    COMPLETION_CRITERIA_ROTATION_SIMPLE,
     CONF_POINTS_ICON,
     CONF_POINTS_LABEL,
     CONF_UPDATE_INTERVAL,
     DATA_KID_NAME,
     DOMAIN,
+    FREQUENCY_DAILY,
+    FREQUENCY_DAILY_MULTI,
     OPTIONS_FLOW_ACHIEVEMENTS,
     OPTIONS_FLOW_ACTIONS_ADD,
     OPTIONS_FLOW_ACTIONS_BACK,
@@ -53,6 +74,8 @@ from tests.helpers import (
     OPTIONS_FLOW_STEP_ADD_REWARD,
     OPTIONS_FLOW_STEP_INIT,
     OPTIONS_FLOW_STEP_MANAGE_ENTITY,
+    OVERDUE_HANDLING_AT_DUE_DATE,
+    OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_AT_APPROVAL_RESET,
     SCHEMA_VERSION_STORAGE_ONLY,
 )
 from tests.helpers.flow_test_helpers import FlowTestHelper
@@ -683,3 +706,241 @@ async def test_add_duplicate_chore_name_error(
     assert result.get("type") == FlowResultType.FORM
     errors = result.get("errors") or {}
     assert "base" in errors or CFOF_CHORES_INPUT_NAME in errors
+
+
+async def _navigate_to_add_chore_form(
+    hass: HomeAssistant,
+    entry_id: str,
+) -> dict[str, Any]:
+    """Navigate options flow to add chore form."""
+    menu_result = await FlowTestHelper.navigate_to_entity_menu(
+        hass, entry_id, OPTIONS_FLOW_CHORES
+    )
+    add_result = await hass.config_entries.options.async_configure(
+        menu_result["flow_id"],
+        user_input={OPTIONS_FLOW_INPUT_MANAGE_ACTION: OPTIONS_FLOW_ACTIONS_ADD},
+    )
+    assert add_result.get("step_id") == OPTIONS_FLOW_STEP_ADD_CHORE
+    return add_result
+
+
+@pytest.mark.parametrize(
+    ("overrides", "expected_field", "expected_error"),
+    [
+        (
+            {CFOF_CHORES_INPUT_ASSIGNED_KIDS: []},
+            CFOF_CHORES_INPUT_ASSIGNED_KIDS,
+            "no_kids_assigned",
+        ),
+        (
+            {CFOF_CHORES_INPUT_DEFAULT_POINTS: -1},
+            CFOF_CHORES_INPUT_DEFAULT_POINTS,
+            "invalid_points",
+        ),
+        (
+            {
+                CFOF_CHORES_INPUT_DUE_DATE: datetime.datetime.now(datetime.UTC)
+                - datetime.timedelta(days=1)
+            },
+            CFOF_CHORES_INPUT_DUE_DATE,
+            "due_date_in_past",
+        ),
+        (
+            {
+                CFOF_CHORES_INPUT_RECURRING_FREQUENCY: FREQUENCY_DAILY_MULTI,
+                CFOF_CHORES_INPUT_APPROVAL_RESET_TYPE: APPROVAL_RESET_AT_MIDNIGHT_ONCE,
+            },
+            CFOF_CHORES_INPUT_RECURRING_FREQUENCY,
+            "error_daily_multi_requires_compatible_reset",
+        ),
+        (
+            {
+                CFOF_CHORES_INPUT_OVERDUE_HANDLING_TYPE: OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_AT_APPROVAL_RESET,
+                CFOF_CHORES_INPUT_APPROVAL_RESET_TYPE: APPROVAL_RESET_AT_DUE_DATE_ONCE,
+            },
+            CFOF_CHORES_INPUT_OVERDUE_HANDLING_TYPE,
+            "invalid_overdue_reset_combination",
+        ),
+        (
+            {
+                CFOF_CHORES_INPUT_RECURRING_FREQUENCY: FREQUENCY_DAILY_MULTI,
+                CFOF_CHORES_INPUT_APPROVAL_RESET_TYPE: APPROVAL_RESET_UPON_COMPLETION,
+                CFOF_CHORES_INPUT_DUE_DATE: None,
+            },
+            CFOF_CHORES_INPUT_DUE_DATE,
+            "error_daily_multi_due_date_required",
+        ),
+        (
+            {
+                CFOF_CHORES_INPUT_APPROVAL_RESET_TYPE: APPROVAL_RESET_AT_DUE_DATE_ONCE,
+                CFOF_CHORES_INPUT_DUE_DATE: None,
+            },
+            CFOF_CHORES_INPUT_DUE_DATE,
+            "error_at_due_date_reset_requires_due_date",
+        ),
+        (
+            {
+                CFOF_CHORES_INPUT_COMPLETION_CRITERIA: COMPLETION_CRITERIA_ROTATION_SIMPLE,
+                CFOF_CHORES_INPUT_ASSIGNED_KIDS: ["__single_kid__"],
+            },
+            CFOF_CHORES_INPUT_ASSIGNED_KIDS,
+            "rotation_min_kids",
+        ),
+        (
+            {
+                CFOF_CHORES_INPUT_OVERDUE_HANDLING_TYPE: "__allow_steal__",
+                CFOF_CHORES_INPUT_APPROVAL_RESET_TYPE: APPROVAL_RESET_AT_MIDNIGHT_ONCE,
+                CFOF_CHORES_INPUT_COMPLETION_CRITERIA: COMPLETION_CRITERIA_INDEPENDENT,
+            },
+            CFOF_CHORES_INPUT_OVERDUE_HANDLING_TYPE,
+            "error_allow_steal_incompatible",
+        ),
+    ],
+    ids=[
+        "no_kids_assigned",
+        "invalid_points",
+        "due_date_in_past",
+        "daily_multi_reset_combo",
+        "overdue_reset_combo",
+        "daily_multi_requires_due_date",
+        "at_due_date_reset_requires_due_date",
+        "rotation_min_kids",
+        "allow_steal_incompatible",
+    ],
+)
+async def test_chore_validation_error_matrix_field_level_and_translated(
+    hass: HomeAssistant,
+    init_integration_with_coordinator: SetupResult,
+    overrides: dict[str, Any],
+    expected_field: str,
+    expected_error: str,
+) -> None:
+    """Validate chore add-flow errors bind to field keys with translated keys."""
+    config_entry = init_integration_with_coordinator.config_entry
+    coordinator = init_integration_with_coordinator.coordinator
+
+    kid_names = [kid[DATA_KID_NAME] for kid in coordinator.kids_data.values()]
+    assert kid_names
+
+    add_form = await _navigate_to_add_chore_form(hass, config_entry.entry_id)
+
+    form_input: dict[str, Any] = {
+        CFOF_CHORES_INPUT_NAME: "Validation Matrix Chore",
+        CFOF_CHORES_INPUT_DEFAULT_POINTS: 10,
+        CFOF_CHORES_INPUT_ICON: "mdi:check",
+        CFOF_CHORES_INPUT_DESCRIPTION: "",
+        CFOF_CHORES_INPUT_ASSIGNED_KIDS: kid_names,
+        CFOF_CHORES_INPUT_RECURRING_FREQUENCY: FREQUENCY_DAILY,
+        CFOF_CHORES_INPUT_COMPLETION_CRITERIA: COMPLETION_CRITERIA_INDEPENDENT,
+        CFOF_CHORES_INPUT_APPROVAL_RESET_TYPE: APPROVAL_RESET_UPON_COMPLETION,
+        CFOF_CHORES_INPUT_OVERDUE_HANDLING_TYPE: OVERDUE_HANDLING_AT_DUE_DATE,
+        CFOF_CHORES_INPUT_DUE_DATE: datetime.datetime.now(datetime.UTC)
+        + datetime.timedelta(days=1),
+    }
+
+    # Replace single-kid sentinel with the first real kid name for the
+    # rotation-min-kids case.
+    if overrides.get(CFOF_CHORES_INPUT_ASSIGNED_KIDS) == ["__single_kid__"]:
+        overrides = {
+            **overrides,
+            CFOF_CHORES_INPUT_ASSIGNED_KIDS: [kid_names[0]],
+        }
+
+    form_input.update(overrides)
+
+    # tests.helpers does not export this v0.5.0 overdue option yet.
+    if form_input.get(CFOF_CHORES_INPUT_OVERDUE_HANDLING_TYPE) == "__allow_steal__":
+        form_input[CFOF_CHORES_INPUT_OVERDUE_HANDLING_TYPE] = "at_due_date_allow_steal"
+
+    result = await hass.config_entries.options.async_configure(
+        add_form["flow_id"],
+        user_input=form_input,
+    )
+
+    assert result.get("step_id") == OPTIONS_FLOW_STEP_ADD_CHORE
+    errors = result.get("errors") or {}
+    assert expected_field in errors
+    assert errors[expected_field] == expected_error
+
+
+async def test_chore_validation_duplicate_name_field_level_and_translated(
+    hass: HomeAssistant,
+    init_integration_with_coordinator: SetupResult,
+) -> None:
+    """Validate duplicate chore name returns name field + translation key."""
+    config_entry = init_integration_with_coordinator.config_entry
+    coordinator = init_integration_with_coordinator.coordinator
+
+    kid_names = [kid[DATA_KID_NAME] for kid in coordinator.kids_data.values()]
+    assert kid_names
+
+    # Create initial chore.
+    first_add = await _navigate_to_add_chore_form(hass, config_entry.entry_id)
+    create_input = {
+        CFOF_CHORES_INPUT_NAME: "Validation Duplicate Chore",
+        CFOF_CHORES_INPUT_DEFAULT_POINTS: 10,
+        CFOF_CHORES_INPUT_ICON: "mdi:check",
+        CFOF_CHORES_INPUT_DESCRIPTION: "",
+        CFOF_CHORES_INPUT_ASSIGNED_KIDS: kid_names,
+        CFOF_CHORES_INPUT_RECURRING_FREQUENCY: FREQUENCY_DAILY,
+        CFOF_CHORES_INPUT_COMPLETION_CRITERIA: COMPLETION_CRITERIA_INDEPENDENT,
+        CFOF_CHORES_INPUT_APPROVAL_RESET_TYPE: APPROVAL_RESET_UPON_COMPLETION,
+        CFOF_CHORES_INPUT_OVERDUE_HANDLING_TYPE: OVERDUE_HANDLING_AT_DUE_DATE,
+        CFOF_CHORES_INPUT_DUE_DATE: datetime.datetime.now(datetime.UTC)
+        + datetime.timedelta(days=1),
+    }
+    created = await hass.config_entries.options.async_configure(
+        first_add["flow_id"],
+        user_input=create_input,
+    )
+    assert created.get("step_id") == OPTIONS_FLOW_STEP_INIT
+
+    # Attempt duplicate.
+    second_add = await _navigate_to_add_chore_form(hass, config_entry.entry_id)
+    duplicate = await hass.config_entries.options.async_configure(
+        second_add["flow_id"],
+        user_input=create_input,
+    )
+    assert duplicate.get("step_id") == OPTIONS_FLOW_STEP_ADD_CHORE
+    errors = duplicate.get("errors") or {}
+    assert CFOF_CHORES_INPUT_NAME in errors
+    assert errors[CFOF_CHORES_INPUT_NAME] == "duplicate_chore"
+
+
+async def test_chore_validation_no_kids_surfaces_section_error_with_section_payload(
+    hass: HomeAssistant,
+    init_integration_with_coordinator: SetupResult,
+) -> None:
+    """Validate no-kids error is visible for sectioned chore form submissions."""
+    config_entry = init_integration_with_coordinator.config_entry
+
+    add_form = await _navigate_to_add_chore_form(hass, config_entry.entry_id)
+
+    sectioned_input: dict[str, Any] = {
+        CHORE_SECTION_ROOT_FORM: {
+            CFOF_CHORES_INPUT_NAME: "Section Payload No Kids",
+            CFOF_CHORES_INPUT_DEFAULT_POINTS: 10,
+            CFOF_CHORES_INPUT_ICON: "mdi:check",
+            CFOF_CHORES_INPUT_DESCRIPTION: "",
+            CFOF_CHORES_INPUT_ASSIGNED_KIDS: [],
+            CFOF_CHORES_INPUT_COMPLETION_CRITERIA: COMPLETION_CRITERIA_INDEPENDENT,
+        },
+        CHORE_SECTION_SCHEDULE: {
+            CFOF_CHORES_INPUT_RECURRING_FREQUENCY: FREQUENCY_DAILY,
+            CFOF_CHORES_INPUT_DUE_DATE: datetime.datetime.now(datetime.UTC)
+            + datetime.timedelta(days=1),
+        },
+        CHORE_SECTION_ADVANCED_CONFIGURATIONS: {
+            CFOF_CHORES_INPUT_APPROVAL_RESET_TYPE: APPROVAL_RESET_UPON_COMPLETION,
+            CFOF_CHORES_INPUT_OVERDUE_HANDLING_TYPE: OVERDUE_HANDLING_AT_DUE_DATE,
+        },
+    }
+
+    result = await hass.config_entries.options.async_configure(
+        add_form["flow_id"],
+        user_input=sectioned_input,
+    )
+
+    assert result.get("step_id") == OPTIONS_FLOW_STEP_ADD_CHORE
+    errors = result.get("errors") or {}
+    assert errors.get(CHORE_SECTION_ROOT_FORM) == "no_kids_assigned"

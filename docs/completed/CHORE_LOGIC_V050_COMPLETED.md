@@ -5,7 +5,7 @@
 - **Name / Code**: Chore Logic v0.5.0 — Due Window Claim Restrictions + Advanced Rotation
 - **Target release / milestone**: v0.5.0 (Schema v44 — extended in-place, no bump)
 - **Owner / driver(s)**: KidsChores core team
-- **Status**: Phase 3 complete (100%), **Phase 4 COMPLETE (100%)**
+- **Status**: Complete (all phases 100%)
 
 ---
 
@@ -178,7 +178,7 @@ This is a **7th overdue handling type** (not a completion criteria). It controls
 | Phase 2 – Engine & State Machine  | 8-tier FSM, claim restrictions, rotation resolution              | 100%       | ✅ COMPLETE — Logic adapters, FSM, claim restrictions (1257/1257 tests)                                              |
 | Phase 3 – Manager Orchestration   | Rotation advancement, missed lock, scanner updates, new services | 100%       | ✅ COMPLETE — All 10 steps done: services, notifications, stats                                                      |
 | Phase 4 – UX & Dashboard Contract | UI Manager attributes, flow helpers, notification wiring         | 100%       | ✅ **COMPLETE** — All 4 steps done (dashboard helper 9-field contract + flow helpers + options flow + documentation) |
-| Phase 5 – Testing & Validation    | Full test coverage for all new paths                             | 0%         | Service-based + engine unit tests                                                                                    |
+| Phase 5 – Testing & Validation    | Full test coverage for all new paths                             | 100%       | ✅ COMPLETE — targeted + full-suite validation complete                                                               |
 
 1. **Key objective** – Introduce two new chore management capabilities: (a) **Due Window Claim Restrictions** that prevent kids from claiming chores before a configurable window opens, and (b) **Advanced Rotation Logic** that extends shared_first chores into a disciplined turn-based system with two sub-types (`rotation_simple`, `rotation_smart`), plus a steal mechanic delivered via overdue handling (`at_due_date_allow_steal`). Both features extend the existing FSM with three new calculated states (`waiting`, `not_my_turn`, `missed` as a locked terminal state).
 
@@ -241,7 +241,7 @@ This is a **7th overdue handling type** (not a completion criteria). It controls
    | **D-16** | Where `can_claim` attribute lives                              | ✅ **Calculated boolean on the kid chore status sensor** (`KidChoreStatusSensor.extra_state_attributes`). Pipeline: `ChoreEngine.can_claim_chore()` → `ChoreManager.can_claim_chore()` → sensor attribute. Dashboard helper does NOT include it — documented to fetch via `state_attr(chore.eid, 'can_claim')`. `ATTR_CAN_CLAIM` constant already exists.                                                                                                                | New blocking conditions (waiting, not_my_turn, missed) integrate into existing `ChoreEngine.can_claim_chore()`. No new sensor or attribute needed — extend existing logic.                                                                                                                                                    |
    | **D-17** | Turn after pure miss (no steal)                                | ✅ **(NEW v2)** Turn **advances to next kid** when the approval reset boundary fires and the overdue policy executes. The skipped kid does NOT get another chance. Only the skipped turn-holder gets the missed/overdue stat.                                                                                                                                                                                                                                            | `_process_approval_boundary_resets()` must call `_advance_rotation()` after midnight unlock. Ensures rotation never stalls.                                                                                                                                                                                                   |
    | **D-18** | Turn after steal                                               | ✅ **(NEW v2)** Normal `_advance_rotation()` runs from the completer (the kid who stole). Turn advances to the next kid relative to the completer's position, NOT back to the original turn-holder.                                                                                                                                                                                                                                                                      | Same `_advance_rotation()` code path as normal approval. No special steal-specific turn logic needed.                                                                                                                                                                                                                         |
-   - **Completion confirmation**: `[ ]` All follow-up items completed (architecture updates, cleanup, documentation, etc.) before requesting owner approval to mark initiative done.
+  - **Completion confirmation**: `[x]` All follow-up items completed (architecture updates, cleanup, documentation, etc.) before requesting owner approval to mark initiative done.
 
 ## Tracking expectations
 
@@ -485,7 +485,7 @@ This is a **7th overdue handling type** (not a completion criteria). It controls
   - **Service unload**: Added 3 services to unload list in `async_unload_services()`
   - **Validation**: ✅ Boundary checks passed, zero mypy errors in services.py and chore_manager.py
 
-- [ ] **Step 8: Add StatsEngine/StatsManager query method** (D-08)
+- [x] **Step 8: Add StatsEngine/StatsManager query method** (D-08)
   - File: `custom_components/kidschores/managers/chore_manager.py`
   - In the existing `KID_DELETED` signal handler:
     - For each chore where `rotation_current_kid_id == deleted_kid_id`:

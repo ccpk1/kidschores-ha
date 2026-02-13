@@ -756,6 +756,8 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
+            user_input = fh.normalize_chore_form_input(user_input)
+
             # Build kids_dict for name→UUID conversion
             kids_dict = {
                 kid_data[const.DATA_KID_NAME]: kid_id
@@ -766,17 +768,24 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             errors, due_date_str = fh.validate_chores_inputs(
                 user_input, kids_dict, self._chores_temp
             )
+            errors = fh.map_chore_form_errors(errors)
 
             if errors:
-                # Re-show the form with the user's current input and errors
-                default_data = user_input.copy()
+                # Re-show the form with user's attempted values as suggestions
+                # (preserves clearable-field behavior)
+                suggested_values = fh.build_chore_section_suggested_values(user_input)
+                chore_schema = fh.build_chore_schema(
+                    kids_dict,
+                    frequency_options=const.CHORE_FREQUENCY_OPTIONS_CONFIG_FLOW,
+                )
+                chore_schema = self.add_suggested_values_to_schema(
+                    chore_schema,
+                    suggested_values,
+                )
+                chore_schema = vol.Schema(chore_schema.schema, extra=vol.ALLOW_EXTRA)
                 return self.async_show_form(
                     step_id=const.CONFIG_FLOW_STEP_CHORES,
-                    data_schema=fh.build_chore_schema(
-                        kids_dict,
-                        default_data,
-                        frequency_options=const.CHORE_FREQUENCY_OPTIONS_CONFIG_FLOW,
-                    ),
+                    data_schema=chore_schema,
                     errors=errors,
                 )
 
@@ -808,7 +817,7 @@ class KidsChoresConfigFlow(config_entries.ConfigFlow, domain=const.DOMAIN):
             kid_data[const.DATA_KID_NAME]: kid_id
             for kid_id, kid_data in self._kids_temp.items()
         }
-        default_data = {}
+        default_data: dict[str, Any] = {}
         chore_schema = fh.build_chore_schema(
             kids_dict,
             default_data,
