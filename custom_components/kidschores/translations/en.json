@@ -2562,6 +2562,18 @@
           "chore_last_longest_streak_date": {
             "name": "Last Longest Streak Date"
           },
+          "chore_current_missed_streak": {
+            "name": "Current Missed Streak"
+          },
+          "chore_longest_missed_streak": {
+            "name": "Longest Missed Streak"
+          },
+          "chore_missed_count": {
+            "name": "Missed (All Time)"
+          },
+          "chore_last_missed": {
+            "name": "Last Missed"
+          },
           "last_claimed": {
             "name": "Last Claimed"
           },
@@ -2729,7 +2741,7 @@
           "point_stat_avg_points_per_chore": {
             "name": "Average Per Chore"
           },
-          "point_stat_highest_balance": {
+          "point_stat_highest_balance_all_time": {
             "name": "Highest Balance Ever"
           }
         }
@@ -2807,17 +2819,32 @@
           "chore_stat_overdue_today": {
             "name": "Overdue Today"
           },
+          "chore_stat_missed_today": {
+            "name": "Missed Today"
+          },
           "chore_stat_overdue_week": {
             "name": "Overdue This Week"
+          },
+          "chore_stat_missed_week": {
+            "name": "Missed This Week"
           },
           "chore_stat_overdue_month": {
             "name": "Overdue This Month"
           },
+          "chore_stat_missed_month": {
+            "name": "Missed This Month"
+          },
           "chore_stat_overdue_year": {
             "name": "Overdue This Year"
           },
+          "chore_stat_missed_year": {
+            "name": "Missed This Year"
+          },
           "chore_stat_overdue_count_all_time": {
             "name": "Overdue All Time"
+          },
+          "chore_stat_missed_all_time": {
+            "name": "Missed All Time"
           },
           "chore_stat_claimed_today": {
             "name": "Claimed Today"
@@ -2926,6 +2953,9 @@
           },
           "chore_stat_longest_streak": {
             "name": "Longest Streak"
+          },
+          "chore_stat_longest_missed_streak": {
+            "name": "Longest Missed Streak"
           },
           "chore_stat_avg_per_day_week": {
             "name": "Average Per Day (Week)"

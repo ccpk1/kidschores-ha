@@ -1326,6 +1326,11 @@ PRES_KID_CHORES_CLAIMED_MONTH: Final = "pres_kid_chores_claimed_month"
 PRES_KID_CHORES_CLAIMED_YEAR: Final = "pres_kid_chores_claimed_year"
 PRES_KID_CHORES_CLAIMED_ALL_TIME: Final = "pres_kid_chores_claimed_all_time"
 
+PRES_KID_CHORES_MISSED_TODAY: Final = "pres_kid_chores_missed_today"
+PRES_KID_CHORES_MISSED_WEEK: Final = "pres_kid_chores_missed_week"
+PRES_KID_CHORES_MISSED_MONTH: Final = "pres_kid_chores_missed_month"
+PRES_KID_CHORES_MISSED_YEAR: Final = "pres_kid_chores_missed_year"
+
 PRES_KID_CHORES_POINTS_TODAY: Final = "pres_kid_chores_points_today"
 PRES_KID_CHORES_POINTS_WEEK: Final = "pres_kid_chores_points_week"
 PRES_KID_CHORES_POINTS_MONTH: Final = "pres_kid_chores_points_month"

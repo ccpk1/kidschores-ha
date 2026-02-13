@@ -974,13 +974,38 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
             for label in cast("list", stored_labels)
         ]
 
-        # Build attributes dict organized by category:
-        # 1. Identity & Meta
-        # 2. Configuration
-        # 3. Statistics (counts)
-        # 4. Statistics (streaks)
-        # 5. Timestamps (last_* events)
-        # 6. State info
+        # Phase 4: Add v0.5.0 rotation and lock status attributes
+        # Get current chore state for lock_reason calculation
+        ctx = self.coordinator.chore_manager.get_chore_status_context(
+            self._kid_id, self._chore_id
+        )
+        current_state = ctx["state"]
+
+        # lock_reason: Maps directly from certain states (waiting/not_my_turn/missed)
+        lock_reason = None
+        if current_state in [
+            const.CHORE_STATE_WAITING,
+            const.CHORE_STATE_NOT_MY_TURN,
+            const.CHORE_STATE_MISSED,
+        ]:
+            lock_reason = current_state
+
+        # turn_kid_name: resolve rotation_current_kid_id to kid name (if rotation mode)
+        turn_kid_name = None
+        if ChoreEngine.is_rotation_mode(chore_info):
+            current_turn_kid_id = chore_info.get(
+                const.DATA_CHORE_ROTATION_CURRENT_KID_ID
+            )
+            if current_turn_kid_id:
+                turn_kid_name = get_kid_name_by_id(
+                    self.coordinator, current_turn_kid_id
+                )
+
+        # available_at: ISO datetime when due window opens (only when state is "waiting")
+        available_at = None
+        if current_state == const.CHORE_STATE_WAITING:
+            available_at = self._get_due_window_start_iso()
+
         attributes = {
             # --- 1. Identity & Meta ---
             const.ATTR_PURPOSE: const.TRANS_KEY_PURPOSE_CHORE_STATUS,
@@ -991,11 +1016,15 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
             ),
             const.ATTR_ASSIGNED_KIDS: assigned_kids_names,
             const.ATTR_LABELS: friendly_labels,
-            # --- 2. Configuration ---
+            # --- 2. State info ---
+            const.ATTR_GLOBAL_STATE: global_state,
+            const.ATTR_CHORE_LOCK_REASON: lock_reason,
+            # --- 3. Configuration ---
             const.ATTR_DEFAULT_POINTS: chore_info.get(
                 const.DATA_CHORE_DEFAULT_POINTS, const.DEFAULT_ZERO
             ),
             const.ATTR_COMPLETION_CRITERIA: completion_criteria,
+            const.ATTR_CHORE_TURN_KID_NAME: turn_kid_name,
             const.ATTR_APPROVAL_RESET_TYPE: chore_info.get(
                 const.DATA_CHORE_APPROVAL_RESET_TYPE,
                 const.DEFAULT_APPROVAL_RESET_TYPE,
@@ -1024,16 +1053,17 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
                 else None
             ),
             const.ATTR_DUE_WINDOW_START: self._get_due_window_start_iso(),
+            const.ATTR_CHORE_AVAILABLE_AT: available_at,
             const.ATTR_TIME_UNTIL_DUE: self._get_time_until_due(),
             const.ATTR_TIME_UNTIL_OVERDUE: self._get_time_until_overdue(),
-            # --- 3. Statistics (counts) ---
+            # --- 4. Statistics (counts) ---
             const.ATTR_CHORE_POINTS_EARNED: points_earned,
             const.ATTR_CHORE_CLAIMS_COUNT: claims_count,
             const.ATTR_CHORE_COMPLETED_COUNT: completed_count,
             const.ATTR_CHORE_APPROVALS_COUNT: approvals_count,
             const.ATTR_CHORE_DISAPPROVED_COUNT: disapproved_count,
             const.ATTR_CHORE_OVERDUE_COUNT: overdue_count,
-            # --- 4. Statistics (streaks) ---
+            # --- 5. Statistics (streaks) ---
             const.ATTR_CHORE_CURRENT_STREAK: current_streak,
             const.ATTR_CHORE_LONGEST_STREAK: highest_streak,
             const.ATTR_CHORE_LAST_LONGEST_STREAK_DATE: last_longest_streak_date,
@@ -1044,14 +1074,12 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.ATTR_CHORE_LAST_MISSED: kid_chore_data.get(
                 const.DATA_KID_CHORE_DATA_LAST_MISSED
             ),
-            # --- 5. Timestamps (last_* events) ---
+            # --- 6. Timestamps (last_* events) ---
             const.ATTR_LAST_CLAIMED: last_claimed,
             const.ATTR_LAST_APPROVED: last_approved,
             const.ATTR_LAST_COMPLETED: last_completed,
             const.ATTR_LAST_DISAPPROVED: last_disapproved,
             const.ATTR_LAST_OVERDUE: last_overdue,
-            # --- 6. State info ---
-            const.ATTR_GLOBAL_STATE: global_state,
             # --- 7. Chore claim/completion tracking (all chore types) ---
             # INDEPENDENT: kid's own name
             # SHARED_FIRST: winner's name (stored in other kids' data)
@@ -1104,41 +1132,6 @@ class KidChoreStatusSensor(KidsChoresCoordinatorEntity, SensorEntity):
         )
         attributes[const.ATTR_CAN_CLAIM] = can_claim
         attributes[const.ATTR_CAN_APPROVE] = can_approve
-
-        # Phase 4: Add v0.5.0 rotation and lock status attributes
-        # Get current chore state for lock_reason calculation
-        ctx = self.coordinator.chore_manager.get_chore_status_context(
-            self._kid_id, self._chore_id
-        )
-        current_state = ctx["state"]
-
-        # lock_reason: Maps directly from certain states (waiting/not_my_turn/missed)
-        lock_reason = None
-        if current_state in [
-            const.CHORE_STATE_WAITING,
-            const.CHORE_STATE_NOT_MY_TURN,
-            const.CHORE_STATE_MISSED,
-        ]:
-            lock_reason = current_state
-        attributes[const.ATTR_CHORE_LOCK_REASON] = lock_reason
-
-        # turn_kid_name: resolve rotation_current_kid_id to kid name (if rotation mode)
-        turn_kid_name = None
-        if ChoreEngine.is_rotation_mode(chore_info):
-            current_turn_kid_id = chore_info.get(
-                const.DATA_CHORE_ROTATION_CURRENT_KID_ID
-            )
-            if current_turn_kid_id:
-                turn_kid_name = get_kid_name_by_id(
-                    self.coordinator, current_turn_kid_id
-                )
-        attributes[const.ATTR_CHORE_TURN_KID_NAME] = turn_kid_name
-
-        # available_at: ISO datetime when due window opens (only when state is "waiting")
-        available_at = None
-        if current_state == const.CHORE_STATE_WAITING:
-            available_at = self._get_due_window_start_iso()
-        attributes[const.ATTR_CHORE_AVAILABLE_AT] = available_at
 
         # Add claim, approve, disapprove button entity ids to attributes for direct ui access.
         button_types = [
@@ -1434,11 +1427,13 @@ class KidChoresSensor(KidsChoresCoordinatorEntity, SensorEntity):
         Attribute order organized into logical groups for better UX:
         1. Identity (purpose, kid_name)
         2. Current Status (current_due_today, current_claimed, current_approved, current_overdue)
-        3. Today (approved_today, claimed_today, completed_today, points_today)
-        4. This Week (approved_this_week, claimed_this_week, completed_this_week, points_this_week)
-        5. This Month (approved_this_month, claimed_this_month, completed_this_month, points_this_month)
-        6. This Year (approved_this_year, claimed_this_year, completed_this_year, points_this_year)
-        7. All-Time (approved_all_time, claimed_all_time, completed_all_time, disapproved_all_time, overdue_all_time, points_all_time, longest_streak)
+        3. Today (approved_today, claimed_today, missed_today, completed_today, points_today)
+        4. This Week (approved_week, claimed_week, missed_week, completed_week, points_week)
+        5. This Month (approved_month, claimed_month, missed_month, completed_month, points_month)
+        6. This Year (approved_year, claimed_year, missed_year, completed_year, points_year)
+        7. All-Time (approved_all_time, claimed_all_time, missed_all_time, completed_all_time,
+                 disapproved_all_time, overdue_all_time, points_all_time,
+                 longest_streak, longest_missed_streak)
         """
         kid_info: KidData = cast(
             "KidData", self.coordinator.kids_data.get(self._kid_id, {})
@@ -1470,6 +1465,12 @@ class KidChoresSensor(KidsChoresCoordinatorEntity, SensorEntity):
             const.DATA_KID_CHORE_DATA_PERIOD_CLAIMED,
             period_key_mapping=period_key_mapping,
         )
+        all_stats["missed_all_time"] = self.coordinator.stats.get_period_total(
+            chore_periods,
+            const.PERIOD_ALL_TIME,
+            const.DATA_KID_CHORE_DATA_PERIOD_MISSED,
+            period_key_mapping=period_key_mapping,
+        )
         all_stats["completed_all_time"] = self.coordinator.stats.get_period_total(
             chore_periods,
             const.PERIOD_ALL_TIME,
@@ -1486,6 +1487,12 @@ class KidChoresSensor(KidsChoresCoordinatorEntity, SensorEntity):
             chore_periods,
             const.PERIOD_ALL_TIME,
             const.DATA_KID_CHORE_DATA_PERIOD_LONGEST_STREAK,
+            period_key_mapping=period_key_mapping,
+        )
+        all_stats["longest_missed_streak"] = self.coordinator.stats.get_period_total(
+            chore_periods,
+            const.PERIOD_ALL_TIME,
+            const.DATA_KID_CHORE_DATA_PERIOD_MISSED_LONGEST_STREAK,
             period_key_mapping=period_key_mapping,
         )
 
@@ -1524,6 +1531,7 @@ class KidChoresSensor(KidsChoresCoordinatorEntity, SensorEntity):
         for key in [
             "approved_today",
             "claimed_today",
+            "missed_today",
             "completed_today",
             "points_today",
         ]:
@@ -1534,6 +1542,7 @@ class KidChoresSensor(KidsChoresCoordinatorEntity, SensorEntity):
         for key in [
             "approved_week",
             "claimed_week",
+            "missed_week",
             "completed_week",
             "points_week",
             "avg_per_day_week",
@@ -1545,6 +1554,7 @@ class KidChoresSensor(KidsChoresCoordinatorEntity, SensorEntity):
         for key in [
             "approved_month",
             "claimed_month",
+            "missed_month",
             "completed_month",
             "points_month",
             "avg_per_day_month",
@@ -1556,6 +1566,7 @@ class KidChoresSensor(KidsChoresCoordinatorEntity, SensorEntity):
         for key in [
             "approved_year",
             "claimed_year",
+            "missed_year",
             "completed_year",
             "points_year",
             "avg_per_day_year",
@@ -1567,11 +1578,13 @@ class KidChoresSensor(KidsChoresCoordinatorEntity, SensorEntity):
         for key in [
             "approved_all_time",
             "claimed_all_time",
+            "missed_all_time",
             "completed_all_time",
             "disapproved_all_time",
             "overdue_all_time",
             "points_all_time",
             "longest_streak",
+            "longest_missed_streak",
         ]:
             if key in all_stats:
                 attributes[f"{const.ATTR_PREFIX_CHORE_STAT}{key}"] = all_stats[key]

@@ -1764,6 +1764,10 @@ class StatisticsManager(BaseManager):
         claimed_week = 0
         claimed_month = 0
         claimed_year = 0
+        missed_today = 0
+        missed_week = 0
+        missed_month = 0
+        missed_year = 0
         points_today = 0.0
         points_week = 0.0
         points_month = 0.0
@@ -1833,6 +1837,7 @@ class StatisticsManager(BaseManager):
             claimed_today += today_entry.get(
                 const.DATA_KID_CHORE_DATA_PERIOD_CLAIMED, 0
             )
+            missed_today += today_entry.get(const.DATA_KID_CHORE_DATA_PERIOD_MISSED, 0)
             points_today += today_entry.get(const.DATA_KID_CHORE_DATA_PERIOD_POINTS, 0)
 
             # Weekly
@@ -1846,6 +1851,7 @@ class StatisticsManager(BaseManager):
             )
             completed_week += week_completed
             claimed_week += week_entry.get(const.DATA_KID_CHORE_DATA_PERIOD_CLAIMED, 0)
+            missed_week += week_entry.get(const.DATA_KID_CHORE_DATA_PERIOD_MISSED, 0)
             points_week += week_entry.get(const.DATA_KID_CHORE_DATA_PERIOD_POINTS, 0)
             if week_completed > 0:
                 chore_completed_week[chore_id] = week_completed
@@ -1863,6 +1869,7 @@ class StatisticsManager(BaseManager):
             claimed_month += month_entry.get(
                 const.DATA_KID_CHORE_DATA_PERIOD_CLAIMED, 0
             )
+            missed_month += month_entry.get(const.DATA_KID_CHORE_DATA_PERIOD_MISSED, 0)
             points_month += month_entry.get(const.DATA_KID_CHORE_DATA_PERIOD_POINTS, 0)
             if month_completed > 0:
                 chore_completed_month[chore_id] = month_completed
@@ -1878,6 +1885,7 @@ class StatisticsManager(BaseManager):
             )
             completed_year += year_completed
             claimed_year += year_entry.get(const.DATA_KID_CHORE_DATA_PERIOD_CLAIMED, 0)
+            missed_year += year_entry.get(const.DATA_KID_CHORE_DATA_PERIOD_MISSED, 0)
             points_year += year_entry.get(const.DATA_KID_CHORE_DATA_PERIOD_POINTS, 0)
             if year_completed > 0:
                 chore_completed_year[chore_id] = year_completed
@@ -1908,6 +1916,11 @@ class StatisticsManager(BaseManager):
         cache[const.PRES_KID_CHORES_CLAIMED_WEEK] = claimed_week
         cache[const.PRES_KID_CHORES_CLAIMED_MONTH] = claimed_month
         cache[const.PRES_KID_CHORES_CLAIMED_YEAR] = claimed_year
+        # NOTE: all_time stats omitted from cache - must be read from storage only
+        cache[const.PRES_KID_CHORES_MISSED_TODAY] = missed_today
+        cache[const.PRES_KID_CHORES_MISSED_WEEK] = missed_week
+        cache[const.PRES_KID_CHORES_MISSED_MONTH] = missed_month
+        cache[const.PRES_KID_CHORES_MISSED_YEAR] = missed_year
         # NOTE: all_time stats omitted from cache - must be read from storage only
         cache[const.PRES_KID_CHORES_POINTS_TODAY] = round(
             points_today, const.DATA_FLOAT_PRECISION

@@ -15,7 +15,7 @@
 | Phase 2 – Manager Maintenance Processing     | Port `_manage_cumulative_badge_maintenance` to manager     | 100%       | ✅ Complete - process_cumulative_maintenance + process_all_kids_maintenance added                   |
 | Phase 3 – Manager Integration Points         | Wire midnight trigger + `_apply_badge_result` re-promotion | 100%       | ✅ Complete - midnight subscription + re-promotion + signal emission + **Award Manifest gap fixed** |
 | Phase 3A – Compute-on-Read Progress Refactor | Stop storing derived fields, compute on every read         | 100%       | ✅ Complete - 4 state fields stored, 13 derived fields computed on-read (sensor/engine verified)    |
-| Phase 4 – Tests                              | Engine tests + manager maintenance tests                   | 100%       | ✅ Complete - cumulative scenarios covered and regressions added                                    |
+| Phase 4 – Tests                              | Engine tests + manager maintenance tests                   | 100%       | ✅ Complete - cumulative scenarios covered and regressions added                                     |
 | Phase 5 – Validation                         | Full lint/mypy/test suite                                  | 100%       | ✅ Complete - lint, mypy, and targeted test validation passed                                       |
 
 1. **Key objective** — Restore the complete cumulative badge maintenance cycle that existed in the old coordinator but was **never migrated** to the refactored manager architecture. This includes: cycle-point reset at cycle boundaries, GRACE state transitions, re-promotion from DEMOTED→ACTIVE, and scheduled maintenance evaluation via midnight rollover.
@@ -35,8 +35,7 @@
    - [DEVELOPMENT_STANDARDS.md](../DEVELOPMENT_STANDARDS.md) — Constant naming, engine purity rules
    - Old coordinator code: `_manage_cumulative_badge_maintenance()` (user-provided attachment)
    - Wiki specification: `kidschores-ha.wiki/Configuration:-Badges-Cumulative.md`
-
-- Supporting analysis: [CUMULATIVE_BADGE_RETENTION_FIX_SUP_GAP_ANALYSIS_COMPLETED.md](./CUMULATIVE_BADGE_RETENTION_FIX_SUP_GAP_ANALYSIS_COMPLETED.md)
+  - Supporting analysis: [CUMULATIVE_BADGE_RETENTION_FIX_SUP_GAP_ANALYSIS_COMPLETED.md](./CUMULATIVE_BADGE_RETENTION_FIX_SUP_GAP_ANALYSIS_COMPLETED.md)
 
 6. **Decisions & completion check**
    - **Decisions captured**:
@@ -48,8 +47,7 @@
      - **Re-promotion**: Handled in BOTH `_apply_badge_result()` (immediate, on point change) AND `process_cumulative_maintenance()` (time-based, at midnight)
      - **`maintenance_rules = 0`** means no maintenance requirement → retention always passes, maintenance processing skips (by design)
      - **`SIGNAL_SUFFIX_BADGE_MAINTENANCE_CHECK`**: Currently dead signal — will be used for post-maintenance-processing notification OR removed if unnecessary
-
-- **Completion confirmation**: `[x]` All follow-up items completed before requesting owner approval
+  - **Completion confirmation**: `[x]` All follow-up items completed before requesting owner approval
 
 ---
 

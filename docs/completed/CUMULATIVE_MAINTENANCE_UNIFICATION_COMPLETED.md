@@ -14,7 +14,7 @@
 | Phase 1 – Extend `_evaluate_cumulative_badge` | Add date awareness + demotion + grace to unified method             | 100%       | ✅ Complete - 3 new helpers, state machine unified, validation passed                         |
 | Phase 2 – Midnight becomes "mark all pending" | Simplify midnight handler + delete `process_cumulative_maintenance` | 100%       | ✅ Complete - ~266 lines deleted, midnight calls `recalculate_all_badges()`, constant removed |
 | Phase 3 – Engine cleanup                      | Remove or refine `check_cumulative_maintenance` engine method       | 100%       | ✅ Complete - ~64 line method deleted, tests removed, manager does inline comparison          |
-| Phase 4 – Tests                               | Update/create tests for unified path                                | 100%       | ✅ Complete - unified-path tests updated and passing                                          |
+| Phase 4 – Tests                               | Update/create tests for unified path                                | 100%       | ✅ Complete - unified-path tests updated and passing                                           |
 
 1. **Key objective** – Merge the two independent cumulative badge state machines (real-time `_evaluate_cumulative_badge` and midnight `process_cumulative_maintenance`) into a single date-aware evaluation path. The unified method runs identically regardless of trigger (point change, chore approval, midnight rollover).
 
@@ -24,7 +24,7 @@
    - Identified the dual-path problem: real-time path ignores dates and can't demote; midnight path duplicates cycle_points check with its own state machine
 
 3. **Next steps (short term)**
-   - Completed and archived.
+    - Completed and archived.
 
 4. **Risks / blockers**
    - `get_cumulative_badge_levels()` is used by midnight path to find the _highest earned_ badge. The real-time path evaluates _each badge individually_. The unified path must evaluate per-badge but only act on the highest-earned for maintenance/demotion decisions.
@@ -34,14 +34,14 @@
 5. **References**
    - [ARCHITECTURE.md](../ARCHITECTURE.md) — Data model, cumulative badge progress structure
    - [DEVELOPMENT_STANDARDS.md](../DEVELOPMENT_STANDARDS.md) — Manager write ownership, signal patterns
-   - [CUMULATIVE_BADGE_RETENTION_FIX_COMPLETED.md](CUMULATIVE_BADGE_RETENTION_FIX_COMPLETED.md) — Prior work that created the dual-path problem
-   - [CUMULATIVE_BADGE_RETENTION_FIX_SUP_GAP_ANALYSIS_COMPLETED.md](CUMULATIVE_BADGE_RETENTION_FIX_SUP_GAP_ANALYSIS_COMPLETED.md) — Gap analysis including dead signals
+    - [CUMULATIVE_BADGE_RETENTION_FIX_COMPLETED.md](CUMULATIVE_BADGE_RETENTION_FIX_COMPLETED.md) — Prior work that created the dual-path problem
+    - [CUMULATIVE_BADGE_RETENTION_FIX_SUP_GAP_ANALYSIS_COMPLETED.md](CUMULATIVE_BADGE_RETENTION_FIX_SUP_GAP_ANALYSIS_COMPLETED.md) — Gap analysis including dead signals
 
 6. **Decisions & completion check**
    - **Decision 1**: The unified `_evaluate_cumulative_badge` already-earned branch will own ALL state transitions (ACTIVE ↔ GRACE ↔ DEMOTED). Midnight rollover becomes a trigger, not a separate state machine.
    - **Decision 2**: `process_cumulative_maintenance()` and `process_all_kids_maintenance()` will be deleted entirely (not preserved as wrappers).
    - **Decision 3**: `SIGNAL_SUFFIX_BADGE_MAINTENANCE_CHECK` will be removed (zero listeners).
-   - **Completion confirmation**: `[x]` All follow-up items completed before requesting owner approval.
+    - **Completion confirmation**: `[x]` All follow-up items completed before requesting owner approval.
 
 ---
 

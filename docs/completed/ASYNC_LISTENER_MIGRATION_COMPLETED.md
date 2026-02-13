@@ -24,9 +24,7 @@
    - Full regression suite baseline already confirmed green (`1261 passed, 2 skipped, 2 deselected`).
    - Phase 1 completed with implementation inventory artifact: `docs/in-process/ASYNC_LISTENER_MIGRATION_SUP_IMPLEMENTATION_MATRIX.md`.
 3. **Next steps (short term)**
-
-- Completed and archived.
-
+  - Completed and archived.
 4. **Risks / blockers**
    - Handler signature drift can break dispatcher payload compatibility if callback parameters change.
    - Changing fire-and-forget notification behavior to awaited flows may alter timing/order.
@@ -36,20 +34,17 @@
    - `docs/DEVELOPMENT_STANDARDS.md`
    - `docs/CODE_REVIEW_GUIDE.md`
    - `docs/QUALITY_REFERENCE.md`
-
-- `docs/completed/ASYNC_LISTENER_MIGRATION_SUP_IMPLEMENTATION_MATRIX_COMPLETED.md`
-- `tests/AGENT_TEST_CREATION_INSTRUCTIONS.md`
-- `tests/AGENT_TESTING_USAGE_GUIDE.md`
-- `docs/RELEASE_CHECKLIST.md`
-
-6.  **Decisions & completion check**
-
-- **Decisions captured**:
-  - Keep `BaseManager.listen` as-is; leverage HA dispatcher coroutine scheduling behavior.
-  - Convert state-modifying listeners to `async def`; keep read-only/log-only listeners sync where appropriate.
-  - Prefer direct `await` in async listeners over manual `call_soon_threadsafe(...async_create_task...)` wrappers.
-  - No storage schema changes planned; `meta.schema_version` remains unchanged.
-- **Completion confirmation**: `[x]` All follow-up items completed (architecture updates, cleanup, documentation, etc.) before requesting owner approval to mark initiative done.
+  - `docs/completed/ASYNC_LISTENER_MIGRATION_SUP_IMPLEMENTATION_MATRIX_COMPLETED.md`
+   - `tests/AGENT_TEST_CREATION_INSTRUCTIONS.md`
+   - `tests/AGENT_TESTING_USAGE_GUIDE.md`
+   - `docs/RELEASE_CHECKLIST.md`
+   6. **Decisions & completion check**
+   - **Decisions captured**:
+     - Keep `BaseManager.listen` as-is; leverage HA dispatcher coroutine scheduling behavior.
+     - Convert state-modifying listeners to `async def`; keep read-only/log-only listeners sync where appropriate.
+     - Prefer direct `await` in async listeners over manual `call_soon_threadsafe(...async_create_task...)` wrappers.
+     - No storage schema changes planned; `meta.schema_version` remains unchanged.
+   - **Completion confirmation**: `[x]` All follow-up items completed (architecture updates, cleanup, documentation, etc.) before requesting owner approval to mark initiative done.
 
 > **Important:** Keep the entire Summary section (table + bullets) current with every meaningful update (after commits, tickets, or blockers change). Records should stay concise, fact-based, and readable so anyone can instantly absorb where each phase stands. This summary is the only place readers should look for the high-level snapshot.
 
