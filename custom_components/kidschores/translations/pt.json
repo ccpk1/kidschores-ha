@@ -113,6 +113,76 @@
       "chores": {
         "title": "Adicionar tarefa",
         "description": "Crie uma nova tarefa com pontos, atribuições e um cronograma recorrente.",
+        "sections": {
+          "section_root_form": {
+            "name": "Definição",
+            "description": "Identidade, atribuição e configurações principais do contrato.",
+            "data": {
+              "name": "📋 Nome da tarefa",
+              "chore_description": "📋 Descrição (opcional)",
+              "icon": "📋 Ícone (mdi:xxx)",
+              "default_points": "💰 Pontos Atribuídos",
+              "assigned_kids": "👥 Crianças designadas",
+              "completion_criteria": "👥 Critérios de Conclusão"
+            },
+            "data_description": {
+              "name": "Nome único apresentado em todo o sistema.",
+              "chore_description": "Instruções ou detalhes opcionais sobre como completar esta tarefa.",
+              "icon": "Ícone do Material Design (ex.: mdi:broom, mdi:dishwasher).",
+              "default_points": "Pontos ganhos ao concluir.",
+              "assigned_kids": "Crianças que conseguem ver e assumir esta tarefa.",
+              "completion_criteria": "Controla a forma como a tarefa é concluída quando são atribuídas várias crianças: acompanhamento individual, conclusão partilhada ou rotação por turnos."
+            }
+          },
+          "section_schedule": {
+            "name": "Horário",
+            "description": "Definições de tempo, janela de acesso e intervalo de recorrência.",
+            "data": {
+              "recurring_frequency": "🔄 Cronograma: Frequência",
+              "due_date": "📅 Cronograma: Data de vencimento (opcional)",
+              "clear_due_date": "🗑️ Limpar data de validade",
+              "applicable_days": "📅 Cronograma: Dias aplicáveis (opcional)",
+              "chore_due_window_offset": "⏱️ Prazo de vencimento: Pagar antes da data de vencimento",
+              "chore_claim_lock_until_window": "🔒 Bloquear sinistro até à abertura do prazo?",
+              "custom_interval": "🔄 Agendamento: Intervalo personalizado (para frequência personalizada)",
+              "custom_interval_unit": "🔄 Cronograma: Unidade de Intervalo Personalizada"
+            },
+            "data_description": {
+              "recurring_frequency": "Com que frequência a tarefa se repete: Diariamente, Semanalmente, Mensalmente, Anualmente, Conforme solicitado ou Nenhuma vez.",
+              "due_date": "Prazo facultativo. Pode ser combinado com marcações recorrentes.",
+              "clear_due_date": "Marque esta caixa para remover a data de validade desta tarefa.",
+              "applicable_days": "Deixe em branco para todos os dias. Selecione APENAS os dias específicos que pretende restringir.",
+              "chore_due_window_offset": "Quando o estado da tarefa mudar de Pendente para Vencimento. Formato: '1d 6h 30m' ou apenas '30' para minutos. Introduza '0' para desativar. Exemplo: '1d' significa que a tarefa aparece como 'Vencindo' 1 dia antes do prazo.",
+              "chore_claim_lock_until_window": "Quando ativada, esta opção impede as crianças de reclamar esta tarefa antes do início do prazo.",
+              "custom_interval": "Número de unidades de tempo entre repetições (ex.: 3 para 'de 3 em 3 semanas'). Utilizado apenas com frequência personalizada.",
+              "custom_interval_unit": "Unidade de tempo para intervalo personalizado (dias, semanas, meses). Utilizada apenas com frequência personalizada."
+            }
+          },
+          "section_advanced_configurations": {
+            "name": "Configurações avançadas",
+            "description": "Automatização do ciclo de vida, notificações, visibilidade e metadados.",
+            "data": {
+              "approval_reset_type": "➡️ Conclusões permitidas e tempo limite de reinicialização da aprovação",
+              "approval_reset_pending_claim_action": "➡️ Processamento de Reclamações Pendentes após a Aprovação - Redefinido",
+              "auto_approve": "✅ Aprovar os pedidos automaticamente?",
+              "overdue_handling_type": "⏰ Em atraso: Manuseamento",
+              "chore_due_reminder_offset": "🔔 Lembrete: Pague antes do vencimento",
+              "chore_notifications": "🔔 Eventos de notificação (opcional)",
+              "show_on_calendar": "📅 Mostrar no calendário?",
+              "chore_labels": "📋 Etiquetas (opcional)"
+            },
+            "data_description": {
+              "approval_reset_type": "Controla quando o limite do ciclo de aprovação da tarefa é acionado (meia-noite, data de entrega, após a conclusão ou acionamento manual).",
+              "approval_reset_pending_claim_action": "É o que acontece aos pedidos que ainda aguardam aprovação quando ocorre a reinicialização do processo de aprovação.",
+              "auto_approve": "Quando ativada, a função permite que os pedidos sejam aprovados instantaneamente, sem necessidade de revisão por parte dos pais.",
+              "overdue_handling_type": "Ações após o vencimento: Ocultar o estado de atraso, manter o pagamento em atraso até que seja reclamado ou repor para pendente no próximo ciclo de aprovação.",
+              "chore_due_reminder_offset": "Quando enviar a notificação de lembrete de vencimento. Formato: '1d 6h 30m' ou apenas '30' para minutos. Padrão: 30m (30 minutos antes do vencimento). Introduza '0' para desativar.",
+              "chore_notifications": "Quando enviar notificações: No pedido, na aprovação, na rejeição ou em qualquer combinação destes fatores.",
+              "show_on_calendar": "Visualizar esta tarefa na visualização de calendário.",
+              "chore_labels": "Etiquetas para organizar tarefas (ex.: 'cozinha', 'exterior'). Deixe em branco se não for necessário."
+            }
+          }
+        },
         "data": {
           "name": "📋 Nome da tarefa",
           "chore_description": "📋 Descrição (opcional)",
@@ -124,6 +194,7 @@
           "approval_reset_type": "➡️ Conclusões permitidas e tempo limite de reinicialização da aprovação",
           "approval_reset_pending_claim_action": "➡️ Processamento de Reclamações Pendentes após a Aprovação - Redefinido",
           "overdue_handling_type": "⏰ Em atraso: Manuseamento",
+          "chore_claim_lock_until_window": "🔒 Bloquear sinistro até à abertura do prazo?",
           "auto_approve": "✅ Aprovar os pedidos automaticamente?",
           "recurring_frequency": "🔄 Cronograma: Frequência",
           "custom_interval": "🔄 Agendamento: Intervalo personalizado (para frequência personalizada)",
@@ -146,6 +217,7 @@
           "approval_reset_type": "Controla quando o limite do ciclo de aprovação da tarefa é acionado (meia-noite, data de entrega, após a conclusão ou acionamento manual).",
           "approval_reset_pending_claim_action": "É o que acontece aos pedidos que ainda aguardam aprovação quando ocorre a reinicialização do processo de aprovação.",
           "overdue_handling_type": "Ações após o vencimento: Ocultar o estado de atraso, manter o pagamento em atraso até que seja reclamado ou repor para pendente no próximo ciclo de aprovação.",
+          "chore_claim_lock_until_window": "Quando ativada, esta opção impede as crianças de reclamar esta tarefa antes do início do prazo.",
           "auto_approve": "Quando ativada, a função permite que os pedidos sejam aprovados instantaneamente, sem necessidade de revisão por parte dos pais.",
           "recurring_frequency": "Com que frequência a tarefa se repete: Diariamente, Semanalmente, Mensalmente, Anualmente, Conforme solicitado ou Nenhuma vez.",
           "custom_interval": "Número de unidades de tempo entre repetições (ex.: 3 para 'de 3 em 3 semanas'). Utilizado apenas com frequência personalizada.",
@@ -356,6 +428,7 @@
       "invalid_challenge_name": "Nome de desafio inválido",
       "invalid_chore": "Tarefa inválida",
       "invalid_chore_count": "Contagem de tarefas inválida",
+      "rotation_min_kids": "As tarefas rotativas requerem pelo menos 2 crianças atribuídas.",
       "invalid_chore_name": "Nome de tarefa inválido",
       "invalid_points": "A pontuação deve ser zero ou superior.",
       "invalid_overdue_reset_combination": "A opção \"Repor na data de vencimento\" só funciona com reinicializações à meia-noite. Selecione \"À meia-noite (uma vez)\" ou \"À meia-noite (repetíveis)\" para obter o tipo de reposição de aprovação.",
@@ -481,6 +554,76 @@
       "add_chore": {
         "title": "Adicionar tarefa",
         "description": "Crie uma nova tarefa com pontos, atribuições e agendamento recorrente.\n\n📖 [Guia de Configuração]({documentation_url})",
+        "sections": {
+          "section_root_form": {
+            "name": "Definição",
+            "description": "Identidade, atribuição e configurações principais do contrato.",
+            "data": {
+              "name": "📋 Nome da tarefa",
+              "chore_description": "📋 Descrição (opcional)",
+              "icon": "📋 Ícone (mdi:xxx)",
+              "default_points": "💰 Pontos Atribuídos",
+              "assigned_kids": "👥 Crianças designadas",
+              "completion_criteria": "👥 Critérios de Conclusão"
+            },
+            "data_description": {
+              "name": "Nome único apresentado em todo o sistema.",
+              "chore_description": "Instruções ou detalhes opcionais sobre como completar esta tarefa.",
+              "icon": "Ícone do Material Design (ex.: mdi:broom, mdi:dishwasher).",
+              "default_points": "Pontos ganhos ao concluir.",
+              "assigned_kids": "Crianças que conseguem ver e assumir esta tarefa.",
+              "completion_criteria": "Controla a forma como a tarefa é concluída quando são atribuídas várias crianças: acompanhamento individual, conclusão partilhada ou rotação por turnos."
+            }
+          },
+          "section_schedule": {
+            "name": "Horário",
+            "description": "Definições de tempo, janela de acesso e intervalo de recorrência.",
+            "data": {
+              "recurring_frequency": "🔄 Cronograma: Frequência",
+              "due_date": "📅 Cronograma: Data de vencimento (opcional)",
+              "clear_due_date": "🗑️ Limpar data de validade",
+              "applicable_days": "📅 Cronograma: Dias aplicáveis (opcional)",
+              "chore_due_window_offset": "⏱️ Prazo de vencimento: Pagar antes da data de vencimento",
+              "chore_claim_lock_until_window": "🔒 Bloquear sinistro até à abertura do prazo?",
+              "custom_interval": "🔄 Agendamento: Intervalo personalizado (para frequência personalizada)",
+              "custom_interval_unit": "🔄 Cronograma: Unidade de Intervalo Personalizada"
+            },
+            "data_description": {
+              "recurring_frequency": "Frequência de repetição da tarefa: Diariamente, Semanalmente, Mensalmente, Anualmente, Personalizada ou Nenhuma. Se selecionar \"Diariamente - Várias vezes ao dia\", é apresentado um ecrã adicional para configurar os horários específicos.",
+              "due_date": "Prazo facultativo. Pode ser combinado com horários recorrentes. Para tarefas INDIVIDUAIS, isto serve como modelo — aparecerá um ecrã adicional permitindo datas individuais para cada criança.",
+              "clear_due_date": "Marque esta caixa para remover a data de validade desta tarefa.",
+              "applicable_days": "Deixe em branco para todos os dias. Selecione APENAS os dias específicos que pretende restringir.",
+              "chore_due_window_offset": "Quando o estado da tarefa mudar de Pendente para Vencimento. Formato: '1d 6h 30m' ou apenas '30' para minutos. Introduza '0' para desativar. Exemplo: '1d' significa que a tarefa aparece como 'Vencindo' 1 dia antes do prazo.",
+              "chore_claim_lock_until_window": "Quando ativada, esta opção impede as crianças de reclamar esta tarefa antes do início do prazo.",
+              "custom_interval": "Número de unidades de tempo entre repetições (ex.: 3 para 'de 3 em 3 semanas'). Utilizado apenas com frequência personalizada.",
+              "custom_interval_unit": "Unidade de tempo para intervalo personalizado (dias, semanas, meses). Utilizada apenas com frequência personalizada."
+            }
+          },
+          "section_advanced_configurations": {
+            "name": "Configurações avançadas",
+            "description": "Automatização do ciclo de vida, notificações, visibilidade e metadados.",
+            "data": {
+              "approval_reset_type": "➡️ Conclusões permitidas e tempo limite de reinicialização da aprovação",
+              "approval_reset_pending_claim_action": "➡️ Processamento de Reclamações Pendentes após a Aprovação - Redefinido",
+              "auto_approve": "✅ Aprovar os pedidos automaticamente?",
+              "overdue_handling_type": "⏰ Em atraso: Manuseamento",
+              "chore_due_reminder_offset": "🔔 Lembrete: Pague antes do vencimento",
+              "chore_notifications": "🔔 Eventos de notificação (opcional)",
+              "show_on_calendar": "📅 Mostrar no calendário?",
+              "chore_labels": "📋 Etiquetas (opcional)"
+            },
+            "data_description": {
+              "approval_reset_type": "Controla quando o limite do ciclo de aprovação da tarefa é acionado (meia-noite, data de entrega, após a conclusão ou acionamento manual).",
+              "approval_reset_pending_claim_action": "Controla o que acontece aos pedidos não aprovados quando o limite de reposição de aprovação é acionado.",
+              "auto_approve": "Quando ativada, a função permite que os pedidos sejam aprovados instantaneamente, sem necessidade de revisão por parte dos pais.",
+              "overdue_handling_type": "Controla o que acontece quando a data de vencimento passa e o que acontece às tarefas atrasadas no limite de reposição de aprovação.",
+              "chore_due_reminder_offset": "Quando enviar a notificação de lembrete de vencimento. Formato: '1d 6h 30m' ou apenas '30' para minutos. Padrão: 30m (30 minutos antes do vencimento). Introduza '0' para desativar.",
+              "chore_notifications": "Quando enviar notificações: No pedido, na aprovação, na rejeição ou em qualquer combinação destes fatores.",
+              "show_on_calendar": "Visualizar esta tarefa na visualização de calendário.",
+              "chore_labels": "Etiquetas para organizar tarefas (ex.: 'cozinha', 'exterior'). Deixe em branco se não for necessário."
+            }
+          }
+        },
         "data": {
           "name": "📋 Nome da tarefa",
           "chore_description": "📋 Descrição (opcional)",
@@ -492,6 +635,7 @@
           "approval_reset_type": "➡️ Conclusões permitidas e tempo limite de reinicialização da aprovação",
           "approval_reset_pending_claim_action": "➡️ Processamento de Reclamações Pendentes após a Aprovação - Redefinido",
           "overdue_handling_type": "⏰ Em atraso: Manuseamento",
+          "chore_claim_lock_until_window": "🔒 Bloquear sinistro até à abertura do prazo?",
           "auto_approve": "✅ Aprovar os pedidos automaticamente?",
           "recurring_frequency": "🔄 Cronograma: Frequência",
           "custom_interval": "🔄 Agendamento: Intervalo personalizado (para frequência personalizada)",
@@ -515,6 +659,7 @@
           "approval_reset_type": "Controla quando o limite do ciclo de aprovação da tarefa é acionado (meia-noite, data de entrega, após a conclusão ou acionamento manual).",
           "approval_reset_pending_claim_action": "Controla o que acontece aos pedidos não aprovados quando o limite de reposição de aprovação é acionado.",
           "overdue_handling_type": "Controla o que acontece quando a data de vencimento passa e o que acontece às tarefas atrasadas no limite de reposição de aprovação.",
+          "chore_claim_lock_until_window": "Quando ativada, esta opção impede as crianças de reclamar esta tarefa antes do início do prazo.",
           "auto_approve": "Quando ativada, a função permite que os pedidos sejam aprovados instantaneamente, sem necessidade de revisão por parte dos pais.",
           "recurring_frequency": "Frequência de repetição da tarefa: Diariamente, Semanalmente, Mensalmente, Anualmente, Personalizada ou Nenhuma. Se selecionar \"Diariamente - Várias vezes ao dia\", é apresentado um ecrã adicional para configurar os horários específicos.",
           "custom_interval": "Número de unidades de tempo entre repetições (ex.: 3 para 'de 3 em 3 semanas'). Utilizado apenas com frequência personalizada.",
@@ -877,6 +1022,76 @@
       "edit_chore": {
         "title": "Editar tarefa",
         "description": "Modifique os detalhes da tarefa selecionada.\n\n📖 [Guia de Configuração]({documentation_url})",
+        "sections": {
+          "section_root_form": {
+            "name": "Definição",
+            "description": "Identidade, atribuição e configurações principais do contrato.",
+            "data": {
+              "name": "📋 Nome da tarefa",
+              "chore_description": "📋 Descrição (opcional)",
+              "icon": "📋 Ícone (mdi:xxx)",
+              "default_points": "💰 Pontos Atribuídos",
+              "assigned_kids": "👥 Crianças designadas",
+              "completion_criteria": "👥 Critérios de Conclusão"
+            },
+            "data_description": {
+              "name": "Nome único apresentado em todo o sistema.",
+              "chore_description": "Instruções ou detalhes opcionais sobre como completar esta tarefa.",
+              "icon": "Ícone do Material Design (ex.: mdi:broom, mdi:dishwasher).",
+              "default_points": "Pontos ganhos ao concluir.",
+              "assigned_kids": "Crianças que conseguem ver e assumir esta tarefa.",
+              "completion_criteria": "Controla a forma como a tarefa é concluída quando são atribuídas várias crianças: acompanhamento individual, conclusão partilhada ou rotação por turnos."
+            }
+          },
+          "section_schedule": {
+            "name": "Horário",
+            "description": "Definições de tempo, janela de acesso e intervalo de recorrência.",
+            "data": {
+              "recurring_frequency": "🔄 Cronograma: Frequência",
+              "due_date": "📅 Cronograma: Data de vencimento (opcional)",
+              "clear_due_date": "🗑️ Limpar data de validade",
+              "applicable_days": "📅 Cronograma: Dias aplicáveis (opcional)",
+              "chore_due_window_offset": "⏱️ Prazo de vencimento: Pagar antes da data de vencimento",
+              "chore_claim_lock_until_window": "🔒 Bloquear sinistro até à abertura do prazo?",
+              "custom_interval": "🔄 Agendamento: Intervalo personalizado (para frequência personalizada)",
+              "custom_interval_unit": "🔄 Cronograma: Unidade de Intervalo Personalizada"
+            },
+            "data_description": {
+              "recurring_frequency": "Frequência de repetição da tarefa: Diariamente, Semanalmente, Mensalmente, Anualmente, Personalizada ou Nenhuma. Se selecionar \"Diariamente - Várias vezes ao dia\", é apresentado um ecrã adicional para configurar os horários específicos.",
+              "due_date": "Prazo facultativo. Pode ser combinado com horários recorrentes. Para tarefas INDIVIDUAIS, isto serve como modelo — aparecerá um ecrã adicional permitindo datas individuais para cada criança.",
+              "clear_due_date": "Marque esta caixa para remover a data de validade desta tarefa.",
+              "applicable_days": "Deixe em branco para todos os dias. Selecione APENAS os dias específicos que pretende restringir.",
+              "chore_due_window_offset": "Quando o estado da tarefa mudar de Pendente para Vencimento. Formato: '1d 6h 30m' ou apenas '30' para minutos. Introduza '0' para desativar. Exemplo: '1d' significa que a tarefa aparece como 'Vencindo' 1 dia antes do prazo.",
+              "chore_claim_lock_until_window": "Quando ativada, esta opção impede as crianças de reclamar esta tarefa antes do início do prazo.",
+              "custom_interval": "Número de unidades de tempo entre repetições (ex.: 3 para 'de 3 em 3 semanas'). Utilizado apenas com frequência personalizada.",
+              "custom_interval_unit": "Unidade de tempo para intervalo personalizado (dias, semanas, meses). Utilizada apenas com frequência personalizada."
+            }
+          },
+          "section_advanced_configurations": {
+            "name": "Configurações avançadas",
+            "description": "Automatização do ciclo de vida, notificações, visibilidade e metadados.",
+            "data": {
+              "approval_reset_type": "➡️ Conclusões permitidas e tempo limite de reinicialização da aprovação",
+              "approval_reset_pending_claim_action": "➡️ Processamento de Reclamações Pendentes após a Aprovação - Redefinido",
+              "auto_approve": "✅ Aprovar os pedidos automaticamente?",
+              "overdue_handling_type": "⏰ Em atraso: Manuseamento",
+              "chore_due_reminder_offset": "🔔 Lembrete: Pague antes do vencimento",
+              "chore_notifications": "🔔 Eventos de notificação (opcional)",
+              "show_on_calendar": "📅 Mostrar no calendário?",
+              "chore_labels": "📋 Etiquetas (opcional)"
+            },
+            "data_description": {
+              "approval_reset_type": "Controla quando o limite do ciclo de aprovação da tarefa é acionado (meia-noite, data de entrega, após a conclusão ou acionamento manual).",
+              "approval_reset_pending_claim_action": "Controla o que acontece aos pedidos não aprovados quando o limite de reposição de aprovação é acionado.",
+              "auto_approve": "Quando ativada, a função permite que os pedidos sejam aprovados instantaneamente, sem necessidade de revisão por parte dos pais.",
+              "overdue_handling_type": "Controla o que acontece quando a data de vencimento passa e o que acontece às tarefas atrasadas no limite de reposição de aprovação.",
+              "chore_due_reminder_offset": "Quando enviar a notificação de lembrete de vencimento. Formato: '1d 6h 30m' ou apenas '30' para minutos. Padrão: 30m (30 minutos antes do vencimento). Introduza '0' para desativar.",
+              "chore_notifications": "Quando enviar notificações: No pedido, na aprovação, na rejeição ou em qualquer combinação destes fatores.",
+              "show_on_calendar": "Visualizar esta tarefa na visualização de calendário.",
+              "chore_labels": "Etiquetas para organizar tarefas (ex.: 'cozinha', 'exterior'). Deixe em branco se não for necessário."
+            }
+          }
+        },
         "data": {
           "name": "📋 Nome da tarefa",
           "chore_description": "📋 Descrição (opcional)",
@@ -889,6 +1104,7 @@
           "approval_reset_type": "➡️ Conclusões permitidas e tempo limite de reinicialização da aprovação",
           "approval_reset_pending_claim_action": "➡️ Processamento de Reclamações Pendentes após a Aprovação - Redefinido",
           "overdue_handling_type": "⏰ Em atraso: Manuseamento",
+          "chore_claim_lock_until_window": "🔒 Bloquear sinistro até à abertura do prazo?",
           "auto_approve": "✅ Aprovar os pedidos automaticamente?",
           "recurring_frequency": "🔄 Cronograma: Frequência",
           "custom_interval": "🔄 Agendamento: Intervalo personalizado (para frequência personalizada)",
@@ -912,6 +1128,7 @@
           "approval_reset_type": "Controla quando o limite do ciclo de aprovação da tarefa é acionado (meia-noite, data de entrega, após a conclusão ou acionamento manual).",
           "approval_reset_pending_claim_action": "Controla o que acontece aos pedidos não aprovados quando o limite de reposição de aprovação é acionado.",
           "overdue_handling_type": "Controla o que acontece quando a data de vencimento passa e o que acontece às tarefas atrasadas no limite de reposição de aprovação.",
+          "chore_claim_lock_until_window": "Quando ativada, esta opção impede as crianças de reclamar esta tarefa antes do início do prazo.",
           "auto_approve": "Quando ativada, a função permite que os pedidos sejam aprovados instantaneamente, sem necessidade de revisão por parte dos pais.",
           "recurring_frequency": "Frequência de repetição da tarefa: Diariamente, Semanalmente, Mensalmente, Anualmente, Personalizada ou Nenhuma. Se selecionar \"Diariamente - Várias vezes ao dia\", é apresentado um ecrã adicional para configurar os horários específicos.",
           "custom_interval": "Número de unidades de tempo entre repetições (ex.: 3 para 'de 3 em 3 semanas'). Utilizado apenas com frequência personalizada.",
@@ -1352,6 +1569,7 @@
           "retention_monthly": "Retenção mensal de dados (meses)",
           "retention_yearly": "Retenção anual de dados (anos)",
           "show_legacy_entities": "Mostrar entidades adicionais",
+          "kiosk_mode": "Ative o Modo Quiosque para as Reivindicações de Crianças",
           "backups_max_retained": "Número máximo de backups a manter.",
           "backup_action_selection": "Ações de backup"
         },
@@ -1365,6 +1583,7 @@
           "retention_monthly": "Número de meses de dados históricos mensais a manter antes da limpeza. Mínimo 1, máximo 24.",
           "retention_yearly": "Número de anos de dados históricos anuais a manter antes da limpeza. Mínimo 1, máximo 10.",
           "show_legacy_entities": "Apresente entidades adicionais, como sensores e seleções, que estão agora consolidadas no sensor auxiliar do painel. Estas entidades são opcionais para manter a compatibilidade com versões anteriores de automatizações.",
+          "kiosk_mode": "Permite que os botões de pedido de tarefas/recompensas para crianças funcionem em tablets partilhados na parede, sem exigir que o utilizador do painel de controlo corresponda ao utilizador do Home Assistant da criança. Aviso de segurança: qualquer pessoa com acesso a este dispositivo pode enviar pedidos de tarefas/recompensas para crianças.",
           "backups_max_retained": "Número máximo de ficheiros de cópia de segurança a manter por etiqueta (ex.: 5 cópias de segurança manuais, 5 cópias de segurança de reposição de dados). Os backups mais antigos são automaticamente eliminados após a criação de cada novo backup. Defina para 0 para desativar completamente os backups automáticos.",
           "backup_action_selection": "Escolha uma ação de gestão de cópias de segurança: criar uma cópia de segurança manual, eliminar uma cópia de segurança ou restaurar a partir de uma cópia de segurança."
         }
@@ -1477,6 +1696,9 @@
       "invalid_badge_count": "Contagem de crachás inválida",
       "invalid_chore": "Tarefa inválida",
       "invalid_chore_count": "Contagem de tarefas inválida",
+      "invalid_chore_name": "Nome de tarefa inválido",
+      "invalid_points": "A pontuação deve ser zero ou superior.",
+      "invalid_overdue_reset_combination": "A opção \"Repor na data de vencimento\" só funciona com reinicializações à meia-noite. Selecione \"À meia-noite (uma vez)\" ou \"À meia-noite (repetíveis)\" para obter o tipo de reposição de aprovação.",
       "invalid_due_date": "Data de vencimento inválida",
       "date_required_for_frequency": "É necessário definir uma data de vencimento para esta frequência recorrente. A opção \"Limpar datas\" só funciona com as frequências \"Nenhuma\", \"Diária\" ou \"Semanal\".",
       "invalid_end_date": "Data de fim inválida.",
@@ -1505,6 +1727,7 @@
       "error_daily_multi_times_too_few": "Para a frequência \"Várias vezes por dia\", são necessárias pelo menos 2 aplicações. Para uma única aplicação, utilize a frequência \"Diária\".",
       "error_daily_multi_times_too_many": "No máximo 6 vezes por dia para a frequência 'Várias vezes por dia'.",
       "error_daily_multi_due_date_required": "A frequência \"várias vezes por dia\" exige a definição de uma data de vencimento. A data determina quando começa o agendamento e os horários determinam os períodos de disponibilidade em cada dia.",
+      "rotation_min_kids": "As tarefas rotativas requerem pelo menos 2 crianças atribuídas.",
       "error_allow_steal_incompatible": "A opção \"Permitir roubo\" com tratamento de tarefas atrasadas é compatível apenas com tarefas de rotação (rotation_simple ou rotation_smart), tipo de reposição \"Uma vez por dia\" e requer uma data de vencimento para definir quando a janela de roubo será aberta.",
       "error_at_due_date_reset_requires_due_date": "Os tipos de reposição de aprovação \"Na Data de Vencimento\" (Uma vez ou Várias) exigem que seja definida uma data de vencimento. Sem data de vencimento, a reposição da aprovação nunca será acionada e a tarefa permanecerá aprovada indefinidamente.",
       "error_per_kid_applicable_days_invalid": "Formato inválido para os dias aplicáveis a uma ou mais crianças. Os dias devem ser números inteiros de 0 a 6 (de segunda-feira a domingo), sem repetições.",
@@ -1621,6 +1844,7 @@
     "target_type": {
       "options": {
         "points": "Pontos",
+        "points_all_time": "Pontos (Total)",
         "points_chores": "Pontos obtidos com as tarefas domésticas",
         "chore_count": "Contagem de tarefas",
         "days_all_chores": "Dias com tarefas selecionadas concluídas",
@@ -2112,6 +2336,11 @@
           "description": "Controla o que acontece quando a data de vencimento passa e o que acontece às tarefas atrasadas no limite de reposição de aprovação.",
           "example": "data_de_vencimento"
         },
+        "chore_claim_lock_until_window": {
+          "name": "Bloqueie a reclamação até que a janela seja aberta.",
+          "description": "Se isto for verdade, as crianças não podem reclamar esta tarefa antes do início do prazo.",
+          "example": "FALSO"
+        },
         "auto_approve": {
           "name": "Aprovação automática",
           "description": "Se for verdade, a tarefa é aprovada automaticamente quando é solicitada.",
@@ -2136,7 +2365,7 @@
     },
     "update_chore": {
       "name": "Atualizar tarefa",
-      "description": "Atualize as propriedades de uma tarefa existente. Forneça um ID OU um nome para identificar a tarefa. Apenas os campos fornecidos serão atualizados. Nota: os critérios de conclusão não podem ser alterados após a criação.",
+      "description": "Atualize as propriedades de uma tarefa existente. Forneça o ID OU o nome para identificar a tarefa. Apenas os campos fornecidos serão atualizados.",
       "fields": {
         "id": {
           "name": "ID da tarefa",
@@ -2197,6 +2426,11 @@
           "name": "Manuseamento em atraso",
           "description": "Novo comportamento de manuseamento atrasado.",
           "example": "nunca_atrasado"
+        },
+        "chore_claim_lock_until_window": {
+          "name": "Bloqueie a reclamação até que a janela seja aberta.",
+          "description": "Se isto for verdade, as crianças não podem reclamar esta tarefa antes do início do prazo.",
+          "example": "VERDADE"
         },
         "auto_approve": {
           "name": "Aprovação automática",
@@ -2561,6 +2795,18 @@
           "chore_last_longest_streak_date": {
             "name": "Última data de maior sequência"
           },
+          "chore_current_missed_streak": {
+            "name": "Sequência atual de jogos perdidos"
+          },
+          "chore_longest_missed_streak": {
+            "name": "Maior sequência de jogos perdidos"
+          },
+          "chore_missed_count": {
+            "name": "Perdidos (em todos os tempos)"
+          },
+          "chore_last_missed": {
+            "name": "Última vez perdida"
+          },
           "last_claimed": {
             "name": "Última reivindicação"
           },
@@ -2650,6 +2896,9 @@
           "kid_name": {
             "name": "Nome da criança"
           },
+          "points_multiplier": {
+            "name": "Multiplicador de Pontos"
+          },
           "point_stat_points_earned_today": {
             "name": "Ganho hoje"
           },
@@ -2725,7 +2974,7 @@
           "point_stat_avg_points_per_chore": {
             "name": "Média por tarefa"
           },
-          "point_stat_highest_balance": {
+          "point_stat_highest_balance_all_time": {
             "name": "Saldo mais alto de sempre"
           }
         }
@@ -2803,17 +3052,32 @@
           "chore_stat_overdue_today": {
             "name": "Vencido hoje"
           },
+          "chore_stat_missed_today": {
+            "name": "Perdi o dia de hoje."
+          },
           "chore_stat_overdue_week": {
             "name": "Atrasado esta semana"
+          },
+          "chore_stat_missed_week": {
+            "name": "Perdi esta semana"
           },
           "chore_stat_overdue_month": {
             "name": "Vencido este mês"
           },
+          "chore_stat_missed_month": {
+            "name": "Perdeu este mês"
+          },
           "chore_stat_overdue_year": {
             "name": "Atrasado este ano"
           },
+          "chore_stat_missed_year": {
+            "name": "Perdi este ano"
+          },
           "chore_stat_overdue_count_all_time": {
             "name": "Atrasado o tempo todo"
+          },
+          "chore_stat_missed_all_time": {
+            "name": "Perdi todos os tempos"
           },
           "chore_stat_claimed_today": {
             "name": "Reivindicado hoje"
@@ -2922,6 +3186,9 @@
           },
           "chore_stat_longest_streak": {
             "name": "Sequência mais longa"
+          },
+          "chore_stat_longest_missed_streak": {
+            "name": "Maior sequência de jogos perdidos"
           },
           "chore_stat_avg_per_day_week": {
             "name": "Média por dia (semana)"
@@ -4128,6 +4395,15 @@
     },
     "chore_pending_claim": {
       "message": "Chore tem um pedido pendente a aguardar aprovação ou reprovação."
+    },
+    "chore_waiting": {
+      "message": "Esta tarefa ainda não pode ser reivindicada. O prazo de vencimento ainda não começou."
+    },
+    "chore_not_my_turn": {
+      "message": "Esta tarefa está bloqueada por rotação. Atualmente é a vez de outra criança."
+    },
+    "chore_missed_locked": {
+      "message": "Esta tarefa foi marcada como não realizada e bloqueada para o ciclo atual."
     },
     "chore_completed_by_other": {
       "message": "Esta tarefa já foi concluída por outra criança neste período."

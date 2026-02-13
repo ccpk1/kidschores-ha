@@ -113,6 +113,76 @@
       "chores": {
         "title": "Aufgabe hinzufügen",
         "description": "Erstellen Sie eine neue Aufgabe mit Punkten, Aufgaben und einem wiederkehrenden Zeitplan.",
+        "sections": {
+          "section_root_form": {
+            "name": "Definition",
+            "description": "Identität, Zuordnung und Kernvertragseinstellungen.",
+            "data": {
+              "name": "📋 Name der Aufgabe",
+              "chore_description": "📋 Beschreibung (optional)",
+              "icon": "📋 Symbol (mdi:xxx)",
+              "default_points": "💰 Vergebene Punkte",
+              "assigned_kids": "👥 Zugewiesene Kinder",
+              "completion_criteria": "👥 Abschlusskriterien"
+            },
+            "data_description": {
+              "name": "Eindeutiger Name, der im gesamten System angezeigt wird.",
+              "chore_description": "Optionale Anweisungen oder Details zur Erledigung dieser Aufgabe.",
+              "icon": "Material Design Icon (z. B. mdi:broom, mdi:dishwasher).",
+              "default_points": "Punkte werden nach Abschluss gutgeschrieben.",
+              "assigned_kids": "Kinder, die diese Aufgabe sehen und übernehmen können.",
+              "completion_criteria": "Steuert, wie die Aufgabe erledigt wird, wenn mehrere Kinder ihr zugewiesen wurden: individuelle Nachverfolgung, gemeinsame Erledigung oder wechselseitige Rotation."
+            }
+          },
+          "section_schedule": {
+            "name": "Zeitplan",
+            "description": "Einstellungen für Zeitrahmen, Zugriffsfenster und Wiederholungsintervall.",
+            "data": {
+              "recurring_frequency": "🔄 Zeitplan: Häufigkeit",
+              "due_date": "📅 Zeitplan: Fälligkeitsdatum (optional)",
+              "clear_due_date": "🗑️ Fälligkeitsdatum klären",
+              "applicable_days": "📅 Zeitplan: Anwendbare Tage (optional)",
+              "chore_due_window_offset": "⏱️ Fälligkeitszeitraum: Versatz vor dem Fälligkeitsdatum",
+              "chore_claim_lock_until_window": "🔒 Anspruch bis zum Fälligkeitstermin sperren?",
+              "custom_interval": "🔄 Zeitplan: Benutzerdefiniertes Intervall (für benutzerdefinierte Frequenz)",
+              "custom_interval_unit": "🔄 Zeitplan: Benutzerdefinierte Intervalleinheit"
+            },
+            "data_description": {
+              "recurring_frequency": "Wie häufig die Aufgabe anfällt: Täglich, Wöchentlich, Monatlich, Jährlich, Benutzerdefiniert oder Keine.",
+              "due_date": "Optionale Frist. Kann mit wiederkehrenden Terminen kombiniert werden.",
+              "clear_due_date": "Markieren Sie dieses Kästchen, um das Fälligkeitsdatum für diese Aufgabe zu entfernen.",
+              "applicable_days": "Lassen Sie alle Felder leer. Wählen Sie NUR die gewünschten Tage aus, um die Einschränkung zu aktivieren.",
+              "chore_due_window_offset": "Wenn sich der Status der Aufgabe von „Ausstehend“ auf „Fällig“ ändert. Format: „1d 6h 30m“ oder einfach „30“ für Minuten. Geben Sie „0“ ein, um die Funktion zu deaktivieren. Beispiel: „1d“ bedeutet, dass die Aufgabe einen Tag vor dem Fälligkeitstermin als „Fällig“ angezeigt wird.",
+              "chore_claim_lock_until_window": "Wenn diese Option aktiviert ist, können Kinder diese Aufgabe erst ab Beginn des Fälligkeitszeitraums beanspruchen.",
+              "custom_interval": "Anzahl der Zeiteinheiten zwischen den Wiederholungen (z. B. 3 für „alle 3 Wochen“). Wird nur bei benutzerdefinierter Frequenz verwendet.",
+              "custom_interval_unit": "Zeiteinheit für benutzerdefinierte Intervalle (Tage, Wochen, Monate). Nur bei benutzerdefinierter Frequenz verwendbar."
+            }
+          },
+          "section_advanced_configurations": {
+            "name": "Erweiterte Konfigurationen",
+            "description": "Lebenszyklusautomatisierung, Benachrichtigungen, Transparenz und Metadaten.",
+            "data": {
+              "approval_reset_type": "➡️ Zulässige Abschlüsse und Zurücksetzen des Genehmigungszeitraums",
+              "approval_reset_pending_claim_action": "➡️ Bearbeitung ausstehender Anträge nach Genehmigungs-Reset",
+              "auto_approve": "✅ Automatische Genehmigung von Schadensfällen?",
+              "overdue_handling_type": "⏰ Überfällig: Bearbeitung",
+              "chore_due_reminder_offset": "🔔 Fälligkeitserinnerung: Verrechnung vor dem Fälligkeitsdatum",
+              "chore_notifications": "🔔 Benachrichtigungsereignisse (optional)",
+              "show_on_calendar": "📅 Im Kalender anzeigen?",
+              "chore_labels": "📋 Etiketten (optional)"
+            },
+            "data_description": {
+              "approval_reset_type": "Steuert, wann die Genehmigungszyklusgrenze der Aufgabe ausgelöst wird (Mitternacht, Fälligkeitsdatum, nach Abschluss oder manueller Auslöser).",
+              "approval_reset_pending_claim_action": "Dies geschieht mit Anträgen, die noch auf Genehmigung warten, wenn der Genehmigungs-Reset erfolgt.",
+              "auto_approve": "Wenn diese Funktion aktiviert ist, werden Anträge sofort und ohne Überprüfung durch die Eltern genehmigt.",
+              "overdue_handling_type": "Vorgehensweise nach Ablauf der Frist: Überfälligen Status ausblenden, überfällig bis zur Inanspruchnahme beibehalten oder im nächsten Genehmigungszyklus auf ausstehend zurücksetzen.",
+              "chore_due_reminder_offset": "Wann soll die Erinnerungsbenachrichtigung versendet werden? Format: „1d 6h 30m“ oder einfach „30“ für Minuten. Standard: 30m (30 Minuten vor Fälligkeit). Geben Sie „0“ ein, um die Benachrichtigung zu deaktivieren.",
+              "chore_notifications": "Wann Benachrichtigungen versendet werden sollen: Bei Antragstellung, bei Genehmigung, bei Ablehnung oder in beliebiger Kombination.",
+              "show_on_calendar": "Diese Aufgabe in der Kalenderansicht anzeigen.",
+              "chore_labels": "Schlagwörter zur Organisation von Aufgaben (z. B. „Küche“, „Garten“). Felder leer lassen, falls nicht benötigt."
+            }
+          }
+        },
         "data": {
           "name": "📋 Name der Aufgabe",
           "chore_description": "📋 Beschreibung (optional)",
@@ -124,6 +194,7 @@
           "approval_reset_type": "➡️ Zulässige Abschlüsse und Zurücksetzen des Genehmigungszeitraums",
           "approval_reset_pending_claim_action": "➡️ Bearbeitung ausstehender Anträge nach Genehmigungs-Reset",
           "overdue_handling_type": "⏰ Überfällig: Bearbeitung",
+          "chore_claim_lock_until_window": "🔒 Anspruch bis zum Fälligkeitstermin sperren?",
           "auto_approve": "✅ Automatische Genehmigung von Schadensfällen?",
           "recurring_frequency": "🔄 Zeitplan: Häufigkeit",
           "custom_interval": "🔄 Zeitplan: Benutzerdefiniertes Intervall (für benutzerdefinierte Frequenz)",
@@ -146,6 +217,7 @@
           "approval_reset_type": "Steuert, wann die Genehmigungszyklusgrenze der Aufgabe ausgelöst wird (Mitternacht, Fälligkeitsdatum, nach Abschluss oder manueller Auslöser).",
           "approval_reset_pending_claim_action": "Dies geschieht mit Anträgen, die noch auf Genehmigung warten, wenn der Genehmigungs-Reset erfolgt.",
           "overdue_handling_type": "Vorgehensweise nach Ablauf der Frist: Überfälligen Status ausblenden, überfällig bis zur Inanspruchnahme beibehalten oder im nächsten Genehmigungszyklus auf ausstehend zurücksetzen.",
+          "chore_claim_lock_until_window": "Wenn diese Option aktiviert ist, können Kinder diese Aufgabe erst ab Beginn des Fälligkeitszeitraums beanspruchen.",
           "auto_approve": "Wenn diese Funktion aktiviert ist, werden Anträge sofort und ohne Überprüfung durch die Eltern genehmigt.",
           "recurring_frequency": "Wie häufig die Aufgabe anfällt: Täglich, Wöchentlich, Monatlich, Jährlich, Benutzerdefiniert oder Keine.",
           "custom_interval": "Anzahl der Zeiteinheiten zwischen den Wiederholungen (z. B. 3 für „alle 3 Wochen“). Wird nur bei benutzerdefinierter Frequenz verwendet.",
@@ -356,6 +428,7 @@
       "invalid_challenge_name": "Ungültiger Herausforderungsname",
       "invalid_chore": "Ungültige Aufgabe",
       "invalid_chore_count": "Ungültige Aufgabenanzahl",
+      "rotation_min_kids": "Für die Rotation der Aufgaben werden mindestens 2 Kinder benötigt.",
       "invalid_chore_name": "Ungültiger Aufgabenname",
       "invalid_points": "Die Punktzahl muss null oder größer sein.",
       "invalid_overdue_reset_combination": "Die Funktion „Zum Fälligkeitsdatum zurücksetzen“ funktioniert nur bei Zurücksetzungstypen um Mitternacht. Bitte wählen Sie für den Genehmigungs-Zurücksetzungstyp „Um Mitternacht (einmalig)“ oder „Um Mitternacht (wiederkehrend)“.",
@@ -481,6 +554,76 @@
       "add_chore": {
         "title": "Aufgabe hinzufügen",
         "description": "Erstelle eine neue Aufgabe mit Punkten, Zuweisungen und einem wiederkehrenden Zeitplan.\n\n📖 [Konfigurationsanleitung]({documentation_url})",
+        "sections": {
+          "section_root_form": {
+            "name": "Definition",
+            "description": "Identität, Zuordnung und Kernvertragseinstellungen.",
+            "data": {
+              "name": "📋 Name der Aufgabe",
+              "chore_description": "📋 Beschreibung (optional)",
+              "icon": "📋 Symbol (mdi:xxx)",
+              "default_points": "💰 Vergebene Punkte",
+              "assigned_kids": "👥 Zugewiesene Kinder",
+              "completion_criteria": "👥 Abschlusskriterien"
+            },
+            "data_description": {
+              "name": "Eindeutiger Name, der im gesamten System angezeigt wird.",
+              "chore_description": "Optionale Anweisungen oder Details zur Erledigung dieser Aufgabe.",
+              "icon": "Material Design Icon (z. B. mdi:broom, mdi:dishwasher).",
+              "default_points": "Punkte werden nach Abschluss gutgeschrieben.",
+              "assigned_kids": "Kinder, die diese Aufgabe sehen und übernehmen können.",
+              "completion_criteria": "Steuert, wie die Aufgabe erledigt wird, wenn mehrere Kinder ihr zugewiesen wurden: individuelle Nachverfolgung, gemeinsame Erledigung oder wechselseitige Rotation."
+            }
+          },
+          "section_schedule": {
+            "name": "Zeitplan",
+            "description": "Einstellungen für Zeitrahmen, Zugriffsfenster und Wiederholungsintervall.",
+            "data": {
+              "recurring_frequency": "🔄 Zeitplan: Häufigkeit",
+              "due_date": "📅 Zeitplan: Fälligkeitsdatum (optional)",
+              "clear_due_date": "🗑️ Fälligkeitsdatum klären",
+              "applicable_days": "📅 Zeitplan: Anwendbare Tage (optional)",
+              "chore_due_window_offset": "⏱️ Fälligkeitszeitraum: Versatz vor dem Fälligkeitsdatum",
+              "chore_claim_lock_until_window": "🔒 Anspruch bis zum Fälligkeitstermin sperren?",
+              "custom_interval": "🔄 Zeitplan: Benutzerdefiniertes Intervall (für benutzerdefinierte Frequenz)",
+              "custom_interval_unit": "🔄 Zeitplan: Benutzerdefinierte Intervalleinheit"
+            },
+            "data_description": {
+              "recurring_frequency": "Wie oft die Aufgabe wiederholt werden soll: Täglich, Wöchentlich, Monatlich, Jährlich, Benutzerdefiniert oder Keine. Wenn Sie „Täglich – Mehrmals pro Tag“ auswählen, erscheint ein zusätzliches Fenster, in dem Sie die genauen Zeiten festlegen können.",
+              "due_date": "Optionale Frist. Kann mit wiederkehrenden Aufgaben kombiniert werden. Für individuelle Aufgaben dient dies als Vorlage – ein zusätzliches Fenster öffnet sich, in dem für jedes Kind ein individuelles Datum festgelegt werden kann.",
+              "clear_due_date": "Markieren Sie dieses Kästchen, um das Fälligkeitsdatum für diese Aufgabe zu entfernen.",
+              "applicable_days": "Lassen Sie alle Felder leer. Wählen Sie NUR die gewünschten Tage aus, um die Einschränkung zu aktivieren.",
+              "chore_due_window_offset": "Wenn sich der Status der Aufgabe von „Ausstehend“ auf „Fällig“ ändert. Format: „1d 6h 30m“ oder einfach „30“ für Minuten. Geben Sie „0“ ein, um die Funktion zu deaktivieren. Beispiel: „1d“ bedeutet, dass die Aufgabe einen Tag vor dem Fälligkeitstermin als „Fällig“ angezeigt wird.",
+              "chore_claim_lock_until_window": "Wenn diese Option aktiviert ist, können Kinder diese Aufgabe erst ab Beginn des Fälligkeitszeitraums beanspruchen.",
+              "custom_interval": "Anzahl der Zeiteinheiten zwischen den Wiederholungen (z. B. 3 für „alle 3 Wochen“). Wird nur bei benutzerdefinierter Frequenz verwendet.",
+              "custom_interval_unit": "Zeiteinheit für benutzerdefinierte Intervalle (Tage, Wochen, Monate). Nur bei benutzerdefinierter Frequenz verwendbar."
+            }
+          },
+          "section_advanced_configurations": {
+            "name": "Erweiterte Konfigurationen",
+            "description": "Lebenszyklusautomatisierung, Benachrichtigungen, Transparenz und Metadaten.",
+            "data": {
+              "approval_reset_type": "➡️ Zulässige Abschlüsse und Zurücksetzen des Genehmigungszeitraums",
+              "approval_reset_pending_claim_action": "➡️ Bearbeitung ausstehender Anträge nach Genehmigungs-Reset",
+              "auto_approve": "✅ Automatische Genehmigung von Schadensfällen?",
+              "overdue_handling_type": "⏰ Überfällig: Bearbeitung",
+              "chore_due_reminder_offset": "🔔 Fälligkeitserinnerung: Verrechnung vor dem Fälligkeitsdatum",
+              "chore_notifications": "🔔 Benachrichtigungsereignisse (optional)",
+              "show_on_calendar": "📅 Im Kalender anzeigen?",
+              "chore_labels": "📋 Etiketten (optional)"
+            },
+            "data_description": {
+              "approval_reset_type": "Steuert, wann die Genehmigungszyklusgrenze der Aufgabe ausgelöst wird (Mitternacht, Fälligkeitsdatum, nach Abschluss oder manueller Auslöser).",
+              "approval_reset_pending_claim_action": "Steuert, was mit nicht genehmigten Anträgen geschieht, wenn die Genehmigungs-Reset-Grenze ausgelöst wird.",
+              "auto_approve": "Wenn diese Funktion aktiviert ist, werden Anträge sofort und ohne Überprüfung durch die Eltern genehmigt.",
+              "overdue_handling_type": "Steuert, was passiert, wenn der Fälligkeitstermin überschritten ist, und was mit überfälligen Aufgaben beim Zurücksetzen des Genehmigungsstatus geschieht.",
+              "chore_due_reminder_offset": "Wann soll die Erinnerungsbenachrichtigung versendet werden? Format: „1d 6h 30m“ oder einfach „30“ für Minuten. Standard: 30m (30 Minuten vor Fälligkeit). Geben Sie „0“ ein, um die Benachrichtigung zu deaktivieren.",
+              "chore_notifications": "Wann Benachrichtigungen versendet werden sollen: Bei Antragstellung, bei Genehmigung, bei Ablehnung oder in beliebiger Kombination.",
+              "show_on_calendar": "Diese Aufgabe in der Kalenderansicht anzeigen.",
+              "chore_labels": "Schlagwörter zur Organisation von Aufgaben (z. B. „Küche“, „Garten“). Felder leer lassen, falls nicht benötigt."
+            }
+          }
+        },
         "data": {
           "name": "📋 Name der Aufgabe",
           "chore_description": "📋 Beschreibung (optional)",
@@ -492,6 +635,7 @@
           "approval_reset_type": "➡️ Zulässige Abschlüsse und Zurücksetzen des Genehmigungszeitraums",
           "approval_reset_pending_claim_action": "➡️ Bearbeitung ausstehender Anträge nach Genehmigungs-Reset",
           "overdue_handling_type": "⏰ Überfällig: Bearbeitung",
+          "chore_claim_lock_until_window": "🔒 Anspruch bis zum Fälligkeitstermin sperren?",
           "auto_approve": "✅ Automatische Genehmigung von Schadensfällen?",
           "recurring_frequency": "🔄 Zeitplan: Häufigkeit",
           "custom_interval": "🔄 Zeitplan: Benutzerdefiniertes Intervall (für benutzerdefinierte Frequenz)",
@@ -515,6 +659,7 @@
           "approval_reset_type": "Steuert, wann die Genehmigungszyklusgrenze der Aufgabe ausgelöst wird (Mitternacht, Fälligkeitsdatum, nach Abschluss oder manueller Auslöser).",
           "approval_reset_pending_claim_action": "Steuert, was mit nicht genehmigten Anträgen geschieht, wenn die Genehmigungs-Reset-Grenze ausgelöst wird.",
           "overdue_handling_type": "Steuert, was passiert, wenn der Fälligkeitstermin überschritten ist, und was mit überfälligen Aufgaben beim Zurücksetzen des Genehmigungsstatus geschieht.",
+          "chore_claim_lock_until_window": "Wenn diese Option aktiviert ist, können Kinder diese Aufgabe erst ab Beginn des Fälligkeitszeitraums beanspruchen.",
           "auto_approve": "Wenn diese Funktion aktiviert ist, werden Anträge sofort und ohne Überprüfung durch die Eltern genehmigt.",
           "recurring_frequency": "Wie oft die Aufgabe wiederholt werden soll: Täglich, Wöchentlich, Monatlich, Jährlich, Benutzerdefiniert oder Keine. Wenn Sie „Täglich – Mehrmals pro Tag“ auswählen, erscheint ein zusätzliches Fenster, in dem Sie die genauen Zeiten festlegen können.",
           "custom_interval": "Anzahl der Zeiteinheiten zwischen den Wiederholungen (z. B. 3 für „alle 3 Wochen“). Wird nur bei benutzerdefinierter Frequenz verwendet.",
@@ -877,6 +1022,76 @@
       "edit_chore": {
         "title": "Bearbeitungsaufgabe",
         "description": "Ändern Sie die Details der ausgewählten Aufgabe.\n\n📖 [Konfigurationsanleitung]({documentation_url})",
+        "sections": {
+          "section_root_form": {
+            "name": "Definition",
+            "description": "Identität, Zuordnung und Kernvertragseinstellungen.",
+            "data": {
+              "name": "📋 Name der Aufgabe",
+              "chore_description": "📋 Beschreibung (optional)",
+              "icon": "📋 Symbol (mdi:xxx)",
+              "default_points": "💰 Vergebene Punkte",
+              "assigned_kids": "👥 Zugewiesene Kinder",
+              "completion_criteria": "👥 Abschlusskriterien"
+            },
+            "data_description": {
+              "name": "Eindeutiger Name, der im gesamten System angezeigt wird.",
+              "chore_description": "Optionale Anweisungen oder Details zur Erledigung dieser Aufgabe.",
+              "icon": "Material Design Icon (z. B. mdi:broom, mdi:dishwasher).",
+              "default_points": "Punkte werden nach Abschluss gutgeschrieben.",
+              "assigned_kids": "Kinder, die diese Aufgabe sehen und übernehmen können.",
+              "completion_criteria": "Steuert, wie die Aufgabe erledigt wird, wenn mehrere Kinder ihr zugewiesen wurden: individuelle Nachverfolgung, gemeinsame Erledigung oder wechselseitige Rotation."
+            }
+          },
+          "section_schedule": {
+            "name": "Zeitplan",
+            "description": "Einstellungen für Zeitrahmen, Zugriffsfenster und Wiederholungsintervall.",
+            "data": {
+              "recurring_frequency": "🔄 Zeitplan: Häufigkeit",
+              "due_date": "📅 Zeitplan: Fälligkeitsdatum (optional)",
+              "clear_due_date": "🗑️ Fälligkeitsdatum klären",
+              "applicable_days": "📅 Zeitplan: Anwendbare Tage (optional)",
+              "chore_due_window_offset": "⏱️ Fälligkeitszeitraum: Versatz vor dem Fälligkeitsdatum",
+              "chore_claim_lock_until_window": "🔒 Anspruch bis zum Fälligkeitstermin sperren?",
+              "custom_interval": "🔄 Zeitplan: Benutzerdefiniertes Intervall (für benutzerdefinierte Frequenz)",
+              "custom_interval_unit": "🔄 Zeitplan: Benutzerdefinierte Intervalleinheit"
+            },
+            "data_description": {
+              "recurring_frequency": "Wie oft die Aufgabe wiederholt werden soll: Täglich, Wöchentlich, Monatlich, Jährlich, Benutzerdefiniert oder Keine. Wenn Sie „Täglich – Mehrmals pro Tag“ auswählen, erscheint ein zusätzliches Fenster, in dem Sie die genauen Zeiten festlegen können.",
+              "due_date": "Optionale Frist. Kann mit wiederkehrenden Aufgaben kombiniert werden. Für individuelle Aufgaben dient dies als Vorlage – ein zusätzliches Fenster öffnet sich, in dem für jedes Kind ein individuelles Datum festgelegt werden kann.",
+              "clear_due_date": "Markieren Sie dieses Kästchen, um das Fälligkeitsdatum für diese Aufgabe zu entfernen.",
+              "applicable_days": "Lassen Sie alle Felder leer. Wählen Sie NUR die gewünschten Tage aus, um die Einschränkung zu aktivieren.",
+              "chore_due_window_offset": "Wenn sich der Status der Aufgabe von „Ausstehend“ auf „Fällig“ ändert. Format: „1d 6h 30m“ oder einfach „30“ für Minuten. Geben Sie „0“ ein, um die Funktion zu deaktivieren. Beispiel: „1d“ bedeutet, dass die Aufgabe einen Tag vor dem Fälligkeitstermin als „Fällig“ angezeigt wird.",
+              "chore_claim_lock_until_window": "Wenn diese Option aktiviert ist, können Kinder diese Aufgabe erst ab Beginn des Fälligkeitszeitraums beanspruchen.",
+              "custom_interval": "Anzahl der Zeiteinheiten zwischen den Wiederholungen (z. B. 3 für „alle 3 Wochen“). Wird nur bei benutzerdefinierter Frequenz verwendet.",
+              "custom_interval_unit": "Zeiteinheit für benutzerdefinierte Intervalle (Tage, Wochen, Monate). Nur bei benutzerdefinierter Frequenz verwendbar."
+            }
+          },
+          "section_advanced_configurations": {
+            "name": "Erweiterte Konfigurationen",
+            "description": "Lebenszyklusautomatisierung, Benachrichtigungen, Transparenz und Metadaten.",
+            "data": {
+              "approval_reset_type": "➡️ Zulässige Abschlüsse und Zurücksetzen des Genehmigungszeitraums",
+              "approval_reset_pending_claim_action": "➡️ Bearbeitung ausstehender Anträge nach Genehmigungs-Reset",
+              "auto_approve": "✅ Automatische Genehmigung von Schadensfällen?",
+              "overdue_handling_type": "⏰ Überfällig: Bearbeitung",
+              "chore_due_reminder_offset": "🔔 Fälligkeitserinnerung: Verrechnung vor dem Fälligkeitsdatum",
+              "chore_notifications": "🔔 Benachrichtigungsereignisse (optional)",
+              "show_on_calendar": "📅 Im Kalender anzeigen?",
+              "chore_labels": "📋 Etiketten (optional)"
+            },
+            "data_description": {
+              "approval_reset_type": "Steuert, wann die Genehmigungszyklusgrenze der Aufgabe ausgelöst wird (Mitternacht, Fälligkeitsdatum, nach Abschluss oder manueller Auslöser).",
+              "approval_reset_pending_claim_action": "Steuert, was mit nicht genehmigten Anträgen geschieht, wenn die Genehmigungs-Reset-Grenze ausgelöst wird.",
+              "auto_approve": "Wenn diese Funktion aktiviert ist, werden Anträge sofort und ohne Überprüfung durch die Eltern genehmigt.",
+              "overdue_handling_type": "Steuert, was passiert, wenn der Fälligkeitstermin überschritten ist, und was mit überfälligen Aufgaben beim Zurücksetzen des Genehmigungsstatus geschieht.",
+              "chore_due_reminder_offset": "Wann soll die Erinnerungsbenachrichtigung versendet werden? Format: „1d 6h 30m“ oder einfach „30“ für Minuten. Standard: 30m (30 Minuten vor Fälligkeit). Geben Sie „0“ ein, um die Benachrichtigung zu deaktivieren.",
+              "chore_notifications": "Wann Benachrichtigungen versendet werden sollen: Bei Antragstellung, bei Genehmigung, bei Ablehnung oder in beliebiger Kombination.",
+              "show_on_calendar": "Diese Aufgabe in der Kalenderansicht anzeigen.",
+              "chore_labels": "Schlagwörter zur Organisation von Aufgaben (z. B. „Küche“, „Garten“). Felder leer lassen, falls nicht benötigt."
+            }
+          }
+        },
         "data": {
           "name": "📋 Name der Aufgabe",
           "chore_description": "📋 Beschreibung (optional)",
@@ -889,6 +1104,7 @@
           "approval_reset_type": "➡️ Zulässige Abschlüsse und Zurücksetzen des Genehmigungszeitraums",
           "approval_reset_pending_claim_action": "➡️ Bearbeitung ausstehender Anträge nach Genehmigungs-Reset",
           "overdue_handling_type": "⏰ Überfällig: Bearbeitung",
+          "chore_claim_lock_until_window": "🔒 Anspruch bis zum Fälligkeitstermin sperren?",
           "auto_approve": "✅ Automatische Genehmigung von Schadensfällen?",
           "recurring_frequency": "🔄 Zeitplan: Häufigkeit",
           "custom_interval": "🔄 Zeitplan: Benutzerdefiniertes Intervall (für benutzerdefinierte Frequenz)",
@@ -912,6 +1128,7 @@
           "approval_reset_type": "Steuert, wann die Genehmigungszyklusgrenze der Aufgabe ausgelöst wird (Mitternacht, Fälligkeitsdatum, nach Abschluss oder manueller Auslöser).",
           "approval_reset_pending_claim_action": "Steuert, was mit nicht genehmigten Anträgen geschieht, wenn die Genehmigungs-Reset-Grenze ausgelöst wird.",
           "overdue_handling_type": "Steuert, was passiert, wenn der Fälligkeitstermin überschritten ist, und was mit überfälligen Aufgaben beim Zurücksetzen des Genehmigungsstatus geschieht.",
+          "chore_claim_lock_until_window": "Wenn diese Option aktiviert ist, können Kinder diese Aufgabe erst ab Beginn des Fälligkeitszeitraums beanspruchen.",
           "auto_approve": "Wenn diese Funktion aktiviert ist, werden Anträge sofort und ohne Überprüfung durch die Eltern genehmigt.",
           "recurring_frequency": "Wie oft die Aufgabe wiederholt werden soll: Täglich, Wöchentlich, Monatlich, Jährlich, Benutzerdefiniert oder Keine. Wenn Sie „Täglich – Mehrmals pro Tag“ auswählen, erscheint ein zusätzliches Fenster, in dem Sie die genauen Zeiten festlegen können.",
           "custom_interval": "Anzahl der Zeiteinheiten zwischen den Wiederholungen (z. B. 3 für „alle 3 Wochen“). Wird nur bei benutzerdefinierter Frequenz verwendet.",
@@ -1352,6 +1569,7 @@
           "retention_monthly": "Monatliche Datenaufbewahrung (Monate)",
           "retention_yearly": "Jährliche Datenaufbewahrungsdauer (Jahre)",
           "show_legacy_entities": "Zusätzliche Entitäten anzeigen",
+          "kiosk_mode": "Kioskmodus für Kinderansprüche aktivieren",
           "backups_max_retained": "Maximale Anzahl der aufzubewahrenden Backups",
           "backup_action_selection": "Sicherungsaktionen"
         },
@@ -1365,6 +1583,7 @@
           "retention_monthly": "Anzahl der Monate an monatlichen historischen Daten, die vor der Bereinigung aufbewahrt werden sollen. Minimum 1, Maximum 24.",
           "retention_yearly": "Anzahl der Jahre an jährlichen historischen Daten, die vor der Bereinigung aufbewahrt werden sollen. Minimum 1, Maximum 10.",
           "show_legacy_entities": "Es werden zusätzliche Entitäten wie Sensoren und Auswahllisten angezeigt, die nun im Dashboard-Hilfssensor zusammengefasst sind. Diese Entitäten sind optional, um die Abwärtskompatibilität mit bestehenden Automatisierungen zu gewährleisten.",
+          "kiosk_mode": "Ermöglicht die Nutzung von Schaltflächen zum Einlösen von Aufgaben/Belohnungen für Kinder auf gemeinsam genutzten Wandtablets, ohne dass der Dashboard-Nutzer den Home-Assistant-Benutzerlink des Kindes verknüpfen muss. Sicherheitshinweis: Jeder mit Zugriff auf dieses Gerät kann Aufgaben/Belohnungen für Kinder einreichen.",
           "backups_max_retained": "Maximale Anzahl der pro Tag aufzubewahrenden Sicherungsdateien (z. B. 5 manuelle Sicherungen, 5 data_reset-Sicherungen). Ältere Sicherungen werden nach jeder neuen Sicherung automatisch gelöscht. Setzen Sie den Wert auf 0, um automatische Sicherungen vollständig zu deaktivieren.",
           "backup_action_selection": "Wählen Sie eine Backup-Verwaltungsaktion: Manuelles Backup erstellen, Backup löschen oder aus einem Backup wiederherstellen."
         }
@@ -1477,6 +1696,9 @@
       "invalid_badge_count": "Ungültige Abzeichenanzahl",
       "invalid_chore": "Ungültige Aufgabe",
       "invalid_chore_count": "Ungültige Aufgabenanzahl",
+      "invalid_chore_name": "Ungültiger Aufgabenname",
+      "invalid_points": "Die Punktzahl muss null oder größer sein.",
+      "invalid_overdue_reset_combination": "Die Funktion „Zum Fälligkeitsdatum zurücksetzen“ funktioniert nur bei Zurücksetzungstypen um Mitternacht. Bitte wählen Sie für den Genehmigungs-Zurücksetzungstyp „Um Mitternacht (einmalig)“ oder „Um Mitternacht (wiederkehrend)“.",
       "invalid_due_date": "Ungültiges Fälligkeitsdatum",
       "date_required_for_frequency": "Für diese wiederkehrende Häufigkeit ist ein Fälligkeitsdatum erforderlich. Die Option „Datum löschen“ funktioniert nur bei den Häufigkeiten „Keine“, „Täglich“ oder „Wöchentlich“.",
       "invalid_end_date": "Ungültiges Enddatum.",
@@ -1505,6 +1727,7 @@
       "error_daily_multi_times_too_few": "Für die Häufigkeit „Mehrmals täglich“ sind mindestens zwei Wiederholungen erforderlich. Für eine einmalige Wiederholung verwenden Sie die reguläre Häufigkeit „Täglich“.",
       "error_daily_multi_times_too_many": "Bei der Frequenz „Mehrmals täglich“ sind maximal 6 Mal pro Tag zulässig.",
       "error_daily_multi_due_date_required": "Die Frequenz „Mehrmals täglich“ erfordert die Festlegung eines Fälligkeitsdatums. Das Datum bestimmt den Beginn der Planung, und die Uhrzeiten legen die täglichen Verfügbarkeitsfenster fest.",
+      "rotation_min_kids": "Für die Rotation der Aufgaben werden mindestens 2 Kinder benötigt.",
       "error_allow_steal_incompatible": "Die Option „Überfällige Bearbeitung von Diebstahl-Aufträgen zulassen“ ist nur mit Rotationsaufgaben (rotation_simple oder rotation_smart) und dem Rücksetzungstyp „Einmal täglich“ kompatibel und erfordert ein Fälligkeitsdatum, um festzulegen, wann das Diebstahl-Fenster geöffnet wird.",
       "error_at_due_date_reset_requires_due_date": "Genehmigungszurücksetzungen vom Typ „Zum Fälligkeitsdatum“ (einmalig oder mehrfach) erfordern die Festlegung eines Fälligkeitsdatums. Ohne ein Fälligkeitsdatum wird die Genehmigungszurücksetzung nicht ausgelöst und die Aufgabe bleibt unbegrenzt genehmigt.",
       "error_per_kid_applicable_days_invalid": "Ungültiges Format für die Wochentage eines oder mehrerer Kinder. Die Wochentage müssen ganze Zahlen von 0 bis 6 (Montag bis Sonntag) sein und dürfen keine Duplikate enthalten.",
@@ -1621,6 +1844,7 @@
     "target_type": {
       "options": {
         "points": "Punkte",
+        "points_all_time": "Punkte (Gesamtwertung)",
         "points_chores": "Punkte für Hausarbeiten",
         "chore_count": "Aufgabenanzahl",
         "days_all_chores": "An welchen Tagen die ausgewählten Aufgaben erledigt wurden",
@@ -2112,6 +2336,11 @@
           "description": "Steuert, was passiert, wenn der Fälligkeitstermin überschritten ist, und was mit überfälligen Aufgaben beim Zurücksetzen des Genehmigungsstatus geschieht.",
           "example": "at_due_date"
         },
+        "chore_claim_lock_until_window": {
+          "name": "Anspruch sperren, bis sich das Fenster öffnet",
+          "description": "Wenn das stimmt, können Kinder diese Aufgabe erst ab Beginn des Fälligkeitszeitraums übernehmen.",
+          "example": "FALSCH"
+        },
         "auto_approve": {
           "name": "Automatische Genehmigung",
           "description": "Wenn dies zutrifft, wird die Aufgabe bei der Anmeldung automatisch genehmigt.",
@@ -2136,7 +2365,7 @@
     },
     "update_chore": {
       "name": "Aktualisierungsaufgabe",
-      "description": "Aktualisieren Sie die Eigenschaften einer bestehenden Aufgabe. Geben Sie entweder die ID ODER den Namen zur Identifizierung der Aufgabe an. Nur die angegebenen Felder werden aktualisiert. Hinweis: Die Abschlusskriterien können nach der Erstellung nicht mehr geändert werden.",
+      "description": "Aktualisieren Sie die Eigenschaften einer bestehenden Aufgabe. Geben Sie entweder die ID ODER den Namen an, um die Aufgabe zu identifizieren. Nur die angegebenen Felder werden aktualisiert.",
       "fields": {
         "id": {
           "name": "Aufgaben-ID",
@@ -2197,6 +2426,11 @@
           "name": "Überfällige Bearbeitung",
           "description": "Neues Verhalten bei der Bearbeitung überfälliger Fälligkeiten.",
           "example": "nie überfällig"
+        },
+        "chore_claim_lock_until_window": {
+          "name": "Anspruch sperren, bis sich das Fenster öffnet",
+          "description": "Wenn das stimmt, können Kinder diese Aufgabe erst ab Beginn des Fälligkeitszeitraums übernehmen.",
+          "example": "WAHR"
         },
         "auto_approve": {
           "name": "Automatische Genehmigung",
@@ -2561,6 +2795,18 @@
           "chore_last_longest_streak_date": {
             "name": "Datum der letzten längsten Serie"
           },
+          "chore_current_missed_streak": {
+            "name": "Aktuelle Serie verpasster Chancen"
+          },
+          "chore_longest_missed_streak": {
+            "name": "Längste Serie verpasster Spiele"
+          },
+          "chore_missed_count": {
+            "name": "Fehlende Treffer (Alle Zeiten)"
+          },
+          "chore_last_missed": {
+            "name": "Zuletzt verpasst"
+          },
           "last_claimed": {
             "name": "Zuletzt beansprucht"
           },
@@ -2650,6 +2896,9 @@
           "kid_name": {
             "name": "Kindername"
           },
+          "points_multiplier": {
+            "name": "Punktemultiplikator"
+          },
           "point_stat_points_earned_today": {
             "name": "Heute verdient"
           },
@@ -2725,7 +2974,7 @@
           "point_stat_avg_points_per_chore": {
             "name": "Durchschnitt pro Aufgabe"
           },
-          "point_stat_highest_balance": {
+          "point_stat_highest_balance_all_time": {
             "name": "Höchster Kontostand aller Zeiten"
           }
         }
@@ -2803,17 +3052,32 @@
           "chore_stat_overdue_today": {
             "name": "Heute überfällig"
           },
+          "chore_stat_missed_today": {
+            "name": "Heute verpasst"
+          },
           "chore_stat_overdue_week": {
             "name": "Überfällig diese Woche"
+          },
+          "chore_stat_missed_week": {
+            "name": "Diese Woche verpasst"
           },
           "chore_stat_overdue_month": {
             "name": "Überfällig in diesem Monat"
           },
+          "chore_stat_missed_month": {
+            "name": "Diesen Monat verpasst"
+          },
           "chore_stat_overdue_year": {
             "name": "Überfällig in diesem Jahr"
           },
+          "chore_stat_missed_year": {
+            "name": "Dieses Jahr verpasst"
+          },
           "chore_stat_overdue_count_all_time": {
             "name": "Überfällig"
+          },
+          "chore_stat_missed_all_time": {
+            "name": "Immer verpasst"
           },
           "chore_stat_claimed_today": {
             "name": "Heute beansprucht"
@@ -2922,6 +3186,9 @@
           },
           "chore_stat_longest_streak": {
             "name": "Längste Serie"
+          },
+          "chore_stat_longest_missed_streak": {
+            "name": "Längste Serie verpasster Spiele"
           },
           "chore_stat_avg_per_day_week": {
             "name": "Durchschnitt pro Tag (Woche)"
@@ -4128,6 +4395,15 @@
     },
     "chore_pending_claim": {
       "message": "Chore hat einen anhängigen Antrag, der auf Genehmigung oder Ablehnung wartet."
+    },
+    "chore_waiting": {
+      "message": "Diese Aufgabe kann noch nicht abgeholt werden. Das Fälligkeitsfenster hat noch nicht begonnen."
+    },
+    "chore_not_my_turn": {
+      "message": "Diese Aufgabe ist rotationsgesperrt. Im Moment ist ein anderes Kind an der Reihe."
+    },
+    "chore_missed_locked": {
+      "message": "Diese Aufgabe wurde als verpasst markiert und für den aktuellen Zyklus gesperrt."
     },
     "chore_completed_by_other": {
       "message": "Diese Aufgabe wurde in diesem Zeitraum bereits von einem anderen Kind erledigt."

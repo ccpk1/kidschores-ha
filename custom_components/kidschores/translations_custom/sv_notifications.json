@@ -54,6 +54,10 @@
     "title": "⭐ Bonus tillämpad!",
     "message": "{bonus_name}: Du tjänade {points} bonuspoäng! Bra jobbat"
   },
+  "multiplier_changed_kid": {
+    "title": "⚖️ Multiplikator uppdaterad",
+    "message": "Din poängmultiplikator har ändrats från {old_multiplier}x till {new_multiplier}x"
+  },
   "_comment_parent_section": "═════════════════════════════════════════════════════════════════════════════════",
   "_comment_parent_desc": "FÖRÄLDRAMEDDELANDEN: Informativ, tredjepersons, handlingsbar. Format: '{kid_name}: Åtgärd'. INGET prefix 'Barnsysslor:'.",
   "_comment_parent_footer": "═════════════════════════════════════════════════════════════════════════════════",
@@ -82,16 +86,20 @@
     "message": "Påminnelse: {reward_name} begärd av {kid_name} väntar på ditt godkännande"
   },
   "badge_earned_parent": {
-    "title": "🏆 {kid_name}: Märke intjänat",
+    "title": "🥇 {kid_name}: Märke intjänat",
     "message": "{kid_name} fick märket {badge_name} !"
   },
   "achievement_earned_parent": {
-    "title": "⭐ {kid_name}: Prestation",
+    "title": "🏆 {kid_name}: Prestation",
     "message": "{kid_name} tjänade {achievement_name}"
   },
   "challenge_completed_parent": {
-    "title": "🎯 {kid_name}: Utmaning klar",
+    "title": "🏁 {kid_name}: Utmaning klar",
     "message": "{kid_name} slutförd {challenge_name}"
+  },
+  "multiplier_changed_parent": {
+    "title": "⚖️ {kid_name}: Multiplikatorn uppdaterad",
+    "message": "{kid_name}s poängmultiplikator ändrad från {old_multiplier}x till {new_multiplier}x"
   },
   "_comment_system_section": "═════════════════════════════════════════════════════════════════════════════════",
   "_comment_system_desc": "SYSTEM-/ADMINISTRATIONSMEDDELANDEN: Datahanteringsåtgärder",

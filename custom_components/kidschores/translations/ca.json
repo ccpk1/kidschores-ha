@@ -113,6 +113,76 @@
       "chores": {
         "title": "Afegeix una tasca",
         "description": "Crea una nova tasca amb punts, tasques i un horari recurrent.",
+        "sections": {
+          "section_root_form": {
+            "name": "Definició",
+            "description": "Identitat, assignació i configuració del contracte bàsic.",
+            "data": {
+              "name": "📋 Nom de la tasca",
+              "chore_description": "📋 Descripció (opcional)",
+              "icon": "📋 Icona (mdi:xxx)",
+              "default_points": "💰 Punts atorgats",
+              "assigned_kids": "👥 Nens assignats",
+              "completion_criteria": "👥 Criteris de finalització"
+            },
+            "data_description": {
+              "name": "Nom únic que es mostra a tot el sistema.",
+              "chore_description": "Instruccions o detalls opcionals sobre com completar aquesta tasca.",
+              "icon": "Icona de disseny de materials (per exemple, mdi:broom, mdi:dishwasher).",
+              "default_points": "Punts guanyats en completar-se.",
+              "assigned_kids": "Nens que poden veure i reclamar aquesta tasca.",
+              "completion_criteria": "Controla com es completa la tasca quan s'assignen diversos nens: seguiment individual, finalització compartida o rotació per torns."
+            }
+          },
+          "section_schedule": {
+            "name": "Horari",
+            "description": "Configuració de temps, finestra d'accés i interval recurrent.",
+            "data": {
+              "recurring_frequency": "🔄 Horari: Freqüència",
+              "due_date": "📅 Horari: Data de venciment (opcional)",
+              "clear_due_date": "🗑️ Data de venciment clara",
+              "applicable_days": "📅 Horari: Dies aplicables (opcional)",
+              "chore_due_window_offset": "⏱️ Finestra de venciment: Compensació abans de la data de venciment",
+              "chore_claim_lock_until_window": "🔒 Bloqueja la reclamació fins que s'obri el període de venciment?",
+              "custom_interval": "🔄 Programació: Interval personalitzat (per a la freqüència personalitzada)",
+              "custom_interval_unit": "🔄 Programació: Unitat d'interval personalitzada"
+            },
+            "data_description": {
+              "recurring_frequency": "Freqüència amb què es repeteix la tasca: Diàriament, Setmanalment, Mensualment, Anualment, Personalitzada o Cap.",
+              "due_date": "Data límit opcional. Es pot combinar amb programacions recurrents.",
+              "clear_due_date": "Marqueu aquesta casella per eliminar la data de venciment d'aquesta tasca.",
+              "applicable_days": "Deixeu-ho en blanc per a tots els dies. NOMÉS Seleccioneu els dies específics per restringir.",
+              "chore_due_window_offset": "Quan l'estat de la tasca canvia de Pendent a Vençuda. Format: '1d 6h 30m' o simplement '30' per a minuts. Introduïu '0' per desactivar-ho. Exemple: '1d' significa que la tasca es mostra com a 'Vençuda' 1 dia abans de la data límit.",
+              "chore_claim_lock_until_window": "Quan està activat, els nens no poden reclamar aquesta tasca abans que comenci el període de venciment.",
+              "custom_interval": "Nombre d'unitats de temps entre repeticions (per exemple, 3 per a \"cada 3 setmanes\"). Només s'utilitza amb la freqüència personalitzada.",
+              "custom_interval_unit": "Unitat de temps per a l'interval personalitzat (dies, setmanes, mesos). Només s'utilitza amb la freqüència personalitzada."
+            }
+          },
+          "section_advanced_configurations": {
+            "name": "Configuracions avançades",
+            "description": "Automatització del cicle de vida, notificacions, visibilitat i metadades.",
+            "data": {
+              "approval_reset_type": "➡️ Finalitzacions permeses i temps de restabliment de l'aprovació",
+              "approval_reset_pending_claim_action": "➡️ Gestió de reclamacions pendents en el moment de l'aprovació. Restabliment",
+              "auto_approve": "✅ Aprovació automàtica de reclamacions?",
+              "overdue_handling_type": "⏰ Endarrerit: Tractament",
+              "chore_due_reminder_offset": "🔔 Recordatori de venciment: Compensació abans de la data de venciment",
+              "chore_notifications": "🔔 Esdeveniments de notificació (opcional)",
+              "show_on_calendar": "📅 Mostrar al calendari?",
+              "chore_labels": "📋 Etiquetes (opcional)"
+            },
+            "data_description": {
+              "approval_reset_type": "Controla quan s'activa el límit del cicle d'aprovació de la tasca (mitjanit, data de venciment, en finalitzar-se o activació manual).",
+              "approval_reset_pending_claim_action": "Això és el que passa amb les reclamacions que encara estan pendents d'aprovació quan es produeix el restabliment de l'aprovació.",
+              "auto_approve": "Quan estan habilitades, les reclamacions s'aproven instantàniament sense la revisió dels pares.",
+              "overdue_handling_type": "Acció després de la data de venciment: Amaga l'estat de venciment, mantén el venciment fins que es reclama o restableix-lo a pendent en el següent cicle d'aprovació.",
+              "chore_due_reminder_offset": "Quan s'ha d'enviar la notificació de recordatori de venciment. Format: \"1d 6h 30m\" o simplement \"30\" per a minuts. Per defecte: 30m (30 minuts abans del venciment). Introduïu \"0\" per desactivar-ho.",
+              "chore_notifications": "Quan enviar notificacions: En cas de reclamació, aprovació, rebuig o qualsevol combinació.",
+              "show_on_calendar": "Mostra aquesta tasca a la vista de calendari.",
+              "chore_labels": "Etiquetes per organitzar les tasques (per exemple, \"cuina\", \"exterior\"). Deixeu-ho en blanc si no cal."
+            }
+          }
+        },
         "data": {
           "name": "📋 Nom de la tasca",
           "chore_description": "📋 Descripció (opcional)",
@@ -124,6 +194,7 @@
           "approval_reset_type": "➡️ Finalitzacions permeses i temps de restabliment de l'aprovació",
           "approval_reset_pending_claim_action": "➡️ Gestió de reclamacions pendents en el moment de l'aprovació. Restabliment",
           "overdue_handling_type": "⏰ Endarrerit: Tractament",
+          "chore_claim_lock_until_window": "🔒 Bloqueja la reclamació fins que s'obri el període de venciment?",
           "auto_approve": "✅ Aprovació automàtica de reclamacions?",
           "recurring_frequency": "🔄 Horari: Freqüència",
           "custom_interval": "🔄 Programació: Interval personalitzat (per a la freqüència personalitzada)",
@@ -146,6 +217,7 @@
           "approval_reset_type": "Controla quan s'activa el límit del cicle d'aprovació de la tasca (mitjanit, data de venciment, en finalitzar-se o activació manual).",
           "approval_reset_pending_claim_action": "Això és el que passa amb les reclamacions que encara estan pendents d'aprovació quan es produeix el restabliment de l'aprovació.",
           "overdue_handling_type": "Acció després de la data de venciment: Amaga l'estat de venciment, mantén el venciment fins que es reclama o restableix-lo a pendent en el següent cicle d'aprovació.",
+          "chore_claim_lock_until_window": "Quan està activat, els nens no poden reclamar aquesta tasca abans que comenci el període de venciment.",
           "auto_approve": "Quan estan habilitades, les reclamacions s'aproven instantàniament sense la revisió dels pares.",
           "recurring_frequency": "Freqüència amb què es repeteix la tasca: Diàriament, Setmanalment, Mensualment, Anualment, Personalitzada o Cap.",
           "custom_interval": "Nombre d'unitats de temps entre repeticions (per exemple, 3 per a \"cada 3 setmanes\"). Només s'utilitza amb la freqüència personalitzada.",
@@ -356,6 +428,7 @@
       "invalid_challenge_name": "Nom de repte no vàlid",
       "invalid_chore": "Tasca no vàlida",
       "invalid_chore_count": "Recompte de tasques no vàlid",
+      "rotation_min_kids": "Les tasques de rotació requereixen almenys 2 nens assignats",
       "invalid_chore_name": "Nom de tasca no vàlid",
       "invalid_points": "Els punts han de ser zero o superiors",
       "invalid_overdue_reset_combination": "La gestió de venciments \"A la data de venciment, després es reinicia\" només funciona amb els tipus de restabliment a mitjanit. Seleccioneu \"A mitjanit (una vegada)\" o \"A mitjanit (repetint)\" per al tipus de restabliment d'aprovació.",
@@ -481,6 +554,76 @@
       "add_chore": {
         "title": "Afegeix una tasca",
         "description": "Crea una nova tasca amb punts, assignacions i un horari recurrent.\n\n📖 [Guia de configuració]({documentation_url})",
+        "sections": {
+          "section_root_form": {
+            "name": "Definició",
+            "description": "Identitat, assignació i configuració del contracte bàsic.",
+            "data": {
+              "name": "📋 Nom de la tasca",
+              "chore_description": "📋 Descripció (opcional)",
+              "icon": "📋 Icona (mdi:xxx)",
+              "default_points": "💰 Punts atorgats",
+              "assigned_kids": "👥 Nens assignats",
+              "completion_criteria": "👥 Criteris de finalització"
+            },
+            "data_description": {
+              "name": "Nom únic que es mostra a tot el sistema.",
+              "chore_description": "Instruccions o detalls opcionals sobre com completar aquesta tasca.",
+              "icon": "Icona de disseny de materials (per exemple, mdi:broom, mdi:dishwasher).",
+              "default_points": "Punts guanyats en completar-se.",
+              "assigned_kids": "Nens que poden veure i reclamar aquesta tasca.",
+              "completion_criteria": "Controla com es completa la tasca quan s'assignen diversos nens: seguiment individual, finalització compartida o rotació per torns."
+            }
+          },
+          "section_schedule": {
+            "name": "Horari",
+            "description": "Configuració de temps, finestra d'accés i interval recurrent.",
+            "data": {
+              "recurring_frequency": "🔄 Horari: Freqüència",
+              "due_date": "📅 Horari: Data de venciment (opcional)",
+              "clear_due_date": "🗑️ Data de venciment clara",
+              "applicable_days": "📅 Horari: Dies aplicables (opcional)",
+              "chore_due_window_offset": "⏱️ Finestra de venciment: Compensació abans de la data de venciment",
+              "chore_claim_lock_until_window": "🔒 Bloqueja la reclamació fins que s'obri el període de venciment?",
+              "custom_interval": "🔄 Programació: Interval personalitzat (per a la freqüència personalitzada)",
+              "custom_interval_unit": "🔄 Programació: Unitat d'interval personalitzada"
+            },
+            "data_description": {
+              "recurring_frequency": "Freqüència amb què es repeteix la tasca: Diàriament, Setmanalment, Mensualment, Anualment, Personalitzat o Cap. Si seleccioneu \"Diàriament: diverses vegades al dia\", apareixerà una pantalla addicional per configurar les hores específiques.",
+              "due_date": "Data límit opcional. Es pot combinar amb horaris recurrents. Per a tasques INDEPENDENTS, això serveix com a plantilla: apareixerà una pantalla addicional que permetrà dates individuals per nen.",
+              "clear_due_date": "Marqueu aquesta casella per eliminar la data de venciment d'aquesta tasca.",
+              "applicable_days": "Deixeu-ho en blanc per a tots els dies. NOMÉS Seleccioneu els dies específics per restringir.",
+              "chore_due_window_offset": "Quan l'estat de la tasca canvia de Pendent a Vençuda. Format: '1d 6h 30m' o simplement '30' per a minuts. Introduïu '0' per desactivar-ho. Exemple: '1d' significa que la tasca es mostra com a 'Vençuda' 1 dia abans de la data límit.",
+              "chore_claim_lock_until_window": "Quan està activat, els nens no poden reclamar aquesta tasca abans que comenci el període de venciment.",
+              "custom_interval": "Nombre d'unitats de temps entre repeticions (per exemple, 3 per a \"cada 3 setmanes\"). Només s'utilitza amb la freqüència personalitzada.",
+              "custom_interval_unit": "Unitat de temps per a l'interval personalitzat (dies, setmanes, mesos). Només s'utilitza amb la freqüència personalitzada."
+            }
+          },
+          "section_advanced_configurations": {
+            "name": "Configuracions avançades",
+            "description": "Automatització del cicle de vida, notificacions, visibilitat i metadades.",
+            "data": {
+              "approval_reset_type": "➡️ Finalitzacions permeses i temps de restabliment de l'aprovació",
+              "approval_reset_pending_claim_action": "➡️ Gestió de reclamacions pendents en el moment de l'aprovació. Restabliment",
+              "auto_approve": "✅ Aprovació automàtica de reclamacions?",
+              "overdue_handling_type": "⏰ Endarrerit: Tractament",
+              "chore_due_reminder_offset": "🔔 Recordatori de venciment: Compensació abans de la data de venciment",
+              "chore_notifications": "🔔 Esdeveniments de notificació (opcional)",
+              "show_on_calendar": "📅 Mostrar al calendari?",
+              "chore_labels": "📋 Etiquetes (opcional)"
+            },
+            "data_description": {
+              "approval_reset_type": "Controla quan s'activa el límit del cicle d'aprovació de la tasca (mitjanit, data de venciment, en finalitzar-se o activació manual).",
+              "approval_reset_pending_claim_action": "Controla què passa amb les reclamacions no aprovades quan s'activa el límit de restabliment d'aprovació.",
+              "auto_approve": "Quan estan habilitades, les reclamacions s'aproven instantàniament sense la revisió dels pares.",
+              "overdue_handling_type": "Controla què passa quan passa la data de venciment i què passa amb les tasques endarrerides al límit de restabliment de l'aprovació.",
+              "chore_due_reminder_offset": "Quan s'ha d'enviar la notificació de recordatori de venciment. Format: \"1d 6h 30m\" o simplement \"30\" per a minuts. Per defecte: 30m (30 minuts abans del venciment). Introduïu \"0\" per desactivar-ho.",
+              "chore_notifications": "Quan enviar notificacions: En cas de reclamació, aprovació, rebuig o qualsevol combinació.",
+              "show_on_calendar": "Mostra aquesta tasca a la vista de calendari.",
+              "chore_labels": "Etiquetes per organitzar les tasques (per exemple, \"cuina\", \"exterior\"). Deixeu-ho en blanc si no és necessari."
+            }
+          }
+        },
         "data": {
           "name": "📋 Nom de la tasca",
           "chore_description": "📋 Descripció (opcional)",
@@ -492,6 +635,7 @@
           "approval_reset_type": "➡️ Finalitzacions permeses i temps de restabliment de l'aprovació",
           "approval_reset_pending_claim_action": "➡️ Gestió de reclamacions pendents en el moment de l'aprovació. Restabliment",
           "overdue_handling_type": "⏰ Endarrerit: Tractament",
+          "chore_claim_lock_until_window": "🔒 Bloqueja la reclamació fins que s'obri el període de venciment?",
           "auto_approve": "✅ Aprovació automàtica de reclamacions?",
           "recurring_frequency": "🔄 Horari: Freqüència",
           "custom_interval": "🔄 Programació: Interval personalitzat (per a la freqüència personalitzada)",
@@ -515,6 +659,7 @@
           "approval_reset_type": "Controla quan s'activa el límit del cicle d'aprovació de la tasca (mitjanit, data de venciment, en finalitzar-se o activació manual).",
           "approval_reset_pending_claim_action": "Controla què passa amb les reclamacions no aprovades quan s'activa el límit de restabliment d'aprovació.",
           "overdue_handling_type": "Controla què passa quan passa la data de venciment i què passa amb les tasques endarrerides al límit de restabliment de l'aprovació.",
+          "chore_claim_lock_until_window": "Quan està activat, els nens no poden reclamar aquesta tasca abans que comenci el període de venciment.",
           "auto_approve": "Quan estan habilitades, les reclamacions s'aproven instantàniament sense la revisió dels pares.",
           "recurring_frequency": "Freqüència amb què es repeteix la tasca: Diàriament, Setmanalment, Mensualment, Anualment, Personalitzat o Cap. Si seleccioneu \"Diàriament: diverses vegades al dia\", apareixerà una pantalla addicional per configurar les hores específiques.",
           "custom_interval": "Nombre d'unitats de temps entre repeticions (per exemple, 3 per a \"cada 3 setmanes\"). Només s'utilitza amb la freqüència personalitzada.",
@@ -877,6 +1022,76 @@
       "edit_chore": {
         "title": "Edita la tasca",
         "description": "Modifiqueu els detalls de la tasca seleccionada.\n\n📖 [Guia de configuració]({documentation_url})",
+        "sections": {
+          "section_root_form": {
+            "name": "Definició",
+            "description": "Identitat, assignació i configuració del contracte bàsic.",
+            "data": {
+              "name": "📋 Nom de la tasca",
+              "chore_description": "📋 Descripció (opcional)",
+              "icon": "📋 Icona (mdi:xxx)",
+              "default_points": "💰 Punts atorgats",
+              "assigned_kids": "👥 Nens assignats",
+              "completion_criteria": "👥 Criteris de finalització"
+            },
+            "data_description": {
+              "name": "Nom únic que es mostra a tot el sistema.",
+              "chore_description": "Instruccions o detalls opcionals sobre com completar aquesta tasca.",
+              "icon": "Icona de disseny de materials (per exemple, mdi:broom, mdi:dishwasher).",
+              "default_points": "Punts guanyats en completar-se.",
+              "assigned_kids": "Nens que poden veure i reclamar aquesta tasca.",
+              "completion_criteria": "Controla com es completa la tasca quan s'assignen diversos nens: seguiment individual, finalització compartida o rotació per torns."
+            }
+          },
+          "section_schedule": {
+            "name": "Horari",
+            "description": "Configuració de temps, finestra d'accés i interval recurrent.",
+            "data": {
+              "recurring_frequency": "🔄 Horari: Freqüència",
+              "due_date": "📅 Horari: Data de venciment (opcional)",
+              "clear_due_date": "🗑️ Data de venciment clara",
+              "applicable_days": "📅 Horari: Dies aplicables (opcional)",
+              "chore_due_window_offset": "⏱️ Finestra de venciment: Compensació abans de la data de venciment",
+              "chore_claim_lock_until_window": "🔒 Bloqueja la reclamació fins que s'obri el període de venciment?",
+              "custom_interval": "🔄 Programació: Interval personalitzat (per a la freqüència personalitzada)",
+              "custom_interval_unit": "🔄 Programació: Unitat d'interval personalitzada"
+            },
+            "data_description": {
+              "recurring_frequency": "Freqüència amb què es repeteix la tasca: Diàriament, Setmanalment, Mensualment, Anualment, Personalitzat o Cap. Si seleccioneu \"Diàriament: diverses vegades al dia\", apareixerà una pantalla addicional per configurar les hores específiques.",
+              "due_date": "Data límit opcional. Es pot combinar amb horaris recurrents. Per a tasques INDEPENDENTS, això serveix com a plantilla: apareixerà una pantalla addicional que permetrà dates individuals per nen.",
+              "clear_due_date": "Marqueu aquesta casella per eliminar la data de venciment d'aquesta tasca.",
+              "applicable_days": "Deixeu-ho en blanc per a tots els dies. NOMÉS Seleccioneu els dies específics per restringir.",
+              "chore_due_window_offset": "Quan l'estat de la tasca canvia de Pendent a Vençuda. Format: '1d 6h 30m' o simplement '30' per a minuts. Introduïu '0' per desactivar-ho. Exemple: '1d' significa que la tasca es mostra com a 'Vençuda' 1 dia abans de la data límit.",
+              "chore_claim_lock_until_window": "Quan està activat, els nens no poden reclamar aquesta tasca abans que comenci el període de venciment.",
+              "custom_interval": "Nombre d'unitats de temps entre repeticions (per exemple, 3 per a \"cada 3 setmanes\"). Només s'utilitza amb la freqüència personalitzada.",
+              "custom_interval_unit": "Unitat de temps per a l'interval personalitzat (dies, setmanes, mesos). Només s'utilitza amb la freqüència personalitzada."
+            }
+          },
+          "section_advanced_configurations": {
+            "name": "Configuracions avançades",
+            "description": "Automatització del cicle de vida, notificacions, visibilitat i metadades.",
+            "data": {
+              "approval_reset_type": "➡️ Finalitzacions permeses i temps de restabliment de l'aprovació",
+              "approval_reset_pending_claim_action": "➡️ Gestió de reclamacions pendents en el moment de l'aprovació. Restabliment",
+              "auto_approve": "✅ Aprovació automàtica de reclamacions?",
+              "overdue_handling_type": "⏰ Endarrerit: Tractament",
+              "chore_due_reminder_offset": "🔔 Recordatori de venciment: Compensació abans de la data de venciment",
+              "chore_notifications": "🔔 Esdeveniments de notificació (opcional)",
+              "show_on_calendar": "📅 Mostrar al calendari?",
+              "chore_labels": "📋 Etiquetes (opcional)"
+            },
+            "data_description": {
+              "approval_reset_type": "Controla quan s'activa el límit del cicle d'aprovació de la tasca (mitjanit, data de venciment, en finalitzar-se o activació manual).",
+              "approval_reset_pending_claim_action": "Controla què passa amb les reclamacions no aprovades quan s'activa el límit de restabliment d'aprovació.",
+              "auto_approve": "Quan estan habilitades, les reclamacions s'aproven instantàniament sense la revisió dels pares.",
+              "overdue_handling_type": "Controla què passa quan passa la data de venciment i què passa amb les tasques endarrerides al límit de restabliment de l'aprovació.",
+              "chore_due_reminder_offset": "Quan s'ha d'enviar la notificació de recordatori de venciment. Format: \"1d 6h 30m\" o simplement \"30\" per a minuts. Per defecte: 30m (30 minuts abans del venciment). Introduïu \"0\" per desactivar-ho.",
+              "chore_notifications": "Quan enviar notificacions: En cas de reclamació, aprovació, rebuig o qualsevol combinació.",
+              "show_on_calendar": "Mostra aquesta tasca a la vista de calendari.",
+              "chore_labels": "Etiquetes per organitzar les tasques (per exemple, \"cuina\", \"exterior\"). Deixeu-ho en blanc si no cal."
+            }
+          }
+        },
         "data": {
           "name": "📋 Nom de la tasca",
           "chore_description": "📋 Descripció (opcional)",
@@ -889,6 +1104,7 @@
           "approval_reset_type": "➡️ Finalitzacions permeses i temps de restabliment de l'aprovació",
           "approval_reset_pending_claim_action": "➡️ Gestió de reclamacions pendents en el moment de l'aprovació. Restabliment",
           "overdue_handling_type": "⏰ Endarrerit: Tractament",
+          "chore_claim_lock_until_window": "🔒 Bloqueja la reclamació fins que s'obri el període de venciment?",
           "auto_approve": "✅ Aprovació automàtica de reclamacions?",
           "recurring_frequency": "🔄 Horari: Freqüència",
           "custom_interval": "🔄 Programació: Interval personalitzat (per a la freqüència personalitzada)",
@@ -912,6 +1128,7 @@
           "approval_reset_type": "Controla quan s'activa el límit del cicle d'aprovació de la tasca (mitjanit, data de venciment, en finalitzar-se o activació manual).",
           "approval_reset_pending_claim_action": "Controla què passa amb les reclamacions no aprovades quan s'activa el límit de restabliment d'aprovació.",
           "overdue_handling_type": "Controla què passa quan passa la data de venciment i què passa amb les tasques endarrerides al límit de restabliment de l'aprovació.",
+          "chore_claim_lock_until_window": "Quan està activat, els nens no poden reclamar aquesta tasca abans que comenci el període de venciment.",
           "auto_approve": "Quan estan habilitades, les reclamacions s'aproven instantàniament sense la revisió dels pares.",
           "recurring_frequency": "Freqüència amb què es repeteix la tasca: Diàriament, Setmanalment, Mensualment, Anualment, Personalitzat o Cap. Si seleccioneu \"Diàriament: diverses vegades al dia\", apareixerà una pantalla addicional per configurar les hores específiques.",
           "custom_interval": "Nombre d'unitats de temps entre repeticions (per exemple, 3 per a \"cada 3 setmanes\"). Només s'utilitza amb la freqüència personalitzada.",
@@ -1352,6 +1569,7 @@
           "retention_monthly": "Retenció mensual de dades (mesos)",
           "retention_yearly": "Retenció anual de dades (anys)",
           "show_legacy_entities": "Mostra entitats addicionals",
+          "kiosk_mode": "Activa el mode quiosc per a reclamacions infantils",
           "backups_max_retained": "Còpies de seguretat màximes per conservar",
           "backup_action_selection": "Accions de còpia de seguretat"
         },
@@ -1365,6 +1583,7 @@
           "retention_monthly": "Nombre de mesos de dades històriques mensuals que cal conservar abans de la neteja. Mínim 1, màxim 24.",
           "retention_yearly": "Nombre d'anys de dades històriques anuals que cal conservar abans de la neteja. Mínim 1, màxim 10.",
           "show_legacy_entities": "Mostra entitats addicionals com ara sensor i seleccions que ara estan consolidades al sensor auxiliar del tauler de control. Aquestes entitats són opcionals per a la compatibilitat amb versions anteriors de les automatitzacions existents.",
+          "kiosk_mode": "Permet que els botons de reclamació de tasques/recompenses infantils funcionin en tauletes murals compartides sense que l'usuari del tauler de control coincideixi amb l'enllaç d'usuari de Home Assistant del nen. Avís de seguretat: qualsevol persona amb accés a aquest dispositiu pot enviar reclamacions infantils.",
           "backups_max_retained": "Nombre màxim de fitxers de còpia de seguretat per conservar per etiqueta (per exemple, 5 còpies de seguretat manuals, 5 còpies de seguretat de data_reset). Les còpies de seguretat més antigues s'eliminen automàticament després de crear cada còpia de seguretat nova. Establiu-ho a 0 per desactivar completament les còpies de seguretat automàtiques.",
           "backup_action_selection": "Trieu una acció de gestió de còpies de seguretat: creeu una còpia de seguretat manual, suprimiu una còpia de seguretat o restaureu des d'una còpia de seguretat."
         }
@@ -1477,6 +1696,9 @@
       "invalid_badge_count": "Recompte de distintius no vàlid",
       "invalid_chore": "Tasca no vàlida",
       "invalid_chore_count": "Recompte de tasques no vàlid",
+      "invalid_chore_name": "Nom de tasca no vàlid",
+      "invalid_points": "Els punts han de ser zero o superiors",
+      "invalid_overdue_reset_combination": "La gestió de venciments \"A la data de venciment, després es reinicia\" només funciona amb els tipus de restabliment a mitjanit. Seleccioneu \"A mitjanit (una vegada)\" o \"A mitjanit (repetint)\" per al tipus de restabliment d'aprovació.",
       "invalid_due_date": "Data de venciment no vàlida",
       "date_required_for_frequency": "Cal una data de venciment per a aquesta freqüència recurrent. L'opció \"Esborrar dates\" només funciona amb la freqüència Cap, Diària o Setmanal.",
       "invalid_end_date": "Data de finalització no vàlida.",
@@ -1505,6 +1727,7 @@
       "error_daily_multi_times_too_few": "Calen com a mínim 2 vegades per a la freqüència \"Diverses vegades al dia\". Per a una sola vegada, utilitzeu la freqüència \"Diària\" habitual.",
       "error_daily_multi_times_too_many": "Màxim de 6 vegades per dia per a la freqüència \"Diverses vegades per dia\".",
       "error_daily_multi_due_date_required": "La freqüència de \"Diverses vegades al dia\" requereix que s'estableixi una data de venciment. La data determina quan comença la programació i els horaris determinen les finestres de disponibilitat cada dia.",
+      "rotation_min_kids": "Les tasques de rotació requereixen almenys 2 nens assignats",
       "error_allow_steal_incompatible": "Permetre la gestió de retards de robatori només és compatible amb les tasques de rotació (rotation_simple o rotation_smart), tipus de restabliment \"Un cop al dia\" i requereix una data de venciment per definir quan s'obre la finestra de robatori.",
       "error_at_due_date_reset_requires_due_date": "Els tipus de restabliment d'aprovació \"A la data de venciment\" (Una o Múltiple) requereixen que s'estableixi una data de venciment. Sense una data de venciment, el restabliment d'aprovació no s'activarà mai i la tasca romandrà aprovada indefinidament.",
       "error_per_kid_applicable_days_invalid": "Format de dies aplicable no vàlid per a un o més fills. Els dies han de ser nombres enters del 0 al 6 (de dilluns a diumenge) sense duplicats.",
@@ -1621,6 +1844,7 @@
     "target_type": {
       "options": {
         "points": "Punts",
+        "points_all_time": "Punts (de tots els temps)",
         "points_chores": "Punts de les tasques escolars",
         "chore_count": "Recompte de tasques",
         "days_all_chores": "Dies de tasques seleccionades completades",
@@ -2112,6 +2336,11 @@
           "description": "Controla què passa quan passa la data de venciment i què passa amb les tasques endarrerides al límit de restabliment de l'aprovació.",
           "example": "data_de_venciment"
         },
+        "chore_claim_lock_until_window": {
+          "name": "Bloqueja la reclamació fins que s'obri la finestra",
+          "description": "Si és cert, els nens no poden reclamar aquesta tasca abans que comenci el període de venciment.",
+          "example": "fals"
+        },
         "auto_approve": {
           "name": "Aprovació automàtica",
           "description": "Si és cert, la tasca s'aprova automàticament quan es reclama.",
@@ -2136,7 +2365,7 @@
     },
     "update_chore": {
       "name": "Actualitzar la tasca",
-      "description": "Actualitza les propietats d'una tasca existent. Proporciona l'identificador O el nom per identificar la tasca. Només s'actualitzaran els camps proporcionats. Nota: els criteris de completion no es poden canviar després de la creació.",
+      "description": "Actualitza les propietats d'una tasca existent. Proporciona l'identificador O el nom per identificar la tasca. Només s'actualitzaran els camps proporcionats.",
       "fields": {
         "id": {
           "name": "ID de la tasca",
@@ -2197,6 +2426,11 @@
           "name": "Gestió de venciments",
           "description": "Nou comportament de gestió de venciments.",
           "example": "mai_endarrerit"
+        },
+        "chore_claim_lock_until_window": {
+          "name": "Bloqueja la reclamació fins que s'obri la finestra",
+          "description": "Si és cert, els nens no poden reclamar aquesta tasca abans que comenci el període de venciment.",
+          "example": "cert"
         },
         "auto_approve": {
           "name": "Aprovació automàtica",
@@ -2561,6 +2795,18 @@
           "chore_last_longest_streak_date": {
             "name": "Última cita de la ratxa més llarga"
           },
+          "chore_current_missed_streak": {
+            "name": "Ratxa perduda actual"
+          },
+          "chore_longest_missed_streak": {
+            "name": "Ratxa perduda més llarga"
+          },
+          "chore_missed_count": {
+            "name": "Perdut (de tots els temps)"
+          },
+          "chore_last_missed": {
+            "name": "Últim error"
+          },
           "last_claimed": {
             "name": "Última reclamació"
           },
@@ -2650,6 +2896,9 @@
           "kid_name": {
             "name": "Nom del nen/a"
           },
+          "points_multiplier": {
+            "name": "Multiplicador de punts"
+          },
           "point_stat_points_earned_today": {
             "name": "Guanyat avui"
           },
@@ -2725,7 +2974,7 @@
           "point_stat_avg_points_per_chore": {
             "name": "Mitjana per tasca"
           },
-          "point_stat_highest_balance": {
+          "point_stat_highest_balance_all_time": {
             "name": "El saldo més alt de la història"
           }
         }
@@ -2803,17 +3052,32 @@
           "chore_stat_overdue_today": {
             "name": "Vençut avui"
           },
+          "chore_stat_missed_today": {
+            "name": "Avui perdut"
+          },
           "chore_stat_overdue_week": {
             "name": "Endarrerit aquesta setmana"
+          },
+          "chore_stat_missed_week": {
+            "name": "Perdut aquesta setmana"
           },
           "chore_stat_overdue_month": {
             "name": "Endarrerit aquest mes"
           },
+          "chore_stat_missed_month": {
+            "name": "Perdut aquest mes"
+          },
           "chore_stat_overdue_year": {
             "name": "Endarrerit aquest any"
           },
+          "chore_stat_missed_year": {
+            "name": "Perdut aquest any"
+          },
           "chore_stat_overdue_count_all_time": {
             "name": "Endarrerit de tots els temps"
+          },
+          "chore_stat_missed_all_time": {
+            "name": "Perdut de tots els temps"
           },
           "chore_stat_claimed_today": {
             "name": "Reclamat avui"
@@ -2922,6 +3186,9 @@
           },
           "chore_stat_longest_streak": {
             "name": "Ratxa més llarga"
+          },
+          "chore_stat_longest_missed_streak": {
+            "name": "Ratxa perduda més llarga"
           },
           "chore_stat_avg_per_day_week": {
             "name": "Mitjana per dia (setmana)"
@@ -4128,6 +4395,15 @@
     },
     "chore_pending_claim": {
       "message": "La tasca té una reclamació pendent que espera aprovació o desaprovació."
+    },
+    "chore_waiting": {
+      "message": "Aquesta tasca encara no es pot reclamar. La finestra de venciment no s'ha obert."
+    },
+    "chore_not_my_turn": {
+      "message": "Aquesta tasca està bloquejada per rotació. Actualment és el torn d'un altre nen."
+    },
+    "chore_missed_locked": {
+      "message": "Aquesta tasca està marcada com a perduda i bloquejada per al cicle actual."
     },
     "chore_completed_by_other": {
       "message": "Aquesta tasca ja l'ha completat un altre nen en aquest període"

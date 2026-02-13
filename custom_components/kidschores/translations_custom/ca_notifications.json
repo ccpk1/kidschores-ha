@@ -54,6 +54,10 @@
     "title": "⭐ Bonificació aplicada!",
     "message": "{bonus_name}: Has guanyat {points} punts extra! Bona feina."
   },
+  "multiplier_changed_kid": {
+    "title": "⚖️ Multiplicador actualitzat",
+    "message": "El multiplicador de punts ha canviat de {old_multiplier}x a {new_multiplier}x"
+  },
   "_comment_parent_section": "══════════════════════════════════════════════════════════════",
   "_comment_parent_desc": "NOTIFICACIONS ALS PARES: Informatives, en tercera persona, accionables. Format: '{kid_name}: Acció'. SENSE el prefix 'KidsChores:'.",
   "_comment_parent_footer": "══════════════════════════════════════════════════════════════",
@@ -82,16 +86,20 @@
     "message": "Recordatori: {reward_name} sol·licitat per {kid_name} està esperant la vostra aprovació."
   },
   "badge_earned_parent": {
-    "title": "🏆 {kid_name}: Insígnia guanyada",
+    "title": "🥇 {kid_name}: Insígnia guanyada",
     "message": "{kid_name} ha guanyat la insígnia {badge_name} !"
   },
   "achievement_earned_parent": {
-    "title": "⭐ {kid_name}: Assoliment",
+    "title": "🏆 {kid_name}: Assoliment",
     "message": "{kid_name} guanyat {achievement_name}"
   },
   "challenge_completed_parent": {
-    "title": "🎯 {kid_name}: Repte superat",
+    "title": "🏁 {kid_name}: Repte superat",
     "message": "{kid_name} completat {challenge_name}"
+  },
+  "multiplier_changed_parent": {
+    "title": "⚖️ {kid_name}: Multiplicador actualitzat",
+    "message": "El multiplicador de punts de {kid_name}ha canviat de {old_multiplier}x a {new_multiplier}x"
   },
   "_comment_system_section": "══════════════════════════════════════════════════════════════",
   "_comment_system_desc": "NOTIFICACIONS DEL SISTEMA/ADMINISTRADOR: Operacions de gestió de dades",

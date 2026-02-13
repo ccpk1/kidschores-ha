@@ -113,6 +113,76 @@
       "chores": {
         "title": "Lägg till syssla",
         "description": "Skapa en ny syssla med poäng, uppgifter och ett återkommande schema.",
+        "sections": {
+          "section_root_form": {
+            "name": "Definition",
+            "description": "Identitet, tilldelning och inställningar för kärnavtal.",
+            "data": {
+              "name": "📋 Namn på syssla",
+              "chore_description": "📋 Beskrivning (valfritt)",
+              "icon": "📋 Ikon (mdi:xxx)",
+              "default_points": "💰 Poäng tilldelade",
+              "assigned_kids": "👥 Tilldelade barn",
+              "completion_criteria": "👥 Slutförandekriterier"
+            },
+            "data_description": {
+              "name": "Unikt namn som visas i hela systemet.",
+              "chore_description": "Valfria instruktioner eller detaljer om hur man slutför den här sysslan.",
+              "icon": "Ikon för materialdesign (t.ex. mdi:kvast, mdi:diskmaskin).",
+              "default_points": "Poäng intjänade när de är klara.",
+              "assigned_kids": "Barn som kan se och göra anspråk på den här sysslan.",
+              "completion_criteria": "Styr hur sysslan slutförs när flera barn är tilldelade: individuell spårning, delad slutförande eller turbaserad rotation."
+            }
+          },
+          "section_schedule": {
+            "name": "Schema",
+            "description": "Inställningar för tidtagning, åtkomstfönster och återkommande intervall.",
+            "data": {
+              "recurring_frequency": "🔄 Schema: Frekvens",
+              "due_date": "📅 Schema: Förfallodatum (valfritt)",
+              "clear_due_date": "🗑️ Rensa förfallodatum",
+              "applicable_days": "📅 Schema: Tillämpliga dagar (valfritt)",
+              "chore_due_window_offset": "⏱️ Förfallofönster: Förskjutning före förfallodatum",
+              "chore_claim_lock_until_window": "🔒 Lås anspråk tills förfallofönstret öppnas?",
+              "custom_interval": "🔄 Schema: Anpassat intervall (för anpassad frekvens)",
+              "custom_interval_unit": "🔄 Schema: Anpassad intervallenhet"
+            },
+            "data_description": {
+              "recurring_frequency": "Hur ofta sysslan återkommer: Dagligen, Veckovis, Månadsvis, Årligen, Anpassad eller Ingen.",
+              "due_date": "Valfri deadline. Kan kombineras med återkommande scheman.",
+              "clear_due_date": "Markera den här rutan för att ta bort förfallodatumet från den här sysslan.",
+              "applicable_days": "Lämna tomt för alla dagar. ENDAST Välj specifika dagar att begränsa.",
+              "chore_due_window_offset": "När sysslan visas som \"Förfaller\" 1 dag före deadline. Format: '1d 6h 30m' eller bara '30' för minuter. Ange '0' för att inaktivera. Exempel: '1d' betyder att sysslan visas som \"Förfaller\" 1 dag före deadline.",
+              "chore_claim_lock_until_window": "När den är aktiverad kan barn inte göra anspråk på den här sysslan innan förfallotiden börjar.",
+              "custom_interval": "Antal tidsenheter mellan repetitioner (t.ex. 3 för 'var 3:e vecka'). Används endast med anpassad frekvens.",
+              "custom_interval_unit": "Tidsenhet för anpassat intervall (dagar, veckor, månader). Används endast med anpassad frekvens."
+            }
+          },
+          "section_advanced_configurations": {
+            "name": "Avancerade konfigurationer",
+            "description": "Livscykelautomatisering, aviseringar, synlighet och metadata.",
+            "data": {
+              "approval_reset_type": "➡️ Tillåtna slutföranden och återställning av godkännandetidpunkt",
+              "approval_reset_pending_claim_action": "➡️ Hantering av väntande reklamationer vid godkännande Återställ",
+              "auto_approve": "✅ Godkänna anspråk automatiskt?",
+              "overdue_handling_type": "⏰ Försenad: Hantering",
+              "chore_due_reminder_offset": "🔔 Förfallopåminnelse: Förskjutning före förfallodatum",
+              "chore_notifications": "🔔 Aviseringshändelser (valfritt)",
+              "show_on_calendar": "📅 Visa i kalendern?",
+              "chore_labels": "📋 Etiketter (valfritt)"
+            },
+            "data_description": {
+              "approval_reset_type": "Styr när sysslanens godkännandecykelgräns utlöses (midnatt, förfallodatum, vid slutförande eller manuell utlösning).",
+              "approval_reset_pending_claim_action": "Detta är vad som händer med anspråk som fortfarande väntar på godkännande när godkännandet återställs.",
+              "auto_approve": "När det är aktiverat godkänns anspråk omedelbart utan överordnad granskning.",
+              "overdue_handling_type": "Åtgärd efter förfallodatum: Dölj förfallet status, förbli förfallet tills det görs anspråk på det eller återställ till väntande vid nästa godkännandecykel.",
+              "chore_due_reminder_offset": "När påminnelsen om förfallodatum ska skickas. Format: '1d 6h 30m' eller bara '30' för minuter. Standard: 30m (30 minuter före förfallodatum). Ange '0' för att inaktivera.",
+              "chore_notifications": "När aviseringar ska skickas: Vid anspråk, vid godkännande, vid avslag eller någon kombination.",
+              "show_on_calendar": "Visa den här uppgiften i kalendervyn.",
+              "chore_labels": "Taggar för att organisera sysslor (t.ex. 'kök', 'utomhus'). Lämna tomt om det inte behövs."
+            }
+          }
+        },
         "data": {
           "name": "📋 Namn på syssla",
           "chore_description": "📋 Beskrivning (valfritt)",
@@ -124,6 +194,7 @@
           "approval_reset_type": "➡️ Tillåtna slutföranden och återställning av godkännandetidpunkt",
           "approval_reset_pending_claim_action": "➡️ Hantering av väntande reklamationer vid godkännande Återställ",
           "overdue_handling_type": "⏰ Försenad: Hantering",
+          "chore_claim_lock_until_window": "🔒 Lås anspråk tills förfallofönstret öppnas?",
           "auto_approve": "✅ Godkänna anspråk automatiskt?",
           "recurring_frequency": "🔄 Schema: Frekvens",
           "custom_interval": "🔄 Schema: Anpassat intervall (för anpassad frekvens)",
@@ -146,6 +217,7 @@
           "approval_reset_type": "Styr när sysslanens godkännandecykelgräns utlöses (midnatt, förfallodatum, vid slutförande eller manuell utlösning).",
           "approval_reset_pending_claim_action": "Detta är vad som händer med anspråk som fortfarande väntar på godkännande när godkännandet återställs.",
           "overdue_handling_type": "Åtgärd efter förfallodatum: Dölj förfallet status, förbli förfallet tills det görs anspråk på det eller återställ till väntande vid nästa godkännandecykel.",
+          "chore_claim_lock_until_window": "När den är aktiverad kan barn inte göra anspråk på den här sysslan innan förfallotiden börjar.",
           "auto_approve": "När det är aktiverat godkänns anspråk omedelbart utan överordnad granskning.",
           "recurring_frequency": "Hur ofta sysslan återkommer: Dagligen, Veckovis, Månadsvis, Årligen, Anpassad eller Ingen.",
           "custom_interval": "Antal tidsenheter mellan repetitioner (t.ex. 3 för 'var 3:e vecka'). Används endast med anpassad frekvens.",
@@ -356,6 +428,7 @@
       "invalid_challenge_name": "Ogiltigt utmaningsnamn",
       "invalid_chore": "Ogiltig syssla",
       "invalid_chore_count": "Ogiltigt antal sysslor",
+      "rotation_min_kids": "Rotationssysslor kräver minst 2 tilldelade barn",
       "invalid_chore_name": "Ogiltigt namn på syssla",
       "invalid_points": "Poängen måste vara noll eller större",
       "invalid_overdue_reset_combination": "Hanteringen av förseningar \"Återställ sedan vid förfallodatum\" fungerar endast med återställningstyperna midnatt. Välj \"Vid midnatt (en gång)\" eller \"Vid midnatt (upprepad)\" för återställningstypen för godkännande.",
@@ -481,6 +554,76 @@
       "add_chore": {
         "title": "Lägg till syssla",
         "description": "Skapa en ny syssla med poäng, uppgifter och återkommande schema.\n\n📖 [Konfigurationsguide]({documentation_url})",
+        "sections": {
+          "section_root_form": {
+            "name": "Definition",
+            "description": "Identitet, tilldelning och inställningar för kärnavtal.",
+            "data": {
+              "name": "📋 Namn på syssla",
+              "chore_description": "📋 Beskrivning (valfritt)",
+              "icon": "📋 Ikon (mdi:xxx)",
+              "default_points": "💰 Poäng tilldelade",
+              "assigned_kids": "👥 Tilldelade barn",
+              "completion_criteria": "👥 Slutförandekriterier"
+            },
+            "data_description": {
+              "name": "Unikt namn som visas i hela systemet.",
+              "chore_description": "Valfria instruktioner eller detaljer om hur man slutför den här sysslan.",
+              "icon": "Ikon för materialdesign (t.ex. mdi:kvast, mdi:diskmaskin).",
+              "default_points": "Poäng intjänade när de är klara.",
+              "assigned_kids": "Barn som kan se och göra anspråk på den här sysslan.",
+              "completion_criteria": "Styr hur sysslan slutförs när flera barn är tilldelade: individuell spårning, delad slutförande eller turbaserad rotation."
+            }
+          },
+          "section_schedule": {
+            "name": "Schema",
+            "description": "Inställningar för tidtagning, åtkomstfönster och återkommande intervall.",
+            "data": {
+              "recurring_frequency": "🔄 Schema: Frekvens",
+              "due_date": "📅 Schema: Förfallodatum (valfritt)",
+              "clear_due_date": "🗑️ Rensa förfallodatum",
+              "applicable_days": "📅 Schema: Tillämpliga dagar (valfritt)",
+              "chore_due_window_offset": "⏱️ Förfallofönster: Förskjutning före förfallodatum",
+              "chore_claim_lock_until_window": "🔒 Lås anspråk tills förfallofönstret öppnas?",
+              "custom_interval": "🔄 Schema: Anpassat intervall (för anpassad frekvens)",
+              "custom_interval_unit": "🔄 Schema: Anpassad intervallenhet"
+            },
+            "data_description": {
+              "recurring_frequency": "Hur ofta sysslan återkommer: Dagligen, Veckovis, Månadsvis, Årligen, Anpassad eller Ingen. Om du väljer \"Dagligen - Flera gånger per dag\" visas en ytterligare skärm för att konfigurera de specifika tiderna.",
+              "due_date": "Valfri deadline. Kan kombineras med återkommande scheman. För SJÄLVSTÄNDIGA sysslor fungerar detta som en mall – en ytterligare skärm visas som tillåter individuella datum per barn.",
+              "clear_due_date": "Markera den här rutan för att ta bort förfallodatumet från den här sysslan.",
+              "applicable_days": "Lämna tomt för alla dagar. ENDAST Välj specifika dagar att begränsa.",
+              "chore_due_window_offset": "När sysslan visas som \"Förfaller\" 1 dag före deadline. Format: '1d 6h 30m' eller bara '30' för minuter. Ange '0' för att inaktivera. Exempel: '1d' betyder att sysslan visas som \"Förfaller\" 1 dag före deadline.",
+              "chore_claim_lock_until_window": "När den är aktiverad kan barn inte göra anspråk på den här sysslan innan förfallotiden börjar.",
+              "custom_interval": "Antal tidsenheter mellan repetitioner (t.ex. 3 för 'var 3:e vecka'). Används endast med anpassad frekvens.",
+              "custom_interval_unit": "Tidsenhet för anpassat intervall (dagar, veckor, månader). Används endast med anpassad frekvens."
+            }
+          },
+          "section_advanced_configurations": {
+            "name": "Avancerade konfigurationer",
+            "description": "Livscykelautomatisering, aviseringar, synlighet och metadata.",
+            "data": {
+              "approval_reset_type": "➡️ Tillåtna slutföranden och återställning av godkännandetidpunkt",
+              "approval_reset_pending_claim_action": "➡️ Hantering av väntande reklamationer vid godkännande Återställ",
+              "auto_approve": "✅ Godkänna anspråk automatiskt?",
+              "overdue_handling_type": "⏰ Försenad: Hantering",
+              "chore_due_reminder_offset": "🔔 Förfallopåminnelse: Förskjutning före förfallodatum",
+              "chore_notifications": "🔔 Aviseringshändelser (valfritt)",
+              "show_on_calendar": "📅 Visa i kalendern?",
+              "chore_labels": "📋 Etiketter (valfritt)"
+            },
+            "data_description": {
+              "approval_reset_type": "Styr när sysslanens godkännandecykelgräns utlöses (midnatt, förfallodatum, vid slutförande eller manuell utlösning).",
+              "approval_reset_pending_claim_action": "Styr vad som händer med ogodkända anspråk när återställningsgränsen för godkännande utlöses.",
+              "auto_approve": "När det är aktiverat godkänns anspråk omedelbart utan överordnad granskning.",
+              "overdue_handling_type": "Styr vad som händer när förfallodatumet passeras och vad som händer med försenade uppgifter vid gränsen för återställning av godkännande.",
+              "chore_due_reminder_offset": "När påminnelsen om förfallodatum ska skickas. Format: '1d 6h 30m' eller bara '30' för minuter. Standard: 30m (30 minuter före förfallodatum). Ange '0' för att inaktivera.",
+              "chore_notifications": "När aviseringar ska skickas: Vid anspråk, vid godkännande, vid avslag eller någon kombination.",
+              "show_on_calendar": "Visa den här uppgiften i kalendervyn.",
+              "chore_labels": "Taggar för att organisera sysslor (t.ex. 'kök', 'utomhus'). Lämna tomt om det inte behövs."
+            }
+          }
+        },
         "data": {
           "name": "📋 Namn på syssla",
           "chore_description": "📋 Beskrivning (valfritt)",
@@ -492,6 +635,7 @@
           "approval_reset_type": "➡️ Tillåtna slutföranden och återställning av godkännandetidpunkt",
           "approval_reset_pending_claim_action": "➡️ Hantering av väntande reklamationer vid godkännande Återställ",
           "overdue_handling_type": "⏰ Försenad: Hantering",
+          "chore_claim_lock_until_window": "🔒 Lås anspråk tills förfallofönstret öppnas?",
           "auto_approve": "✅ Godkänna anspråk automatiskt?",
           "recurring_frequency": "🔄 Schema: Frekvens",
           "custom_interval": "🔄 Schema: Anpassat intervall (för anpassad frekvens)",
@@ -515,6 +659,7 @@
           "approval_reset_type": "Styr när sysslanens godkännandecykelgräns utlöses (midnatt, förfallodatum, vid slutförande eller manuell utlösning).",
           "approval_reset_pending_claim_action": "Styr vad som händer med ogodkända anspråk när återställningsgränsen för godkännande utlöses.",
           "overdue_handling_type": "Styr vad som händer när förfallodatumet passeras och vad som händer med försenade uppgifter vid gränsen för återställning av godkännande.",
+          "chore_claim_lock_until_window": "När den är aktiverad kan barn inte göra anspråk på den här sysslan innan förfallotiden börjar.",
           "auto_approve": "När det är aktiverat godkänns anspråk omedelbart utan överordnad granskning.",
           "recurring_frequency": "Hur ofta sysslan återkommer: Dagligen, Veckovis, Månadsvis, Årligen, Anpassad eller Ingen. Om du väljer \"Dagligen - Flera gånger per dag\" visas en ytterligare skärm för att konfigurera de specifika tiderna.",
           "custom_interval": "Antal tidsenheter mellan repetitioner (t.ex. 3 för 'var 3:e vecka'). Används endast med anpassad frekvens.",
@@ -877,6 +1022,76 @@
       "edit_chore": {
         "title": "Redigera syssla",
         "description": "Ändra detaljerna för den valda sysslan.\n\n📖 [Konfigurationsguide]({documentation_url})",
+        "sections": {
+          "section_root_form": {
+            "name": "Definition",
+            "description": "Identitet, tilldelning och inställningar för kärnavtal.",
+            "data": {
+              "name": "📋 Namn på syssla",
+              "chore_description": "📋 Beskrivning (valfritt)",
+              "icon": "📋 Ikon (mdi:xxx)",
+              "default_points": "💰 Poäng tilldelade",
+              "assigned_kids": "👥 Tilldelade barn",
+              "completion_criteria": "👥 Slutförandekriterier"
+            },
+            "data_description": {
+              "name": "Unikt namn som visas i hela systemet.",
+              "chore_description": "Valfria instruktioner eller detaljer om hur man slutför den här sysslan.",
+              "icon": "Ikon för materialdesign (t.ex. mdi:kvast, mdi:diskmaskin).",
+              "default_points": "Poäng intjänade när de är klara.",
+              "assigned_kids": "Barn som kan se och göra anspråk på den här sysslan.",
+              "completion_criteria": "Styr hur sysslan slutförs när flera barn är tilldelade: individuell spårning, delad slutförande eller turbaserad rotation."
+            }
+          },
+          "section_schedule": {
+            "name": "Schema",
+            "description": "Inställningar för tidtagning, åtkomstfönster och återkommande intervall.",
+            "data": {
+              "recurring_frequency": "🔄 Schema: Frekvens",
+              "due_date": "📅 Schema: Förfallodatum (valfritt)",
+              "clear_due_date": "🗑️ Rensa förfallodatum",
+              "applicable_days": "📅 Schema: Tillämpliga dagar (valfritt)",
+              "chore_due_window_offset": "⏱️ Förfallofönster: Förskjutning före förfallodatum",
+              "chore_claim_lock_until_window": "🔒 Lås anspråk tills förfallofönstret öppnas?",
+              "custom_interval": "🔄 Schema: Anpassat intervall (för anpassad frekvens)",
+              "custom_interval_unit": "🔄 Schema: Anpassad intervallenhet"
+            },
+            "data_description": {
+              "recurring_frequency": "Hur ofta sysslan återkommer: Dagligen, Veckovis, Månadsvis, Årligen, Anpassad eller Ingen. Om du väljer \"Dagligen - Flera gånger per dag\" visas en ytterligare skärm för att konfigurera de specifika tiderna.",
+              "due_date": "Valfri deadline. Kan kombineras med återkommande scheman. För SJÄLVSTÄNDIGA sysslor fungerar detta som en mall – en ytterligare skärm visas som tillåter individuella datum per barn.",
+              "clear_due_date": "Markera den här rutan för att ta bort förfallodatumet från den här sysslan.",
+              "applicable_days": "Lämna tomt för alla dagar. ENDAST Välj specifika dagar att begränsa.",
+              "chore_due_window_offset": "När sysslan visas som \"Förfaller\" 1 dag före deadline. Format: '1d 6h 30m' eller bara '30' för minuter. Ange '0' för att inaktivera. Exempel: '1d' betyder att sysslan visas som \"Förfaller\" 1 dag före deadline.",
+              "chore_claim_lock_until_window": "När den är aktiverad kan barn inte göra anspråk på den här sysslan innan förfallotiden börjar.",
+              "custom_interval": "Antal tidsenheter mellan repetitioner (t.ex. 3 för 'var 3:e vecka'). Används endast med anpassad frekvens.",
+              "custom_interval_unit": "Tidsenhet för anpassat intervall (dagar, veckor, månader). Används endast med anpassad frekvens."
+            }
+          },
+          "section_advanced_configurations": {
+            "name": "Avancerade konfigurationer",
+            "description": "Livscykelautomatisering, aviseringar, synlighet och metadata.",
+            "data": {
+              "approval_reset_type": "➡️ Tillåtna slutföranden och återställning av godkännandetidpunkt",
+              "approval_reset_pending_claim_action": "➡️ Hantering av väntande reklamationer vid godkännande Återställ",
+              "auto_approve": "✅ Godkänna anspråk automatiskt?",
+              "overdue_handling_type": "⏰ Försenad: Hantering",
+              "chore_due_reminder_offset": "🔔 Förfallopåminnelse: Förskjutning före förfallodatum",
+              "chore_notifications": "🔔 Aviseringshändelser (valfritt)",
+              "show_on_calendar": "📅 Visa i kalendern?",
+              "chore_labels": "📋 Etiketter (valfritt)"
+            },
+            "data_description": {
+              "approval_reset_type": "Styr när sysslanens godkännandecykelgräns utlöses (midnatt, förfallodatum, vid slutförande eller manuell utlösning).",
+              "approval_reset_pending_claim_action": "Styr vad som händer med ogodkända anspråk när återställningsgränsen för godkännande utlöses.",
+              "auto_approve": "När det är aktiverat godkänns anspråk omedelbart utan överordnad granskning.",
+              "overdue_handling_type": "Styr vad som händer när förfallodatumet passeras och vad som händer med försenade uppgifter vid gränsen för återställning av godkännande.",
+              "chore_due_reminder_offset": "När påminnelsen om förfallodatum ska skickas. Format: '1d 6h 30m' eller bara '30' för minuter. Standard: 30m (30 minuter före förfallodatum). Ange '0' för att inaktivera.",
+              "chore_notifications": "När aviseringar ska skickas: Vid anspråk, vid godkännande, vid avslag eller någon kombination.",
+              "show_on_calendar": "Visa den här uppgiften i kalendervyn.",
+              "chore_labels": "Taggar för att organisera sysslor (t.ex. 'kök', 'utomhus'). Lämna tomt om det inte behövs."
+            }
+          }
+        },
         "data": {
           "name": "📋 Namn på syssla",
           "chore_description": "📋 Beskrivning (valfritt)",
@@ -889,6 +1104,7 @@
           "approval_reset_type": "➡️ Tillåtna slutföranden och återställning av godkännandetidpunkt",
           "approval_reset_pending_claim_action": "➡️ Hantering av väntande reklamationer vid godkännande Återställ",
           "overdue_handling_type": "⏰ Försenad: Hantering",
+          "chore_claim_lock_until_window": "🔒 Lås anspråk tills förfallofönstret öppnas?",
           "auto_approve": "✅ Godkänna anspråk automatiskt?",
           "recurring_frequency": "🔄 Schema: Frekvens",
           "custom_interval": "🔄 Schema: Anpassat intervall (för anpassad frekvens)",
@@ -912,6 +1128,7 @@
           "approval_reset_type": "Styr när sysslanens godkännandecykelgräns utlöses (midnatt, förfallodatum, vid slutförande eller manuell utlösning).",
           "approval_reset_pending_claim_action": "Styr vad som händer med ogodkända anspråk när återställningsgränsen för godkännande utlöses.",
           "overdue_handling_type": "Styr vad som händer när förfallodatumet passeras och vad som händer med försenade uppgifter vid gränsen för återställning av godkännande.",
+          "chore_claim_lock_until_window": "När den är aktiverad kan barn inte göra anspråk på den här sysslan innan förfallotiden börjar.",
           "auto_approve": "När det är aktiverat godkänns anspråk omedelbart utan överordnad granskning.",
           "recurring_frequency": "Hur ofta sysslan återkommer: Dagligen, Veckovis, Månadsvis, Årligen, Anpassad eller Ingen. Om du väljer \"Dagligen - Flera gånger per dag\" visas en ytterligare skärm för att konfigurera de specifika tiderna.",
           "custom_interval": "Antal tidsenheter mellan repetitioner (t.ex. 3 för 'var 3:e vecka'). Används endast med anpassad frekvens.",
@@ -1352,6 +1569,7 @@
           "retention_monthly": "Månatlig datalagring (månader)",
           "retention_yearly": "Årlig datalagring (år)",
           "show_legacy_entities": "Visa extra enheter",
+          "kiosk_mode": "Aktivera kioskläge för barnanspråk",
           "backups_max_retained": "Maximalt antal säkerhetskopior att behålla",
           "backup_action_selection": "Säkerhetskopieringsåtgärder"
         },
@@ -1365,6 +1583,7 @@
           "retention_monthly": "Antal månader med månatlig historisk data som ska behållas före rensning. Minst 1, högst 24.",
           "retention_yearly": "Antal år av årliga historiska data som ska behållas före sanering. Minst 1, högst 10.",
           "show_legacy_entities": "Visa extra entiteter som sensor och selects som nu är konsoliderade i instrumentpanelshjälpsensorn. Dessa entiteter är valfria för bakåtkompatibilitet med befintliga automatiseringar.",
+          "kiosk_mode": "Tillåter att knappar för att ansöka om sysslor/belöningar för barn fungerar på surfplattor med delad vägg utan att instrumentpanelsanvändaren behöver matcha barnets Home Assistant-användarlänk. Säkerhetsvarning: alla med åtkomst till den enheten kan skicka in anspråk för barn.",
           "backups_max_retained": "Maximalt antal säkerhetskopior att behålla per tagg (t.ex. 5 manuella säkerhetskopior, 5 data_reset-säkerhetskopior). Äldre säkerhetskopior raderas automatiskt efter att varje ny säkerhetskopia skapas. Ställ in på 0 för att inaktivera automatiska säkerhetskopior helt.",
           "backup_action_selection": "Välj en åtgärd för säkerhetskopieringshantering: skapa en manuell säkerhetskopia, ta bort en säkerhetskopia eller återställ från en säkerhetskopia."
         }
@@ -1477,6 +1696,9 @@
       "invalid_badge_count": "Ogiltigt antal märken",
       "invalid_chore": "Ogiltig syssla",
       "invalid_chore_count": "Ogiltigt antal sysslor",
+      "invalid_chore_name": "Ogiltigt namn på syssla",
+      "invalid_points": "Poängen måste vara noll eller större",
+      "invalid_overdue_reset_combination": "Hanteringen av förseningar \"Återställ sedan vid förfallodatum\" fungerar endast med återställningstyperna midnatt. Välj \"Vid midnatt (en gång)\" eller \"Vid midnatt (upprepad)\" för återställningstypen för godkännande.",
       "invalid_due_date": "Ogiltigt förfallodatum",
       "date_required_for_frequency": "Ett förfallodatum krävs för denna återkommande frekvens. Rensa datum fungerar endast med frekvensen Ingen, Daglig eller Veckovis.",
       "invalid_end_date": "Ogiltigt slutdatum.",
@@ -1505,6 +1727,7 @@
       "error_daily_multi_times_too_few": "Minst 2 gånger krävs för frekvensen 'Flera gånger per dag'. För en enskild tid, använd vanlig frekvens 'Daglig'.",
       "error_daily_multi_times_too_many": "Maximalt 6 gånger tillåtet per dag för frekvensen 'Flera gånger per dag'.",
       "error_daily_multi_due_date_required": "Frekvensen \"Flera gånger per dag\" kräver att ett förfallodatum anges. Datumet avgör när schemaläggningen startar och tiderna avgör tillgänglighetsfönstren varje dag.",
+      "rotation_min_kids": "Rotationssysslor kräver minst 2 tilldelade barn",
       "error_allow_steal_incompatible": "Tillåt hantering av försenade stjälningar är endast kompatibelt med rotationssysslor (rotation_simple eller rotation_smart), återställningstypen 'En gång per dag', och kräver ett förfallodatum för att definiera när stjälningsfönstret öppnas.",
       "error_at_due_date_reset_requires_due_date": "Godkännandeåterställningstyperna \"Vid förfallodatum\" (en gång eller flera gånger) kräver att ett förfallodatum anges. Utan ett förfallodatum kommer återställningen av godkännandet aldrig att utlösas och sysslan förblir godkänd på obestämd tid.",
       "error_per_kid_applicable_days_invalid": "Ogiltigt tillämpligt dagsformat för ett eller flera barn. Dagarna måste vara heltal 0–6 (måndag–söndag) utan dubbletter.",
@@ -1621,6 +1844,7 @@
     "target_type": {
       "options": {
         "points": "Poäng",
+        "points_all_time": "Poäng (genom alla tider)",
         "points_chores": "Poäng från sysslor",
         "chore_count": "Antal sysslor",
         "days_all_chores": "Dagar valda sysslor slutförda",
@@ -2112,6 +2336,11 @@
           "description": "Styr vad som händer när förfallodatumet passeras och vad som händer med försenade uppgifter vid gränsen för återställning av godkännande.",
           "example": "förfallodatum"
         },
+        "chore_claim_lock_until_window": {
+          "name": "Lås anspråk tills fönstret öppnas",
+          "description": "Om det är sant kan barn inte göra anspråk på den här sysslan innan förfallotiden börjar.",
+          "example": "falsk"
+        },
         "auto_approve": {
           "name": "Autogodkänn",
           "description": "Om det är sant godkänns sysslan automatiskt när den görs anspråk på.",
@@ -2136,7 +2365,7 @@
     },
     "update_chore": {
       "name": "Uppdatera syssla",
-      "description": "Uppdatera egenskaperna för en befintlig syssla. Ange antingen id ELLER namn för att identifiera sysslan. Endast angivna fält kommer att uppdateras. Obs: completion_criteria kan inte ändras efter att den skapats.",
+      "description": "Uppdatera egenskaperna för en befintlig syssla. Ange antingen ID ELLER namn för att identifiera sysslan. Endast angivna fält kommer att uppdateras.",
       "fields": {
         "id": {
           "name": "Sysslo-ID",
@@ -2197,6 +2426,11 @@
           "name": "Försenad hantering",
           "description": "Nytt beteende vid hantering av försenade händelser.",
           "example": "aldrig_försenad"
+        },
+        "chore_claim_lock_until_window": {
+          "name": "Lås anspråk tills fönstret öppnas",
+          "description": "Om det är sant kan barn inte göra anspråk på den här sysslan innan förfallotiden börjar.",
+          "example": "sann"
         },
         "auto_approve": {
           "name": "Autogodkänn",
@@ -2561,6 +2795,18 @@
           "chore_last_longest_streak_date": {
             "name": "Senaste längsta seriedatum"
           },
+          "chore_current_missed_streak": {
+            "name": "Nuvarande missade serie"
+          },
+          "chore_longest_missed_streak": {
+            "name": "Längsta missade svit"
+          },
+          "chore_missed_count": {
+            "name": "Missad (hela tiden)"
+          },
+          "chore_last_missed": {
+            "name": "Senast missade"
+          },
           "last_claimed": {
             "name": "Senast begärd"
           },
@@ -2650,6 +2896,9 @@
           "kid_name": {
             "name": "Barnets namn"
           },
+          "points_multiplier": {
+            "name": "Poängmultiplikator"
+          },
           "point_stat_points_earned_today": {
             "name": "Intjänat idag"
           },
@@ -2725,7 +2974,7 @@
           "point_stat_avg_points_per_chore": {
             "name": "Genomsnitt per syssla"
           },
-          "point_stat_highest_balance": {
+          "point_stat_highest_balance_all_time": {
             "name": "Högsta saldo någonsin"
           }
         }
@@ -2803,17 +3052,32 @@
           "chore_stat_overdue_today": {
             "name": "Försenad idag"
           },
+          "chore_stat_missed_today": {
+            "name": "Missade idag"
+          },
           "chore_stat_overdue_week": {
             "name": "Försenad denna vecka"
+          },
+          "chore_stat_missed_week": {
+            "name": "Missade denna vecka"
           },
           "chore_stat_overdue_month": {
             "name": "Försenad denna månad"
           },
+          "chore_stat_missed_month": {
+            "name": "Missade denna månad"
+          },
           "chore_stat_overdue_year": {
             "name": "Försenad i år"
           },
+          "chore_stat_missed_year": {
+            "name": "Missade i år"
+          },
           "chore_stat_overdue_count_all_time": {
             "name": "Försenade alla tider"
+          },
+          "chore_stat_missed_all_time": {
+            "name": "Missade hela tiden"
           },
           "chore_stat_claimed_today": {
             "name": "Ansökt idag"
@@ -2922,6 +3186,9 @@
           },
           "chore_stat_longest_streak": {
             "name": "Längsta svit"
+          },
+          "chore_stat_longest_missed_streak": {
+            "name": "Längsta missade svit"
           },
           "chore_stat_avg_per_day_week": {
             "name": "Genomsnitt per dag (vecka)"
@@ -4128,6 +4395,15 @@
     },
     "chore_pending_claim": {
       "message": "Chore har ett väntande anspråk som väntar på godkännande eller avslag"
+    },
+    "chore_waiting": {
+      "message": "Den här sysslan kan inte göras anspråk på ännu. Förfallofönstret har inte öppnats."
+    },
+    "chore_not_my_turn": {
+      "message": "Den här sysslan är rotationslåst. Det är just nu ett annat barns tur."
+    },
+    "chore_missed_locked": {
+      "message": "Den här sysslan är markerad som missad och låst för den aktuella cykeln."
     },
     "chore_completed_by_other": {
       "message": "Den här sysslan har redan slutförts av ett annat barn under den här perioden."

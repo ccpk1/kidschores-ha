@@ -54,6 +54,10 @@
     "title": "⭐ Bonus toegepast!",
     "message": "{bonus_name}: Je hebt {points} bonuspunten verdiend! Goed gedaan!"
   },
+  "multiplier_changed_kid": {
+    "title": "⚖️ Vermenigvuldiger bijgewerkt",
+    "message": "Je puntenvermenigvuldiger is veranderd van {old_multiplier}x naar {new_multiplier}x"
+  },
   "_comment_parent_section": "═════════════════════════════════════════════════════════════════",
   "_comment_parent_desc": "OUDERMELDINGEN: Informatief, in de derde persoon, actiegericht. Formaat: '{kid_name}: Actie'. GEEN voorvoegsel 'KidsChores:'.",
   "_comment_parent_footer": "═════════════════════════════════════════════════════════════════",
@@ -82,16 +86,20 @@
     "message": "Herinnering: {reward_name} aangevraagd door {kid_name} wacht op uw goedkeuring"
   },
   "badge_earned_parent": {
-    "title": "🏆 {kid_name}: Badge verdiend",
+    "title": "🥇 {kid_name}: Badge verdiend",
     "message": "{kid_name} heeft de {badge_name} badge verdiend!"
   },
   "achievement_earned_parent": {
-    "title": "⭐ {kid_name}: Prestatie",
+    "title": "🏆 {kid_name}: Prestatie",
     "message": "{kid_name} verdiende {achievement_name}"
   },
   "challenge_completed_parent": {
-    "title": "🎯 {kid_name}: Uitdaging voltooid",
+    "title": "🏁 {kid_name}: Uitdaging voltooid",
     "message": "{kid_name} voltooid {challenge_name}"
+  },
+  "multiplier_changed_parent": {
+    "title": "⚖️ {kid_name}: Vermenigvuldiger bijgewerkt",
+    "message": "De puntenvermenigvuldiger van {kid_name}is veranderd van {old_multiplier}x naar {new_multiplier}x"
   },
   "_comment_system_section": "═════════════════════════════════════════════════════════════════",
   "_comment_system_desc": "SYSTEEM-/BEHEERMELDINGEN: Gegevensbeheerbewerkingen",

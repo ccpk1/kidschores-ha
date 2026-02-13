@@ -113,6 +113,76 @@
       "chores": {
         "title": "Voeg een taak toe",
         "description": "Maak een nieuwe taak aan met punten, opdrachten en een terugkerend schema.",
+        "sections": {
+          "section_root_form": {
+            "name": "Definitie",
+            "description": "Identiteit, toewijzing en kerncontractinstellingen.",
+            "data": {
+              "name": "📋 Naam van de klus",
+              "chore_description": "📋 Beschrijving (optioneel)",
+              "icon": "📋 Pictogram (mdi:xxx)",
+              "default_points": "💰 Toegekende punten",
+              "assigned_kids": "👥 Toegewezen kinderen",
+              "completion_criteria": "👥 Voltooiingscriteria"
+            },
+            "data_description": {
+              "name": "Unieke naam die in het hele systeem wordt weergegeven.",
+              "chore_description": "Optionele instructies of details over hoe deze taak moet worden uitgevoerd.",
+              "icon": "Material Design-pictogrammen (bijv. mdi:bezem, mdi:afwasmachine).",
+              "default_points": "Punten worden verdiend na voltooiing.",
+              "assigned_kids": "Kinderen die dit klusje kunnen zien en op zich nemen.",
+              "completion_criteria": "Hiermee kunt u bepalen hoe de taak wordt uitgevoerd wanneer meerdere kinderen eraan zijn toegewezen: individuele voortgangsregistratie, gezamenlijke uitvoering of beurtelings rouleren."
+            }
+          },
+          "section_schedule": {
+            "name": "Schema",
+            "description": "Instellingen voor timing, toegangsvenster en terugkerend interval.",
+            "data": {
+              "recurring_frequency": "🔄 Schema: Frequentie",
+              "due_date": "📅 Planning: Uiterste inleverdatum (optioneel)",
+              "clear_due_date": "🗑️ Duidelijke vervaldatum",
+              "applicable_days": "📅 Schema: Toepasselijke dagen (optioneel)",
+              "chore_due_window_offset": "⏱️ Uiterste betaaldatum: Betaal vóór de uiterste betaaldatum",
+              "chore_claim_lock_until_window": "🔒 Is de claim geblokkeerd tot de vervaldatum?",
+              "custom_interval": "🔄 Planning: Aangepast interval (voor aangepaste frequentie)",
+              "custom_interval_unit": "🔄 Schema: Aangepaste intervaleenheid"
+            },
+            "data_description": {
+              "recurring_frequency": "Hoe vaak de taak terugkeert: Dagelijks, Wekelijks, Maandelijks, Jaarlijks, Op aanvraag of Geen.",
+              "due_date": "Optionele deadline. Kan gecombineerd worden met terugkerende schema's.",
+              "clear_due_date": "Vink dit vakje aan om de deadline voor deze taak te verwijderen.",
+              "applicable_days": "Laat alle dagen leeg. Selecteer ALLEEN specifieke dagen waarop u beperkingen wilt instellen.",
+              "chore_due_window_offset": "Wanneer de status van een taak verandert van 'In behandeling' naar 'Verschuldigd'. Formaat: '1d 6u 30m' of gewoon '30' voor minuten. Voer '0' in om uit te schakelen. Voorbeeld: '1d' betekent dat de taak 1 dag voor de deadline als 'Verschuldigd' wordt weergegeven.",
+              "chore_claim_lock_until_window": "Wanneer deze functie is ingeschakeld, kunnen kinderen deze taak niet opeisen voordat de deadline is verstreken.",
+              "custom_interval": "Aantal tijdseenheden tussen herhalingen (bijv. 3 voor 'elke 3 weken'). Alleen te gebruiken met een aangepaste frequentie.",
+              "custom_interval_unit": "Tijdseenheid voor een aangepast interval (dagen, weken, maanden). Alleen te gebruiken met een aangepaste frequentie."
+            }
+          },
+          "section_advanced_configurations": {
+            "name": "Geavanceerde configuraties",
+            "description": "Levenscyclusautomatisering, meldingen, inzicht en metadata.",
+            "data": {
+              "approval_reset_type": "➡️ Voltooiingen toegestaan en goedkeuringstijd opnieuw instellen",
+              "approval_reset_pending_claim_action": "➡️ Afhandeling van openstaande claims bij goedkeuring reset",
+              "auto_approve": "✅ Claims automatisch goedkeuren?",
+              "overdue_handling_type": "⏰ Te laat: Afhandeling",
+              "chore_due_reminder_offset": "🔔 Herinnering: Betaal vóór de vervaldatum",
+              "chore_notifications": "🔔 Meldingen (optioneel)",
+              "show_on_calendar": "📅 Weergeven op de kalender?",
+              "chore_labels": "📋 Etiketten (optioneel)"
+            },
+            "data_description": {
+              "approval_reset_type": "Hiermee wordt bepaald wanneer de grens van de goedkeuringscyclus voor de taak wordt bereikt (middernacht, vervaldatum, na voltooiing of handmatige trigger).",
+              "approval_reset_pending_claim_action": "Dit is wat er gebeurt met aanvragen die nog wachten op goedkeuring wanneer de goedkeuringsperiode wordt gereset.",
+              "auto_approve": "Indien ingeschakeld, worden aanvragen direct goedgekeurd zonder tussenkomst van de ouders.",
+              "overdue_handling_type": "Actie na de vervaldatum: De status 'te laat' verbergen, 'te laat' laten staan totdat het item is opgeëist, of de status terugzetten naar 'in behandeling' tijdens de volgende goedkeuringsronde.",
+              "chore_due_reminder_offset": "Wanneer moet de herinneringsmelding worden verzonden? Formaat: '1d 6h 30m' of gewoon '30' voor minuten. Standaard: 30m (30 minuten voor de vervaldatum). Voer '0' in om uit te schakelen.",
+              "chore_notifications": "Wanneer moeten meldingen worden verzonden: Bij een aanvraag, bij goedkeuring, bij afwijzing, of een combinatie hiervan.",
+              "show_on_calendar": "Toon deze taak in de kalenderweergave.",
+              "chore_labels": "Labels om klusjes te organiseren (bijv. 'keuken', 'buiten'). Laat leeg als dit niet nodig is."
+            }
+          }
+        },
         "data": {
           "name": "📋 Naam van de klus",
           "chore_description": "📋 Beschrijving (optioneel)",
@@ -124,6 +194,7 @@
           "approval_reset_type": "➡️ Voltooiingen toegestaan en goedkeuringstijd opnieuw instellen",
           "approval_reset_pending_claim_action": "➡️ Afhandeling van openstaande claims bij goedkeuring reset",
           "overdue_handling_type": "⏰ Te laat: Afhandeling",
+          "chore_claim_lock_until_window": "🔒 Is de claim geblokkeerd tot de vervaldatum?",
           "auto_approve": "✅ Claims automatisch goedkeuren?",
           "recurring_frequency": "🔄 Schema: Frequentie",
           "custom_interval": "🔄 Planning: Aangepast interval (voor aangepaste frequentie)",
@@ -146,6 +217,7 @@
           "approval_reset_type": "Hiermee wordt bepaald wanneer de grens van de goedkeuringscyclus voor de taak wordt bereikt (middernacht, vervaldatum, na voltooiing of handmatige trigger).",
           "approval_reset_pending_claim_action": "Dit is wat er gebeurt met aanvragen die nog wachten op goedkeuring wanneer de goedkeuringsperiode wordt gereset.",
           "overdue_handling_type": "Actie na de vervaldatum: De status 'te laat' verbergen, 'te laat' laten staan totdat het item is opgeëist, of de status terugzetten naar 'in behandeling' tijdens de volgende goedkeuringsronde.",
+          "chore_claim_lock_until_window": "Wanneer deze functie is ingeschakeld, kunnen kinderen deze taak niet opeisen voordat de deadline is verstreken.",
           "auto_approve": "Indien ingeschakeld, worden aanvragen direct goedgekeurd zonder tussenkomst van de ouders.",
           "recurring_frequency": "Hoe vaak de taak terugkeert: Dagelijks, Wekelijks, Maandelijks, Jaarlijks, Op aanvraag of Geen.",
           "custom_interval": "Aantal tijdseenheden tussen herhalingen (bijv. 3 voor 'elke 3 weken'). Alleen te gebruiken met een aangepaste frequentie.",
@@ -356,6 +428,7 @@
       "invalid_challenge_name": "Ongeldige uitdagingnaam",
       "invalid_chore": "Ongeldige taak",
       "invalid_chore_count": "Ongeldig aantal taken",
+      "rotation_min_kids": "Voor de roulerende klusjes zijn minimaal 2 toegewezen kinderen nodig.",
       "invalid_chore_name": "Ongeldige taaknaam",
       "invalid_points": "Het aantal punten moet nul of hoger zijn.",
       "invalid_overdue_reset_combination": "De optie 'Op de vervaldatum en dan opnieuw instellen' voor het afhandelen van te late betalingen werkt alleen met resettypes die om middernacht plaatsvinden. Selecteer 'Om middernacht (eenmalig)' of 'Om middernacht (herhalend)' voor het type goedkeuringsreset.",
@@ -481,6 +554,76 @@
       "add_chore": {
         "title": "Voeg een taak toe",
         "description": "Maak een nieuwe taak aan met punten, opdrachten en een terugkerend schema.\n\n📖 [Configuratiehandleiding]({documentation_url})",
+        "sections": {
+          "section_root_form": {
+            "name": "Definitie",
+            "description": "Identiteit, toewijzing en kerncontractinstellingen.",
+            "data": {
+              "name": "📋 Naam van de klus",
+              "chore_description": "📋 Beschrijving (optioneel)",
+              "icon": "📋 Pictogram (mdi:xxx)",
+              "default_points": "💰 Toegekende punten",
+              "assigned_kids": "👥 Toegewezen kinderen",
+              "completion_criteria": "👥 Voltooiingscriteria"
+            },
+            "data_description": {
+              "name": "Unieke naam die in het hele systeem wordt weergegeven.",
+              "chore_description": "Optionele instructies of details over hoe deze taak moet worden uitgevoerd.",
+              "icon": "Material Design-pictogrammen (bijv. mdi:bezem, mdi:afwasmachine).",
+              "default_points": "Punten worden verdiend na voltooiing.",
+              "assigned_kids": "Kinderen die dit klusje kunnen zien en op zich nemen.",
+              "completion_criteria": "Hiermee kunt u bepalen hoe de taak wordt uitgevoerd wanneer meerdere kinderen eraan zijn toegewezen: individuele voortgangsregistratie, gezamenlijke uitvoering of beurtelings rouleren."
+            }
+          },
+          "section_schedule": {
+            "name": "Schema",
+            "description": "Instellingen voor timing, toegangsvenster en terugkerend interval.",
+            "data": {
+              "recurring_frequency": "🔄 Schema: Frequentie",
+              "due_date": "📅 Planning: Uiterste inleverdatum (optioneel)",
+              "clear_due_date": "🗑️ Duidelijke vervaldatum",
+              "applicable_days": "📅 Schema: Toepasselijke dagen (optioneel)",
+              "chore_due_window_offset": "⏱️ Uiterste betaaldatum: Betaal vóór de uiterste betaaldatum",
+              "chore_claim_lock_until_window": "🔒 Is de claim geblokkeerd tot de vervaldatum?",
+              "custom_interval": "🔄 Planning: Aangepast interval (voor aangepaste frequentie)",
+              "custom_interval_unit": "🔄 Schema: Aangepaste intervaleenheid"
+            },
+            "data_description": {
+              "recurring_frequency": "Hoe vaak de taak moet worden uitgevoerd: Dagelijks, Wekelijks, Maandelijks, Jaarlijks, Aangepast of Geen. Als u 'Dagelijks - Meerdere keren per dag' selecteert, verschijnt er een extra scherm om de specifieke tijden in te stellen.",
+              "due_date": "Optionele deadline. Kan gecombineerd worden met terugkerende schema's. Voor zelfstandige klusjes dient dit als sjabloon: er verschijnt een extra scherm waarop je per kind een aparte datum kunt instellen.",
+              "clear_due_date": "Vink dit vakje aan om de deadline voor deze taak te verwijderen.",
+              "applicable_days": "Laat alle dagen leeg. Selecteer ALLEEN specifieke dagen waarop u beperkingen wilt instellen.",
+              "chore_due_window_offset": "Wanneer de status van een taak verandert van 'In behandeling' naar 'Verschuldigd'. Formaat: '1d 6u 30m' of gewoon '30' voor minuten. Voer '0' in om uit te schakelen. Voorbeeld: '1d' betekent dat de taak 1 dag voor de deadline als 'Verschuldigd' wordt weergegeven.",
+              "chore_claim_lock_until_window": "Wanneer deze functie is ingeschakeld, kunnen kinderen deze taak niet opeisen voordat de deadline is verstreken.",
+              "custom_interval": "Aantal tijdseenheden tussen herhalingen (bijv. 3 voor 'elke 3 weken'). Alleen te gebruiken met een aangepaste frequentie.",
+              "custom_interval_unit": "Tijdseenheid voor een aangepast interval (dagen, weken, maanden). Alleen te gebruiken met een aangepaste frequentie."
+            }
+          },
+          "section_advanced_configurations": {
+            "name": "Geavanceerde configuraties",
+            "description": "Levenscyclusautomatisering, meldingen, inzicht en metadata.",
+            "data": {
+              "approval_reset_type": "➡️ Voltooiingen toegestaan en goedkeuringstijd opnieuw instellen",
+              "approval_reset_pending_claim_action": "➡️ Afhandeling van openstaande claims bij goedkeuring reset",
+              "auto_approve": "✅ Claims automatisch goedkeuren?",
+              "overdue_handling_type": "⏰ Te laat: Afhandeling",
+              "chore_due_reminder_offset": "🔔 Herinnering: Betaal vóór de vervaldatum",
+              "chore_notifications": "🔔 Meldingen (optioneel)",
+              "show_on_calendar": "📅 Weergeven op de kalender?",
+              "chore_labels": "📋 Etiketten (optioneel)"
+            },
+            "data_description": {
+              "approval_reset_type": "Hiermee wordt bepaald wanneer de grens van de goedkeuringscyclus voor de taak wordt bereikt (middernacht, vervaldatum, na voltooiing of handmatige trigger).",
+              "approval_reset_pending_claim_action": "Bepaalt wat er gebeurt met niet-goedgekeurde claims wanneer de grens voor het opnieuw instellen van de goedkeuring wordt bereikt.",
+              "auto_approve": "Indien ingeschakeld, worden aanvragen direct goedgekeurd zonder tussenkomst van de ouders.",
+              "overdue_handling_type": "Hiermee wordt bepaald wat er gebeurt wanneer de deadline verstrijkt en wat er gebeurt met achterstallige taken bij het opnieuw instellen van de goedkeuring.",
+              "chore_due_reminder_offset": "Wanneer moet de herinneringsmelding worden verzonden? Formaat: '1d 6h 30m' of gewoon '30' voor minuten. Standaard: 30m (30 minuten voor de vervaldatum). Voer '0' in om uit te schakelen.",
+              "chore_notifications": "Wanneer moeten meldingen worden verzonden: Bij een aanvraag, bij goedkeuring, bij afwijzing, of een combinatie hiervan.",
+              "show_on_calendar": "Toon deze taak in de kalenderweergave.",
+              "chore_labels": "Labels om klusjes te organiseren (bijv. 'keuken', 'buiten'). Laat leeg als dit niet nodig is."
+            }
+          }
+        },
         "data": {
           "name": "📋 Naam van de klus",
           "chore_description": "📋 Beschrijving (optioneel)",
@@ -492,6 +635,7 @@
           "approval_reset_type": "➡️ Voltooiingen toegestaan en goedkeuringstijd opnieuw instellen",
           "approval_reset_pending_claim_action": "➡️ Afhandeling van openstaande claims bij goedkeuring reset",
           "overdue_handling_type": "⏰ Te laat: Afhandeling",
+          "chore_claim_lock_until_window": "🔒 Is de claim geblokkeerd tot de vervaldatum?",
           "auto_approve": "✅ Claims automatisch goedkeuren?",
           "recurring_frequency": "🔄 Schema: Frequentie",
           "custom_interval": "🔄 Planning: Aangepast interval (voor aangepaste frequentie)",
@@ -515,6 +659,7 @@
           "approval_reset_type": "Hiermee wordt bepaald wanneer de grens van de goedkeuringscyclus voor de taak wordt bereikt (middernacht, vervaldatum, na voltooiing of handmatige trigger).",
           "approval_reset_pending_claim_action": "Bepaalt wat er gebeurt met niet-goedgekeurde claims wanneer de grens voor het opnieuw instellen van de goedkeuring wordt bereikt.",
           "overdue_handling_type": "Hiermee wordt bepaald wat er gebeurt wanneer de deadline verstrijkt en wat er gebeurt met achterstallige taken bij het opnieuw instellen van de goedkeuring.",
+          "chore_claim_lock_until_window": "Wanneer deze functie is ingeschakeld, kunnen kinderen deze taak niet opeisen voordat de deadline is verstreken.",
           "auto_approve": "Indien ingeschakeld, worden aanvragen direct goedgekeurd zonder tussenkomst van de ouders.",
           "recurring_frequency": "Hoe vaak de taak moet worden uitgevoerd: Dagelijks, Wekelijks, Maandelijks, Jaarlijks, Aangepast of Geen. Als u 'Dagelijks - Meerdere keren per dag' selecteert, verschijnt er een extra scherm om de specifieke tijden in te stellen.",
           "custom_interval": "Aantal tijdseenheden tussen herhalingen (bijv. 3 voor 'elke 3 weken'). Alleen te gebruiken met een aangepaste frequentie.",
@@ -877,6 +1022,76 @@
       "edit_chore": {
         "title": "Taak bewerken",
         "description": "Wijzig de details van de geselecteerde taak.\n\n📖 [Configuratiehandleiding]({documentation_url})",
+        "sections": {
+          "section_root_form": {
+            "name": "Definitie",
+            "description": "Identiteit, toewijzing en kerncontractinstellingen.",
+            "data": {
+              "name": "📋 Naam van de klus",
+              "chore_description": "📋 Beschrijving (optioneel)",
+              "icon": "📋 Pictogram (mdi:xxx)",
+              "default_points": "💰 Toegekende punten",
+              "assigned_kids": "👥 Toegewezen kinderen",
+              "completion_criteria": "👥 Voltooiingscriteria"
+            },
+            "data_description": {
+              "name": "Unieke naam die in het hele systeem wordt weergegeven.",
+              "chore_description": "Optionele instructies of details over hoe deze taak moet worden uitgevoerd.",
+              "icon": "Material Design-pictogrammen (bijv. mdi:bezem, mdi:afwasmachine).",
+              "default_points": "Punten worden verdiend na voltooiing.",
+              "assigned_kids": "Kinderen die dit klusje kunnen zien en op zich nemen.",
+              "completion_criteria": "Hiermee kunt u bepalen hoe de taak wordt uitgevoerd wanneer meerdere kinderen eraan zijn toegewezen: individuele voortgangsregistratie, gezamenlijke uitvoering of beurtelings rouleren."
+            }
+          },
+          "section_schedule": {
+            "name": "Schema",
+            "description": "Instellingen voor timing, toegangsvenster en terugkerend interval.",
+            "data": {
+              "recurring_frequency": "🔄 Schema: Frequentie",
+              "due_date": "📅 Planning: Uiterste inleverdatum (optioneel)",
+              "clear_due_date": "🗑️ Duidelijke vervaldatum",
+              "applicable_days": "📅 Schema: Toepasselijke dagen (optioneel)",
+              "chore_due_window_offset": "⏱️ Uiterste betaaldatum: Betaal vóór de uiterste betaaldatum",
+              "chore_claim_lock_until_window": "🔒 Is de claim geblokkeerd tot de vervaldatum?",
+              "custom_interval": "🔄 Planning: Aangepast interval (voor aangepaste frequentie)",
+              "custom_interval_unit": "🔄 Schema: Aangepaste intervaleenheid"
+            },
+            "data_description": {
+              "recurring_frequency": "Hoe vaak de taak moet worden uitgevoerd: Dagelijks, Wekelijks, Maandelijks, Jaarlijks, Aangepast of Geen. Als u 'Dagelijks - Meerdere keren per dag' selecteert, verschijnt er een extra scherm om de specifieke tijden in te stellen.",
+              "due_date": "Optionele deadline. Kan gecombineerd worden met terugkerende schema's. Voor zelfstandige klusjes dient dit als sjabloon: er verschijnt een extra scherm waarop je per kind een aparte datum kunt instellen.",
+              "clear_due_date": "Vink dit vakje aan om de deadline voor deze taak te verwijderen.",
+              "applicable_days": "Laat alle dagen leeg. Selecteer ALLEEN specifieke dagen waarop u beperkingen wilt instellen.",
+              "chore_due_window_offset": "Wanneer de status van een taak verandert van 'In behandeling' naar 'Verschuldigd'. Formaat: '1d 6u 30m' of gewoon '30' voor minuten. Voer '0' in om uit te schakelen. Voorbeeld: '1d' betekent dat de taak 1 dag voor de deadline als 'Verschuldigd' wordt weergegeven.",
+              "chore_claim_lock_until_window": "Wanneer deze functie is ingeschakeld, kunnen kinderen deze taak niet opeisen voordat de deadline is verstreken.",
+              "custom_interval": "Aantal tijdseenheden tussen herhalingen (bijv. 3 voor 'elke 3 weken'). Alleen te gebruiken met een aangepaste frequentie.",
+              "custom_interval_unit": "Tijdseenheid voor een aangepast interval (dagen, weken, maanden). Alleen te gebruiken met een aangepaste frequentie."
+            }
+          },
+          "section_advanced_configurations": {
+            "name": "Geavanceerde configuraties",
+            "description": "Levenscyclusautomatisering, meldingen, inzicht en metadata.",
+            "data": {
+              "approval_reset_type": "➡️ Voltooiingen toegestaan en goedkeuringstijd opnieuw instellen",
+              "approval_reset_pending_claim_action": "➡️ Afhandeling van openstaande claims bij goedkeuring reset",
+              "auto_approve": "✅ Claims automatisch goedkeuren?",
+              "overdue_handling_type": "⏰ Te laat: Afhandeling",
+              "chore_due_reminder_offset": "🔔 Herinnering: Betaal vóór de vervaldatum",
+              "chore_notifications": "🔔 Meldingen (optioneel)",
+              "show_on_calendar": "📅 Weergeven op de kalender?",
+              "chore_labels": "📋 Etiketten (optioneel)"
+            },
+            "data_description": {
+              "approval_reset_type": "Hiermee wordt bepaald wanneer de grens van de goedkeuringscyclus voor de taak wordt bereikt (middernacht, vervaldatum, na voltooiing of handmatige trigger).",
+              "approval_reset_pending_claim_action": "Bepaalt wat er gebeurt met niet-goedgekeurde claims wanneer de grens voor het opnieuw instellen van de goedkeuring wordt bereikt.",
+              "auto_approve": "Indien ingeschakeld, worden aanvragen direct goedgekeurd zonder tussenkomst van de ouders.",
+              "overdue_handling_type": "Hiermee wordt bepaald wat er gebeurt wanneer de deadline verstrijkt en wat er gebeurt met achterstallige taken bij het opnieuw instellen van de goedkeuring.",
+              "chore_due_reminder_offset": "Wanneer moet de herinneringsmelding worden verzonden? Formaat: '1d 6h 30m' of gewoon '30' voor minuten. Standaard: 30m (30 minuten voor de vervaldatum). Voer '0' in om uit te schakelen.",
+              "chore_notifications": "Wanneer moeten meldingen worden verzonden: Bij een aanvraag, bij goedkeuring, bij afwijzing, of een combinatie hiervan.",
+              "show_on_calendar": "Toon deze taak in de kalenderweergave.",
+              "chore_labels": "Labels om klusjes te organiseren (bijv. 'keuken', 'buiten'). Laat leeg als dit niet nodig is."
+            }
+          }
+        },
         "data": {
           "name": "📋 Naam van de klus",
           "chore_description": "📋 Beschrijving (optioneel)",
@@ -889,6 +1104,7 @@
           "approval_reset_type": "➡️ Voltooiingen toegestaan en goedkeuringstijd opnieuw instellen",
           "approval_reset_pending_claim_action": "➡️ Afhandeling van openstaande claims bij goedkeuring reset",
           "overdue_handling_type": "⏰ Te laat: Afhandeling",
+          "chore_claim_lock_until_window": "🔒 Is de claim geblokkeerd tot de vervaldatum?",
           "auto_approve": "✅ Claims automatisch goedkeuren?",
           "recurring_frequency": "🔄 Schema: Frequentie",
           "custom_interval": "🔄 Planning: Aangepast interval (voor aangepaste frequentie)",
@@ -912,6 +1128,7 @@
           "approval_reset_type": "Hiermee wordt bepaald wanneer de grens van de goedkeuringscyclus voor de taak wordt bereikt (middernacht, vervaldatum, na voltooiing of handmatige trigger).",
           "approval_reset_pending_claim_action": "Bepaalt wat er gebeurt met niet-goedgekeurde claims wanneer de grens voor het opnieuw instellen van de goedkeuring wordt bereikt.",
           "overdue_handling_type": "Hiermee wordt bepaald wat er gebeurt wanneer de deadline verstrijkt en wat er gebeurt met achterstallige taken bij het opnieuw instellen van de goedkeuring.",
+          "chore_claim_lock_until_window": "Wanneer deze functie is ingeschakeld, kunnen kinderen deze taak niet opeisen voordat de deadline is verstreken.",
           "auto_approve": "Indien ingeschakeld, worden aanvragen direct goedgekeurd zonder tussenkomst van de ouders.",
           "recurring_frequency": "Hoe vaak de taak moet worden uitgevoerd: Dagelijks, Wekelijks, Maandelijks, Jaarlijks, Aangepast of Geen. Als u 'Dagelijks - Meerdere keren per dag' selecteert, verschijnt er een extra scherm om de specifieke tijden in te stellen.",
           "custom_interval": "Aantal tijdseenheden tussen herhalingen (bijv. 3 voor 'elke 3 weken'). Alleen te gebruiken met een aangepaste frequentie.",
@@ -1352,6 +1569,7 @@
           "retention_monthly": "Maandelijkse gegevensbewaring (maanden)",
           "retention_yearly": "Jaarlijkse gegevensbewaring (jaren)",
           "show_legacy_entities": "Extra entiteiten weergeven",
+          "kiosk_mode": "Schakel de kioskmodus in voor kinderclaims.",
           "backups_max_retained": "Maximale back-ups die bewaard kunnen worden",
           "backup_action_selection": "Back-upacties"
         },
@@ -1365,6 +1583,7 @@
           "retention_monthly": "Aantal maanden aan maandelijkse historische gegevens die bewaard moeten worden vóór opschoning. Minimum 1, maximum 24.",
           "retention_yearly": "Aantal jaren aan jaarlijkse historische gegevens die bewaard moeten worden vóór de opschoning. Minimaal 1, maximaal 10.",
           "show_legacy_entities": "Toon extra entiteiten zoals sensoren en selecties die nu zijn samengevoegd in de dashboardhelper-sensor. Deze entiteiten zijn optioneel voor compatibiliteit met bestaande automatiseringen.",
+          "kiosk_mode": "Hiermee kunnen knoppen voor het claimen van kindertaken/beloningen werken op gedeelde tablets aan de muur, zonder dat de dashboardgebruiker de Home Assistant-gebruikerslink van het kind hoeft te koppelen. Beveiligingswaarschuwing: iedereen met toegang tot dat apparaat kan kindertaken claimen.",
           "backups_max_retained": "Maximaal aantal back-upbestanden per tag (bijv. 5 handmatige back-ups, 5 data_reset back-ups). Oudere back-ups worden automatisch verwijderd nadat elke nieuwe back-up is gemaakt. Stel in op 0 om automatische back-ups volledig uit te schakelen.",
           "backup_action_selection": "Kies een back-upbeheeractie: een handmatige back-up maken, een back-up verwijderen of een back-up terugzetten."
         }
@@ -1477,6 +1696,9 @@
       "invalid_badge_count": "Ongeldig aantal badges",
       "invalid_chore": "Ongeldige taak",
       "invalid_chore_count": "Ongeldig aantal taken",
+      "invalid_chore_name": "Ongeldige taaknaam",
+      "invalid_points": "Het aantal punten moet nul of hoger zijn.",
+      "invalid_overdue_reset_combination": "De optie 'Op de vervaldatum en dan opnieuw instellen' voor het afhandelen van te late betalingen werkt alleen met resettypes die om middernacht plaatsvinden. Selecteer 'Om middernacht (eenmalig)' of 'Om middernacht (herhalend)' voor het type goedkeuringsreset.",
       "invalid_due_date": "Ongeldige vervaldatum",
       "date_required_for_frequency": "Voor deze terugkerende frequentie is een vervaldatum vereist. De optie 'Vrijgemaakte datums' werkt alleen met de frequenties 'Geen', 'Dagelijks' of 'Wekelijks'.",
       "invalid_end_date": "Ongeldige einddatum.",
@@ -1505,6 +1727,7 @@
       "error_daily_multi_times_too_few": "Voor een frequentie van 'Meerdere keren per dag' zijn minimaal 2 keer vereist. Voor een eenmalige frequentie gebruikt u de normale frequentie 'Dagelijks'.",
       "error_daily_multi_times_too_many": "Maximaal 6 keer per dag toegestaan voor de frequentie 'Meerdere keren per dag'.",
       "error_daily_multi_due_date_required": "De frequentie 'Meerdere keren per dag' vereist dat er een einddatum wordt ingesteld. De datum bepaalt wanneer de planning begint en de tijden bepalen de beschikbaarheidsvensters per dag.",
+      "rotation_min_kids": "Voor de roulerende klusjes zijn minimaal 2 toegewezen kinderen nodig.",
       "error_allow_steal_incompatible": "De functie 'Steal overdue handling' is alleen compatibel met rotatietaken (rotation_simple of rotation_smart), het resettype 'Eenmaal per dag' en vereist een vervaldatum om te bepalen wanneer het steal-venster opent.",
       "error_at_due_date_reset_requires_due_date": "Voor goedkeuringsresettypen 'Op vervaldatum' (eenmalig of meervoudig) moet een vervaldatum worden ingesteld. Zonder vervaldatum wordt de goedkeuring nooit gereset en blijft de taak voor onbepaalde tijd goedgekeurd.",
       "error_per_kid_applicable_days_invalid": "Ongeldig formaat voor de toepasselijke dagen voor een of meer kinderen. Dagen moeten gehele getallen van 0-6 zijn (maandag-zondag) zonder duplicaten.",
@@ -1621,6 +1844,7 @@
     "target_type": {
       "options": {
         "points": "Punten",
+        "points_all_time": "Punten (aller tijden)",
         "points_chores": "Punten van klusjes",
         "chore_count": "Aantal klusjes",
         "days_all_chores": "Dagen waarop geselecteerde klusjes zijn voltooid",
@@ -2112,6 +2336,11 @@
           "description": "Hiermee wordt bepaald wat er gebeurt wanneer de deadline verstrijkt en wat er gebeurt met achterstallige taken bij het opnieuw instellen van de goedkeuring.",
           "example": "op_vervaldatum"
         },
+        "chore_claim_lock_until_window": {
+          "name": "Vergrendel de claim totdat het raam opengaat.",
+          "description": "Indien dit waar is, kunnen kinderen deze taak niet opeisen voordat de deadline is verstreken.",
+          "example": "onjuist"
+        },
         "auto_approve": {
           "name": "Automatische goedkeuring",
           "description": "Indien dit waar is, wordt de taak automatisch goedgekeurd zodra deze wordt aangevraagd.",
@@ -2136,7 +2365,7 @@
     },
     "update_chore": {
       "name": "Update Taak",
-      "description": "De eigenschappen van een bestaande taak bijwerken. Geef een ID OF een naam op om de taak te identificeren. Alleen de opgegeven velden worden bijgewerkt. Let op: de voltooiingscriteria kunnen na het aanmaken niet meer worden gewijzigd.",
+      "description": "De eigenschappen van een bestaande taak bijwerken. Geef een ID OF een naam op om de taak te identificeren. Alleen de opgegeven velden worden bijgewerkt.",
       "fields": {
         "id": {
           "name": "Taak-ID",
@@ -2197,6 +2426,11 @@
           "name": "Achterstallige afhandeling",
           "description": "Nieuw gedrag bij de afhandeling van achterstallige betalingen.",
           "example": "nooit te laat"
+        },
+        "chore_claim_lock_until_window": {
+          "name": "Vergrendel de claim totdat het raam opengaat.",
+          "description": "Indien dit waar is, kunnen kinderen deze taak niet opeisen voordat de deadline is verstreken.",
+          "example": "WAAR"
         },
         "auto_approve": {
           "name": "Automatische goedkeuring",
@@ -2561,6 +2795,18 @@
           "chore_last_longest_streak_date": {
             "name": "Laatste langste reeks datum"
           },
+          "chore_current_missed_streak": {
+            "name": "Huidige reeks gemiste pogingen"
+          },
+          "chore_longest_missed_streak": {
+            "name": "Langste reeks gemiste wedstrijden"
+          },
+          "chore_missed_count": {
+            "name": "Gemist (voor altijd)"
+          },
+          "chore_last_missed": {
+            "name": "Laatst gemist"
+          },
           "last_claimed": {
             "name": "Laatst opgeëist"
           },
@@ -2650,6 +2896,9 @@
           "kid_name": {
             "name": "Naam van het kind"
           },
+          "points_multiplier": {
+            "name": "Puntenvermenigvuldiger"
+          },
           "point_stat_points_earned_today": {
             "name": "Vandaag verdiend"
           },
@@ -2725,7 +2974,7 @@
           "point_stat_avg_points_per_chore": {
             "name": "Gemiddeld per klus"
           },
-          "point_stat_highest_balance": {
+          "point_stat_highest_balance_all_time": {
             "name": "Hoogste saldo ooit"
           }
         }
@@ -2803,17 +3052,32 @@
           "chore_stat_overdue_today": {
             "name": "Vandaag te laat"
           },
+          "chore_stat_missed_today": {
+            "name": "Vandaag gemist"
+          },
           "chore_stat_overdue_week": {
             "name": "Deze week te laat"
+          },
+          "chore_stat_missed_week": {
+            "name": "Gemist deze week"
           },
           "chore_stat_overdue_month": {
             "name": "Achterstallig deze maand"
           },
+          "chore_stat_missed_month": {
+            "name": "Gemist deze maand"
+          },
           "chore_stat_overdue_year": {
             "name": "Dit jaar al lang geleden nodig"
           },
+          "chore_stat_missed_year": {
+            "name": "Gemist dit jaar"
+          },
           "chore_stat_overdue_count_all_time": {
             "name": "Altijd te laat"
+          },
+          "chore_stat_missed_all_time": {
+            "name": "Altijd gemist"
           },
           "chore_stat_claimed_today": {
             "name": "Vandaag geclaimd"
@@ -2922,6 +3186,9 @@
           },
           "chore_stat_longest_streak": {
             "name": "Langste reeks"
+          },
+          "chore_stat_longest_missed_streak": {
+            "name": "Langste reeks gemiste wedstrijden"
           },
           "chore_stat_avg_per_day_week": {
             "name": "Gemiddelde per dag (week)"
@@ -4128,6 +4395,15 @@
     },
     "chore_pending_claim": {
       "message": "Chore heeft een lopende claim die nog moet worden goedgekeurd of afgekeurd."
+    },
+    "chore_waiting": {
+      "message": "Deze taak kan nog niet worden opgeëist. De deadline is nog niet verstreken."
+    },
+    "chore_not_my_turn": {
+      "message": "Deze taak is roulerend. Momenteel is een ander kind aan de beurt."
+    },
+    "chore_missed_locked": {
+      "message": "Deze taak is gemarkeerd als gemist en vergrendeld voor de huidige cyclus."
     },
     "chore_completed_by_other": {
       "message": "Deze taak is deze periode al door een ander kind uitgevoerd."
