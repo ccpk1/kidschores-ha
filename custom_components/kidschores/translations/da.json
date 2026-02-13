@@ -113,6 +113,76 @@
       "chores": {
         "title": "Tilføj pligt",
         "description": "Opret en ny pligt med point, opgaver og en tilbagevendende tidsplan.",
+        "sections": {
+          "section_root_form": {
+            "name": "Definition",
+            "description": "Identitet, tildeling og kernekontraktindstillinger.",
+            "data": {
+              "name": "📋 Navn på huslige pligter",
+              "chore_description": "📋 Beskrivelse (valgfrit)",
+              "icon": "📋 Ikon (mdi:xxx)",
+              "default_points": "💰 Tildelte point",
+              "assigned_kids": "👥 Tildelte børn",
+              "completion_criteria": "👥 Færdiggørelseskriterier"
+            },
+            "data_description": {
+              "name": "Unikt navn vist i hele systemet.",
+              "chore_description": "Valgfrie instruktioner eller detaljer om, hvordan du udfører denne opgave.",
+              "icon": "Ikon for materialedesign (f.eks. mdi:kost, mdi:opvaskemaskine).",
+              "default_points": "Point optjent når det er gennemført.",
+              "assigned_kids": "Børn der kan se og gøre krav på denne opgave.",
+              "completion_criteria": "Styrer, hvordan opgaven udføres, når flere børn er tildelt: individuel sporing, delt færdiggørelse eller turbaseret rotation."
+            }
+          },
+          "section_schedule": {
+            "name": "Skema",
+            "description": "Indstillinger for tidtagning, adgangsvindue og tilbagevendende interval.",
+            "data": {
+              "recurring_frequency": "🔄 Tidsplan: Hyppighed",
+              "due_date": "📅 Tidsplan: Forfaldsdato (valgfrit)",
+              "clear_due_date": "🗑️ Ryd forfaldsdato",
+              "applicable_days": "📅 Tidsplan: Gældende dage (valgfrit)",
+              "chore_due_window_offset": "⏱️ Forfaldsfrist: Forskydning før forfaldsdato",
+              "chore_claim_lock_until_window": "🔒 Lås krav indtil forfaldsfristen åbner?",
+              "custom_interval": "🔄 Tidsplan: Brugerdefineret interval (for brugerdefineret frekvens)",
+              "custom_interval_unit": "🔄 Tidsplan: Brugerdefineret intervalenhed"
+            },
+            "data_description": {
+              "recurring_frequency": "Hvor ofte opgaven gentages: Dagligt, Ugentligt, Månedligt, Årligt, Brugerdefineret eller Ingen.",
+              "due_date": "Valgfri deadline. Kan kombineres med tilbagevendende tidsplaner.",
+              "clear_due_date": "Markér dette felt for at fjerne forfaldsdatoen fra denne opgave.",
+              "applicable_days": "Lad feltet stå tomt for alle dage. Vælg KUN specifikke dage, der skal begrænses.",
+              "chore_due_window_offset": "Når opgavens status ændres fra Afventer til Forfalden. Format: '1d 6t 30m' eller blot '30' for minutter. Indtast '0' for at deaktivere. Eksempel: '1d' betyder, at opgaven vises som 'Forfalden' 1 dag før deadline.",
+              "chore_claim_lock_until_window": "Når den er aktiveret, kan børn ikke gøre krav på denne opgave, før tidsfristen starter.",
+              "custom_interval": "Antal tidsenheder mellem gentagelser (f.eks. 3 for 'hver 3. uge'). Bruges kun med brugerdefineret frekvens.",
+              "custom_interval_unit": "Tidsenhed for brugerdefineret interval (dage, uger, måneder). Bruges kun med brugerdefineret frekvens."
+            }
+          },
+          "section_advanced_configurations": {
+            "name": "Avancerede konfigurationer",
+            "description": "Livscyklusautomatisering, notifikationer, synlighed og metadata.",
+            "data": {
+              "approval_reset_type": "➡️ Tilladte færdiggørelser og nulstilling af godkendelsestidspunkt",
+              "approval_reset_pending_claim_action": "➡️ Afventende behandling af krav ved godkendelse Nulstil",
+              "auto_approve": "✅ Automatisk godkendelse af krav?",
+              "overdue_handling_type": "⏰ Forsinket: Håndtering",
+              "chore_due_reminder_offset": "🔔 Forfaldspåmindelse: Forskydning før forfaldsdato",
+              "chore_notifications": "🔔 Notifikationsbegivenheder (valgfrit)",
+              "show_on_calendar": "📅 Vis i kalenderen?",
+              "chore_labels": "📋 Etiketter (valgfrit)"
+            },
+            "data_description": {
+              "approval_reset_type": "Styrer, hvornår opgavens godkendelsescyklusgrænse aktiveres (midnat, forfaldsdato, ved færdiggørelse eller manuel udløsning).",
+              "approval_reset_pending_claim_action": "Dette er, hvad der sker med krav, der stadig venter på godkendelse, når godkendelsen nulstilles.",
+              "auto_approve": "Når det er aktiveret, godkendes krav øjeblikkeligt uden gennemgang fra forældre.",
+              "overdue_handling_type": "Handling efter forfaldsdato: Skjul status for forfalden, forbliv forfalden indtil den er gjort krav på, eller nulstil til afventer ved næste godkendelsescyklus.",
+              "chore_due_reminder_offset": "Hvornår påmindelsen om forfald skal sendes. Format: '1d 6t 30m' eller blot '30' for minutter. Standard: 30m (30 minutter før forfald). Indtast '0' for at deaktivere.",
+              "chore_notifications": "Hvornår skal notifikationer sendes: Ved krav, ved godkendelse, ved afvisning eller enhver kombination.",
+              "show_on_calendar": "Vis denne opgave i kalendervisningen.",
+              "chore_labels": "Tags til at organisere pligter (f.eks. 'køkken', 'udendørs'). Lad være med at skrive et tomt felt, hvis det ikke er nødvendigt."
+            }
+          }
+        },
         "data": {
           "name": "📋 Navn på huslige pligter",
           "chore_description": "📋 Beskrivelse (valgfrit)",
@@ -124,6 +194,7 @@
           "approval_reset_type": "➡️ Tilladte færdiggørelser og nulstilling af godkendelsestidspunkt",
           "approval_reset_pending_claim_action": "➡️ Afventende behandling af krav ved godkendelse Nulstil",
           "overdue_handling_type": "⏰ Forsinket: Håndtering",
+          "chore_claim_lock_until_window": "🔒 Lås krav indtil forfaldsfristen åbner?",
           "auto_approve": "✅ Automatisk godkendelse af krav?",
           "recurring_frequency": "🔄 Tidsplan: Hyppighed",
           "custom_interval": "🔄 Tidsplan: Brugerdefineret interval (for brugerdefineret frekvens)",
@@ -146,6 +217,7 @@
           "approval_reset_type": "Styrer, hvornår opgavens godkendelsescyklusgrænse aktiveres (midnat, forfaldsdato, ved færdiggørelse eller manuel udløsning).",
           "approval_reset_pending_claim_action": "Dette er, hvad der sker med krav, der stadig venter på godkendelse, når godkendelsen nulstilles.",
           "overdue_handling_type": "Handling efter forfaldsdato: Skjul status for forfalden, forbliv forfalden indtil den er gjort krav på, eller nulstil til afventer ved næste godkendelsescyklus.",
+          "chore_claim_lock_until_window": "Når den er aktiveret, kan børn ikke gøre krav på denne opgave, før tidsfristen starter.",
           "auto_approve": "Når det er aktiveret, godkendes krav øjeblikkeligt uden gennemgang fra forældre.",
           "recurring_frequency": "Hvor ofte opgaven gentages: Dagligt, Ugentligt, Månedligt, Årligt, Brugerdefineret eller Ingen.",
           "custom_interval": "Antal tidsenheder mellem gentagelser (f.eks. 3 for 'hver 3. uge'). Bruges kun med brugerdefineret frekvens.",
@@ -356,6 +428,7 @@
       "invalid_challenge_name": "Ugyldigt udfordringsnavn",
       "invalid_chore": "Ugyldig opgave",
       "invalid_chore_count": "Ugyldigt antal opgaver",
+      "rotation_min_kids": "Rotationsopgaver kræver mindst 2 tildelte børn",
       "invalid_chore_name": "Ugyldigt navn på opgave",
       "invalid_points": "Point skal være nul eller større",
       "invalid_overdue_reset_combination": "Håndtering af forsinkede transaktioner 'Nulstil derefter ved forfaldsdato' fungerer kun med nulstillingstyper ved midnat. Vælg venligst 'Ved midnat (én gang)' eller 'Ved midnat (gentagende)' for nulstillingstypen for godkendelse.",
@@ -481,6 +554,76 @@
       "add_chore": {
         "title": "Tilføj pligt",
         "description": "Opret en ny opgave med point, opgaver og en tilbagevendende tidsplan.\n\n📖 [Konfigurationsvejledning]({documentation_url})",
+        "sections": {
+          "section_root_form": {
+            "name": "Definition",
+            "description": "Identitet, tildeling og kernekontraktindstillinger.",
+            "data": {
+              "name": "📋 Navn på huslige pligter",
+              "chore_description": "📋 Beskrivelse (valgfrit)",
+              "icon": "📋 Ikon (mdi:xxx)",
+              "default_points": "💰 Tildelte point",
+              "assigned_kids": "👥 Tildelte børn",
+              "completion_criteria": "👥 Færdiggørelseskriterier"
+            },
+            "data_description": {
+              "name": "Unikt navn vist i hele systemet.",
+              "chore_description": "Valgfrie instruktioner eller detaljer om, hvordan du udfører denne opgave.",
+              "icon": "Ikon for materialedesign (f.eks. mdi:kost, mdi:opvaskemaskine).",
+              "default_points": "Point optjent når det er gennemført.",
+              "assigned_kids": "Børn der kan se og gøre krav på denne opgave.",
+              "completion_criteria": "Styrer, hvordan opgaven udføres, når flere børn er tildelt: individuel sporing, delt færdiggørelse eller turbaseret rotation."
+            }
+          },
+          "section_schedule": {
+            "name": "Skema",
+            "description": "Indstillinger for tidtagning, adgangsvindue og tilbagevendende interval.",
+            "data": {
+              "recurring_frequency": "🔄 Tidsplan: Hyppighed",
+              "due_date": "📅 Tidsplan: Forfaldsdato (valgfrit)",
+              "clear_due_date": "🗑️ Ryd forfaldsdato",
+              "applicable_days": "📅 Tidsplan: Gældende dage (valgfrit)",
+              "chore_due_window_offset": "⏱️ Forfaldsfrist: Forskydning før forfaldsdato",
+              "chore_claim_lock_until_window": "🔒 Lås krav indtil forfaldsfristen åbner?",
+              "custom_interval": "🔄 Tidsplan: Brugerdefineret interval (for brugerdefineret frekvens)",
+              "custom_interval_unit": "🔄 Tidsplan: Brugerdefineret intervalenhed"
+            },
+            "data_description": {
+              "recurring_frequency": "Hvor ofte opgaven gentages: Dagligt, Ugentligt, Månedligt, Årligt, Brugerdefineret eller Ingen. Hvis du vælger 'Dagligt - Flere gange om dagen', vises en ekstra skærm til at konfigurere de specifikke tidspunkter.",
+              "due_date": "Valgfri deadline. Kan kombineres med tilbagevendende skemaer. For SELVSTÆNDIGE pligter fungerer dette som en skabelon - en ekstra skærm vises, der tillader individuelle datoer pr. barn.",
+              "clear_due_date": "Markér dette felt for at fjerne forfaldsdatoen fra denne opgave.",
+              "applicable_days": "Lad feltet stå tomt for alle dage. Vælg KUN specifikke dage, der skal begrænses.",
+              "chore_due_window_offset": "Når opgavens status ændres fra Afventer til Forfalden. Format: '1d 6t 30m' eller blot '30' for minutter. Indtast '0' for at deaktivere. Eksempel: '1d' betyder, at opgaven vises som 'Forfalden' 1 dag før deadline.",
+              "chore_claim_lock_until_window": "Når den er aktiveret, kan børn ikke gøre krav på denne opgave, før tidsfristen starter.",
+              "custom_interval": "Antal tidsenheder mellem gentagelser (f.eks. 3 for 'hver 3. uge'). Bruges kun med brugerdefineret frekvens.",
+              "custom_interval_unit": "Tidsenhed for brugerdefineret interval (dage, uger, måneder). Bruges kun med brugerdefineret frekvens."
+            }
+          },
+          "section_advanced_configurations": {
+            "name": "Avancerede konfigurationer",
+            "description": "Livscyklusautomatisering, notifikationer, synlighed og metadata.",
+            "data": {
+              "approval_reset_type": "➡️ Tilladte færdiggørelser og nulstilling af godkendelsestidspunkt",
+              "approval_reset_pending_claim_action": "➡️ Afventende behandling af krav ved godkendelse Nulstil",
+              "auto_approve": "✅ Automatisk godkendelse af krav?",
+              "overdue_handling_type": "⏰ Forsinket: Håndtering",
+              "chore_due_reminder_offset": "🔔 Forfaldspåmindelse: Forskydning før forfaldsdato",
+              "chore_notifications": "🔔 Notifikationsbegivenheder (valgfrit)",
+              "show_on_calendar": "📅 Vis i kalenderen?",
+              "chore_labels": "📋 Etiketter (valgfrit)"
+            },
+            "data_description": {
+              "approval_reset_type": "Styrer, hvornår opgavens godkendelsescyklusgrænse aktiveres (midnat, forfaldsdato, ved færdiggørelse eller manuel udløsning).",
+              "approval_reset_pending_claim_action": "Styrer, hvad der sker med ikke-godkendte krav, når godkendelsesnulstillingsgrænsen aktiveres.",
+              "auto_approve": "Når det er aktiveret, godkendes krav øjeblikkeligt uden gennemgang fra forældre.",
+              "overdue_handling_type": "Styrer, hvad der sker, når forfaldsdatoen overskrides, og hvad der sker med forsinkede opgaver ved grænsen for nulstilling af godkendelse.",
+              "chore_due_reminder_offset": "Hvornår påmindelsen om forfald skal sendes. Format: '1d 6t 30m' eller blot '30' for minutter. Standard: 30m (30 minutter før forfald). Indtast '0' for at deaktivere.",
+              "chore_notifications": "Hvornår skal notifikationer sendes: Ved krav, ved godkendelse, ved afvisning eller enhver kombination.",
+              "show_on_calendar": "Vis denne opgave i kalendervisningen.",
+              "chore_labels": "Tags til at organisere pligter (f.eks. 'køkken', 'udendørs'). Lad være med at skrive et tomt felt, hvis det ikke er nødvendigt."
+            }
+          }
+        },
         "data": {
           "name": "📋 Navn på huslige pligter",
           "chore_description": "📋 Beskrivelse (valgfrit)",
@@ -492,6 +635,7 @@
           "approval_reset_type": "➡️ Tilladte færdiggørelser og nulstilling af godkendelsestidspunkt",
           "approval_reset_pending_claim_action": "➡️ Afventende behandling af krav ved godkendelse Nulstil",
           "overdue_handling_type": "⏰ Forsinket: Håndtering",
+          "chore_claim_lock_until_window": "🔒 Lås krav indtil forfaldsfristen åbner?",
           "auto_approve": "✅ Automatisk godkendelse af krav?",
           "recurring_frequency": "🔄 Tidsplan: Hyppighed",
           "custom_interval": "🔄 Tidsplan: Brugerdefineret interval (for brugerdefineret frekvens)",
@@ -515,6 +659,7 @@
           "approval_reset_type": "Styrer, hvornår opgavens godkendelsescyklusgrænse aktiveres (midnat, forfaldsdato, ved færdiggørelse eller manuel udløsning).",
           "approval_reset_pending_claim_action": "Styrer, hvad der sker med ikke-godkendte krav, når godkendelsesnulstillingsgrænsen aktiveres.",
           "overdue_handling_type": "Styrer, hvad der sker, når forfaldsdatoen overskrides, og hvad der sker med forsinkede opgaver ved grænsen for nulstilling af godkendelse.",
+          "chore_claim_lock_until_window": "Når den er aktiveret, kan børn ikke gøre krav på denne opgave, før tidsfristen starter.",
           "auto_approve": "Når det er aktiveret, godkendes krav øjeblikkeligt uden gennemgang fra forældre.",
           "recurring_frequency": "Hvor ofte opgaven gentages: Dagligt, Ugentligt, Månedligt, Årligt, Brugerdefineret eller Ingen. Hvis du vælger 'Dagligt - Flere gange om dagen', vises en ekstra skærm til at konfigurere de specifikke tidspunkter.",
           "custom_interval": "Antal tidsenheder mellem gentagelser (f.eks. 3 for 'hver 3. uge'). Bruges kun med brugerdefineret frekvens.",
@@ -877,6 +1022,76 @@
       "edit_chore": {
         "title": "Rediger opgave",
         "description": "Rediger detaljerne for den valgte opgave.\n\n📖 [Konfigurationsvejledning]({documentation_url})",
+        "sections": {
+          "section_root_form": {
+            "name": "Definition",
+            "description": "Identitet, tildeling og kernekontraktindstillinger.",
+            "data": {
+              "name": "📋 Navn på huslige pligter",
+              "chore_description": "📋 Beskrivelse (valgfrit)",
+              "icon": "📋 Ikon (mdi:xxx)",
+              "default_points": "💰 Tildelte point",
+              "assigned_kids": "👥 Tildelte børn",
+              "completion_criteria": "👥 Færdiggørelseskriterier"
+            },
+            "data_description": {
+              "name": "Unikt navn vist i hele systemet.",
+              "chore_description": "Valgfrie instruktioner eller detaljer om, hvordan du udfører denne opgave.",
+              "icon": "Ikon for materialedesign (f.eks. mdi:kost, mdi:opvaskemaskine).",
+              "default_points": "Point optjent når det er gennemført.",
+              "assigned_kids": "Børn der kan se og gøre krav på denne opgave.",
+              "completion_criteria": "Styrer, hvordan opgaven udføres, når flere børn er tildelt: individuel sporing, delt færdiggørelse eller turbaseret rotation."
+            }
+          },
+          "section_schedule": {
+            "name": "Skema",
+            "description": "Indstillinger for tidtagning, adgangsvindue og tilbagevendende interval.",
+            "data": {
+              "recurring_frequency": "🔄 Tidsplan: Hyppighed",
+              "due_date": "📅 Tidsplan: Forfaldsdato (valgfrit)",
+              "clear_due_date": "🗑️ Ryd forfaldsdato",
+              "applicable_days": "📅 Tidsplan: Gældende dage (valgfrit)",
+              "chore_due_window_offset": "⏱️ Forfaldsfrist: Forskydning før forfaldsdato",
+              "chore_claim_lock_until_window": "🔒 Lås krav indtil forfaldsfristen åbner?",
+              "custom_interval": "🔄 Tidsplan: Brugerdefineret interval (for brugerdefineret frekvens)",
+              "custom_interval_unit": "🔄 Tidsplan: Brugerdefineret intervalenhed"
+            },
+            "data_description": {
+              "recurring_frequency": "Hvor ofte opgaven gentages: Dagligt, Ugentligt, Månedligt, Årligt, Brugerdefineret eller Ingen. Hvis du vælger 'Dagligt - Flere gange om dagen', vises en ekstra skærm til at konfigurere de specifikke tidspunkter.",
+              "due_date": "Valgfri deadline. Kan kombineres med tilbagevendende skemaer. For SELVSTÆNDIGE pligter fungerer dette som en skabelon - en ekstra skærm vises, der tillader individuelle datoer pr. barn.",
+              "clear_due_date": "Markér dette felt for at fjerne forfaldsdatoen fra denne opgave.",
+              "applicable_days": "Lad feltet stå tomt for alle dage. Vælg KUN specifikke dage, der skal begrænses.",
+              "chore_due_window_offset": "Når opgavens status ændres fra Afventer til Forfalden. Format: '1d 6t 30m' eller blot '30' for minutter. Indtast '0' for at deaktivere. Eksempel: '1d' betyder, at opgaven vises som 'Forfalden' 1 dag før deadline.",
+              "chore_claim_lock_until_window": "Når den er aktiveret, kan børn ikke gøre krav på denne opgave, før tidsfristen starter.",
+              "custom_interval": "Antal tidsenheder mellem gentagelser (f.eks. 3 for 'hver 3. uge'). Bruges kun med brugerdefineret frekvens.",
+              "custom_interval_unit": "Tidsenhed for brugerdefineret interval (dage, uger, måneder). Bruges kun med brugerdefineret frekvens."
+            }
+          },
+          "section_advanced_configurations": {
+            "name": "Avancerede konfigurationer",
+            "description": "Livscyklusautomatisering, notifikationer, synlighed og metadata.",
+            "data": {
+              "approval_reset_type": "➡️ Tilladte færdiggørelser og nulstilling af godkendelsestidspunkt",
+              "approval_reset_pending_claim_action": "➡️ Afventende behandling af krav ved godkendelse Nulstil",
+              "auto_approve": "✅ Automatisk godkendelse af krav?",
+              "overdue_handling_type": "⏰ Forsinket: Håndtering",
+              "chore_due_reminder_offset": "🔔 Forfaldspåmindelse: Forskydning før forfaldsdato",
+              "chore_notifications": "🔔 Notifikationsbegivenheder (valgfrit)",
+              "show_on_calendar": "📅 Vis i kalenderen?",
+              "chore_labels": "📋 Etiketter (valgfrit)"
+            },
+            "data_description": {
+              "approval_reset_type": "Styrer, hvornår opgavens godkendelsescyklusgrænse aktiveres (midnat, forfaldsdato, ved færdiggørelse eller manuel udløsning).",
+              "approval_reset_pending_claim_action": "Styrer, hvad der sker med ikke-godkendte krav, når godkendelsesnulstillingsgrænsen aktiveres.",
+              "auto_approve": "Når det er aktiveret, godkendes krav øjeblikkeligt uden gennemgang fra forældre.",
+              "overdue_handling_type": "Styrer, hvad der sker, når forfaldsdatoen overskrides, og hvad der sker med forsinkede opgaver ved grænsen for nulstilling af godkendelse.",
+              "chore_due_reminder_offset": "Hvornår påmindelsen om forfald skal sendes. Format: '1d 6t 30m' eller blot '30' for minutter. Standard: 30m (30 minutter før forfald). Indtast '0' for at deaktivere.",
+              "chore_notifications": "Hvornår skal notifikationer sendes: Ved krav, ved godkendelse, ved afvisning eller enhver kombination.",
+              "show_on_calendar": "Vis denne opgave i kalendervisningen.",
+              "chore_labels": "Tags til at organisere pligter (f.eks. 'køkken', 'udendørs'). Lad være med at skrive et tomt felt, hvis det ikke er nødvendigt."
+            }
+          }
+        },
         "data": {
           "name": "📋 Navn på huslige pligter",
           "chore_description": "📋 Beskrivelse (valgfrit)",
@@ -889,6 +1104,7 @@
           "approval_reset_type": "➡️ Tilladte færdiggørelser og nulstilling af godkendelsestidspunkt",
           "approval_reset_pending_claim_action": "➡️ Afventende behandling af krav ved godkendelse Nulstil",
           "overdue_handling_type": "⏰ Forsinket: Håndtering",
+          "chore_claim_lock_until_window": "🔒 Lås krav indtil forfaldsfristen åbner?",
           "auto_approve": "✅ Automatisk godkendelse af krav?",
           "recurring_frequency": "🔄 Tidsplan: Hyppighed",
           "custom_interval": "🔄 Tidsplan: Brugerdefineret interval (for brugerdefineret frekvens)",
@@ -912,6 +1128,7 @@
           "approval_reset_type": "Styrer, hvornår opgavens godkendelsescyklusgrænse aktiveres (midnat, forfaldsdato, ved færdiggørelse eller manuel udløsning).",
           "approval_reset_pending_claim_action": "Styrer, hvad der sker med ikke-godkendte krav, når godkendelsesnulstillingsgrænsen aktiveres.",
           "overdue_handling_type": "Styrer, hvad der sker, når forfaldsdatoen overskrides, og hvad der sker med forsinkede opgaver ved grænsen for nulstilling af godkendelse.",
+          "chore_claim_lock_until_window": "Når den er aktiveret, kan børn ikke gøre krav på denne opgave, før tidsfristen starter.",
           "auto_approve": "Når det er aktiveret, godkendes krav øjeblikkeligt uden gennemgang fra forældre.",
           "recurring_frequency": "Hvor ofte opgaven gentages: Dagligt, Ugentligt, Månedligt, Årligt, Brugerdefineret eller Ingen. Hvis du vælger 'Dagligt - Flere gange om dagen', vises en ekstra skærm til at konfigurere de specifikke tidspunkter.",
           "custom_interval": "Antal tidsenheder mellem gentagelser (f.eks. 3 for 'hver 3. uge'). Bruges kun med brugerdefineret frekvens.",
@@ -1352,6 +1569,7 @@
           "retention_monthly": "Månedlig dataopbevaring (måneder)",
           "retention_yearly": "Årlig dataopbevaring (år)",
           "show_legacy_entities": "Vis ekstra enheder",
+          "kiosk_mode": "Aktivér kiosktilstand for børnekrav",
           "backups_max_retained": "Maksimal sikkerhedskopiering at beholde",
           "backup_action_selection": "Sikkerhedskopieringshandlinger"
         },
@@ -1365,6 +1583,7 @@
           "retention_monthly": "Antal måneder med månedlige historiske data, der skal opbevares før oprydning. Minimum 1, maksimum 24.",
           "retention_yearly": "Antal år med årlige historiske data, der skal opbevares før oprydning. Minimum 1, maksimum 10.",
           "show_legacy_entities": "Vis ekstra enheder som sensor og selects, der nu er konsolideret i dashboardhjælpersensoren. Disse enheder er valgfrie for bagudkompatibilitet med eksisterende automatiseringer.",
+          "kiosk_mode": "Tillader knapper til krav om børns pligter/belønninger at fungere på tablets med delt væg uden at dashboardbrugeren skal matche barnets Home Assistant-brugerlink. Sikkerhedsadvarsel: Alle med adgang til den pågældende enhed kan indsende krav om børn.",
           "backups_max_retained": "Maksimalt antal backupfiler, der skal gemmes pr. tag (f.eks. 5 manuelle backups, 5 data_reset backups). Ældre backups slettes automatisk, efter hver ny backup oprettes. Indstil til 0 for at deaktivere automatiske backups helt.",
           "backup_action_selection": "Vælg en handling til administration af sikkerhedskopier: opret en manuel sikkerhedskopi, slet en sikkerhedskopi eller gendan fra en sikkerhedskopi."
         }
@@ -1477,6 +1696,9 @@
       "invalid_badge_count": "Ugyldigt antal badges",
       "invalid_chore": "Ugyldig opgave",
       "invalid_chore_count": "Ugyldigt antal opgaver",
+      "invalid_chore_name": "Ugyldigt navn på opgave",
+      "invalid_points": "Point skal være nul eller større",
+      "invalid_overdue_reset_combination": "Håndtering af forsinkede transaktioner 'Nulstil derefter ved forfaldsdato' fungerer kun med nulstillingstyper ved midnat. Vælg venligst 'Ved midnat (én gang)' eller 'Ved midnat (gentagende)' for nulstillingstypen for godkendelse.",
       "invalid_due_date": "Ugyldig forfaldsdato",
       "date_required_for_frequency": "En forfaldsdato er påkrævet for denne tilbagevendende frekvens. Rydning af datoer fungerer kun med Ingen, Daglig eller Ugentlig frekvens.",
       "invalid_end_date": "Ugyldig slutdato.",
@@ -1505,6 +1727,7 @@
       "error_daily_multi_times_too_few": "Mindst 2 gange er påkrævet for frekvensen 'Flere gange om dagen'. For en enkelt gang skal du bruge den normale frekvens 'Daglig'.",
       "error_daily_multi_times_too_many": "Maksimalt 6 gange tilladt pr. dag for frekvensen 'Flere gange pr. dag'.",
       "error_daily_multi_due_date_required": "Hyppigheden 'Flere gange om dagen' kræver, at der angives en forfaldsdato. Datoen bestemmer, hvornår planlægningen starter, og tidspunkterne bestemmer tilgængelighedsvinduerne hver dag.",
+      "rotation_min_kids": "Rotationsopgaver kræver mindst 2 tildelte børn",
       "error_allow_steal_incompatible": "Tillad håndtering af forfaldne opgaver ved stjæling er kun kompatibel med rotationsopgaver (rotation_simple eller rotation_smart) af nulstillingstypen 'Én gang om dagen' og kræver en forfaldsdato for at definere, hvornår stjælevinduet åbnes.",
       "error_at_due_date_reset_requires_due_date": "Godkendelsesnulstillingstyperne 'Ved forfaldsdato' (Én gang eller Flere gange) kræver, at der angives en forfaldsdato. Uden en forfaldsdato udløses nulstillingen af godkendelsen aldrig, og opgaven forbliver godkendt på ubestemt tid.",
       "error_per_kid_applicable_days_invalid": "Ugyldigt gældende dagsformat for et eller flere børn. Dage skal være heltal 0-6 (mandag-søndag) uden dubletter.",
@@ -1621,6 +1844,7 @@
     "target_type": {
       "options": {
         "points": "Point",
+        "points_all_time": "Point (hele tiden)",
         "points_chores": "Point fra huslige pligter",
         "chore_count": "Antal pligter",
         "days_all_chores": "Dage udvalgte pligter udført",
@@ -2112,6 +2336,11 @@
           "description": "Styrer, hvad der sker, når forfaldsdatoen overskrides, og hvad der sker med forsinkede opgaver ved grænsen for nulstilling af godkendelse.",
           "example": "forfaldsdato"
         },
+        "chore_claim_lock_until_window": {
+          "name": "Lås krav indtil vinduet åbner",
+          "description": "Hvis det er sandt, kan børn ikke gøre krav på denne opgave, før tidsfristen begynder.",
+          "example": "falsk"
+        },
         "auto_approve": {
           "name": "Automatisk godkendelse",
           "description": "Hvis det er sandt, godkendes opgaven automatisk, når den gøres krav på.",
@@ -2136,7 +2365,7 @@
     },
     "update_chore": {
       "name": "Opdater opgave",
-      "description": "Opdater egenskaberne for en eksisterende opgave. Angiv enten id ELLER navn for at identificere opgaven. Kun de angivne felter opdateres. Bemærk: completion_criteria kan ikke ændres efter oprettelse.",
+      "description": "Opdater egenskaberne for en eksisterende opgave. Angiv enten id ELLER navn for at identificere opgaven. Kun de angivne felter opdateres.",
       "fields": {
         "id": {
           "name": "Huslige pligter-ID",
@@ -2197,6 +2426,11 @@
           "name": "Forsinket håndtering",
           "description": "Ny adfærd ved håndtering af forsinket levering.",
           "example": "aldrig_forfalden"
+        },
+        "chore_claim_lock_until_window": {
+          "name": "Lås krav indtil vinduet åbner",
+          "description": "Hvis det er sandt, kan børn ikke gøre krav på denne opgave, før tidsfristen begynder.",
+          "example": "ægte"
         },
         "auto_approve": {
           "name": "Automatisk godkendelse",
@@ -2561,6 +2795,18 @@
           "chore_last_longest_streak_date": {
             "name": "Dato for sidste længste serie"
           },
+          "chore_current_missed_streak": {
+            "name": "Nuværende mistede række"
+          },
+          "chore_longest_missed_streak": {
+            "name": "Længste missede række"
+          },
+          "chore_missed_count": {
+            "name": "Misset (hele tiden)"
+          },
+          "chore_last_missed": {
+            "name": "Sidst misset"
+          },
           "last_claimed": {
             "name": "Sidst gjort krav på"
           },
@@ -2650,6 +2896,9 @@
           "kid_name": {
             "name": "Barnets navn"
           },
+          "points_multiplier": {
+            "name": "Pointmultiplikator"
+          },
           "point_stat_points_earned_today": {
             "name": "Optjent i dag"
           },
@@ -2725,7 +2974,7 @@
           "point_stat_avg_points_per_chore": {
             "name": "Gennemsnit pr. opgave"
           },
-          "point_stat_highest_balance": {
+          "point_stat_highest_balance_all_time": {
             "name": "Højeste saldo nogensinde"
           }
         }
@@ -2803,17 +3052,32 @@
           "chore_stat_overdue_today": {
             "name": "Forfalden i dag"
           },
+          "chore_stat_missed_today": {
+            "name": "Misset i dag"
+          },
           "chore_stat_overdue_week": {
             "name": "Forsinket denne uge"
+          },
+          "chore_stat_missed_week": {
+            "name": "Gik glip af denne uge"
           },
           "chore_stat_overdue_month": {
             "name": "Forfaldne denne måned"
           },
+          "chore_stat_missed_month": {
+            "name": "Gik glip af denne måned"
+          },
           "chore_stat_overdue_year": {
             "name": "Forsinket i år"
           },
+          "chore_stat_missed_year": {
+            "name": "Gik glip af i år"
+          },
           "chore_stat_overdue_count_all_time": {
             "name": "Forsinket hele tiden"
+          },
+          "chore_stat_missed_all_time": {
+            "name": "Misset hele tiden"
           },
           "chore_stat_claimed_today": {
             "name": "Anmodet i dag"
@@ -2922,6 +3186,9 @@
           },
           "chore_stat_longest_streak": {
             "name": "Længste række"
+          },
+          "chore_stat_longest_missed_streak": {
+            "name": "Længste missede række"
           },
           "chore_stat_avg_per_day_week": {
             "name": "Gennemsnit pr. dag (uge)"
@@ -4128,6 +4395,15 @@
     },
     "chore_pending_claim": {
       "message": "Chore har et afventende krav, der venter på godkendelse eller afvisning"
+    },
+    "chore_waiting": {
+      "message": "Denne opgave kan ikke gøres krav på endnu. Forfaldsfristen er ikke åbnet."
+    },
+    "chore_not_my_turn": {
+      "message": "Denne opgave er rotationslåst. Det er i øjeblikket et andet barns tur."
+    },
+    "chore_missed_locked": {
+      "message": "Denne opgave er markeret som ubesvaret og låst for den aktuelle cyklus."
     },
     "chore_completed_by_other": {
       "message": "Denne opgave er allerede blevet udført af et andet barn i denne periode"

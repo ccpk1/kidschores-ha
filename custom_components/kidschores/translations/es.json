@@ -113,6 +113,76 @@
       "chores": {
         "title": "Agregar tarea",
         "description": "Crea una nueva tarea con puntos, asignaciones y un cronograma recurrente.",
+        "sections": {
+          "section_root_form": {
+            "name": "Definición",
+            "description": "Configuración de identidad, asignación y contratos básicos.",
+            "data": {
+              "name": "📋 Nombre de la tarea",
+              "chore_description": "📋 Descripción (opcional)",
+              "icon": "📋 Icono (mdi:xxx)",
+              "default_points": "💰 Puntos otorgados",
+              "assigned_kids": "👥 Niños asignados",
+              "completion_criteria": "👥 Criterios de finalización"
+            },
+            "data_description": {
+              "name": "Nombre único que se muestra en todo el sistema.",
+              "chore_description": "Instrucciones opcionales o detalles sobre cómo completar esta tarea.",
+              "icon": "Ícono de diseño de materiales (por ejemplo, mdi:escoba, mdi:lavavajillas).",
+              "default_points": "Puntos ganados al completarlo.",
+              "assigned_kids": "Niños que pueden ver y reclamar esta tarea.",
+              "completion_criteria": "Controla cómo se completa la tarea cuando se asignan varios niños: seguimiento individual, finalización compartida o rotación por turnos."
+            }
+          },
+          "section_schedule": {
+            "name": "Cronograma",
+            "description": "Configuración de tiempos, ventanas de acceso e intervalos recurrentes.",
+            "data": {
+              "recurring_frequency": "🔄 Horario: Frecuencia",
+              "due_date": "📅 Horario: Fecha de entrega (opcional)",
+              "clear_due_date": "🗑️ Fecha de vencimiento clara",
+              "applicable_days": "📅 Horario: Días Aplicables (opcional)",
+              "chore_due_window_offset": "⏱️ Ventana de vencimiento: Compensación antes de la fecha de vencimiento",
+              "chore_claim_lock_until_window": "¿Bloquear reclamo hasta que se abra la ventana de vencimiento?",
+              "custom_interval": "🔄 Horario: Intervalo personalizado (para frecuencia personalizada)",
+              "custom_interval_unit": "🔄 Horario: Unidad de intervalo personalizada"
+            },
+            "data_description": {
+              "recurring_frequency": "Con qué frecuencia se repite la tarea: Diariamente, Semanalmente, Mensualmente, Anualmente, Personalizada o Ninguna.",
+              "due_date": "Fecha límite opcional. Combinable con calendarios recurrentes.",
+              "clear_due_date": "Marque esta casilla para eliminar la fecha de vencimiento de esta tarea.",
+              "applicable_days": "Déjelo en blanco para todos los días. SOLO Seleccione días específicos para restringir.",
+              "chore_due_window_offset": "Cuando el estado de la tarea cambia de Pendiente a Vencida. Formato: \"1d 6h 30m\" o simplemente \"30\" para minutos. Introduzca \"0\" para desactivarla. Ejemplo: \"1d\" significa que la tarea aparece como \"Vencida\" 1 día antes de la fecha límite.",
+              "chore_claim_lock_until_window": "Cuando está habilitado, los niños no pueden reclamar esta tarea antes de que comience la ventana de vencimiento.",
+              "custom_interval": "Número de unidades de tiempo entre repeticiones (p. ej., 3 para «cada 3 semanas»). Solo se usa con la frecuencia personalizada.",
+              "custom_interval_unit": "Unidad de tiempo para intervalos personalizados (días, semanas, meses). Solo se usa con frecuencia personalizada."
+            }
+          },
+          "section_advanced_configurations": {
+            "name": "Configuraciones avanzadas",
+            "description": "Automatización del ciclo de vida, notificaciones, visibilidad y metadatos.",
+            "data": {
+              "approval_reset_type": "➡️ Finalizaciones permitidas y tiempo de restablecimiento de aprobaciones",
+              "approval_reset_pending_claim_action": "➡️ Manejo de reclamos pendientes al restablecer la aprobación",
+              "auto_approve": "✅ ¿Reclamaciones con aprobación automática?",
+              "overdue_handling_type": "⏰ Vencido: Manejo",
+              "chore_due_reminder_offset": "🔔 Recordatorio de vencimiento: Compensación antes de la fecha de vencimiento",
+              "chore_notifications": "🔔 Eventos de notificación (opcional)",
+              "show_on_calendar": "📅 ¿Mostrar en el calendario?",
+              "chore_labels": "📋Etiquetas (opcional)"
+            },
+            "data_description": {
+              "approval_reset_type": "Controla cuándo se activa el límite del ciclo de aprobación de la tarea (medianoche, fecha de vencimiento, al finalizar o activación manual).",
+              "approval_reset_pending_claim_action": "Esto es lo que sucede con las reclamaciones que aún están esperando aprobación cuando se produce el restablecimiento de la aprobación.",
+              "auto_approve": "Cuando esta opción está habilitada, las reclamaciones se aprueban instantáneamente sin revisión por parte de los padres.",
+              "overdue_handling_type": "Acción después de la fecha de vencimiento: Ocultar el estado de vencido, permanecer vencido hasta que se reclame o restablecer a pendiente en el próximo ciclo de aprobación.",
+              "chore_due_reminder_offset": "Cuándo enviar la notificación de recordatorio de vencimiento. Formato: \"1d 6h 30m\" o simplemente \"30\" para minutos. Predeterminado: 30m (30 minutos antes del vencimiento). Introduzca \"0\" para desactivarlo.",
+              "chore_notifications": "Cuándo enviar notificaciones: por reclamo, por aprobación, por rechazo o cualquier combinación.",
+              "show_on_calendar": "Muestra esta tarea en la vista del calendario.",
+              "chore_labels": "Etiquetas para organizar tareas (p. ej., \"cocina\", \"exterior\"). Déjalo en blanco si no es necesario."
+            }
+          }
+        },
         "data": {
           "name": "📋 Nombre de la tarea",
           "chore_description": "📋 Descripción (opcional)",
@@ -124,6 +194,7 @@
           "approval_reset_type": "➡️ Finalizaciones permitidas y tiempo de restablecimiento de aprobaciones",
           "approval_reset_pending_claim_action": "➡️ Manejo de reclamos pendientes al restablecer la aprobación",
           "overdue_handling_type": "⏰ Vencido: Manejo",
+          "chore_claim_lock_until_window": "¿Bloquear reclamo hasta que se abra la ventana de vencimiento?",
           "auto_approve": "✅ ¿Reclamaciones con aprobación automática?",
           "recurring_frequency": "🔄 Horario: Frecuencia",
           "custom_interval": "🔄 Horario: Intervalo personalizado (para frecuencia personalizada)",
@@ -146,6 +217,7 @@
           "approval_reset_type": "Controla cuándo se activa el límite del ciclo de aprobación de la tarea (medianoche, fecha de vencimiento, al finalizar o activación manual).",
           "approval_reset_pending_claim_action": "Esto es lo que sucede con las reclamaciones que aún están esperando aprobación cuando se produce el restablecimiento de la aprobación.",
           "overdue_handling_type": "Acción después de la fecha de vencimiento: Ocultar el estado de vencido, permanecer vencido hasta que se reclame o restablecer a pendiente en el próximo ciclo de aprobación.",
+          "chore_claim_lock_until_window": "Cuando está habilitado, los niños no pueden reclamar esta tarea antes de que comience la ventana de vencimiento.",
           "auto_approve": "Cuando esta opción está habilitada, las reclamaciones se aprueban instantáneamente sin revisión por parte de los padres.",
           "recurring_frequency": "Con qué frecuencia se repite la tarea: Diariamente, Semanalmente, Mensualmente, Anualmente, Personalizada o Ninguna.",
           "custom_interval": "Número de unidades de tiempo entre repeticiones (p. ej., 3 para «cada 3 semanas»). Solo se usa con la frecuencia personalizada.",
@@ -356,6 +428,7 @@
       "invalid_challenge_name": "Nombre de desafío no válido",
       "invalid_chore": "Tarea no válida",
       "invalid_chore_count": "Recuento de tareas no válido",
+      "rotation_min_kids": "Las tareas de rotación requieren al menos 2 niños asignados",
       "invalid_chore_name": "Nombre de tarea no válido",
       "invalid_points": "Los puntos deben ser cero o mayores",
       "invalid_overdue_reset_combination": "La gestión de retrasos \"A la fecha de vencimiento y luego reiniciar\" solo funciona con reinicios a medianoche. Seleccione \"A medianoche (una vez)\" o \"A medianoche (repetidamente)\" para el tipo de reinicio de aprobación.",
@@ -481,6 +554,76 @@
       "add_chore": {
         "title": "Agregar tarea",
         "description": "Crea una nueva tarea con puntos, asignaciones y un cronograma recurrente.\n\n📖 [Guía de configuración]({documentation_url})",
+        "sections": {
+          "section_root_form": {
+            "name": "Definición",
+            "description": "Configuración de identidad, asignación y contratos básicos.",
+            "data": {
+              "name": "📋 Nombre de la tarea",
+              "chore_description": "📋 Descripción (opcional)",
+              "icon": "📋 Icono (mdi:xxx)",
+              "default_points": "💰 Puntos otorgados",
+              "assigned_kids": "👥 Niños asignados",
+              "completion_criteria": "👥 Criterios de finalización"
+            },
+            "data_description": {
+              "name": "Nombre único que se muestra en todo el sistema.",
+              "chore_description": "Instrucciones opcionales o detalles sobre cómo completar esta tarea.",
+              "icon": "Ícono de diseño de materiales (por ejemplo, mdi:escoba, mdi:lavavajillas).",
+              "default_points": "Puntos ganados al completarlo.",
+              "assigned_kids": "Niños que pueden ver y reclamar esta tarea.",
+              "completion_criteria": "Controla cómo se completa la tarea cuando se asignan varios niños: seguimiento individual, finalización compartida o rotación por turnos."
+            }
+          },
+          "section_schedule": {
+            "name": "Cronograma",
+            "description": "Configuración de tiempos, ventanas de acceso e intervalos recurrentes.",
+            "data": {
+              "recurring_frequency": "🔄 Horario: Frecuencia",
+              "due_date": "📅 Horario: Fecha de entrega (opcional)",
+              "clear_due_date": "🗑️ Fecha de vencimiento clara",
+              "applicable_days": "📅 Horario: Días Aplicables (opcional)",
+              "chore_due_window_offset": "⏱️ Ventana de vencimiento: Compensación antes de la fecha de vencimiento",
+              "chore_claim_lock_until_window": "¿Bloquear reclamo hasta que se abra la ventana de vencimiento?",
+              "custom_interval": "🔄 Horario: Intervalo personalizado (para frecuencia personalizada)",
+              "custom_interval_unit": "🔄 Horario: Unidad de intervalo personalizada"
+            },
+            "data_description": {
+              "recurring_frequency": "Frecuencia de repetición de la tarea: Diariamente, Semanalmente, Mensualmente, Anualmente, Personalizada o Ninguna. Si selecciona \"Diariamente - Varias veces al día\", aparecerá una pantalla adicional para configurar las horas específicas.",
+              "due_date": "Fecha límite opcional. Se puede combinar con horarios recurrentes. Para tareas independientes, esto sirve como plantilla; aparecerá una pantalla adicional que permite especificar fechas individuales por niño.",
+              "clear_due_date": "Marque esta casilla para eliminar la fecha de vencimiento de esta tarea.",
+              "applicable_days": "Déjelo en blanco para todos los días. SOLO Seleccione días específicos para restringir.",
+              "chore_due_window_offset": "Cuando el estado de la tarea cambia de Pendiente a Vencida. Formato: \"1d 6h 30m\" o simplemente \"30\" para minutos. Introduzca \"0\" para desactivarla. Ejemplo: \"1d\" significa que la tarea aparece como \"Vencida\" 1 día antes de la fecha límite.",
+              "chore_claim_lock_until_window": "Cuando está habilitado, los niños no pueden reclamar esta tarea antes de que comience la ventana de vencimiento.",
+              "custom_interval": "Número de unidades de tiempo entre repeticiones (p. ej., 3 para «cada 3 semanas»). Solo se usa con la frecuencia personalizada.",
+              "custom_interval_unit": "Unidad de tiempo para intervalos personalizados (días, semanas, meses). Solo se usa con frecuencia personalizada."
+            }
+          },
+          "section_advanced_configurations": {
+            "name": "Configuraciones avanzadas",
+            "description": "Automatización del ciclo de vida, notificaciones, visibilidad y metadatos.",
+            "data": {
+              "approval_reset_type": "➡️ Finalizaciones permitidas y tiempo de restablecimiento de aprobaciones",
+              "approval_reset_pending_claim_action": "➡️ Manejo de reclamos pendientes al restablecer la aprobación",
+              "auto_approve": "✅ ¿Reclamaciones con aprobación automática?",
+              "overdue_handling_type": "⏰ Vencido: Manejo",
+              "chore_due_reminder_offset": "🔔 Recordatorio de vencimiento: Compensación antes de la fecha de vencimiento",
+              "chore_notifications": "🔔 Eventos de notificación (opcional)",
+              "show_on_calendar": "📅 ¿Mostrar en el calendario?",
+              "chore_labels": "📋Etiquetas (opcional)"
+            },
+            "data_description": {
+              "approval_reset_type": "Controla cuándo se activa el límite del ciclo de aprobación de la tarea (medianoche, fecha de vencimiento, al finalizar o activación manual).",
+              "approval_reset_pending_claim_action": "Controla lo que sucede con las reclamaciones no aprobadas cuando se activa el límite de restablecimiento de aprobación.",
+              "auto_approve": "Cuando esta opción está habilitada, las reclamaciones se aprueban instantáneamente sin revisión por parte de los padres.",
+              "overdue_handling_type": "Controla lo que sucede cuando pasa la fecha de vencimiento y lo que sucede con las tareas vencidas en el límite de restablecimiento de aprobación.",
+              "chore_due_reminder_offset": "Cuándo enviar la notificación de recordatorio de vencimiento. Formato: \"1d 6h 30m\" o simplemente \"30\" para minutos. Predeterminado: 30m (30 minutos antes del vencimiento). Introduzca \"0\" para desactivarlo.",
+              "chore_notifications": "Cuándo enviar notificaciones: por reclamo, por aprobación, por rechazo o cualquier combinación.",
+              "show_on_calendar": "Muestra esta tarea en la vista del calendario.",
+              "chore_labels": "Etiquetas para organizar tareas (p. ej., \"cocina\", \"exterior\"). Déjalo en blanco si no es necesario."
+            }
+          }
+        },
         "data": {
           "name": "📋 Nombre de la tarea",
           "chore_description": "📋 Descripción (opcional)",
@@ -492,6 +635,7 @@
           "approval_reset_type": "➡️ Finalizaciones permitidas y tiempo de restablecimiento de aprobaciones",
           "approval_reset_pending_claim_action": "➡️ Manejo de reclamos pendientes al restablecer la aprobación",
           "overdue_handling_type": "⏰ Vencido: Manejo",
+          "chore_claim_lock_until_window": "¿Bloquear reclamo hasta que se abra la ventana de vencimiento?",
           "auto_approve": "✅ ¿Reclamaciones con aprobación automática?",
           "recurring_frequency": "🔄 Horario: Frecuencia",
           "custom_interval": "🔄 Horario: Intervalo personalizado (para frecuencia personalizada)",
@@ -515,6 +659,7 @@
           "approval_reset_type": "Controla cuándo se activa el límite del ciclo de aprobación de la tarea (medianoche, fecha de vencimiento, al finalizar o activación manual).",
           "approval_reset_pending_claim_action": "Controla lo que sucede con las reclamaciones no aprobadas cuando se activa el límite de restablecimiento de aprobación.",
           "overdue_handling_type": "Controla lo que sucede cuando pasa la fecha de vencimiento y lo que sucede con las tareas vencidas en el límite de restablecimiento de aprobación.",
+          "chore_claim_lock_until_window": "Cuando está habilitado, los niños no pueden reclamar esta tarea antes de que comience la ventana de vencimiento.",
           "auto_approve": "Cuando esta opción está habilitada, las reclamaciones se aprueban instantáneamente sin revisión por parte de los padres.",
           "recurring_frequency": "Frecuencia de repetición de la tarea: Diariamente, Semanalmente, Mensualmente, Anualmente, Personalizada o Ninguna. Si selecciona \"Diariamente - Varias veces al día\", aparecerá una pantalla adicional para configurar las horas específicas.",
           "custom_interval": "Número de unidades de tiempo entre repeticiones (p. ej., 3 para «cada 3 semanas»). Solo se usa con la frecuencia personalizada.",
@@ -877,6 +1022,76 @@
       "edit_chore": {
         "title": "Editar tarea",
         "description": "Modificar los detalles de la tarea seleccionada.\n\n📖 [Guía de configuración]({documentation_url})",
+        "sections": {
+          "section_root_form": {
+            "name": "Definición",
+            "description": "Configuración de identidad, asignación y contratos básicos.",
+            "data": {
+              "name": "📋 Nombre de la tarea",
+              "chore_description": "📋 Descripción (opcional)",
+              "icon": "📋 Icono (mdi:xxx)",
+              "default_points": "💰 Puntos otorgados",
+              "assigned_kids": "👥 Niños asignados",
+              "completion_criteria": "👥 Criterios de finalización"
+            },
+            "data_description": {
+              "name": "Nombre único que se muestra en todo el sistema.",
+              "chore_description": "Instrucciones opcionales o detalles sobre cómo completar esta tarea.",
+              "icon": "Ícono de diseño de materiales (por ejemplo, mdi:escoba, mdi:lavavajillas).",
+              "default_points": "Puntos ganados al completarlo.",
+              "assigned_kids": "Niños que pueden ver y reclamar esta tarea.",
+              "completion_criteria": "Controla cómo se completa la tarea cuando se asignan varios niños: seguimiento individual, finalización compartida o rotación por turnos."
+            }
+          },
+          "section_schedule": {
+            "name": "Cronograma",
+            "description": "Configuración de tiempos, ventanas de acceso e intervalos recurrentes.",
+            "data": {
+              "recurring_frequency": "🔄 Horario: Frecuencia",
+              "due_date": "📅 Horario: Fecha de entrega (opcional)",
+              "clear_due_date": "🗑️ Fecha de vencimiento clara",
+              "applicable_days": "📅 Horario: Días Aplicables (opcional)",
+              "chore_due_window_offset": "⏱️ Ventana de vencimiento: Compensación antes de la fecha de vencimiento",
+              "chore_claim_lock_until_window": "¿Bloquear reclamo hasta que se abra la ventana de vencimiento?",
+              "custom_interval": "🔄 Horario: Intervalo personalizado (para frecuencia personalizada)",
+              "custom_interval_unit": "🔄 Horario: Unidad de intervalo personalizada"
+            },
+            "data_description": {
+              "recurring_frequency": "Frecuencia de repetición de la tarea: Diariamente, Semanalmente, Mensualmente, Anualmente, Personalizada o Ninguna. Si selecciona \"Diariamente - Varias veces al día\", aparecerá una pantalla adicional para configurar las horas específicas.",
+              "due_date": "Fecha límite opcional. Se puede combinar con horarios recurrentes. Para tareas independientes, esto sirve como plantilla; aparecerá una pantalla adicional que permite especificar fechas individuales por niño.",
+              "clear_due_date": "Marque esta casilla para eliminar la fecha de vencimiento de esta tarea.",
+              "applicable_days": "Déjelo en blanco para todos los días. SOLO Seleccione días específicos para restringir.",
+              "chore_due_window_offset": "Cuando el estado de la tarea cambia de Pendiente a Vencida. Formato: \"1d 6h 30m\" o simplemente \"30\" para minutos. Introduzca \"0\" para desactivarla. Ejemplo: \"1d\" significa que la tarea aparece como \"Vencida\" 1 día antes de la fecha límite.",
+              "chore_claim_lock_until_window": "Cuando está habilitado, los niños no pueden reclamar esta tarea antes de que comience la ventana de vencimiento.",
+              "custom_interval": "Número de unidades de tiempo entre repeticiones (p. ej., 3 para «cada 3 semanas»). Solo se usa con la frecuencia personalizada.",
+              "custom_interval_unit": "Unidad de tiempo para intervalos personalizados (días, semanas, meses). Solo se usa con frecuencia personalizada."
+            }
+          },
+          "section_advanced_configurations": {
+            "name": "Configuraciones avanzadas",
+            "description": "Automatización del ciclo de vida, notificaciones, visibilidad y metadatos.",
+            "data": {
+              "approval_reset_type": "➡️ Finalizaciones permitidas y tiempo de restablecimiento de aprobaciones",
+              "approval_reset_pending_claim_action": "➡️ Manejo de reclamos pendientes al restablecer la aprobación",
+              "auto_approve": "✅ ¿Reclamaciones con aprobación automática?",
+              "overdue_handling_type": "⏰ Vencido: Manejo",
+              "chore_due_reminder_offset": "🔔 Recordatorio de vencimiento: Compensación antes de la fecha de vencimiento",
+              "chore_notifications": "🔔 Eventos de notificación (opcional)",
+              "show_on_calendar": "📅 ¿Mostrar en el calendario?",
+              "chore_labels": "📋Etiquetas (opcional)"
+            },
+            "data_description": {
+              "approval_reset_type": "Controla cuándo se activa el límite del ciclo de aprobación de la tarea (medianoche, fecha de vencimiento, al finalizar o activación manual).",
+              "approval_reset_pending_claim_action": "Controla lo que sucede con las reclamaciones no aprobadas cuando se activa el límite de restablecimiento de aprobación.",
+              "auto_approve": "Cuando esta opción está habilitada, las reclamaciones se aprueban instantáneamente sin revisión por parte de los padres.",
+              "overdue_handling_type": "Controla lo que sucede cuando pasa la fecha de vencimiento y lo que sucede con las tareas vencidas en el límite de restablecimiento de aprobación.",
+              "chore_due_reminder_offset": "Cuándo enviar la notificación de recordatorio de vencimiento. Formato: \"1d 6h 30m\" o simplemente \"30\" para minutos. Predeterminado: 30m (30 minutos antes del vencimiento). Introduzca \"0\" para desactivarlo.",
+              "chore_notifications": "Cuándo enviar notificaciones: por reclamo, por aprobación, por rechazo o cualquier combinación.",
+              "show_on_calendar": "Muestra esta tarea en la vista del calendario.",
+              "chore_labels": "Etiquetas para organizar tareas (p. ej., \"cocina\", \"exterior\"). Déjalo en blanco si no es necesario."
+            }
+          }
+        },
         "data": {
           "name": "📋 Nombre de la tarea",
           "chore_description": "📋 Descripción (opcional)",
@@ -889,6 +1104,7 @@
           "approval_reset_type": "➡️ Finalizaciones permitidas y tiempo de restablecimiento de aprobaciones",
           "approval_reset_pending_claim_action": "➡️ Manejo de reclamos pendientes al restablecer la aprobación",
           "overdue_handling_type": "⏰ Vencido: Manejo",
+          "chore_claim_lock_until_window": "¿Bloquear reclamo hasta que se abra la ventana de vencimiento?",
           "auto_approve": "✅ ¿Reclamaciones con aprobación automática?",
           "recurring_frequency": "🔄 Horario: Frecuencia",
           "custom_interval": "🔄 Horario: Intervalo personalizado (para frecuencia personalizada)",
@@ -912,6 +1128,7 @@
           "approval_reset_type": "Controla cuándo se activa el límite del ciclo de aprobación de la tarea (medianoche, fecha de vencimiento, al finalizar o activación manual).",
           "approval_reset_pending_claim_action": "Controla lo que sucede con las reclamaciones no aprobadas cuando se activa el límite de restablecimiento de aprobación.",
           "overdue_handling_type": "Controla lo que sucede cuando pasa la fecha de vencimiento y lo que sucede con las tareas vencidas en el límite de restablecimiento de aprobación.",
+          "chore_claim_lock_until_window": "Cuando está habilitado, los niños no pueden reclamar esta tarea antes de que comience la ventana de vencimiento.",
           "auto_approve": "Cuando esta opción está habilitada, las reclamaciones se aprueban instantáneamente sin revisión por parte de los padres.",
           "recurring_frequency": "Frecuencia de repetición de la tarea: Diariamente, Semanalmente, Mensualmente, Anualmente, Personalizada o Ninguna. Si selecciona \"Diariamente - Varias veces al día\", aparecerá una pantalla adicional para configurar las horas específicas.",
           "custom_interval": "Número de unidades de tiempo entre repeticiones (p. ej., 3 para «cada 3 semanas»). Solo se usa con la frecuencia personalizada.",
@@ -1352,6 +1569,7 @@
           "retention_monthly": "Retención mensual de datos (meses)",
           "retention_yearly": "Retención anual de datos (años)",
           "show_legacy_entities": "Mostrar entidades adicionales",
+          "kiosk_mode": "Habilitar el modo quiosco para reclamos de niños",
           "backups_max_retained": "Máximo de copias de seguridad a conservar",
           "backup_action_selection": "Acciones de respaldo"
         },
@@ -1365,6 +1583,7 @@
           "retention_monthly": "Número de meses de datos históricos mensuales que se conservarán antes de la limpieza. Mínimo 1, máximo 24.",
           "retention_yearly": "Número de años de datos históricos anuales que se deben conservar antes de la limpieza. Mínimo 1, máximo 10.",
           "show_legacy_entities": "Muestra entidades adicionales, como sensores y selecciones, que ahora están consolidadas en el sensor auxiliar del panel. Estas entidades son opcionales para la compatibilidad con automatizaciones existentes.",
+          "kiosk_mode": "Permite que los botones de solicitud de tareas/recompensas para niños funcionen en tabletas compartidas de pared sin necesidad de que el usuario del panel coincida con el enlace de usuario de Home Assistant del niño. Advertencia de seguridad: cualquier persona con acceso a ese dispositivo puede enviar solicitudes para niños.",
           "backups_max_retained": "Número máximo de archivos de copia de seguridad que se pueden conservar por etiqueta (p. ej., 5 copias de seguridad manuales, 5 copias de seguridad con restablecimiento de datos). Las copias de seguridad antiguas se eliminan automáticamente tras cada nueva creación. Establézcalo en 0 para desactivar las copias de seguridad automáticas por completo.",
           "backup_action_selection": "Elija una acción de administración de copias de seguridad: crear una copia de seguridad manual, eliminar una copia de seguridad o restaurar desde una copia de seguridad."
         }
@@ -1477,6 +1696,9 @@
       "invalid_badge_count": "Recuento de insignias no válido",
       "invalid_chore": "Tarea no válida",
       "invalid_chore_count": "Recuento de tareas no válido",
+      "invalid_chore_name": "Nombre de tarea no válido",
+      "invalid_points": "Los puntos deben ser cero o mayores",
+      "invalid_overdue_reset_combination": "La gestión de retrasos \"A la fecha de vencimiento y luego reiniciar\" solo funciona con reinicios a medianoche. Seleccione \"A medianoche (una vez)\" o \"A medianoche (repetidamente)\" para el tipo de reinicio de aprobación.",
       "invalid_due_date": "Fecha de vencimiento no válida",
       "date_required_for_frequency": "Se requiere una fecha de vencimiento para esta frecuencia recurrente. Borrar fechas solo funciona con las frecuencias Ninguna, Diaria o Semanal.",
       "invalid_end_date": "Fecha de finalización no válida.",
@@ -1505,6 +1727,7 @@
       "error_daily_multi_times_too_few": "Se requieren al menos 2 veces para la frecuencia \"Varias veces al día\". Para una sola vez, use la frecuencia \"Diaria\".",
       "error_daily_multi_times_too_many": "Se permite un máximo de 6 veces por día para la frecuencia \"Varias veces por día\".",
       "error_daily_multi_due_date_required": "La frecuencia \"Varias veces al día\" requiere establecer una fecha de vencimiento. La fecha determina cuándo comienza la programación y las horas determinan los intervalos de disponibilidad diarios.",
+      "rotation_min_kids": "Las tareas de rotación requieren al menos 2 niños asignados",
       "error_allow_steal_incompatible": "Permitir el manejo de robos vencidos solo es compatible con tareas de rotación (rotation_simple o rotation_smart), tipo de reinicio \"Una vez al día\" y requiere una fecha de vencimiento para definir cuándo se abre la ventana de robo.",
       "error_at_due_date_reset_requires_due_date": "Los tipos de restablecimiento de aprobación \"En fecha de vencimiento\" (Única o Múltiple) requieren que se establezca una fecha de vencimiento. Sin una fecha de vencimiento, el restablecimiento de aprobación nunca se activará y la tarea permanecerá aprobada indefinidamente.",
       "error_per_kid_applicable_days_invalid": "Formato de días aplicable no válido para uno o más niños. Los días deben ser enteros del 0 al 6 (de lunes a domingo) sin duplicados.",
@@ -1621,6 +1844,7 @@
     "target_type": {
       "options": {
         "points": "Agujas",
+        "points_all_time": "Puntos (de todos los tiempos)",
         "points_chores": "Puntos de las tareas domésticas",
         "chore_count": "Conteo de tareas",
         "days_all_chores": "Días de tareas seleccionadas completadas",
@@ -2112,6 +2336,11 @@
           "description": "Controla lo que sucede cuando pasa la fecha de vencimiento y lo que sucede con las tareas vencidas en el límite de restablecimiento de aprobación.",
           "example": "en la fecha de vencimiento"
         },
+        "chore_claim_lock_until_window": {
+          "name": "Bloquear reclamo hasta que se abra la ventana",
+          "description": "Si es así, los niños no pueden reclamar esta tarea antes de que comience el período de entrega.",
+          "example": "FALSO"
+        },
         "auto_approve": {
           "name": "Aprobación automática",
           "description": "Si es verdadero, la tarea se aprueba automáticamente cuando se reclama.",
@@ -2136,7 +2365,7 @@
     },
     "update_chore": {
       "name": "Actualizar tarea",
-      "description": "Actualizar las propiedades de una tarea existente. Proporcione el ID o el nombre para identificar la tarea. Solo se actualizarán los campos proporcionados. Nota: Los criterios de finalización no se pueden modificar después de su creación.",
+      "description": "Actualizar las propiedades de una tarea existente. Proporcione el ID o el nombre para identificar la tarea. Solo se actualizarán los campos proporcionados.",
       "fields": {
         "id": {
           "name": "Identificación de tarea",
@@ -2197,6 +2426,11 @@
           "name": "Manejo de vencimientos",
           "description": "Nuevo comportamiento de manejo de retrasos.",
           "example": "nunca_vencido"
+        },
+        "chore_claim_lock_until_window": {
+          "name": "Bloquear reclamo hasta que se abra la ventana",
+          "description": "Si es así, los niños no pueden reclamar esta tarea antes de que comience el período de entrega.",
+          "example": "verdadero"
         },
         "auto_approve": {
           "name": "Aprobación automática",
@@ -2561,6 +2795,18 @@
           "chore_last_longest_streak_date": {
             "name": "Fecha de la última racha más larga"
           },
+          "chore_current_missed_streak": {
+            "name": "Racha perdida actual"
+          },
+          "chore_longest_missed_streak": {
+            "name": "La racha perdida más larga"
+          },
+          "chore_missed_count": {
+            "name": "Perdido (Todo el tiempo)"
+          },
+          "chore_last_missed": {
+            "name": "Último perdido"
+          },
           "last_claimed": {
             "name": "Último reclamado"
           },
@@ -2650,6 +2896,9 @@
           "kid_name": {
             "name": "Nombre del niño"
           },
+          "points_multiplier": {
+            "name": "Multiplicador de puntos"
+          },
           "point_stat_points_earned_today": {
             "name": "Ganado hoy"
           },
@@ -2725,7 +2974,7 @@
           "point_stat_avg_points_per_chore": {
             "name": "Promedio por tarea"
           },
-          "point_stat_highest_balance": {
+          "point_stat_highest_balance_all_time": {
             "name": "El saldo más alto de la historia"
           }
         }
@@ -2803,17 +3052,32 @@
           "chore_stat_overdue_today": {
             "name": "Vencido hoy"
           },
+          "chore_stat_missed_today": {
+            "name": "Perdido hoy"
+          },
           "chore_stat_overdue_week": {
             "name": "Vencido esta semana"
+          },
+          "chore_stat_missed_week": {
+            "name": "Perdido esta semana"
           },
           "chore_stat_overdue_month": {
             "name": "Vencido este mes"
           },
+          "chore_stat_missed_month": {
+            "name": "Perdido este mes"
+          },
           "chore_stat_overdue_year": {
             "name": "Atrasado este año"
           },
+          "chore_stat_missed_year": {
+            "name": "Perdido este año"
+          },
           "chore_stat_overdue_count_all_time": {
             "name": "Vencido todo el tiempo"
+          },
+          "chore_stat_missed_all_time": {
+            "name": "Perdido todo el tiempo"
           },
           "chore_stat_claimed_today": {
             "name": "Reclamado hoy"
@@ -2922,6 +3186,9 @@
           },
           "chore_stat_longest_streak": {
             "name": "La racha más larga"
+          },
+          "chore_stat_longest_missed_streak": {
+            "name": "La racha perdida más larga"
           },
           "chore_stat_avg_per_day_week": {
             "name": "Promedio por día (semana)"
@@ -4128,6 +4395,15 @@
     },
     "chore_pending_claim": {
       "message": "Chore tiene un reclamo pendiente en espera de aprobación o desaprobación"
+    },
+    "chore_waiting": {
+      "message": "Esta tarea aún no se puede reclamar. El plazo de entrega no se ha abierto."
+    },
+    "chore_not_my_turn": {
+      "message": "Esta tarea está rotatoria. Ahora le toca a otro niño."
+    },
+    "chore_missed_locked": {
+      "message": "Esta tarea está marcada como omitida y bloqueada para el ciclo actual."
     },
     "chore_completed_by_other": {
       "message": "Esta tarea ya la ha completado otro niño en este período."

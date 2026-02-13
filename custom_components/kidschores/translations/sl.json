@@ -113,6 +113,76 @@
       "chores": {
         "title": "Dodaj opravilo",
         "description": "Ustvarite novo opravilo s točkami, nalogami in ponavljajočim se urnikom.",
+        "sections": {
+          "section_root_form": {
+            "name": "Definicija",
+            "description": "Nastavitve identitete, dodelitve in osnovne pogodbe.",
+            "data": {
+              "name": "📋 Ime opravila",
+              "chore_description": "📋 Opis (neobvezno)",
+              "icon": "Ikona 📋 (mdi:xxx)",
+              "default_points": "💰 Dodeljene točke",
+              "assigned_kids": "👥 Dodeljeni otroci",
+              "completion_criteria": "👥 Merila za dokončanje"
+            },
+            "data_description": {
+              "name": "Enolično ime, prikazano po celotnem sistemu.",
+              "chore_description": "Neobvezna navodila ali podrobnosti o tem, kako opraviti to opravilo.",
+              "icon": "Ikona materialnega oblikovanja (npr. mdi:metla, mdi:pomivalni stroj).",
+              "default_points": "Točke, pridobljene ob zaključku.",
+              "assigned_kids": "Otroci, ki lahko vidijo in prevzamejo to opravilo.",
+              "completion_criteria": "Nadzira, kako se opravilo opravi, ko je dodeljenih več otrok: individualno sledenje, skupno dokončanje ali rotacija po vrsti."
+            }
+          },
+          "section_schedule": {
+            "name": "Razpored",
+            "description": "Nastavitve časa, okna dostopa in ponavljajočega se intervala.",
+            "data": {
+              "recurring_frequency": "🔄 Urnik: Pogostost",
+              "due_date": "📅 Razpored: Datum oddaje (neobvezno)",
+              "clear_due_date": "🗑️ Jasen rok",
+              "applicable_days": "📅 Urnik: Ustrezni dnevi (neobvezno)",
+              "chore_due_window_offset": "⏱️ Rok: Poravnava pred rokom",
+              "chore_claim_lock_until_window": "🔒 Zakleniti zahtevek do odprtja roka?",
+              "custom_interval": "🔄 Urnik: Interval po meri (za pogostost po meri)",
+              "custom_interval_unit": "🔄 Urnik: Intervalna enota po meri"
+            },
+            "data_description": {
+              "recurring_frequency": "Kako pogosto se opravilo ponavlja: Dnevno, Tedensko, Mesečno, Letno, Po meri ali Brez.",
+              "due_date": "Neobvezen rok. Lahko se kombinira s ponavljajočimi se urniki.",
+              "clear_due_date": "Označite to polje, če želite odstraniti rok za to opravilo.",
+              "applicable_days": "Za vse dni pustite prazno. Izberite SAMO določene dni, ki jih želite omejiti.",
+              "chore_due_window_offset": "Ko se stanje opravila spremeni iz »V teku« v »Zakonito«. Oblika: »1d 6h 30m« ali samo »30« za minute. Za onemogočanje vnesite »0«. Primer: »1d« pomeni, da se opravilo prikaže kot »Zakonito« 1 dan pred rokom.",
+              "chore_claim_lock_until_window": "Ko je omogočeno, otroci ne morejo prevzeti te naloge, preden se začne rok.",
+              "custom_interval": "Število časovnih enot med ponovitvami (npr. 3 za »vsake 3 tedne«). Uporablja se samo s frekvenco po meri.",
+              "custom_interval_unit": "Časovna enota za interval po meri (dnevi, tedni, meseci). Uporablja se samo s frekvenco po meri."
+            }
+          },
+          "section_advanced_configurations": {
+            "name": "Napredne konfiguracije",
+            "description": "Avtomatizacija življenjskega cikla, obvestila, vidnost in metapodatki.",
+            "data": {
+              "approval_reset_type": "➡️ Dovoljena dokončanja in čas ponastavitve odobritve",
+              "approval_reset_pending_claim_action": "➡️ Obravnava zahtevkov v teku ob ponastavitvi odobritve",
+              "auto_approve": "✅ Samodejno odobritev zahtevkov?",
+              "overdue_handling_type": "⏰ Zamuda: Ravnanje",
+              "chore_due_reminder_offset": "🔔 Opomnik za zapadlost: Poravnava pred rokom",
+              "chore_notifications": "🔔 Obvestila o dogodkih (neobvezno)",
+              "show_on_calendar": "📅 Prikaži v koledarju?",
+              "chore_labels": "📋 Oznake (neobvezno)"
+            },
+            "data_description": {
+              "approval_reset_type": "Določa, kdaj se sproži meja cikla odobritve opravila (polnoč, datum zapadlosti, ob zaključku ali ročno sprožitev).",
+              "approval_reset_pending_claim_action": "To se zgodi z zahtevki, ki še čakajo na odobritev, ko pride do ponastavitve odobritve.",
+              "auto_approve": "Ko je omogočeno, se zahtevki takoj odobrijo brez pregleda staršev.",
+              "overdue_handling_type": "Dejanje po datumu zapadlosti: Skrij status zapadlosti, pusti zapadlost do uveljavljanja ali ponastavi na čakanje v naslednjem ciklu odobritve.",
+              "chore_due_reminder_offset": "Kdaj poslati opomnik o zapadlosti. Oblika: »1d 6h 30m« ali samo »30« za minute. Privzeto: 30m (30 minut pred zapadlostjo). Za onemogočanje vnesite »0«.",
+              "chore_notifications": "Kdaj poslati obvestila: Ob zahtevku, ob odobritvi, ob zavrnitvi ali kateri koli kombinaciji.",
+              "show_on_calendar": "Prikaži to opravilo v pogledu koledarja.",
+              "chore_labels": "Oznake za organizacijo opravil (npr. »kuhinja«, »na prostem«). Če niso potrebne, pustite prazno."
+            }
+          }
+        },
         "data": {
           "name": "📋 Ime opravila",
           "chore_description": "📋 Opis (neobvezno)",
@@ -124,6 +194,7 @@
           "approval_reset_type": "➡️ Dovoljena dokončanja in čas ponastavitve odobritve",
           "approval_reset_pending_claim_action": "➡️ Obravnava zahtevkov v teku ob ponastavitvi odobritve",
           "overdue_handling_type": "⏰ Zamuda: Ravnanje",
+          "chore_claim_lock_until_window": "🔒 Zakleniti zahtevek do odprtja roka?",
           "auto_approve": "✅ Samodejno odobritev zahtevkov?",
           "recurring_frequency": "🔄 Urnik: Pogostost",
           "custom_interval": "🔄 Urnik: Interval po meri (za pogostost po meri)",
@@ -146,6 +217,7 @@
           "approval_reset_type": "Določa, kdaj se sproži meja cikla odobritve opravila (polnoč, datum zapadlosti, ob zaključku ali ročno sprožitev).",
           "approval_reset_pending_claim_action": "To se zgodi z zahtevki, ki še čakajo na odobritev, ko pride do ponastavitve odobritve.",
           "overdue_handling_type": "Dejanje po datumu zapadlosti: Skrij status zapadlosti, pusti zapadlost do uveljavljanja ali ponastavi na čakanje v naslednjem ciklu odobritve.",
+          "chore_claim_lock_until_window": "Ko je omogočeno, otroci ne morejo prevzeti te naloge, preden se začne rok.",
           "auto_approve": "Ko je omogočeno, se zahtevki takoj odobrijo brez pregleda staršev.",
           "recurring_frequency": "Kako pogosto se opravilo ponavlja: Dnevno, Tedensko, Mesečno, Letno, Po meri ali Brez.",
           "custom_interval": "Število časovnih enot med ponovitvami (npr. 3 za »vsake 3 tedne«). Uporablja se samo s frekvenco po meri.",
@@ -356,6 +428,7 @@
       "invalid_challenge_name": "Neveljavno ime izziva",
       "invalid_chore": "Neveljavna naloga",
       "invalid_chore_count": "Neveljavno število opravil",
+      "rotation_min_kids": "Za rotacijska opravila sta potrebna vsaj dva dodeljena otroka",
       "invalid_chore_name": "Neveljavno ime opravila",
       "invalid_points": "Točke morajo biti nič ali večje",
       "invalid_overdue_reset_combination": "Obravnava zamud »Ob datumu zapadlosti, nato ponastavitev« deluje samo pri vrstah ponastavitve ob polnoči. Za vrsto ponastavitve odobritve izberite »Ob polnoči (enkrat)« ali »Ob polnoči (ponavljajoče se)«.",
@@ -481,6 +554,76 @@
       "add_chore": {
         "title": "Dodaj opravilo",
         "description": "Ustvari novo opravilo s točkami, nalogami in ponavljajočim se urnikom.\n\n📖 [Vodnik za konfiguracijo]({documentation_url})",
+        "sections": {
+          "section_root_form": {
+            "name": "Definicija",
+            "description": "Nastavitve identitete, dodelitve in osnovne pogodbe.",
+            "data": {
+              "name": "📋 Ime opravila",
+              "chore_description": "📋 Opis (neobvezno)",
+              "icon": "Ikona 📋 (mdi:xxx)",
+              "default_points": "💰 Dodeljene točke",
+              "assigned_kids": "👥 Dodeljeni otroci",
+              "completion_criteria": "👥 Merila za dokončanje"
+            },
+            "data_description": {
+              "name": "Enolično ime, prikazano po celotnem sistemu.",
+              "chore_description": "Neobvezna navodila ali podrobnosti o tem, kako opraviti to opravilo.",
+              "icon": "Ikona materialnega oblikovanja (npr. mdi:metla, mdi:pomivalni stroj).",
+              "default_points": "Točke, pridobljene ob zaključku.",
+              "assigned_kids": "Otroci, ki lahko vidijo in prevzamejo to opravilo.",
+              "completion_criteria": "Nadzira, kako se opravilo opravi, ko je dodeljenih več otrok: individualno sledenje, skupno dokončanje ali rotacija po vrsti."
+            }
+          },
+          "section_schedule": {
+            "name": "Razpored",
+            "description": "Nastavitve časa, okna dostopa in ponavljajočega se intervala.",
+            "data": {
+              "recurring_frequency": "🔄 Urnik: Pogostost",
+              "due_date": "📅 Razpored: Datum oddaje (neobvezno)",
+              "clear_due_date": "🗑️ Jasen rok",
+              "applicable_days": "📅 Urnik: Ustrezni dnevi (neobvezno)",
+              "chore_due_window_offset": "⏱️ Rok: Poravnava pred rokom",
+              "chore_claim_lock_until_window": "🔒 Zakleniti zahtevek do odprtja roka?",
+              "custom_interval": "🔄 Urnik: Interval po meri (za pogostost po meri)",
+              "custom_interval_unit": "🔄 Urnik: Intervalna enota po meri"
+            },
+            "data_description": {
+              "recurring_frequency": "Kako pogosto se opravilo ponavlja: dnevno, tedensko, mesečno, letno, po meri ali brez. Če izberete »Dnevno – večkrat na dan«, se bo prikazal dodaten zaslon za konfiguracijo določenih časov.",
+              "due_date": "Neobvezen rok. Lahko se kombinira s ponavljajočimi se urniki. Za SAMOSTOJNA opravila to služi kot predloga – prikazal se bo dodaten zaslon, ki bo omogočal posamezne datume za vsakega otroka.",
+              "clear_due_date": "Označite to polje, če želite odstraniti rok za to opravilo.",
+              "applicable_days": "Za vse dni pustite prazno. Izberite SAMO določene dni, ki jih želite omejiti.",
+              "chore_due_window_offset": "Ko se stanje opravila spremeni iz »V teku« v »Zakonito«. Oblika: »1d 6h 30m« ali samo »30« za minute. Za onemogočanje vnesite »0«. Primer: »1d« pomeni, da se opravilo prikaže kot »Zakonito« 1 dan pred rokom.",
+              "chore_claim_lock_until_window": "Ko je omogočeno, otroci ne morejo prevzeti te naloge, preden se začne rok.",
+              "custom_interval": "Število časovnih enot med ponovitvami (npr. 3 za »vsake 3 tedne«). Uporablja se samo s frekvenco po meri.",
+              "custom_interval_unit": "Časovna enota za interval po meri (dnevi, tedni, meseci). Uporablja se samo s frekvenco po meri."
+            }
+          },
+          "section_advanced_configurations": {
+            "name": "Napredne konfiguracije",
+            "description": "Avtomatizacija življenjskega cikla, obvestila, vidnost in metapodatki.",
+            "data": {
+              "approval_reset_type": "➡️ Dovoljena dokončanja in čas ponastavitve odobritve",
+              "approval_reset_pending_claim_action": "➡️ Obravnava zahtevkov v teku ob ponastavitvi odobritve",
+              "auto_approve": "✅ Samodejno odobritev zahtevkov?",
+              "overdue_handling_type": "⏰ Zamuda: Ravnanje",
+              "chore_due_reminder_offset": "🔔 Opomnik za zapadlost: Poravnava pred rokom",
+              "chore_notifications": "🔔 Obvestila o dogodkih (neobvezno)",
+              "show_on_calendar": "📅 Prikaži v koledarju?",
+              "chore_labels": "📋 Oznake (neobvezno)"
+            },
+            "data_description": {
+              "approval_reset_type": "Določa, kdaj se sproži meja cikla odobritve opravila (polnoč, datum zapadlosti, ob zaključku ali ročno sprožitev).",
+              "approval_reset_pending_claim_action": "Nadzira, kaj se zgodi z neodobrenimi zahtevki, ko se sproži meja ponastavitve odobritve.",
+              "auto_approve": "Ko je omogočeno, se zahtevki takoj odobrijo brez pregleda staršev.",
+              "overdue_handling_type": "Nadzira, kaj se zgodi, ko rok poteče, in kaj se zgodi z zamujenimi opravili na meji ponastavitve odobritve.",
+              "chore_due_reminder_offset": "Kdaj poslati opomnik o zapadlosti. Oblika: »1d 6h 30m« ali samo »30« za minute. Privzeto: 30m (30 minut pred zapadlostjo). Za onemogočanje vnesite »0«.",
+              "chore_notifications": "Kdaj poslati obvestila: Ob zahtevku, ob odobritvi, ob zavrnitvi ali kateri koli kombinaciji.",
+              "show_on_calendar": "Prikaži to opravilo v pogledu koledarja.",
+              "chore_labels": "Oznake za organizacijo opravil (npr. »kuhinja«, »na prostem«). Če niso potrebne, pustite prazno."
+            }
+          }
+        },
         "data": {
           "name": "📋 Ime opravila",
           "chore_description": "📋 Opis (neobvezno)",
@@ -492,6 +635,7 @@
           "approval_reset_type": "➡️ Dovoljena dokončanja in čas ponastavitve odobritve",
           "approval_reset_pending_claim_action": "➡️ Obravnava zahtevkov v teku ob ponastavitvi odobritve",
           "overdue_handling_type": "⏰ Zamuda: Ravnanje",
+          "chore_claim_lock_until_window": "🔒 Zakleniti zahtevek do odprtja roka?",
           "auto_approve": "✅ Samodejno odobritev zahtevkov?",
           "recurring_frequency": "🔄 Urnik: Pogostost",
           "custom_interval": "🔄 Urnik: Interval po meri (za pogostost po meri)",
@@ -515,6 +659,7 @@
           "approval_reset_type": "Določa, kdaj se sproži meja cikla odobritve opravila (polnoč, datum zapadlosti, ob zaključku ali ročno sprožitev).",
           "approval_reset_pending_claim_action": "Nadzira, kaj se zgodi z neodobrenimi zahtevki, ko se sproži meja ponastavitve odobritve.",
           "overdue_handling_type": "Nadzira, kaj se zgodi, ko rok poteče, in kaj se zgodi z zamujenimi opravili na meji ponastavitve odobritve.",
+          "chore_claim_lock_until_window": "Ko je omogočeno, otroci ne morejo prevzeti te naloge, preden se začne rok.",
           "auto_approve": "Ko je omogočeno, se zahtevki takoj odobrijo brez pregleda staršev.",
           "recurring_frequency": "Kako pogosto se opravilo ponavlja: dnevno, tedensko, mesečno, letno, po meri ali brez. Če izberete »Dnevno – večkrat na dan«, se bo prikazal dodaten zaslon za konfiguracijo določenih časov.",
           "custom_interval": "Število časovnih enot med ponovitvami (npr. 3 za »vsake 3 tedne«). Uporablja se samo s frekvenco po meri.",
@@ -877,6 +1022,76 @@
       "edit_chore": {
         "title": "Uredi opravilo",
         "description": "Spremenite podrobnosti izbranega opravila.\n\n📖 [Vodnik za konfiguracijo]({documentation_url})",
+        "sections": {
+          "section_root_form": {
+            "name": "Definicija",
+            "description": "Nastavitve identitete, dodelitve in osnovne pogodbe.",
+            "data": {
+              "name": "📋 Ime opravila",
+              "chore_description": "📋 Opis (neobvezno)",
+              "icon": "Ikona 📋 (mdi:xxx)",
+              "default_points": "💰 Dodeljene točke",
+              "assigned_kids": "👥 Dodeljeni otroci",
+              "completion_criteria": "👥 Merila za dokončanje"
+            },
+            "data_description": {
+              "name": "Enolično ime, prikazano po celotnem sistemu.",
+              "chore_description": "Neobvezna navodila ali podrobnosti o tem, kako opraviti to opravilo.",
+              "icon": "Ikona materialnega oblikovanja (npr. mdi:metla, mdi:pomivalni stroj).",
+              "default_points": "Točke, pridobljene ob zaključku.",
+              "assigned_kids": "Otroci, ki lahko vidijo in prevzamejo to opravilo.",
+              "completion_criteria": "Nadzira, kako se opravilo opravi, ko je dodeljenih več otrok: individualno sledenje, skupno dokončanje ali rotacija po vrsti."
+            }
+          },
+          "section_schedule": {
+            "name": "Razpored",
+            "description": "Nastavitve časa, okna dostopa in ponavljajočega se intervala.",
+            "data": {
+              "recurring_frequency": "🔄 Urnik: Pogostost",
+              "due_date": "📅 Razpored: Datum oddaje (neobvezno)",
+              "clear_due_date": "🗑️ Jasen rok",
+              "applicable_days": "📅 Urnik: Ustrezni dnevi (neobvezno)",
+              "chore_due_window_offset": "⏱️ Rok: Poravnava pred rokom",
+              "chore_claim_lock_until_window": "🔒 Zakleniti zahtevek do odprtja roka?",
+              "custom_interval": "🔄 Urnik: Interval po meri (za pogostost po meri)",
+              "custom_interval_unit": "🔄 Urnik: Intervalna enota po meri"
+            },
+            "data_description": {
+              "recurring_frequency": "Kako pogosto se opravilo ponavlja: dnevno, tedensko, mesečno, letno, po meri ali brez. Če izberete »Dnevno – večkrat na dan«, se bo prikazal dodaten zaslon za konfiguracijo določenih časov.",
+              "due_date": "Neobvezen rok. Lahko se kombinira s ponavljajočimi se urniki. Za SAMOSTOJNA opravila to služi kot predloga – prikazal se bo dodaten zaslon, ki bo omogočal posamezne datume za vsakega otroka.",
+              "clear_due_date": "Označite to polje, če želite odstraniti rok za to opravilo.",
+              "applicable_days": "Za vse dni pustite prazno. Izberite SAMO določene dni, ki jih želite omejiti.",
+              "chore_due_window_offset": "Ko se stanje opravila spremeni iz »V teku« v »Zakonito«. Oblika: »1d 6h 30m« ali samo »30« za minute. Za onemogočanje vnesite »0«. Primer: »1d« pomeni, da se opravilo prikaže kot »Zakonito« 1 dan pred rokom.",
+              "chore_claim_lock_until_window": "Ko je omogočeno, otroci ne morejo prevzeti te naloge, preden se začne rok.",
+              "custom_interval": "Število časovnih enot med ponovitvami (npr. 3 za »vsake 3 tedne«). Uporablja se samo s frekvenco po meri.",
+              "custom_interval_unit": "Časovna enota za interval po meri (dnevi, tedni, meseci). Uporablja se samo s frekvenco po meri."
+            }
+          },
+          "section_advanced_configurations": {
+            "name": "Napredne konfiguracije",
+            "description": "Avtomatizacija življenjskega cikla, obvestila, vidnost in metapodatki.",
+            "data": {
+              "approval_reset_type": "➡️ Dovoljena dokončanja in čas ponastavitve odobritve",
+              "approval_reset_pending_claim_action": "➡️ Obravnava zahtevkov v teku ob ponastavitvi odobritve",
+              "auto_approve": "✅ Samodejno odobritev zahtevkov?",
+              "overdue_handling_type": "⏰ Zamuda: Ravnanje",
+              "chore_due_reminder_offset": "🔔 Opomnik za zapadlost: Poravnava pred rokom",
+              "chore_notifications": "🔔 Obvestila o dogodkih (neobvezno)",
+              "show_on_calendar": "📅 Prikaži v koledarju?",
+              "chore_labels": "📋 Oznake (neobvezno)"
+            },
+            "data_description": {
+              "approval_reset_type": "Določa, kdaj se sproži meja cikla odobritve opravila (polnoč, datum zapadlosti, ob zaključku ali ročno sprožitev).",
+              "approval_reset_pending_claim_action": "Nadzira, kaj se zgodi z neodobrenimi zahtevki, ko se sproži meja ponastavitve odobritve.",
+              "auto_approve": "Ko je omogočeno, se zahtevki takoj odobrijo brez pregleda staršev.",
+              "overdue_handling_type": "Nadzira, kaj se zgodi, ko rok poteče, in kaj se zgodi z zamujenimi opravili na meji ponastavitve odobritve.",
+              "chore_due_reminder_offset": "Kdaj poslati opomnik o zapadlosti. Oblika: »1d 6h 30m« ali samo »30« za minute. Privzeto: 30m (30 minut pred zapadlostjo). Za onemogočanje vnesite »0«.",
+              "chore_notifications": "Kdaj poslati obvestila: Ob zahtevku, ob odobritvi, ob zavrnitvi ali kateri koli kombinaciji.",
+              "show_on_calendar": "Prikaži to opravilo v pogledu koledarja.",
+              "chore_labels": "Oznake za organizacijo opravil (npr. »kuhinja«, »na prostem«). Če niso potrebne, pustite prazno."
+            }
+          }
+        },
         "data": {
           "name": "📋 Ime opravila",
           "chore_description": "📋 Opis (neobvezno)",
@@ -889,6 +1104,7 @@
           "approval_reset_type": "➡️ Dovoljena dokončanja in čas ponastavitve odobritve",
           "approval_reset_pending_claim_action": "➡️ Obravnava zahtevkov v teku ob ponastavitvi odobritve",
           "overdue_handling_type": "⏰ Zamuda: Ravnanje",
+          "chore_claim_lock_until_window": "🔒 Zakleniti zahtevek do odprtja roka?",
           "auto_approve": "✅ Samodejno odobritev zahtevkov?",
           "recurring_frequency": "🔄 Urnik: Pogostost",
           "custom_interval": "🔄 Urnik: Interval po meri (za pogostost po meri)",
@@ -912,6 +1128,7 @@
           "approval_reset_type": "Določa, kdaj se sproži meja cikla odobritve opravila (polnoč, datum zapadlosti, ob zaključku ali ročno sprožitev).",
           "approval_reset_pending_claim_action": "Nadzira, kaj se zgodi z neodobrenimi zahtevki, ko se sproži meja ponastavitve odobritve.",
           "overdue_handling_type": "Nadzira, kaj se zgodi, ko rok poteče, in kaj se zgodi z zamujenimi opravili na meji ponastavitve odobritve.",
+          "chore_claim_lock_until_window": "Ko je omogočeno, otroci ne morejo prevzeti te naloge, preden se začne rok.",
           "auto_approve": "Ko je omogočeno, se zahtevki takoj odobrijo brez pregleda staršev.",
           "recurring_frequency": "Kako pogosto se opravilo ponavlja: dnevno, tedensko, mesečno, letno, po meri ali brez. Če izberete »Dnevno – večkrat na dan«, se bo prikazal dodaten zaslon za konfiguracijo določenih časov.",
           "custom_interval": "Število časovnih enot med ponovitvami (npr. 3 za »vsake 3 tedne«). Uporablja se samo s frekvenco po meri.",
@@ -1352,6 +1569,7 @@
           "retention_monthly": "Mesečno hrambo podatkov (meseci)",
           "retention_yearly": "Letno hrambo podatkov (leta)",
           "show_legacy_entities": "Prikaži dodatne entitete",
+          "kiosk_mode": "Omogoči način kioska za zahtevke otrok",
           "backups_max_retained": "Največje število varnostnih kopij za shranjevanje",
           "backup_action_selection": "Varnostna dejanja"
         },
@@ -1365,6 +1583,7 @@
           "retention_monthly": "Število mesecev mesečnih zgodovinskih podatkov, ki jih je treba hraniti pred čiščenjem. Najmanj 1, največ 24.",
           "retention_yearly": "Število let letnih zgodovinskih podatkov, ki jih je treba hraniti pred čiščenjem. Najmanj 1, največ 10.",
           "show_legacy_entities": "Prikažite dodatne entitete, kot sta senzor in izbire, ki so zdaj združene v senzor pomočnika nadzorne plošče. Te entitete so izbirne zaradi združljivosti z obstoječimi avtomatizacijami.",
+          "kiosk_mode": "Omogoča, da gumbi za otroška opravila/zahteve za nagrade delujejo na skupnih stenskih tablicah, ne da bi se uporabnik nadzorne plošče moral ujemati z otrokovo uporabniško povezavo za Home Assistant. Varnostno opozorilo: otrokove zahtevke lahko odda vsak, ki ima dostop do te naprave.",
           "backups_max_retained": "Največje število varnostnih kopij datotek, ki jih lahko hranite na oznako (npr. 5 ročnih varnostnih kopij, 5 varnostnih kopij data_reset). Starejše varnostne kopije se samodejno izbrišejo po vsaki novi varnostni kopiji. Nastavite na 0, da popolnoma onemogočite samodejne varnostne kopije.",
           "backup_action_selection": "Izberite dejanje upravljanja varnostnih kopij: ustvarite ročno varnostno kopijo, izbrišite varnostno kopijo ali obnovite iz varnostne kopije."
         }
@@ -1477,6 +1696,9 @@
       "invalid_badge_count": "Neveljavno število značk",
       "invalid_chore": "Neveljavna naloga",
       "invalid_chore_count": "Neveljavno število opravil",
+      "invalid_chore_name": "Neveljavno ime opravila",
+      "invalid_points": "Točke morajo biti nič ali večje",
+      "invalid_overdue_reset_combination": "Obravnava zamud »Ob datumu zapadlosti, nato ponastavitev« deluje samo pri vrstah ponastavitve ob polnoči. Za vrsto ponastavitve odobritve izberite »Ob polnoči (enkrat)« ali »Ob polnoči (ponavljajoče se)«.",
       "invalid_due_date": "Neveljaven rok",
       "date_required_for_frequency": "Za to ponavljajočo se frekvenco je potreben rok. Počisti datume deluje samo s frekvenco Brez, Dnevno ali Tedensko.",
       "invalid_end_date": "Neveljaven končni datum.",
@@ -1505,6 +1727,7 @@
       "error_daily_multi_times_too_few": "Za pogostost »Večkrat na dan« sta potrebna vsaj dvakrat. Za enkratni čas uporabite redno pogostost »Dnevno«.",
       "error_daily_multi_times_too_many": "Za frekvenco »Večkrat na dan« je dovoljenih največ 6-krat na dan.",
       "error_daily_multi_due_date_required": "Za pogostost »Večkrat na dan« je treba nastaviti rok. Datum določa začetek razporejanja, časi pa določajo okna razpoložljivosti za vsak dan.",
+      "rotation_min_kids": "Za rotacijska opravila sta potrebna vsaj dva dodeljena otroka",
       "error_allow_steal_incompatible": "Obravnava zamud pri kraji je združljiva samo z opravili rotacije (rotation_simple ali rotation_smart), vrsto ponastavitve »Enkrat na dan« in zahteva rok, ki določa, kdaj se odpre okno za krajo.",
       "error_at_due_date_reset_requires_due_date": "Za vrste ponastavitve odobritve »Ob roku« (enkrat ali večkrat) je treba nastaviti rok. Brez roka se ponastavitev odobritve ne bo nikoli sprožila in opravilo bo ostalo odobreno za nedoločen čas.",
       "error_per_kid_applicable_days_invalid": "Neveljavna veljavna oblika dni za enega ali več otrok. Dnevi morajo biti cela števila od 0 do 6 (ponedeljek–nedelja) brez dvojnikov.",
@@ -1621,6 +1844,7 @@
     "target_type": {
       "options": {
         "points": "Točke",
+        "points_all_time": "Točke (vseh časov)",
         "points_chores": "Točke iz opravil",
         "chore_count": "Število opravil",
         "days_all_chores": "Dnevi Izbrana opravila opravljena",
@@ -2112,6 +2336,11 @@
           "description": "Nadzira, kaj se zgodi, ko rok poteče, in kaj se zgodi z zamujenimi opravili na meji ponastavitve odobritve.",
           "example": "ob_roku_"
         },
+        "chore_claim_lock_until_window": {
+          "name": "Zakleni zahtevek, dokler se okno ne odpre",
+          "description": "Če je res, otroci ne morejo prevzeti te naloge pred začetkom roka.",
+          "example": "lažno"
+        },
         "auto_approve": {
           "name": "Samodejna odobritev",
           "description": "Če je vrednost »true«, se opravilo samodejno odobri ob prevzemu.",
@@ -2136,7 +2365,7 @@
     },
     "update_chore": {
       "name": "Posodobi opravilo",
-      "description": "Posodobite lastnosti obstoječega opravila. Navedite ID ALI ime za identifikacijo opravila. Posodobljena bodo samo navedena polja. Opomba: kriterijev za dokončanje ni mogoče spremeniti po ustvarjanju.",
+      "description": "Posodobite lastnosti obstoječega opravila. Navedite ID ALI ime za identifikacijo opravila. Posodobljena bodo samo navedena polja.",
       "fields": {
         "id": {
           "name": "ID opravila",
@@ -2197,6 +2426,11 @@
           "name": "Zamujeno ravnanje",
           "description": "Novo vedenje pri ravnanju z zamudo.",
           "example": "nikoli_prepogojno"
+        },
+        "chore_claim_lock_until_window": {
+          "name": "Zakleni zahtevek, dokler se okno ne odpre",
+          "description": "Če je res, otroci ne morejo prevzeti te naloge pred začetkom roka.",
+          "example": "res"
         },
         "auto_approve": {
           "name": "Samodejna odobritev",
@@ -2561,6 +2795,18 @@
           "chore_last_longest_streak_date": {
             "name": "Zadnji najdaljši niz"
           },
+          "chore_current_missed_streak": {
+            "name": "Trenutni zamujeni niz"
+          },
+          "chore_longest_missed_streak": {
+            "name": "Najdaljši zamujeni niz"
+          },
+          "chore_missed_count": {
+            "name": "Zamujeno (ves čas)"
+          },
+          "chore_last_missed": {
+            "name": "Nazadnje zamujeno"
+          },
           "last_claimed": {
             "name": "Nazadnje zahtevano"
           },
@@ -2650,6 +2896,9 @@
           "kid_name": {
             "name": "Ime otroka"
           },
+          "points_multiplier": {
+            "name": "Množitelj točk"
+          },
           "point_stat_points_earned_today": {
             "name": "Zasluženo danes"
           },
@@ -2725,7 +2974,7 @@
           "point_stat_avg_points_per_chore": {
             "name": "Povprečno na opravilo"
           },
-          "point_stat_highest_balance": {
+          "point_stat_highest_balance_all_time": {
             "name": "Najvišje stanje doslej"
           }
         }
@@ -2803,17 +3052,32 @@
           "chore_stat_overdue_today": {
             "name": "Danes zapade"
           },
+          "chore_stat_missed_today": {
+            "name": "Danes zamujeno"
+          },
           "chore_stat_overdue_week": {
             "name": "Zamuja ta teden"
+          },
+          "chore_stat_missed_week": {
+            "name": "Zamujeno ta teden"
           },
           "chore_stat_overdue_month": {
             "name": "Zamuja ta mesec"
           },
+          "chore_stat_missed_month": {
+            "name": "Zamujeno ta mesec"
+          },
           "chore_stat_overdue_year": {
             "name": "Zamuja letos"
           },
+          "chore_stat_missed_year": {
+            "name": "Zamujeno letos"
+          },
           "chore_stat_overdue_count_all_time": {
             "name": "Zamujeno ves čas"
+          },
+          "chore_stat_missed_all_time": {
+            "name": "Ves čas zamujeno"
           },
           "chore_stat_claimed_today": {
             "name": "Zahtevano danes"
@@ -2922,6 +3186,9 @@
           },
           "chore_stat_longest_streak": {
             "name": "Najdaljši niz"
+          },
+          "chore_stat_longest_missed_streak": {
+            "name": "Najdaljši zamujeni niz"
           },
           "chore_stat_avg_per_day_week": {
             "name": "Povprečno na dan (teden)"
@@ -4128,6 +4395,15 @@
     },
     "chore_pending_claim": {
       "message": "Dogovor ima čakajoč zahtevek, ki čaka na odobritev ali zavrnitev"
+    },
+    "chore_waiting": {
+      "message": "Tega opravila še ni mogoče zahtevati. Rok za oddajo se ni odprl."
+    },
+    "chore_not_my_turn": {
+      "message": "To opravilo je zaklenjeno glede na rotacijo. Trenutno je na vrsti drug otrok."
+    },
+    "chore_missed_locked": {
+      "message": "To opravilo je označeno kot zamujeno in zaklenjeno za trenutni cikel."
     },
     "chore_completed_by_other": {
       "message": "To opravilo je v tem obdobju že opravil drug otrok."

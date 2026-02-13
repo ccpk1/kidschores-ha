@@ -54,6 +54,10 @@
     "title": "⭐ Bonus bol uplatnený!",
     "message": "{bonus_name}: Získali ste {points} bonusových bodov! Skvelá práca"
   },
+  "multiplier_changed_kid": {
+    "title": "⚖️ Aktualizovaný multiplikátor",
+    "message": "Váš násobiteľ bodov sa zmenil z {old_multiplier}x na {new_multiplier}x"
+  },
   "_comment_parent_section": "══════════════════════════════════════════════════════════════════════════",
   "_comment_parent_desc": "OZNÁMENIA PRE RODIČOV: Informatívne, v tretej osobe, akčné. Formát: '{kid_name}: Akcia'. BEZ predpony 'KidsChores:'.",
   "_comment_parent_footer": "══════════════════════════════════════════════════════════════════════════",
@@ -82,16 +86,20 @@
     "message": "Pripomienka: {reward_name} požadovaná používateľom {kid_name} čaká na vaše schválenie"
   },
   "badge_earned_parent": {
-    "title": "🏆 {kid_name}: Odznak získaný",
+    "title": "🥇 {kid_name}: Odznak získaný",
     "message": "{kid_name} získal odznak {badge_name} !"
   },
   "achievement_earned_parent": {
-    "title": "⭐ {kid_name}: Úspech",
+    "title": "🏆 {kid_name}: Úspech",
     "message": "{kid_name} zarobené {achievement_name}"
   },
   "challenge_completed_parent": {
-    "title": "🎯 {kid_name}: Výzva splnená",
+    "title": "🏁 {kid_name}: Výzva splnená",
     "message": "{kid_name} dokončené {challenge_name}"
+  },
+  "multiplier_changed_parent": {
+    "title": "⚖️ {kid_name}: Multiplikátor bol aktualizovaný",
+    "message": "Násobiteľ bodov hráča {kid_name}sa zmenil z {old_multiplier}x na {new_multiplier}x"
   },
   "_comment_system_section": "══════════════════════════════════════════════════════════════════════════",
   "_comment_system_desc": "SYSTÉMOVÉ/ADMINISTRÁTORSKÉ OZNÁMENIA: Operácie správy údajov",

@@ -113,6 +113,76 @@
       "chores": {
         "title": "Ajouter une tâche",
         "description": "Créez une nouvelle tâche avec des points, des affectations et une planification récurrente.",
+        "sections": {
+          "section_root_form": {
+            "name": "Définition",
+            "description": "Identité, affectation et paramètres contractuels de base.",
+            "data": {
+              "name": "📋 Nom de la tâche",
+              "chore_description": "📋 Description (facultatif)",
+              "icon": "📋 Icône (mdi:xxx)",
+              "default_points": "💰 Points attribués",
+              "assigned_kids": "👥 Enfants assignés",
+              "completion_criteria": "👥 Critères d'achèvement"
+            },
+            "data_description": {
+              "name": "Nom unique affiché dans tout le système.",
+              "chore_description": "Instructions ou détails facultatifs sur la manière d'accomplir cette tâche.",
+              "icon": "Icône Material Design (ex. : mdi:balai, mdi:lave-vaisselle).",
+              "default_points": "Points obtenus une fois le projet terminé.",
+              "assigned_kids": "Les enfants qui peuvent voir et revendiquer cette tâche.",
+              "completion_criteria": "Permet de contrôler la manière dont la tâche est effectuée lorsque plusieurs enfants sont concernés : suivi individuel, exécution partagée ou rotation à tour de rôle."
+            }
+          },
+          "section_schedule": {
+            "name": "Calendrier",
+            "description": "Paramètres de programmation, de fenêtre d'accès et d'intervalle de récurrence.",
+            "data": {
+              "recurring_frequency": "🔄 Horaire : Fréquence",
+              "due_date": "📅 Calendrier : Date d’échéance (facultatif)",
+              "clear_due_date": "🗑️ Date d'échéance claire",
+              "applicable_days": "📅 Calendrier : Jours concernés (facultatif)",
+              "chore_due_window_offset": "⏱️ Délai d'échéance : Décalage avant la date d'échéance",
+              "chore_claim_lock_until_window": "🔒 Verrouiller la réclamation jusqu'à l'ouverture de la période d'échéance ?",
+              "custom_interval": "🔄 Programmation : Intervalle personnalisé (pour une fréquence personnalisée)",
+              "custom_interval_unit": "🔄 Programme : Unité d’intervalle personnalisée"
+            },
+            "data_description": {
+              "recurring_frequency": "Fréquence de répétition de la tâche : Quotidienne, Hebdomadaire, Mensuelle, Annuelle, Personnalisée ou Aucune.",
+              "due_date": "Date limite facultative. Peut être combinée avec des planifications récurrentes.",
+              "clear_due_date": "Cochez cette case pour supprimer la date d'échéance de cette tâche.",
+              "applicable_days": "Laissez vide pour tous les jours. Sélectionnez UNIQUEMENT les jours à exclure.",
+              "chore_due_window_offset": "Lorsque l'état de la tâche passe de « En attente » à « À faire ». Format : « 1j 6h 30m » ou simplement « 30 » pour les minutes. Saisissez « 0 » pour désactiver. Exemple : « 1j » signifie que la tâche apparaît comme « À faire » un jour avant l'échéance.",
+              "chore_claim_lock_until_window": "Lorsque cette option est activée, les enfants ne peuvent pas s'approprier cette tâche avant le début de la période impartie.",
+              "custom_interval": "Nombre d'unités de temps entre les répétitions (ex. : 3 pour « toutes les 3 semaines »). Utilisé uniquement avec la fréquence personnalisée.",
+              "custom_interval_unit": "Unité de temps pour l'intervalle personnalisé (jours, semaines, mois). Utilisée uniquement avec la fréquence personnalisée."
+            }
+          },
+          "section_advanced_configurations": {
+            "name": "Configurations avancées",
+            "description": "Automatisation du cycle de vie, notifications, visibilité et métadonnées.",
+            "data": {
+              "approval_reset_type": "➡️ Délai d'achèvement autorisé et de réinitialisation de l'approbation",
+              "approval_reset_pending_claim_action": "➡️ Réinitialisation du traitement des demandes en attente d'approbation",
+              "auto_approve": "✅ Approbation automatique des demandes ?",
+              "overdue_handling_type": "⏰ En retard : Traitement",
+              "chore_due_reminder_offset": "🔔 Rappel d'échéance : Effectuez votre compensation avant la date d'échéance",
+              "chore_notifications": "🔔 Notifications d'événements (facultatif)",
+              "show_on_calendar": "📅 Afficher dans le calendrier ?",
+              "chore_labels": "📋 Étiquettes (facultatif)"
+            },
+            "data_description": {
+              "approval_reset_type": "Contrôle le déclenchement du cycle d'approbation de la tâche (minuit, date d'échéance, à l'achèvement ou déclenchement manuel).",
+              "approval_reset_pending_claim_action": "Voici ce qui arrive aux demandes d'indemnisation toujours en attente d'approbation lors de la réinitialisation du processus d'approbation.",
+              "auto_approve": "Une fois activées, les demandes sont approuvées instantanément sans validation parentale.",
+              "overdue_handling_type": "Actions à entreprendre après la date d'échéance : Masquer le statut de retard, maintenir le statut de retard jusqu'à ce que la demande soit réclamée, ou réinitialiser le statut à « en attente » lors du prochain cycle d'approbation.",
+              "chore_due_reminder_offset": "Quand envoyer la notification de rappel d'échéance ? Format : « 1j 6h 30m » ou simplement « 30 » pour les minutes. Par défaut : 30 min (30 minutes avant l'échéance). Saisissez « 0 » pour désactiver.",
+              "chore_notifications": "Quand envoyer les notifications : lors de la réclamation, lors de l’approbation, lors du rejet ou toute combinaison de ces éléments.",
+              "show_on_calendar": "Afficher cette tâche dans le calendrier.",
+              "chore_labels": "Étiquettes pour organiser les tâches ménagères (ex. : « cuisine », « extérieur »). Laisser vide si non nécessaire."
+            }
+          }
+        },
         "data": {
           "name": "📋 Nom de la tâche",
           "chore_description": "📋 Description (facultatif)",
@@ -124,6 +194,7 @@
           "approval_reset_type": "➡️ Délai d'achèvement autorisé et de réinitialisation de l'approbation",
           "approval_reset_pending_claim_action": "➡️ Réinitialisation du traitement des demandes en attente d'approbation",
           "overdue_handling_type": "⏰ En retard : Traitement",
+          "chore_claim_lock_until_window": "🔒 Verrouiller la réclamation jusqu'à l'ouverture de la période d'échéance ?",
           "auto_approve": "✅ Approbation automatique des demandes ?",
           "recurring_frequency": "🔄 Horaire : Fréquence",
           "custom_interval": "🔄 Programmation : Intervalle personnalisé (pour une fréquence personnalisée)",
@@ -146,6 +217,7 @@
           "approval_reset_type": "Contrôle le déclenchement du cycle d'approbation de la tâche (minuit, date d'échéance, à l'achèvement ou déclenchement manuel).",
           "approval_reset_pending_claim_action": "Voici ce qui arrive aux demandes d'indemnisation toujours en attente d'approbation lors de la réinitialisation du processus d'approbation.",
           "overdue_handling_type": "Actions à entreprendre après la date d'échéance : Masquer le statut de retard, maintenir le statut de retard jusqu'à ce que la demande soit réclamée, ou réinitialiser le statut à « en attente » lors du prochain cycle d'approbation.",
+          "chore_claim_lock_until_window": "Lorsque cette option est activée, les enfants ne peuvent pas s'approprier cette tâche avant le début de la période impartie.",
           "auto_approve": "Une fois activées, les demandes sont approuvées instantanément sans validation parentale.",
           "recurring_frequency": "Fréquence de répétition de la tâche : Quotidienne, Hebdomadaire, Mensuelle, Annuelle, Personnalisée ou Aucune.",
           "custom_interval": "Nombre d'unités de temps entre les répétitions (ex. : 3 pour « toutes les 3 semaines »). Utilisé uniquement avec la fréquence personnalisée.",
@@ -356,6 +428,7 @@
       "invalid_challenge_name": "Nom du défi invalide",
       "invalid_chore": "Tâche invalide",
       "invalid_chore_count": "Nombre de tâches invalide",
+      "rotation_min_kids": "Les tâches ménagères en rotation nécessitent au moins 2 enfants assignés",
       "invalid_chore_name": "Nom de tâche invalide",
       "invalid_points": "Les points doivent être égaux ou supérieurs à zéro.",
       "invalid_overdue_reset_combination": "La gestion des retards « À l'échéance, puis réinitialisation » ne fonctionne qu'avec les réinitialisations à minuit. Veuillez sélectionner « À minuit (une seule fois) » ou « À minuit (de façon répétée) » pour le type de réinitialisation de l'approbation.",
@@ -481,6 +554,76 @@
       "add_chore": {
         "title": "Ajouter une tâche",
         "description": "Créez une nouvelle tâche avec des points, des affectations et une planification récurrente.\n\n📖 [Guide de configuration]({documentation_url})",
+        "sections": {
+          "section_root_form": {
+            "name": "Définition",
+            "description": "Identité, affectation et paramètres contractuels de base.",
+            "data": {
+              "name": "📋 Nom de la tâche",
+              "chore_description": "📋 Description (facultatif)",
+              "icon": "📋 Icône (mdi:xxx)",
+              "default_points": "💰 Points attribués",
+              "assigned_kids": "👥 Enfants assignés",
+              "completion_criteria": "👥 Critères d'achèvement"
+            },
+            "data_description": {
+              "name": "Nom unique affiché dans tout le système.",
+              "chore_description": "Instructions ou détails facultatifs sur la manière d'accomplir cette tâche.",
+              "icon": "Icône Material Design (ex. : mdi:balai, mdi:lave-vaisselle).",
+              "default_points": "Points obtenus une fois le projet terminé.",
+              "assigned_kids": "Les enfants qui peuvent voir et revendiquer cette tâche.",
+              "completion_criteria": "Permet de contrôler la manière dont la tâche est effectuée lorsque plusieurs enfants sont concernés : suivi individuel, exécution partagée ou rotation à tour de rôle."
+            }
+          },
+          "section_schedule": {
+            "name": "Calendrier",
+            "description": "Paramètres de programmation, de fenêtre d'accès et d'intervalle de récurrence.",
+            "data": {
+              "recurring_frequency": "🔄 Horaire : Fréquence",
+              "due_date": "📅 Calendrier : Date d’échéance (facultatif)",
+              "clear_due_date": "🗑️ Date d'échéance claire",
+              "applicable_days": "📅 Calendrier : Jours concernés (facultatif)",
+              "chore_due_window_offset": "⏱️ Délai d'échéance : Décalage avant la date d'échéance",
+              "chore_claim_lock_until_window": "🔒 Verrouiller la réclamation jusqu'à l'ouverture de la période d'échéance ?",
+              "custom_interval": "🔄 Programmation : Intervalle personnalisé (pour une fréquence personnalisée)",
+              "custom_interval_unit": "🔄 Programme : Unité d’intervalle personnalisée"
+            },
+            "data_description": {
+              "recurring_frequency": "Fréquence de la tâche : Quotidienne, Hebdomadaire, Mensuelle, Annuelle, Personnalisée ou Aucune. Si vous sélectionnez « Quotidienne – Plusieurs fois par jour », un écran supplémentaire s’affichera pour configurer les horaires précis.",
+              "due_date": "Date limite facultative. Peut être combinée avec des calendriers récurrents. Pour les tâches ménagères INDIVIDUELLES, ceci sert de modèle ; un écran supplémentaire apparaîtra permettant de définir des dates individuelles pour chaque enfant.",
+              "clear_due_date": "Cochez cette case pour supprimer la date d'échéance de cette tâche.",
+              "applicable_days": "Laissez vide pour tous les jours. Sélectionnez UNIQUEMENT les jours à exclure.",
+              "chore_due_window_offset": "Lorsque l'état de la tâche passe de « En attente » à « À faire ». Format : « 1j 6h 30m » ou simplement « 30 » pour les minutes. Saisissez « 0 » pour désactiver. Exemple : « 1j » signifie que la tâche apparaît comme « À faire » un jour avant l'échéance.",
+              "chore_claim_lock_until_window": "Lorsque cette option est activée, les enfants ne peuvent pas s'approprier cette tâche avant le début de la période impartie.",
+              "custom_interval": "Nombre d'unités de temps entre les répétitions (ex. : 3 pour « toutes les 3 semaines »). Utilisé uniquement avec la fréquence personnalisée.",
+              "custom_interval_unit": "Unité de temps pour l'intervalle personnalisé (jours, semaines, mois). Utilisée uniquement avec la fréquence personnalisée."
+            }
+          },
+          "section_advanced_configurations": {
+            "name": "Configurations avancées",
+            "description": "Automatisation du cycle de vie, notifications, visibilité et métadonnées.",
+            "data": {
+              "approval_reset_type": "➡️ Délai d'achèvement autorisé et de réinitialisation de l'approbation",
+              "approval_reset_pending_claim_action": "➡️ Réinitialisation du traitement des demandes en attente d'approbation",
+              "auto_approve": "✅ Approbation automatique des demandes ?",
+              "overdue_handling_type": "⏰ En retard : Traitement",
+              "chore_due_reminder_offset": "🔔 Rappel d'échéance : Effectuez votre compensation avant la date d'échéance",
+              "chore_notifications": "🔔 Notifications d'événements (facultatif)",
+              "show_on_calendar": "📅 Afficher dans le calendrier ?",
+              "chore_labels": "📋 Étiquettes (facultatif)"
+            },
+            "data_description": {
+              "approval_reset_type": "Contrôle le déclenchement du cycle d'approbation de la tâche (minuit, date d'échéance, à l'achèvement ou déclenchement manuel).",
+              "approval_reset_pending_claim_action": "Contrôle ce qui arrive aux demandes non approuvées lorsque le seuil de réinitialisation des approbations est atteint.",
+              "auto_approve": "Une fois activées, les demandes sont approuvées instantanément sans validation parentale.",
+              "overdue_handling_type": "Contrôle ce qui se passe lorsque la date d'échéance est dépassée et ce qu'il advient des tâches en retard à la limite de réinitialisation de l'approbation.",
+              "chore_due_reminder_offset": "Quand envoyer la notification de rappel d'échéance ? Format : « 1j 6h 30m » ou simplement « 30 » pour les minutes. Par défaut : 30 min (30 minutes avant l'échéance). Saisissez « 0 » pour désactiver.",
+              "chore_notifications": "Quand envoyer les notifications : lors de la réclamation, de l’approbation, du rejet ou toute combinaison de ces situations.",
+              "show_on_calendar": "Afficher cette tâche dans le calendrier.",
+              "chore_labels": "Étiquettes pour organiser les tâches ménagères (ex. : « cuisine », « extérieur »). Laisser vide si non nécessaire."
+            }
+          }
+        },
         "data": {
           "name": "📋 Nom de la tâche",
           "chore_description": "📋 Description (facultatif)",
@@ -492,6 +635,7 @@
           "approval_reset_type": "➡️ Délai d'achèvement autorisé et de réinitialisation de l'approbation",
           "approval_reset_pending_claim_action": "➡️ Réinitialisation du traitement des demandes en attente d'approbation",
           "overdue_handling_type": "⏰ En retard : Traitement",
+          "chore_claim_lock_until_window": "🔒 Verrouiller la réclamation jusqu'à l'ouverture de la période d'échéance ?",
           "auto_approve": "✅ Approbation automatique des demandes ?",
           "recurring_frequency": "🔄 Horaire : Fréquence",
           "custom_interval": "🔄 Programmation : Intervalle personnalisé (pour une fréquence personnalisée)",
@@ -515,6 +659,7 @@
           "approval_reset_type": "Contrôle le déclenchement du cycle d'approbation de la tâche (minuit, date d'échéance, à l'achèvement ou déclenchement manuel).",
           "approval_reset_pending_claim_action": "Contrôle ce qui arrive aux demandes non approuvées lorsque le seuil de réinitialisation des approbations est atteint.",
           "overdue_handling_type": "Contrôle ce qui se passe lorsque la date d'échéance est dépassée et ce qu'il advient des tâches en retard à la limite de réinitialisation de l'approbation.",
+          "chore_claim_lock_until_window": "Lorsque cette option est activée, les enfants ne peuvent pas s'approprier cette tâche avant le début de la période impartie.",
           "auto_approve": "Une fois activées, les demandes sont approuvées instantanément sans validation parentale.",
           "recurring_frequency": "Fréquence de la tâche : Quotidienne, Hebdomadaire, Mensuelle, Annuelle, Personnalisée ou Aucune. Si vous sélectionnez « Quotidienne – Plusieurs fois par jour », un écran supplémentaire s’affichera pour configurer les horaires précis.",
           "custom_interval": "Nombre d'unités de temps entre les répétitions (ex. : 3 pour « toutes les 3 semaines »). Utilisé uniquement avec la fréquence personnalisée.",
@@ -877,6 +1022,76 @@
       "edit_chore": {
         "title": "Modifier la tâche",
         "description": "Modifier les détails de la tâche sélectionnée.\n\n📖 [Guide de configuration]({documentation_url})",
+        "sections": {
+          "section_root_form": {
+            "name": "Définition",
+            "description": "Identité, affectation et paramètres contractuels de base.",
+            "data": {
+              "name": "📋 Nom de la tâche",
+              "chore_description": "📋 Description (facultatif)",
+              "icon": "📋 Icône (mdi:xxx)",
+              "default_points": "💰 Points attribués",
+              "assigned_kids": "👥 Enfants assignés",
+              "completion_criteria": "👥 Critères d'achèvement"
+            },
+            "data_description": {
+              "name": "Nom unique affiché dans tout le système.",
+              "chore_description": "Instructions ou détails facultatifs sur la manière d'effectuer cette tâche.",
+              "icon": "Icône Material Design (ex. : mdi:balai, mdi:lave-vaisselle).",
+              "default_points": "Points obtenus une fois le projet terminé.",
+              "assigned_kids": "Les enfants qui peuvent voir et revendiquer cette tâche.",
+              "completion_criteria": "Permet de contrôler la manière dont la tâche est effectuée lorsque plusieurs enfants sont concernés : suivi individuel, exécution partagée ou rotation à tour de rôle."
+            }
+          },
+          "section_schedule": {
+            "name": "Calendrier",
+            "description": "Paramètres de programmation, de fenêtre d'accès et d'intervalle de récurrence.",
+            "data": {
+              "recurring_frequency": "🔄 Horaire : Fréquence",
+              "due_date": "📅 Calendrier : Date d’échéance (facultatif)",
+              "clear_due_date": "🗑️ Date d'échéance claire",
+              "applicable_days": "📅 Calendrier : Jours concernés (facultatif)",
+              "chore_due_window_offset": "⏱️ Délai d'échéance : Décalage avant la date d'échéance",
+              "chore_claim_lock_until_window": "🔒 Verrouiller la réclamation jusqu'à l'ouverture de la période d'échéance ?",
+              "custom_interval": "🔄 Programmation : Intervalle personnalisé (pour une fréquence personnalisée)",
+              "custom_interval_unit": "🔄 Programme : Unité d’intervalle personnalisée"
+            },
+            "data_description": {
+              "recurring_frequency": "Fréquence de la tâche : Quotidienne, Hebdomadaire, Mensuelle, Annuelle, Personnalisée ou Aucune. Si vous sélectionnez « Quotidienne – Plusieurs fois par jour », un écran supplémentaire s’affichera pour configurer les horaires précis.",
+              "due_date": "Date limite facultative. Peut être combinée avec des calendriers récurrents. Pour les tâches ménagères INDIVIDUELLES, ceci sert de modèle ; un écran supplémentaire apparaîtra permettant de définir des dates individuelles pour chaque enfant.",
+              "clear_due_date": "Cochez cette case pour supprimer la date d'échéance de cette tâche.",
+              "applicable_days": "Laissez vide pour tous les jours. Sélectionnez UNIQUEMENT les jours à exclure.",
+              "chore_due_window_offset": "Lorsque l'état de la tâche passe de « En attente » à « À faire ». Format : « 1j 6h 30m » ou simplement « 30 » pour les minutes. Saisissez « 0 » pour désactiver. Exemple : « 1j » signifie que la tâche apparaît comme « À faire » un jour avant l'échéance.",
+              "chore_claim_lock_until_window": "Lorsque cette option est activée, les enfants ne peuvent pas s'approprier cette tâche avant le début de la période impartie.",
+              "custom_interval": "Nombre d'unités de temps entre les répétitions (ex. : 3 pour « toutes les 3 semaines »). Utilisé uniquement avec la fréquence personnalisée.",
+              "custom_interval_unit": "Unité de temps pour l'intervalle personnalisé (jours, semaines, mois). Utilisée uniquement avec la fréquence personnalisée."
+            }
+          },
+          "section_advanced_configurations": {
+            "name": "Configurations avancées",
+            "description": "Automatisation du cycle de vie, notifications, visibilité et métadonnées.",
+            "data": {
+              "approval_reset_type": "➡️ Délai d'achèvement autorisé et de réinitialisation de l'approbation",
+              "approval_reset_pending_claim_action": "➡️ Réinitialisation du traitement des demandes en attente d'approbation",
+              "auto_approve": "✅ Approbation automatique des demandes ?",
+              "overdue_handling_type": "⏰ En retard : Traitement",
+              "chore_due_reminder_offset": "🔔 Rappel d'échéance : Effectuez votre compensation avant la date d'échéance",
+              "chore_notifications": "🔔 Notifications d'événements (facultatif)",
+              "show_on_calendar": "📅 Afficher dans le calendrier ?",
+              "chore_labels": "📋 Étiquettes (facultatif)"
+            },
+            "data_description": {
+              "approval_reset_type": "Contrôle le déclenchement du cycle d'approbation de la tâche (minuit, date d'échéance, à l'achèvement ou déclenchement manuel).",
+              "approval_reset_pending_claim_action": "Contrôle ce qui arrive aux demandes non approuvées lorsque le seuil de réinitialisation des approbations est atteint.",
+              "auto_approve": "Une fois activées, les demandes sont approuvées instantanément sans validation parentale.",
+              "overdue_handling_type": "Contrôle ce qui se passe lorsque la date d'échéance est dépassée et ce qu'il advient des tâches en retard à la limite de réinitialisation de l'approbation.",
+              "chore_due_reminder_offset": "Quand envoyer la notification de rappel d'échéance ? Format : « 1j 6h 30m » ou simplement « 30 » pour les minutes. Par défaut : 30 min (30 minutes avant l'échéance). Saisissez « 0 » pour désactiver.",
+              "chore_notifications": "Quand envoyer les notifications : lors de la réclamation, de l’approbation, du rejet ou toute combinaison de ces situations.",
+              "show_on_calendar": "Afficher cette tâche dans le calendrier.",
+              "chore_labels": "Étiquettes pour organiser les tâches ménagères (ex. : « cuisine », « extérieur »). Laisser vide si non nécessaire."
+            }
+          }
+        },
         "data": {
           "name": "📋 Nom de la tâche",
           "chore_description": "📋 Description (facultatif)",
@@ -889,6 +1104,7 @@
           "approval_reset_type": "➡️ Délai d'achèvement autorisé et de réinitialisation de l'approbation",
           "approval_reset_pending_claim_action": "➡️ Réinitialisation du traitement des demandes en attente d'approbation",
           "overdue_handling_type": "⏰ En retard : Traitement",
+          "chore_claim_lock_until_window": "🔒 Verrouiller la réclamation jusqu'à l'ouverture de la période d'échéance ?",
           "auto_approve": "✅ Approbation automatique des demandes ?",
           "recurring_frequency": "🔄 Horaire : Fréquence",
           "custom_interval": "🔄 Programmation : Intervalle personnalisé (pour une fréquence personnalisée)",
@@ -912,6 +1128,7 @@
           "approval_reset_type": "Contrôle le déclenchement du cycle d'approbation de la tâche (minuit, date d'échéance, à l'achèvement ou déclenchement manuel).",
           "approval_reset_pending_claim_action": "Contrôle ce qui arrive aux demandes non approuvées lorsque le seuil de réinitialisation des approbations est atteint.",
           "overdue_handling_type": "Contrôle ce qui se passe lorsque la date d'échéance est dépassée et ce qu'il advient des tâches en retard à la limite de réinitialisation de l'approbation.",
+          "chore_claim_lock_until_window": "Lorsque cette option est activée, les enfants ne peuvent pas s'approprier cette tâche avant le début de la période impartie.",
           "auto_approve": "Une fois activées, les demandes sont approuvées instantanément sans validation parentale.",
           "recurring_frequency": "Fréquence de la tâche : Quotidienne, Hebdomadaire, Mensuelle, Annuelle, Personnalisée ou Aucune. Si vous sélectionnez « Quotidienne – Plusieurs fois par jour », un écran supplémentaire s’affichera pour configurer les horaires précis.",
           "custom_interval": "Nombre d'unités de temps entre les répétitions (ex. : 3 pour « toutes les 3 semaines »). Utilisé uniquement avec la fréquence personnalisée.",
@@ -1352,6 +1569,7 @@
           "retention_monthly": "Durée de conservation mensuelle des données (mois)",
           "retention_yearly": "Durée annuelle de conservation des données (années)",
           "show_legacy_entities": "Afficher les entités supplémentaires",
+          "kiosk_mode": "Activer le mode kiosque pour les réclamations des enfants",
           "backups_max_retained": "Nombre maximal de sauvegardes à conserver",
           "backup_action_selection": "Actions de sauvegarde"
         },
@@ -1365,6 +1583,7 @@
           "retention_monthly": "Nombre de mois de données historiques mensuelles à conserver avant le nettoyage. Minimum 1, maximum 24.",
           "retention_yearly": "Nombre d'années de données historiques annuelles à conserver avant le nettoyage. Minimum 1, maximum 10.",
           "show_legacy_entities": "Afficher les entités supplémentaires telles que les capteurs et les listes déroulantes, désormais intégrées au capteur d'assistance du tableau de bord. Ces entités sont facultatives pour assurer la compatibilité avec les automatisations existantes.",
+          "kiosk_mode": "Permet aux boutons de réclamation des tâches/récompenses des enfants de fonctionner sur les tablettes murales partagées sans que l'utilisateur du tableau de bord n'ait besoin d'associer le lien de l'utilisateur Home Assistant de l'enfant. Avertissement de sécurité : toute personne ayant accès à cet appareil peut soumettre des réclamations d'enfants.",
           "backups_max_retained": "Nombre maximal de fichiers de sauvegarde à conserver par étiquette (ex. : 5 sauvegardes manuelles, 5 sauvegardes de réinitialisation des données). Les sauvegardes les plus anciennes sont automatiquement supprimées après la création de chaque nouvelle sauvegarde. Indiquez 0 pour désactiver complètement les sauvegardes automatiques.",
           "backup_action_selection": "Choisissez une action de gestion des sauvegardes : créer une sauvegarde manuelle, supprimer une sauvegarde ou restaurer une sauvegarde."
         }
@@ -1477,6 +1696,9 @@
       "invalid_badge_count": "Nombre de badges invalide",
       "invalid_chore": "Tâche invalide",
       "invalid_chore_count": "Nombre de tâches invalide",
+      "invalid_chore_name": "Nom de tâche invalide",
+      "invalid_points": "Les points doivent être égaux ou supérieurs à zéro.",
+      "invalid_overdue_reset_combination": "La gestion des retards « À l'échéance, puis réinitialisation » ne fonctionne qu'avec les réinitialisations à minuit. Veuillez sélectionner « À minuit (une seule fois) » ou « À minuit (de façon répétée) » pour le type de réinitialisation de l'approbation.",
       "invalid_due_date": "Date d'échéance invalide",
       "date_required_for_frequency": "Une date d'échéance est requise pour cette fréquence récurrente. L'option « Date d'échéance » ne fonctionne qu'avec les fréquences « Aucune », « Quotidienne » ou « Hebdomadaire ».",
       "invalid_end_date": "Date de fin invalide.",
@@ -1505,6 +1727,7 @@
       "error_daily_multi_times_too_few": "Il faut au moins deux utilisations pour une fréquence « Plusieurs fois par jour ». Pour une utilisation unique, utilisez la fréquence « Quotidienne ».",
       "error_daily_multi_times_too_many": "Un maximum de 6 fois par jour est autorisé pour la fréquence « Plusieurs fois par jour ».",
       "error_daily_multi_due_date_required": "L'option « Plusieurs fois par jour » nécessite la définition d'une date d'échéance. Cette date détermine le début de la planification, tandis que les heures définissent les plages horaires de disponibilité quotidiennes.",
+      "rotation_min_kids": "Les tâches ménagères en rotation nécessitent au moins 2 enfants assignés",
       "error_allow_steal_incompatible": "L'option « Autoriser la gestion des vols en retard » est uniquement compatible avec les tâches de rotation (rotation_simple ou rotation_smart), le type de réinitialisation « Une fois par jour » et nécessite une date d'échéance pour définir l'ouverture de la fenêtre de vol.",
       "error_at_due_date_reset_requires_due_date": "Les réinitialisations d'approbation de type « À l'échéance » (ponctuelles ou multiples) nécessitent la définition d'une date d'échéance. Sans date d'échéance, la réinitialisation de l'approbation ne sera jamais déclenchée et la tâche restera approuvée indéfiniment.",
       "error_per_kid_applicable_days_invalid": "Format des jours applicables invalide pour un ou plusieurs enfants. Les jours doivent être des nombres entiers de 0 à 6 (lundi-dimanche) sans doublons.",
@@ -1621,6 +1844,7 @@
     "target_type": {
       "options": {
         "points": "Points",
+        "points_all_time": "Points (tous temps confondus)",
         "points_chores": "Points obtenus grâce aux tâches ménagères",
         "chore_count": "Compte des tâches",
         "days_all_chores": "Jours Tâches sélectionnées terminées",
@@ -2112,6 +2336,11 @@
           "description": "Contrôle ce qui se passe lorsque la date d'échéance est dépassée et ce qu'il advient des tâches en retard à la limite de réinitialisation de l'approbation.",
           "example": "à_date_dû"
         },
+        "chore_claim_lock_until_window": {
+          "name": "Verrouiller la réclamation jusqu'à l'ouverture de la fenêtre",
+          "description": "Si cela s'avère exact, les enfants ne pourront pas s'acquitter de cette tâche avant le début de la période impartie.",
+          "example": "FAUX"
+        },
         "auto_approve": {
           "name": "Approbation automatique",
           "description": "Si cela s'avère exact, la tâche est automatiquement approuvée lorsqu'elle est demandée.",
@@ -2136,7 +2365,7 @@
     },
     "update_chore": {
       "name": "Mise à jour des tâches",
-      "description": "Mettez à jour les propriétés d'une tâche existante. Indiquez l'identifiant OU le nom de la tâche. Seuls les champs renseignés seront mis à jour. Remarque : les critères de complétion ne peuvent pas être modifiés après la création de la tâche.",
+      "description": "Mettez à jour les propriétés d'une tâche existante. Indiquez l'identifiant OU le nom de la tâche. Seuls les champs renseignés seront mis à jour.",
       "fields": {
         "id": {
           "name": "ID de tâche",
@@ -2197,6 +2426,11 @@
           "name": "Traitement en retard",
           "description": "Nouveau comportement de gestion des retards.",
           "example": "jamais_en_tard"
+        },
+        "chore_claim_lock_until_window": {
+          "name": "Verrouiller la réclamation jusqu'à l'ouverture de la fenêtre",
+          "description": "Si cela s'avère exact, les enfants ne pourront pas s'acquitter de cette tâche avant le début de la période impartie.",
+          "example": "vrai"
         },
         "auto_approve": {
           "name": "Approbation automatique",
@@ -2561,6 +2795,18 @@
           "chore_last_longest_streak_date": {
             "name": "Dernière date de la plus longue série"
           },
+          "chore_current_missed_streak": {
+            "name": "Série d'échecs actuelle"
+          },
+          "chore_longest_missed_streak": {
+            "name": "Plus longue série d'échecs"
+          },
+          "chore_missed_count": {
+            "name": "Manqué (toutes périodes confondues)"
+          },
+          "chore_last_missed": {
+            "name": "Dernière absence"
+          },
           "last_claimed": {
             "name": "Dernière réclamation"
           },
@@ -2650,6 +2896,9 @@
           "kid_name": {
             "name": "Nom de l'enfant"
           },
+          "points_multiplier": {
+            "name": "Multiplicateur de points"
+          },
           "point_stat_points_earned_today": {
             "name": "Gagné aujourd'hui"
           },
@@ -2725,7 +2974,7 @@
           "point_stat_avg_points_per_chore": {
             "name": "Moyenne par tâche"
           },
-          "point_stat_highest_balance": {
+          "point_stat_highest_balance_all_time": {
             "name": "Solde le plus élevé jamais enregistré"
           }
         }
@@ -2803,17 +3052,32 @@
           "chore_stat_overdue_today": {
             "name": "En retard aujourd'hui"
           },
+          "chore_stat_missed_today": {
+            "name": "J'ai manqué aujourd'hui"
+          },
           "chore_stat_overdue_week": {
             "name": "En retard cette semaine"
+          },
+          "chore_stat_missed_week": {
+            "name": "J'ai manqué cette semaine"
           },
           "chore_stat_overdue_month": {
             "name": "En retard ce mois-ci"
           },
+          "chore_stat_missed_month": {
+            "name": "J'ai manqué ce mois-ci"
+          },
           "chore_stat_overdue_year": {
             "name": "En retard cette année"
           },
+          "chore_stat_missed_year": {
+            "name": "J'ai manqué cette année"
+          },
           "chore_stat_overdue_count_all_time": {
             "name": "En retard depuis toujours"
+          },
+          "chore_stat_missed_all_time": {
+            "name": "Manqué à tout le temps"
           },
           "chore_stat_claimed_today": {
             "name": "Réclamé aujourd'hui"
@@ -2922,6 +3186,9 @@
           },
           "chore_stat_longest_streak": {
             "name": "Plus longue série"
+          },
+          "chore_stat_longest_missed_streak": {
+            "name": "Plus longue série d'échecs"
           },
           "chore_stat_avg_per_day_week": {
             "name": "Moyenne par jour (semaine)"
@@ -4128,6 +4395,15 @@
     },
     "chore_pending_claim": {
       "message": "Chore a une demande en cours, en attente d'approbation ou de rejet."
+    },
+    "chore_waiting": {
+      "message": "Cette tâche ne peut pas encore être prise en charge. La période d'échéance n'est pas encore ouverte."
+    },
+    "chore_not_my_turn": {
+      "message": "Cette tâche est à tour de rôle. C'est actuellement au tour d'un autre enfant."
+    },
+    "chore_missed_locked": {
+      "message": "Cette tâche est marquée comme manquée et verrouillée pour le cycle en cours."
     },
     "chore_completed_by_other": {
       "message": "Cette tâche a déjà été accomplie par un autre enfant durant cette période."

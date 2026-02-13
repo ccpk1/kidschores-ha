@@ -54,6 +54,10 @@
     "title": "⭐ Bonus je bil uporabljen!",
     "message": "{bonus_name}: Prislužili ste si {points} bonus točk! Odlično opravljeno"
   },
+  "multiplier_changed_kid": {
+    "title": "⚖️ Množitelj posodobljen",
+    "message": "Vaš množitelj točk se je spremenil iz {old_multiplier}x na {new_multiplier}x"
+  },
   "_comment_parent_section": "══════════════════════════════════════════════════════════════════════════",
   "_comment_parent_desc": "OBVESTILA ZA STARŠE: Informativna, v tretji osebi, z možnostjo ukrepanja. Oblika: '{kid_name}: Dejanje'. BREZ predpone 'KidsChores:'.",
   "_comment_parent_footer": "══════════════════════════════════════════════════════════════════════════",
@@ -82,16 +86,20 @@
     "message": "Opomnik: {reward_name} , ki ga je zahteval {kid_name} , čaka na vašo odobritev"
   },
   "badge_earned_parent": {
-    "title": "🏆 {kid_name}: Značka prislužena",
+    "title": "🥇 {kid_name}: Značka prislužena",
     "message": "{kid_name} si je prislužil/a značko {badge_name}!"
   },
   "achievement_earned_parent": {
-    "title": "⭐ {kid_name}: Dosežek",
+    "title": "🏆 {kid_name}: Dosežek",
     "message": "{kid_name} zaslužil {achievement_name}"
   },
   "challenge_completed_parent": {
-    "title": "🎯 {kid_name}: Izziv opravljen",
+    "title": "🏁 {kid_name}: Izziv opravljen",
     "message": "{kid_name} končano {challenge_name}"
+  },
+  "multiplier_changed_parent": {
+    "title": "⚖️ {kid_name}: Množitelj posodobljen",
+    "message": "Množitelj točk igralca {kid_name}se je spremenil iz {old_multiplier}x na {new_multiplier}x"
   },
   "_comment_system_section": "══════════════════════════════════════════════════════════════════════════",
   "_comment_system_desc": "OBVESTILA SISTEMA/ADMINIRANJA: Postopki upravljanja podatkov",

@@ -54,6 +54,10 @@
     "title": "⭐ Bonus angewendet!",
     "message": "{bonus_name}: Du hast {points} Bonuspunkte verdient! Super gemacht!"
   },
+  "multiplier_changed_kid": {
+    "title": "⚖️ Multiplikator aktualisiert",
+    "message": "Ihr Punktemultiplikator hat sich von {old_multiplier}x auf {new_multiplier}x geändert."
+  },
   "_comment_parent_section": "══════════════════════════════════════════════════════════════════",
   "_comment_parent_desc": "ELTERNBENACHRICHTIGUNGEN: Informativ, in der dritten Person, mit Handlungsaufforderung. Format: '{kid_name}: Aktion'. Ohne das Präfix 'KidsChores:'.",
   "_comment_parent_footer": "══════════════════════════════════════════════════════════════════",
@@ -82,16 +86,20 @@
     "message": "Hinweis: Die von {kid_name} angeforderte {reward_name} wartet auf Ihre Zustimmung."
   },
   "badge_earned_parent": {
-    "title": "🏆 {kid_name}: Abzeichen erhalten",
+    "title": "🥇 {kid_name}: Abzeichen erhalten",
     "message": "{kid_name} hat das {badge_name} -Abzeichen erhalten!"
   },
   "achievement_earned_parent": {
-    "title": "⭐ {kid_name}: Erfolg",
+    "title": "🏆 {kid_name}: Erfolg",
     "message": "{kid_name} verdient {achievement_name}"
   },
   "challenge_completed_parent": {
-    "title": "🎯 {kid_name}: Herausforderung abgeschlossen",
+    "title": "🏁 {kid_name}: Herausforderung abgeschlossen",
     "message": "{kid_name} abgeschlossen {challenge_name}"
+  },
+  "multiplier_changed_parent": {
+    "title": "⚖️ {kid_name}: Multiplikator aktualisiert",
+    "message": "Der Punktemultiplikator von {kid_name}wurde von {old_multiplier}x auf {new_multiplier}x geändert."
   },
   "_comment_system_section": "══════════════════════════════════════════════════════════════════",
   "_comment_system_desc": "SYSTEM-/ADMINISTRATOR-BENACHRICHTIGUNGEN: Datenverwaltungsvorgänge",

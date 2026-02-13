@@ -54,6 +54,10 @@
     "title": "⭐ Bonus anvendt!",
     "message": "{bonus_name}: Du har optjent {points} bonuspoint! Godt gået"
   },
+  "multiplier_changed_kid": {
+    "title": "⚖️ Multiplikator opdateret",
+    "message": "Din pointmultiplikator er ændret fra {old_multiplier}x til {new_multiplier}x"
+  },
   "_comment_parent_section": "═════════════════════════════════════════════════════════════════════════════════",
   "_comment_parent_desc": "FORÆLDREMEDDELELSER: Informativ, tredjepersons, handlingsrettet. Format: '{kid_name}: Handling'. INGEN 'KidsChores:' præfiks.",
   "_comment_parent_footer": "═════════════════════════════════════════════════════════════════════════════════",
@@ -82,16 +86,20 @@
     "message": "Påmindelse: {reward_name} anmodet af {kid_name} venter på din godkendelse"
   },
   "badge_earned_parent": {
-    "title": "🏆 {kid_name}: Badge optjent",
+    "title": "🥇 {kid_name}: Badge optjent",
     "message": "{kid_name} har fået {badge_name} -mærket!"
   },
   "achievement_earned_parent": {
-    "title": "⭐ {kid_name}: Præstation",
+    "title": "🏆 {kid_name}: Præstation",
     "message": "{kid_name} optjent {achievement_name}"
   },
   "challenge_completed_parent": {
-    "title": "🎯 {kid_name}: Udfordringen er færdig",
+    "title": "🏁 {kid_name}: Udfordring færdig",
     "message": "{kid_name} fuldført {challenge_name}"
+  },
+  "multiplier_changed_parent": {
+    "title": "⚖️ {kid_name}: Multiplikator opdateret",
+    "message": "{kid_name}s pointmultiplikator er ændret fra {old_multiplier}x til {new_multiplier}x"
   },
   "_comment_system_section": "═════════════════════════════════════════════════════════════════════════════════",
   "_comment_system_desc": "SYSTEM-/ADMIN-MEDDELELSER: Datahåndteringshandlinger",

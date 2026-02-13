@@ -113,6 +113,76 @@
       "chores": {
         "title": "Pridať domácu úlohu",
         "description": "Vytvorte novú úlohu s bodmi, úlohami a opakujúcim sa harmonogramom.",
+        "sections": {
+          "section_root_form": {
+            "name": "Definícia",
+            "description": "Nastavenia identity, priradenia a základnej zmluvy.",
+            "data": {
+              "name": "📋 Názov domácej úlohy",
+              "chore_description": "📋 Popis (voliteľné)",
+              "icon": "Ikona 📋 (mdi:xxx)",
+              "default_points": "💰 Udelené body",
+              "assigned_kids": "👥 Pridelené deti",
+              "completion_criteria": "👥 Kritériá dokončenia"
+            },
+            "data_description": {
+              "name": "Jedinečný názov zobrazený v celom systéme.",
+              "chore_description": "Voliteľné pokyny alebo podrobnosti o tom, ako túto úlohu dokončiť.",
+              "icon": "Ikona materiálového dizajnu (napr. mdi:metla, mdi:umývačka riadu).",
+              "default_points": "Body získané po dokončení.",
+              "assigned_kids": "Deti, ktoré si túto úlohu môžu pozrieť a uplatniť si ju.",
+              "completion_criteria": "Ovláda spôsob dokončenia úlohy, keď je pridelených viacero detí: individuálne sledovanie, zdieľané dokončenie alebo rotácia na základe ťahov."
+            }
+          },
+          "section_schedule": {
+            "name": "Harmonogram",
+            "description": "Nastavenia načasovania, prístupového okna a opakujúceho sa intervalu.",
+            "data": {
+              "recurring_frequency": "🔄 Harmonogram: Frekvencia",
+              "due_date": "📅 Harmonogram: Termín odovzdania (voliteľné)",
+              "clear_due_date": "🗑️ Jasný dátum splatnosti",
+              "applicable_days": "📅 Harmonogram: Použiteľné dni (voliteľné)",
+              "chore_due_window_offset": "⏱️ Termín: Kompenzácia pred dátumom splatnosti",
+              "chore_claim_lock_until_window": "🔒 Zablokovať nárok do otvorenia lehoty na podanie?",
+              "custom_interval": "🔄 Rozvrh: Vlastný interval (pre vlastnú frekvenciu)",
+              "custom_interval_unit": "🔄 Rozvrh: Vlastná intervalová jednotka"
+            },
+            "data_description": {
+              "recurring_frequency": "Ako často sa úloha opakuje: Denne, Týždenne, Mesačne, Ročne, Vlastné alebo Žiadne.",
+              "due_date": "Voliteľný termín. Možno kombinovať s opakujúcimi sa harmonogramami.",
+              "clear_due_date": "Začiarknite toto políčko, ak chcete odstrániť dátum dokončenia z tejto úlohy.",
+              "applicable_days": "Pre všetky dni nechajte prázdne. Vyberte IBA konkrétne dni, ktoré chcete obmedziť.",
+              "chore_due_window_offset": "Keď sa stav úlohy zmení z Čaká na dokončenie na Termín. Formát: „1d 6h 30m“ alebo len „30“ pre minúty. Zadajte „0“ pre vypnutie. Príklad: „1d“ znamená, že úloha sa zobrazí ako „Termín“ 1 deň pred termínom.",
+              "chore_claim_lock_until_window": "Ak je povolená, deti si túto úlohu nemôžu nárokovať pred začiatkom obdobia splatnosti.",
+              "custom_interval": "Počet časových jednotiek medzi opakovaniami (napr. 3 pre „každé 3 týždne“). Používa sa iba s vlastnou frekvenciou.",
+              "custom_interval_unit": "Časová jednotka pre vlastný interval (dni, týždne, mesiace). Používa sa iba s vlastnou frekvenciou."
+            }
+          },
+          "section_advanced_configurations": {
+            "name": "Pokročilé konfigurácie",
+            "description": "Automatizácia životného cyklu, oznámenia, viditeľnosť a metadáta.",
+            "data": {
+              "approval_reset_type": "➡️ Povolené dokončenia a časový limit obnovenia schválenia",
+              "approval_reset_pending_claim_action": "➡️ Čaká na vybavenie reklamácií pri schválení resetovania",
+              "auto_approve": "✅ Automatické schvaľovanie reklamácií?",
+              "overdue_handling_type": "⏰ Po termíne: Vybavenie",
+              "chore_due_reminder_offset": "🔔 Pripomienka: Započítanie pred dátumom splatnosti",
+              "chore_notifications": "🔔 Udalosti oznámení (voliteľné)",
+              "show_on_calendar": "📅 Zobraziť v kalendári?",
+              "chore_labels": "📋 Štítky (voliteľné)"
+            },
+            "data_description": {
+              "approval_reset_type": "Ovláda, kedy sa spustí hranica cyklu schvaľovania úlohy (polnoc, dátum splatnosti, po dokončení alebo manuálne spustenie).",
+              "approval_reset_pending_claim_action": "Toto sa stane s nárokmi, ktoré stále čakajú na schválenie, keď dôjde k resetovaniu schválenia.",
+              "auto_approve": "Ak je povolená, nároky sa okamžite schvaľujú bez kontroly rodičom.",
+              "overdue_handling_type": "Akcia po dátume splatnosti: Skryť stav po splatnosti, zostať po splatnosti až do uplatnenia alebo obnoviť stav „čaká sa“ v ďalšom schvaľovacom cykle.",
+              "chore_due_reminder_offset": "Kedy odoslať upozornenie na pripomenutie termínu. Formát: „1d 6h 30m“ alebo len „30“ pre minúty. Predvolené: 30m (30 minút pred termínom). Zadajte „0“ pre vypnutie.",
+              "chore_notifications": "Kedy odosielať oznámenia: Pri reklamácii, schválení, zamietnutí alebo akejkoľvek kombinácii.",
+              "show_on_calendar": "Zobraziť túto úlohu v zobrazení kalendára.",
+              "chore_labels": "Štítky na organizovanie domácich prác (napr. „kuchyňa“, „vonkajšie“). Ak nie sú potrebné, nechajte pole prázdne."
+            }
+          }
+        },
         "data": {
           "name": "📋 Názov domácej úlohy",
           "chore_description": "📋 Popis (voliteľné)",
@@ -124,6 +194,7 @@
           "approval_reset_type": "➡️ Povolené dokončenia a časový limit obnovenia schválenia",
           "approval_reset_pending_claim_action": "➡️ Čaká na vybavenie reklamácií pri schválení resetovania",
           "overdue_handling_type": "⏰ Po termíne: Vybavenie",
+          "chore_claim_lock_until_window": "🔒 Zablokovať nárok do otvorenia lehoty na podanie?",
           "auto_approve": "✅ Automatické schvaľovanie reklamácií?",
           "recurring_frequency": "🔄 Harmonogram: Frekvencia",
           "custom_interval": "🔄 Rozvrh: Vlastný interval (pre vlastnú frekvenciu)",
@@ -146,6 +217,7 @@
           "approval_reset_type": "Ovláda, kedy sa spustí hranica cyklu schvaľovania úlohy (polnoc, dátum splatnosti, po dokončení alebo manuálne spustenie).",
           "approval_reset_pending_claim_action": "Toto sa stane s nárokmi, ktoré stále čakajú na schválenie, keď dôjde k resetovaniu schválenia.",
           "overdue_handling_type": "Akcia po dátume splatnosti: Skryť stav po splatnosti, zostať po splatnosti až do uplatnenia alebo obnoviť stav „čaká sa“ v ďalšom schvaľovacom cykle.",
+          "chore_claim_lock_until_window": "Ak je povolená, deti si túto úlohu nemôžu nárokovať pred začiatkom obdobia splatnosti.",
           "auto_approve": "Ak je povolená, nároky sa okamžite schvaľujú bez kontroly rodičom.",
           "recurring_frequency": "Ako často sa úloha opakuje: Denne, Týždenne, Mesačne, Ročne, Vlastné alebo Žiadne.",
           "custom_interval": "Počet časových jednotiek medzi opakovaniami (napr. 3 pre „každé 3 týždne“). Používa sa iba s vlastnou frekvenciou.",
@@ -356,6 +428,7 @@
       "invalid_challenge_name": "Neplatný názov výzvy",
       "invalid_chore": "Neplatná úloha",
       "invalid_chore_count": "Neplatný počet úloh",
+      "rotation_min_kids": "Rotačné práce vyžadujú aspoň 2 pridelené deti",
       "invalid_chore_name": "Neplatný názov úlohy",
       "invalid_points": "Body musia byť nula alebo viac",
       "invalid_overdue_reset_combination": "Manipulácia s oneskorením „V deň splatnosti a potom reset“ funguje iba s typmi resetovania o polnoci. Ako typ resetovania schválenia vyberte možnosť „O polnoci (raz)“ alebo „O polnoci (opakujúce sa)“.",
@@ -481,6 +554,76 @@
       "add_chore": {
         "title": "Pridať domácu úlohu",
         "description": "Vytvorte novú úlohu s bodmi, zadaniami a opakujúcim sa harmonogramom.\n\n📖 [Sprievodca konfiguráciou]({documentation_url})",
+        "sections": {
+          "section_root_form": {
+            "name": "Definícia",
+            "description": "Nastavenia identity, priradenia a základnej zmluvy.",
+            "data": {
+              "name": "📋 Názov domácej úlohy",
+              "chore_description": "📋 Popis (voliteľné)",
+              "icon": "Ikona 📋 (mdi:xxx)",
+              "default_points": "💰 Udelené body",
+              "assigned_kids": "👥 Pridelené deti",
+              "completion_criteria": "👥 Kritériá dokončenia"
+            },
+            "data_description": {
+              "name": "Jedinečný názov zobrazený v celom systéme.",
+              "chore_description": "Voliteľné pokyny alebo podrobnosti o tom, ako túto úlohu dokončiť.",
+              "icon": "Ikona materiálového dizajnu (napr. mdi:metla, mdi:umývačka riadu).",
+              "default_points": "Body získané po dokončení.",
+              "assigned_kids": "Deti, ktoré si túto úlohu môžu pozrieť a uplatniť si ju.",
+              "completion_criteria": "Ovláda spôsob dokončenia úlohy, keď je pridelených viacero detí: individuálne sledovanie, zdieľané dokončenie alebo rotácia na základe ťahov."
+            }
+          },
+          "section_schedule": {
+            "name": "Harmonogram",
+            "description": "Nastavenia načasovania, prístupového okna a opakujúceho sa intervalu.",
+            "data": {
+              "recurring_frequency": "🔄 Harmonogram: Frekvencia",
+              "due_date": "📅 Harmonogram: Termín odovzdania (voliteľné)",
+              "clear_due_date": "🗑️ Jasný dátum splatnosti",
+              "applicable_days": "📅 Harmonogram: Použiteľné dni (voliteľné)",
+              "chore_due_window_offset": "⏱️ Termín: Kompenzácia pred dátumom splatnosti",
+              "chore_claim_lock_until_window": "🔒 Zablokovať nárok do otvorenia lehoty na podanie?",
+              "custom_interval": "🔄 Rozvrh: Vlastný interval (pre vlastnú frekvenciu)",
+              "custom_interval_unit": "🔄 Rozvrh: Vlastná intervalová jednotka"
+            },
+            "data_description": {
+              "recurring_frequency": "Ako často sa úloha opakuje: Denne, Týždenne, Mesačne, Ročne, Vlastné alebo Žiadne. Ak vyberiete možnosť „Denne – Viackrát za deň“, zobrazí sa ďalšia obrazovka na konfiguráciu konkrétnych časov.",
+              "due_date": "Voliteľný termín. Dá sa kombinovať s opakujúcimi sa rozvrhmi. Pre NEZÁVISLÉ domáce práce slúži toto ako šablóna – zobrazí sa ďalšia obrazovka, ktorá umožňuje individuálne termíny pre každé dieťa.",
+              "clear_due_date": "Začiarknite toto políčko, ak chcete odstrániť dátum dokončenia z tejto úlohy.",
+              "applicable_days": "Pre všetky dni nechajte prázdne. Vyberte IBA konkrétne dni, ktoré chcete obmedziť.",
+              "chore_due_window_offset": "Keď sa stav úlohy zmení z Čaká na dokončenie na Termín. Formát: „1d 6h 30m“ alebo len „30“ pre minúty. Zadajte „0“ pre vypnutie. Príklad: „1d“ znamená, že úloha sa zobrazí ako „Termín“ 1 deň pred termínom.",
+              "chore_claim_lock_until_window": "Ak je povolená, deti si túto úlohu nemôžu nárokovať pred začiatkom obdobia splatnosti.",
+              "custom_interval": "Počet časových jednotiek medzi opakovaniami (napr. 3 pre „každé 3 týždne“). Používa sa iba s vlastnou frekvenciou.",
+              "custom_interval_unit": "Časová jednotka pre vlastný interval (dni, týždne, mesiace). Používa sa iba s vlastnou frekvenciou."
+            }
+          },
+          "section_advanced_configurations": {
+            "name": "Pokročilé konfigurácie",
+            "description": "Automatizácia životného cyklu, oznámenia, viditeľnosť a metadáta.",
+            "data": {
+              "approval_reset_type": "➡️ Povolené dokončenia a časový limit obnovenia schválenia",
+              "approval_reset_pending_claim_action": "➡️ Čaká na vybavenie reklamácií pri schválení resetovania",
+              "auto_approve": "✅ Automatické schvaľovanie reklamácií?",
+              "overdue_handling_type": "⏰ Po termíne: Vybavenie",
+              "chore_due_reminder_offset": "🔔 Pripomienka: Započítanie pred dátumom splatnosti",
+              "chore_notifications": "🔔 Udalosti oznámení (voliteľné)",
+              "show_on_calendar": "📅 Zobraziť v kalendári?",
+              "chore_labels": "📋 Štítky (voliteľné)"
+            },
+            "data_description": {
+              "approval_reset_type": "Ovláda, kedy sa spustí hranica cyklu schvaľovania úlohy (polnoc, dátum splatnosti, po dokončení alebo manuálne spustenie).",
+              "approval_reset_pending_claim_action": "Riadi, čo sa stane s neschválenými nárokmi, keď sa spustí hranica resetovania schválenia.",
+              "auto_approve": "Ak je povolená, nároky sa okamžite schvaľujú bez kontroly rodičom.",
+              "overdue_handling_type": "Riadi, čo sa stane po uplynutí dátumu splatnosti a čo sa stane s oneskorenými úlohami na hranici resetovania schválenia.",
+              "chore_due_reminder_offset": "Kedy odoslať upozornenie na pripomenutie termínu. Formát: „1d 6h 30m“ alebo len „30“ pre minúty. Predvolené: 30m (30 minút pred termínom). Zadajte „0“ pre vypnutie.",
+              "chore_notifications": "Kedy odosielať oznámenia: Pri reklamácii, schválení, zamietnutí alebo akejkoľvek kombinácii.",
+              "show_on_calendar": "Zobraziť túto úlohu v zobrazení kalendára.",
+              "chore_labels": "Štítky na organizovanie domácich prác (napr. „kuchyňa“, „vonkajšie“). Ak nie sú potrebné, nechajte pole prázdne."
+            }
+          }
+        },
         "data": {
           "name": "📋 Názov domácej úlohy",
           "chore_description": "📋 Popis (voliteľné)",
@@ -492,6 +635,7 @@
           "approval_reset_type": "➡️ Povolené dokončenia a časový limit obnovenia schválenia",
           "approval_reset_pending_claim_action": "➡️ Čaká na vybavenie reklamácií pri schválení resetovania",
           "overdue_handling_type": "⏰ Po termíne: Vybavenie",
+          "chore_claim_lock_until_window": "🔒 Zablokovať nárok do otvorenia lehoty na podanie?",
           "auto_approve": "✅ Automatické schvaľovanie reklamácií?",
           "recurring_frequency": "🔄 Harmonogram: Frekvencia",
           "custom_interval": "🔄 Rozvrh: Vlastný interval (pre vlastnú frekvenciu)",
@@ -515,6 +659,7 @@
           "approval_reset_type": "Ovláda, kedy sa spustí hranica cyklu schvaľovania úlohy (polnoc, dátum splatnosti, po dokončení alebo manuálne spustenie).",
           "approval_reset_pending_claim_action": "Riadi, čo sa stane s neschválenými nárokmi, keď sa spustí hranica resetovania schválenia.",
           "overdue_handling_type": "Riadi, čo sa stane po uplynutí dátumu splatnosti a čo sa stane s oneskorenými úlohami na hranici resetovania schválenia.",
+          "chore_claim_lock_until_window": "Ak je povolená, deti si túto úlohu nemôžu nárokovať pred začiatkom obdobia splatnosti.",
           "auto_approve": "Ak je povolená, nároky sa okamžite schvaľujú bez kontroly rodičom.",
           "recurring_frequency": "Ako často sa úloha opakuje: Denne, Týždenne, Mesačne, Ročne, Vlastné alebo Žiadne. Ak vyberiete možnosť „Denne – Viackrát za deň“, zobrazí sa ďalšia obrazovka na konfiguráciu konkrétnych časov.",
           "custom_interval": "Počet časových jednotiek medzi opakovaniami (napr. 3 pre „každé 3 týždne“). Používa sa iba s vlastnou frekvenciou.",
@@ -877,6 +1022,76 @@
       "edit_chore": {
         "title": "Upraviť úlohu",
         "description": "Upravte podrobnosti vybranej úlohy.\n\n📖 [Sprievodca konfiguráciou]({documentation_url})",
+        "sections": {
+          "section_root_form": {
+            "name": "Definícia",
+            "description": "Nastavenia identity, priradenia a základnej zmluvy.",
+            "data": {
+              "name": "📋 Názov domácej úlohy",
+              "chore_description": "📋 Popis (voliteľné)",
+              "icon": "Ikona 📋 (mdi:xxx)",
+              "default_points": "💰 Udelené body",
+              "assigned_kids": "👥 Pridelené deti",
+              "completion_criteria": "👥 Kritériá dokončenia"
+            },
+            "data_description": {
+              "name": "Jedinečný názov zobrazený v celom systéme.",
+              "chore_description": "Voliteľné pokyny alebo podrobnosti o tom, ako túto úlohu dokončiť.",
+              "icon": "Ikona materiálového dizajnu (napr. mdi:metla, mdi:umývačka riadu).",
+              "default_points": "Body získané po dokončení.",
+              "assigned_kids": "Deti, ktoré si túto úlohu môžu pozrieť a uplatniť si ju.",
+              "completion_criteria": "Ovláda spôsob dokončenia úlohy, keď je pridelených viacero detí: individuálne sledovanie, zdieľané dokončenie alebo rotácia na základe ťahov."
+            }
+          },
+          "section_schedule": {
+            "name": "Harmonogram",
+            "description": "Nastavenia načasovania, prístupového okna a opakujúceho sa intervalu.",
+            "data": {
+              "recurring_frequency": "🔄 Harmonogram: Frekvencia",
+              "due_date": "📅 Harmonogram: Termín odovzdania (voliteľné)",
+              "clear_due_date": "🗑️ Jasný dátum splatnosti",
+              "applicable_days": "📅 Harmonogram: Použiteľné dni (voliteľné)",
+              "chore_due_window_offset": "⏱️ Termín: Kompenzácia pred dátumom splatnosti",
+              "chore_claim_lock_until_window": "🔒 Zablokovať nárok do otvorenia lehoty na podanie?",
+              "custom_interval": "🔄 Rozvrh: Vlastný interval (pre vlastnú frekvenciu)",
+              "custom_interval_unit": "🔄 Rozvrh: Vlastná intervalová jednotka"
+            },
+            "data_description": {
+              "recurring_frequency": "Ako často sa úloha opakuje: Denne, Týždenne, Mesačne, Ročne, Vlastné alebo Žiadne. Ak vyberiete možnosť „Denne – Viackrát za deň“, zobrazí sa ďalšia obrazovka na konfiguráciu konkrétnych časov.",
+              "due_date": "Voliteľný termín. Dá sa kombinovať s opakujúcimi sa rozvrhmi. Pre NEZÁVISLÉ domáce práce slúži toto ako šablóna – zobrazí sa ďalšia obrazovka, ktorá umožňuje individuálne termíny pre každé dieťa.",
+              "clear_due_date": "Začiarknite toto políčko, ak chcete odstrániť dátum dokončenia z tejto úlohy.",
+              "applicable_days": "Pre všetky dni nechajte prázdne. Vyberte IBA konkrétne dni, ktoré chcete obmedziť.",
+              "chore_due_window_offset": "Keď sa stav úlohy zmení z Čaká na dokončenie na Termín. Formát: „1d 6h 30m“ alebo len „30“ pre minúty. Zadajte „0“ pre vypnutie. Príklad: „1d“ znamená, že úloha sa zobrazí ako „Termín“ 1 deň pred termínom.",
+              "chore_claim_lock_until_window": "Ak je povolená, deti si túto úlohu nemôžu nárokovať pred začiatkom obdobia splatnosti.",
+              "custom_interval": "Počet časových jednotiek medzi opakovaniami (napr. 3 pre „každé 3 týždne“). Používa sa iba s vlastnou frekvenciou.",
+              "custom_interval_unit": "Časová jednotka pre vlastný interval (dni, týždne, mesiace). Používa sa iba s vlastnou frekvenciou."
+            }
+          },
+          "section_advanced_configurations": {
+            "name": "Pokročilé konfigurácie",
+            "description": "Automatizácia životného cyklu, oznámenia, viditeľnosť a metadáta.",
+            "data": {
+              "approval_reset_type": "➡️ Povolené dokončenia a časový limit obnovenia schválenia",
+              "approval_reset_pending_claim_action": "➡️ Čaká na vybavenie reklamácií pri schválení resetovania",
+              "auto_approve": "✅ Automatické schvaľovanie reklamácií?",
+              "overdue_handling_type": "⏰ Po termíne: Vybavenie",
+              "chore_due_reminder_offset": "🔔 Pripomienka: Započítanie pred dátumom splatnosti",
+              "chore_notifications": "🔔 Udalosti oznámení (voliteľné)",
+              "show_on_calendar": "📅 Zobraziť v kalendári?",
+              "chore_labels": "📋 Štítky (voliteľné)"
+            },
+            "data_description": {
+              "approval_reset_type": "Ovláda, kedy sa spustí hranica cyklu schvaľovania úlohy (polnoc, dátum splatnosti, po dokončení alebo manuálne spustenie).",
+              "approval_reset_pending_claim_action": "Riadi, čo sa stane s neschválenými nárokmi, keď sa spustí hranica resetovania schválenia.",
+              "auto_approve": "Ak je povolená, nároky sa okamžite schvaľujú bez kontroly rodičom.",
+              "overdue_handling_type": "Riadi, čo sa stane po uplynutí dátumu splatnosti a čo sa stane s oneskorenými úlohami na hranici resetovania schválenia.",
+              "chore_due_reminder_offset": "Kedy odoslať upozornenie na pripomenutie termínu. Formát: „1d 6h 30m“ alebo len „30“ pre minúty. Predvolené: 30m (30 minút pred termínom). Zadajte „0“ pre vypnutie.",
+              "chore_notifications": "Kedy odosielať oznámenia: Pri reklamácii, schválení, zamietnutí alebo akejkoľvek kombinácii.",
+              "show_on_calendar": "Zobraziť túto úlohu v zobrazení kalendára.",
+              "chore_labels": "Štítky na organizovanie domácich prác (napr. „kuchyňa“, „vonkajšie“). Ak nie sú potrebné, nechajte pole prázdne."
+            }
+          }
+        },
         "data": {
           "name": "📋 Názov domácej úlohy",
           "chore_description": "📋 Popis (voliteľné)",
@@ -889,6 +1104,7 @@
           "approval_reset_type": "➡️ Povolené dokončenia a časový limit obnovenia schválenia",
           "approval_reset_pending_claim_action": "➡️ Čaká na vybavenie reklamácií pri schválení resetovania",
           "overdue_handling_type": "⏰ Po termíne: Vybavenie",
+          "chore_claim_lock_until_window": "🔒 Zablokovať nárok do otvorenia lehoty na podanie?",
           "auto_approve": "✅ Automatické schvaľovanie reklamácií?",
           "recurring_frequency": "🔄 Harmonogram: Frekvencia",
           "custom_interval": "🔄 Rozvrh: Vlastný interval (pre vlastnú frekvenciu)",
@@ -912,6 +1128,7 @@
           "approval_reset_type": "Ovláda, kedy sa spustí hranica cyklu schvaľovania úlohy (polnoc, dátum splatnosti, po dokončení alebo manuálne spustenie).",
           "approval_reset_pending_claim_action": "Riadi, čo sa stane s neschválenými nárokmi, keď sa spustí hranica resetovania schválenia.",
           "overdue_handling_type": "Riadi, čo sa stane po uplynutí dátumu splatnosti a čo sa stane s oneskorenými úlohami na hranici resetovania schválenia.",
+          "chore_claim_lock_until_window": "Ak je povolená, deti si túto úlohu nemôžu nárokovať pred začiatkom obdobia splatnosti.",
           "auto_approve": "Ak je povolená, nároky sa okamžite schvaľujú bez kontroly rodičom.",
           "recurring_frequency": "Ako často sa úloha opakuje: Denne, Týždenne, Mesačne, Ročne, Vlastné alebo Žiadne. Ak vyberiete možnosť „Denne – Viackrát za deň“, zobrazí sa ďalšia obrazovka na konfiguráciu konkrétnych časov.",
           "custom_interval": "Počet časových jednotiek medzi opakovaniami (napr. 3 pre „každé 3 týždne“). Používa sa iba s vlastnou frekvenciou.",
@@ -1352,6 +1569,7 @@
           "retention_monthly": "Mesačné uchovávanie údajov (mesiace)",
           "retention_yearly": "Ročné uchovávanie údajov (roky)",
           "show_legacy_entities": "Zobraziť ďalšie entity",
+          "kiosk_mode": "Povoliť režim kiosku pre nároky detí",
           "backups_max_retained": "Maximálny počet záloh na uchovanie",
           "backup_action_selection": "Zálohovacie akcie"
         },
@@ -1365,6 +1583,7 @@
           "retention_monthly": "Počet mesiacov mesačných historických údajov, ktoré sa majú uchovávať pred vyčistením. Minimálne 1, maximálne 24.",
           "retention_yearly": "Počet rokov ročných historických údajov, ktoré sa majú uchovávať pred vyčistením. Minimálne 1, maximálne 10.",
           "show_legacy_entities": "Zobraziť ďalšie entity, ako napríklad senzor a selects, ktoré sú teraz zlúčené do pomocného senzora na dashboarde. Tieto entity sú voliteľné kvôli spätnej kompatibilite s existujúcimi automatizáciami.",
+          "kiosk_mode": "Umožňuje tlačidlám pre uplatnenie nároku na domáce úlohy/odmeny pre deti fungovať na zdieľaných nástenných tabletoch bez toho, aby sa používateľ ovládacieho panela musel zhodovať s odkazom používateľa domáceho asistenta dieťaťa. Bezpečnostné upozornenie: nároky pre deti môže odoslať ktokoľvek s prístupom k danému zariadeniu.",
           "backups_max_retained": "Maximálny počet záložných súborov, ktoré sa majú uchovávať na tag (napr. 5 manuálnych záloh, 5 záloh typu data_reset). Staršie zálohy sa automaticky odstránia po vytvorení každej novej zálohy. Nastavením na hodnotu 0 úplne vypnete automatické zálohy.",
           "backup_action_selection": "Vyberte akciu správy záloh: vytvorenie manuálnej zálohy, odstránenie zálohy alebo obnovenie zo zálohy."
         }
@@ -1477,6 +1696,9 @@
       "invalid_badge_count": "Neplatný počet odznakov",
       "invalid_chore": "Neplatná úloha",
       "invalid_chore_count": "Neplatný počet úloh",
+      "invalid_chore_name": "Neplatný názov úlohy",
+      "invalid_points": "Body musia byť nula alebo viac",
+      "invalid_overdue_reset_combination": "Manipulácia s oneskorením „V deň splatnosti a potom reset“ funguje iba s typmi resetovania o polnoci. Ako typ resetovania schválenia vyberte možnosť „O polnoci (raz)“ alebo „O polnoci (opakujúce sa)“.",
       "invalid_due_date": "Neplatný dátum splatnosti",
       "date_required_for_frequency": "Pre túto opakujúcu sa frekvenciu je potrebný dátum splatnosti. Vymazať dátumy funguje iba s frekvenciou Žiadna, Denne alebo Týždenne.",
       "invalid_end_date": "Neplatný dátum ukončenia.",
@@ -1505,6 +1727,7 @@
       "error_daily_multi_times_too_few": "Pre frekvenciu „Viacerokrát za deň“ sú potrebné aspoň 2 pokusy. Pre jeden pokus použite bežnú frekvenciu „Denne“.",
       "error_daily_multi_times_too_many": "Maximálne 6-krát za deň je povolených pre frekvenciu „Viacerokrát za deň“.",
       "error_daily_multi_due_date_required": "Frekvencia „Viaceríkrát za deň“ vyžaduje nastavenie dátumu splatnosti. Dátum určuje začiatok plánovania a časy určujú okná dostupnosti pre každý deň.",
+      "rotation_min_kids": "Rotačné práce vyžadujú aspoň 2 pridelené deti",
       "error_allow_steal_incompatible": "Manipulácia s oneskoreným odkúpením je kompatibilná iba s úlohami Rotácia (rotation_simple alebo rotation_smart), typom resetovania „Raz za deň“ a vyžaduje dátum splatnosti na definovanie otvorenia okna odkúpenia.",
       "error_at_due_date_reset_requires_due_date": "Typy resetovania schválenia „V deň splatnosti“ (raz alebo viacnásobné) vyžadujú nastavenie dátumu splatnosti. Bez dátumu splatnosti sa resetovanie schválenia nikdy nespustí a úloha zostane schválená na neurčito.",
       "error_per_kid_applicable_days_invalid": "Neplatný formát príslušných dní pre jedno alebo viac detí. Dni musia byť celé čísla 0-6 (pondelok-nedeľa) bez duplikátov.",
@@ -1621,6 +1844,7 @@
     "target_type": {
       "options": {
         "points": "Body",
+        "points_all_time": "Body (celkovo)",
         "points_chores": "Body z domácich prác",
         "chore_count": "Počet domácich úloh",
         "days_all_chores": "Dni Vybrané dokončené domáce práce",
@@ -2112,6 +2336,11 @@
           "description": "Riadi, čo sa stane po uplynutí dátumu splatnosti a čo sa stane s oneskorenými úlohami na hranici resetovania schválenia.",
           "example": "v_dátume_splatnosti"
         },
+        "chore_claim_lock_until_window": {
+          "name": "Uzamknúť nárok, kým sa neotvorí okno",
+          "description": "Ak je to pravda, deti si túto domácu úlohu nemôžu uplatniť pred začiatkom obdobia splatnosti.",
+          "example": "nepravdivé"
+        },
         "auto_approve": {
           "name": "Automatické schválenie",
           "description": "Ak je hodnota true, úloha sa automaticky schváli po uplatnení nároku.",
@@ -2136,7 +2365,7 @@
     },
     "update_chore": {
       "name": "Aktualizovať úlohu",
-      "description": "Aktualizujte vlastnosti existujúcej úlohy. Zadajte buď ID, ALEBO názov na identifikáciu úlohy. Aktualizované budú iba poskytnuté polia. Poznámka: Kritériá dokončenia nemožno po vytvorení zmeniť.",
+      "description": "Aktualizujte vlastnosti existujúcej úlohy. Zadajte buď ID, ALEBO názov na identifikáciu úlohy. Aktualizujú sa iba zadané polia.",
       "fields": {
         "id": {
           "name": "ID úlohy",
@@ -2197,6 +2426,11 @@
           "name": "Oneskorené spracovanie",
           "description": "Nové správanie pri manipulácii s oneskorením.",
           "example": "nikdy_neodoslané"
+        },
+        "chore_claim_lock_until_window": {
+          "name": "Uzamknúť nárok, kým sa neotvorí okno",
+          "description": "Ak je to pravda, deti si túto domácu úlohu nemôžu uplatniť pred začiatkom obdobia splatnosti.",
+          "example": "pravda"
         },
         "auto_approve": {
           "name": "Automatické schválenie",
@@ -2561,6 +2795,18 @@
           "chore_last_longest_streak_date": {
             "name": "Dátum poslednej najdlhšej série"
           },
+          "chore_current_missed_streak": {
+            "name": "Aktuálna zmeškaná séria"
+          },
+          "chore_longest_missed_streak": {
+            "name": "Najdlhšia zmeškaná séria"
+          },
+          "chore_missed_count": {
+            "name": "Zmeškané (za celý čas)"
+          },
+          "chore_last_missed": {
+            "name": "Naposledy zmeškané"
+          },
           "last_claimed": {
             "name": "Naposledy nárokované"
           },
@@ -2650,6 +2896,9 @@
           "kid_name": {
             "name": "Meno dieťaťa"
           },
+          "points_multiplier": {
+            "name": "Násobiteľ bodov"
+          },
           "point_stat_points_earned_today": {
             "name": "Získané dnes"
           },
@@ -2725,7 +2974,7 @@
           "point_stat_avg_points_per_chore": {
             "name": "Priemer na domácu prácu"
           },
-          "point_stat_highest_balance": {
+          "point_stat_highest_balance_all_time": {
             "name": "Najvyšší zostatok vôbec"
           }
         }
@@ -2803,17 +3052,32 @@
           "chore_stat_overdue_today": {
             "name": "Dnes po termíne"
           },
+          "chore_stat_missed_today": {
+            "name": "Zmeškané dnes"
+          },
           "chore_stat_overdue_week": {
             "name": "Tento týždeň po termíne"
+          },
+          "chore_stat_missed_week": {
+            "name": "Zmeškané tento týždeň"
           },
           "chore_stat_overdue_month": {
             "name": "Tento mesiac po termíne"
           },
+          "chore_stat_missed_month": {
+            "name": "Zmeškané tento mesiac"
+          },
           "chore_stat_overdue_year": {
             "name": "Tento rok po termíne"
           },
+          "chore_stat_missed_year": {
+            "name": "Tento rok zmeškané"
+          },
           "chore_stat_overdue_count_all_time": {
             "name": "Vždy po termíne"
+          },
+          "chore_stat_missed_all_time": {
+            "name": "Zmeškané za celý čas"
           },
           "chore_stat_claimed_today": {
             "name": "Nárokované dnes"
@@ -2922,6 +3186,9 @@
           },
           "chore_stat_longest_streak": {
             "name": "Najdlhšia séria"
+          },
+          "chore_stat_longest_missed_streak": {
+            "name": "Najdlhšia zmeškaná séria"
           },
           "chore_stat_avg_per_day_week": {
             "name": "Priemerne za deň (týždeň)"
@@ -4128,6 +4395,15 @@
     },
     "chore_pending_claim": {
       "message": "Doplnková služba má čakajúcu na schválenie alebo zamietnutie reklamáciu"
+    },
+    "chore_waiting": {
+      "message": "Túto úlohu si zatiaľ nemožno vyžiadať. Termín sa ešte neotvoril."
+    },
+    "chore_not_my_turn": {
+      "message": "Táto úloha je uzamknutá podľa rotácie. Momentálne je na rade iné dieťa."
+    },
+    "chore_missed_locked": {
+      "message": "Táto úloha je označená ako zmeškaná a uzamknutá pre aktuálny cyklus."
     },
     "chore_completed_by_other": {
       "message": "Túto domácu úlohu už v tomto období splnilo iné dieťa."

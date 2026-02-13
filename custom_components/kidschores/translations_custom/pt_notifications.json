@@ -54,6 +54,10 @@
     "title": "⭐ Bónus aplicado!",
     "message": "{bonus_name}: Ganhou {points} pontos de bónus! Ótimo trabalho!"
   },
+  "multiplier_changed_kid": {
+    "title": "⚖️ Multiplicador atualizado",
+    "message": "O seu multiplicador de pontos passou de {old_multiplier}x para {new_multiplier}x"
+  },
   "_comment_parent_section": "═══════════════════════════════ ════════════════════════════════",
   "_comment_parent_desc": "NOTIFICAÇÕES AOS PAIS: Informativas, na terceira pessoa, com instruções para a ação. Formato: '{kid_name}: Acção'. SEM prefixo 'Tarefas da Criança:'.",
   "_comment_parent_footer": "═══════════════════════════════ ════════════════════════════════",
@@ -82,16 +86,20 @@
     "message": "Recorde-se: {reward_name} solicitado por {kid_name} aguarda a sua aprovação."
   },
   "badge_earned_parent": {
-    "title": "🏆 {kid_name}: Insígnia Conquistada",
+    "title": "🥇 {kid_name}: Insígnia Conquistada",
     "message": "{kid_name} ganhou o crachá {badge_name} !"
   },
   "achievement_earned_parent": {
-    "title": "⭐ {kid_name}: Conquista",
+    "title": "🏆 {kid_name}: Conquista",
     "message": "{kid_name} ganhou {achievement_name}"
   },
   "challenge_completed_parent": {
-    "title": "🎯 {kid_name}: Desafio Concluído",
+    "title": "🏁 {kid_name}: Desafio Concluído",
     "message": "{kid_name} concluído {challenge_name}"
+  },
+  "multiplier_changed_parent": {
+    "title": "⚖️ {kid_name}: Multiplicador Atualizado",
+    "message": "O multiplicador de pontos de {kid_name}passou de {old_multiplier}x para {new_multiplier}x"
   },
   "_comment_system_section": "═══════════════════════════════ ════════════════════════════════",
   "_comment_system_desc": "NOTIFICAÇÕES DO SISTEMA/ADMINISTRADOR: Operações de gestão de dados",

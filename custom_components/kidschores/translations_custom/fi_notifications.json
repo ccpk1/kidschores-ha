@@ -54,6 +54,10 @@
     "title": "⭐ Bonus käytetty!",
     "message": "{bonus_name}: Ansaitsit {points} bonuspistettä! Hienoa työtä!"
   },
+  "multiplier_changed_kid": {
+    "title": "⚖️ Kerroin päivitetty",
+    "message": "Pistekerroin muuttui arvosta {old_multiplier}x arvoon {new_multiplier}x"
+  },
   "_comment_parent_section": "════════════════════════════════════════════════════════════════════════════════════════",
   "_comment_parent_desc": "VANHEMPIEN ILMOITUKSET: Informatiivisia, kolmannen persoonan, toiminnallisia. Muoto: '{kid_name}: Toiminta'. EI 'KidsChores:'-etuliitettä.",
   "_comment_parent_footer": "════════════════════════════════════════════════════════════════════════════════════════",
@@ -82,16 +86,20 @@
     "message": "Muistutus: {reward_name} , käyttäjän {kid_name} pyyntö odottaa hyväksyntääsi"
   },
   "badge_earned_parent": {
-    "title": "🏆 {kid_name}: Ansaittu merkki",
+    "title": "🥇 {kid_name}: Ansaittu merkki",
     "message": "{kid_name} ansaitsi {badge_name} -merkin!"
   },
   "achievement_earned_parent": {
-    "title": "⭐ {kid_name}: Saavutus",
+    "title": "🏆 {kid_name}: Saavutus",
     "message": "{kid_name} ansaittu {achievement_name}"
   },
   "challenge_completed_parent": {
-    "title": "🎯 {kid_name}: Haaste suoritettu",
+    "title": "🏁 {kid_name}: Haaste suoritettu",
     "message": "{kid_name} valmis {challenge_name}"
+  },
+  "multiplier_changed_parent": {
+    "title": "⚖️ {kid_name}: Kerroin päivitetty",
+    "message": "{kid_name}:n pistekerroin muuttui arvosta {old_multiplier}x arvoon {new_multiplier}x"
   },
   "_comment_system_section": "════════════════════════════════════════════════════════════════════════════════════════",
   "_comment_system_desc": "JÄRJESTELMÄN/JÄRJESTELMÄNVALVOJAN ILMOITUKSET: Tiedonhallintatoiminnot",

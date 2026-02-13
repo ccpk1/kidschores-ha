@@ -113,6 +113,76 @@
       "chores": {
         "title": "Lisää kotitehtävä",
         "description": "Luo uusi tehtävä, jossa on pisteitä, tehtäviä ja toistuva aikataulu.",
+        "sections": {
+          "section_root_form": {
+            "name": "Määritelmä",
+            "description": "Identiteetti, tehtävänanto ja ydinsopimuksen asetukset.",
+            "data": {
+              "name": "📋 Työn nimi",
+              "chore_description": "📋 Kuvaus (valinnainen)",
+              "icon": "📋 Kuvake (mdi:xxx)",
+              "default_points": "💰 Annetut pisteet",
+              "assigned_kids": "👥 Määrätyt lapset",
+              "completion_criteria": "👥 Suorituskriteerit"
+            },
+            "data_description": {
+              "name": "Järjestelmässä näkyvä yksilöllinen nimi.",
+              "chore_description": "Valinnaiset ohjeet tai tiedot tehtävän suorittamisesta.",
+              "icon": "Materiaalisuunnittelun kuvake (esim. mdi:luuta, mdi:astianpesukone).",
+              "default_points": "Pisteitä ansaitaan suoritettaessa.",
+              "assigned_kids": "Lapset, jotka näkevät ja voivat vaatia tämän tehtävän.",
+              "completion_criteria": "Määrittää, miten tehtävä suoritetaan, kun se on annettu useille lapsille: yksilöllinen seuranta, jaettu suoritus tai vuoropohjainen kierto."
+            }
+          },
+          "section_schedule": {
+            "name": "Ajoittaa",
+            "description": "Ajoituksen, käyttöajan ja toistuvien aikavälien asetukset.",
+            "data": {
+              "recurring_frequency": "🔄 Aikataulu: Vuorotiheys",
+              "due_date": "📅 Aikataulu: Määräpäivä (valinnainen)",
+              "clear_due_date": "🗑️ Selkeä eräpäivä",
+              "applicable_days": "📅 Aikataulu: Soveltuvat päivät (valinnainen)",
+              "chore_due_window_offset": "⏱️ Eräikkuna: Kuittaa ennen eräpäivää",
+              "chore_claim_lock_until_window": "🔒 Lukitse vaatimus, kunnes eräpäiväaika avautuu?",
+              "custom_interval": "🔄 Aikataulu: Mukautettu aikaväli (mukautettua taajuutta varten)",
+              "custom_interval_unit": "🔄 Aikataulu: Mukautettu intervalliyksikkö"
+            },
+            "data_description": {
+              "recurring_frequency": "Kuinka usein työ toistuu: Päivittäin, Viikoittain, Kuukausittain, Vuosittain, Mukautettu tai Ei lainkaan.",
+              "due_date": "Valinnainen määräaika. Voidaan yhdistää toistuviin aikatauluihin.",
+              "clear_due_date": "Valitse tämä ruutu poistaaksesi määräpäivän tästä tehtävästä.",
+              "applicable_days": "Jätä tyhjäksi kaikki päivät. Valitse VAIN tietyt päivät rajoitusta varten.",
+              "chore_due_window_offset": "Kun työn tila muuttuu Odottaa-tilasta Määräpäivä-tilaan. Muoto: '1pv 6h 30m' tai vain '30' minuuteille. Syötä '0' poistaaksesi tilan käytöstä. Esimerkki: '1pv' tarkoittaa, että työ näkyy Erääntymistilassa 1 päivä ennen määräaikaa.",
+              "chore_claim_lock_until_window": "Kun tämä on käytössä, lapset eivät voi lunastaa tätä tehtävää ennen määräajan alkamista.",
+              "custom_interval": "Toistojen välisten aikayksiköiden määrä (esim. 3, jos haluat 'joka 3 viikko'). Käytetään vain mukautetun taajuuden kanssa.",
+              "custom_interval_unit": "Mukautetun aikavälin aikayksikkö (päivät, viikot, kuukaudet). Käytetään vain mukautetun taajuuden kanssa."
+            }
+          },
+          "section_advanced_configurations": {
+            "name": "Lisäasetukset",
+            "description": "Elinkaaren automatisointi, ilmoitukset, näkyvyys ja metatiedot.",
+            "data": {
+              "approval_reset_type": "➡️ Täydennykset sallittu ja hyväksynnän nollausaika",
+              "approval_reset_pending_claim_action": "➡️ Hyväksynnän nollauksessa odottavien korvaushakemusten käsittely",
+              "auto_approve": "✅ Hyväksytäänkö korvaushakemukset automaattisesti?",
+              "overdue_handling_type": "⏰ Myöhässä: Käsittely",
+              "chore_due_reminder_offset": "🔔 Eräpäivämuistutus: Kuittaa ennen eräpäivää",
+              "chore_notifications": "🔔 Ilmoitustapahtumat (valinnainen)",
+              "show_on_calendar": "📅 Näytetäänkö kalenterissa?",
+              "chore_labels": "📋 Tunnisteet (valinnainen)"
+            },
+            "data_description": {
+              "approval_reset_type": "Ohjaa, milloin työn hyväksymissyklin raja aktivoituu (keskiyöllä, eräpäivänä, valmistuttua tai manuaalisesti).",
+              "approval_reset_pending_claim_action": "Näin tapahtuu vaatimuksille, jotka odottavat edelleen hyväksyntää, kun hyväksyntä nollataan.",
+              "auto_approve": "Kun tämä on käytössä, hakemukset hyväksytään välittömästi ilman vanhempien tarkistusta.",
+              "overdue_handling_type": "Toimenpiteet eräpäivän jälkeen: Piilota myöhästymistila, pidä myöhässä, kunnes maksu vaaditaan, tai palauta odottavaan tilaan seuraavalla hyväksymisjaksolla.",
+              "chore_due_reminder_offset": "Milloin lähetetään muistutus eräpäivästä. Muoto: '1pv 6t 30m' tai vain '30' minuuteille. Oletusarvo: 30m (30 minuuttia ennen eräpäivää). Syötä '0' poistaaksesi ilmoituksen käytöstä.",
+              "chore_notifications": "Milloin ilmoituksia lähetetään: Vaatimuksen, hyväksynnän, hylkäämisen tai minkä tahansa näiden yhdistelmän yhteydessä.",
+              "show_on_calendar": "Näytä tämä tehtävä kalenterinäkymässä.",
+              "chore_labels": "Tagit askareiden järjestämiseen (esim. 'keittiö', 'ulkona'). Jätä tyhjäksi, jos et tarvitse."
+            }
+          }
+        },
         "data": {
           "name": "📋 Työn nimi",
           "chore_description": "📋 Kuvaus (valinnainen)",
@@ -124,6 +194,7 @@
           "approval_reset_type": "➡️ Täydennykset sallittu ja hyväksynnän nollausaika",
           "approval_reset_pending_claim_action": "➡️ Hyväksynnän nollauksessa odottavien korvaushakemusten käsittely",
           "overdue_handling_type": "⏰ Myöhässä: Käsittely",
+          "chore_claim_lock_until_window": "🔒 Lukitse vaatimus, kunnes eräpäiväaika avautuu?",
           "auto_approve": "✅ Hyväksytäänkö korvaushakemukset automaattisesti?",
           "recurring_frequency": "🔄 Aikataulu: Vuorotiheys",
           "custom_interval": "🔄 Aikataulu: Mukautettu aikaväli (mukautettua taajuutta varten)",
@@ -146,6 +217,7 @@
           "approval_reset_type": "Ohjaa, milloin työn hyväksymissyklin raja aktivoituu (keskiyöllä, eräpäivänä, valmistuttua tai manuaalisesti).",
           "approval_reset_pending_claim_action": "Näin tapahtuu vaatimuksille, jotka odottavat edelleen hyväksyntää, kun hyväksyntä nollataan.",
           "overdue_handling_type": "Toimenpiteet eräpäivän jälkeen: Piilota myöhästymistila, pidä myöhässä, kunnes maksu vaaditaan, tai palauta odottavaan tilaan seuraavalla hyväksymisjaksolla.",
+          "chore_claim_lock_until_window": "Kun tämä on käytössä, lapset eivät voi lunastaa tätä tehtävää ennen määräajan alkamista.",
           "auto_approve": "Kun tämä on käytössä, hakemukset hyväksytään välittömästi ilman vanhempien tarkistusta.",
           "recurring_frequency": "Kuinka usein työ toistuu: Päivittäin, Viikoittain, Kuukausittain, Vuosittain, Mukautettu tai Ei lainkaan.",
           "custom_interval": "Toistojen välisten aikayksiköiden määrä (esim. 3, jos haluat 'joka 3 viikko'). Käytetään vain mukautetun taajuuden kanssa.",
@@ -356,6 +428,7 @@
       "invalid_challenge_name": "Virheellinen haasteen nimi",
       "invalid_chore": "Virheellinen työtehtävä",
       "invalid_chore_count": "Virheellinen tehtävien määrä",
+      "rotation_min_kids": "Kiertotehtävät vaativat vähintään kaksi nimettyä lasta",
       "invalid_chore_name": "Virheellinen työn nimi",
       "invalid_points": "Pisteiden on oltava nolla tai suurempi",
       "invalid_overdue_reset_combination": "”Eräpäivänä nollaa sitten” -myöhästymiskäsittely toimii vain keskiyön nollaustyyppien kanssa. Valitse hyväksynnän nollaustyypiksi ”Keskiyöllä (kerran)” tai ”Keskiyöllä (toistuvasti)”.",
@@ -481,6 +554,76 @@
       "add_chore": {
         "title": "Lisää kotitehtävä",
         "description": "Luo uusi tehtävä, joka sisältää pisteet, tehtävät ja toistuvan aikataulun.\n\n📖 [Määritysopas]({documentation_url})",
+        "sections": {
+          "section_root_form": {
+            "name": "Määritelmä",
+            "description": "Identiteetti, tehtävänanto ja ydinsopimuksen asetukset.",
+            "data": {
+              "name": "📋 Työn nimi",
+              "chore_description": "📋 Kuvaus (valinnainen)",
+              "icon": "📋 Kuvake (mdi:xxx)",
+              "default_points": "💰 Annetut pisteet",
+              "assigned_kids": "👥 Määrätyt lapset",
+              "completion_criteria": "👥 Suorituskriteerit"
+            },
+            "data_description": {
+              "name": "Järjestelmässä näkyvä yksilöllinen nimi.",
+              "chore_description": "Valinnaiset ohjeet tai tiedot tehtävän suorittamisesta.",
+              "icon": "Materiaalisuunnittelun kuvake (esim. mdi:luuta, mdi:astianpesukone).",
+              "default_points": "Pisteitä ansaitaan suoritettaessa.",
+              "assigned_kids": "Lapset, jotka näkevät ja voivat vaatia tämän tehtävän.",
+              "completion_criteria": "Määrittää, miten tehtävä suoritetaan, kun se on annettu useille lapsille: yksilöllinen seuranta, jaettu suoritus tai vuoropohjainen kierto."
+            }
+          },
+          "section_schedule": {
+            "name": "Ajoittaa",
+            "description": "Ajoituksen, käyttöajan ja toistuvien aikavälien asetukset.",
+            "data": {
+              "recurring_frequency": "🔄 Aikataulu: Vuorotiheys",
+              "due_date": "📅 Aikataulu: Määräpäivä (valinnainen)",
+              "clear_due_date": "🗑️ Selkeä eräpäivä",
+              "applicable_days": "📅 Aikataulu: Soveltuvat päivät (valinnainen)",
+              "chore_due_window_offset": "⏱️ Eräikkuna: Kuittaa ennen eräpäivää",
+              "chore_claim_lock_until_window": "🔒 Lukitse vaatimus, kunnes eräpäiväaika avautuu?",
+              "custom_interval": "🔄 Aikataulu: Mukautettu aikaväli (mukautettua taajuutta varten)",
+              "custom_interval_unit": "🔄 Aikataulu: Mukautettu intervalliyksikkö"
+            },
+            "data_description": {
+              "recurring_frequency": "Kuinka usein tehtävä toistuu: Päivittäin, Viikoittain, Kuukausittain, Vuosittain, Mukautettu tai Ei lainkaan. Jos valitset \"Päivittäin - Useita kertoja päivässä\", näkyviin tulee lisänäyttö, jossa voit määrittää tarkat ajat.",
+              "due_date": "Valinnainen määräaika. Voidaan yhdistää toistuviin aikatauluihin. ITSENÄISILLE askareille tämä toimii mallina – näkyviin tulee ylimääräinen näyttö, jossa voit määrittää lapsellesi omat päivämäärät.",
+              "clear_due_date": "Valitse tämä ruutu poistaaksesi määräpäivän tästä tehtävästä.",
+              "applicable_days": "Jätä tyhjäksi kaikki päivät. Valitse VAIN tietyt päivät rajoitusta varten.",
+              "chore_due_window_offset": "Kun työn tila muuttuu Odottaa-tilasta Määräpäivä-tilaan. Muoto: '1pv 6h 30m' tai vain '30' minuuteille. Syötä '0' poistaaksesi tilan käytöstä. Esimerkki: '1pv' tarkoittaa, että työ näkyy Erääntymistilassa 1 päivä ennen määräaikaa.",
+              "chore_claim_lock_until_window": "Kun tämä on käytössä, lapset eivät voi lunastaa tätä tehtävää ennen määräajan alkamista.",
+              "custom_interval": "Toistojen välisten aikayksiköiden määrä (esim. 3, jos haluat 'joka 3 viikko'). Käytetään vain mukautetun taajuuden kanssa.",
+              "custom_interval_unit": "Mukautetun aikavälin aikayksikkö (päivät, viikot, kuukaudet). Käytetään vain mukautetun taajuuden kanssa."
+            }
+          },
+          "section_advanced_configurations": {
+            "name": "Lisäasetukset",
+            "description": "Elinkaaren automatisointi, ilmoitukset, näkyvyys ja metatiedot.",
+            "data": {
+              "approval_reset_type": "➡️ Täydennykset sallittu ja hyväksynnän nollausaika",
+              "approval_reset_pending_claim_action": "➡️ Hyväksynnän nollauksessa odottavien korvaushakemusten käsittely",
+              "auto_approve": "✅ Hyväksytäänkö korvaushakemukset automaattisesti?",
+              "overdue_handling_type": "⏰ Myöhässä: Käsittely",
+              "chore_due_reminder_offset": "🔔 Eräpäivämuistutus: Kuittaa ennen eräpäivää",
+              "chore_notifications": "🔔 Ilmoitustapahtumat (valinnainen)",
+              "show_on_calendar": "📅 Näytetäänkö kalenterissa?",
+              "chore_labels": "📋 Tunnisteet (valinnainen)"
+            },
+            "data_description": {
+              "approval_reset_type": "Ohjaa, milloin työn hyväksymissyklin raja aktivoituu (keskiyöllä, eräpäivänä, valmistuttua tai manuaalisesti).",
+              "approval_reset_pending_claim_action": "Määrittää, mitä hyväksymättömille vaatimuksille tapahtuu, kun hyväksynnän nollausraja aktivoituu.",
+              "auto_approve": "Kun tämä on käytössä, hakemukset hyväksytään välittömästi ilman vanhempien tarkistusta.",
+              "overdue_handling_type": "Ohjaa, mitä tapahtuu, kun eräpäivä umpeutuu, ja mitä erääntyneille tehtäville tapahtuu hyväksynnän nollausrajalla.",
+              "chore_due_reminder_offset": "Milloin lähetetään muistutus eräpäivästä. Muoto: '1pv 6t 30m' tai vain '30' minuuteille. Oletusarvo: 30m (30 minuuttia ennen eräpäivää). Syötä '0' poistaaksesi ilmoituksen käytöstä.",
+              "chore_notifications": "Milloin ilmoituksia lähetetään: Vaatimuksen, hyväksynnän, hylkäämisen tai minkä tahansa näiden yhdistelmän yhteydessä.",
+              "show_on_calendar": "Näytä tämä tehtävä kalenterinäkymässä.",
+              "chore_labels": "Tagit askareiden järjestämiseen (esim. 'keittiö', 'ulkona'). Jätä tyhjäksi, jos et tarvitse."
+            }
+          }
+        },
         "data": {
           "name": "📋 Työn nimi",
           "chore_description": "📋 Kuvaus (valinnainen)",
@@ -492,6 +635,7 @@
           "approval_reset_type": "➡️ Täydennykset sallittu ja hyväksynnän nollausaika",
           "approval_reset_pending_claim_action": "➡️ Hyväksynnän nollauksessa odottavien korvaushakemusten käsittely",
           "overdue_handling_type": "⏰ Myöhässä: Käsittely",
+          "chore_claim_lock_until_window": "🔒 Lukitse vaatimus, kunnes eräpäiväaika avautuu?",
           "auto_approve": "✅ Hyväksytäänkö korvaushakemukset automaattisesti?",
           "recurring_frequency": "🔄 Aikataulu: Vuorotiheys",
           "custom_interval": "🔄 Aikataulu: Mukautettu aikaväli (mukautettua taajuutta varten)",
@@ -515,6 +659,7 @@
           "approval_reset_type": "Ohjaa, milloin työn hyväksymissyklin raja aktivoituu (keskiyöllä, eräpäivänä, valmistuttua tai manuaalisesti).",
           "approval_reset_pending_claim_action": "Määrittää, mitä hyväksymättömille vaatimuksille tapahtuu, kun hyväksynnän nollausraja aktivoituu.",
           "overdue_handling_type": "Ohjaa, mitä tapahtuu, kun eräpäivä umpeutuu, ja mitä erääntyneille tehtäville tapahtuu hyväksynnän nollausrajalla.",
+          "chore_claim_lock_until_window": "Kun tämä on käytössä, lapset eivät voi lunastaa tätä tehtävää ennen määräajan alkamista.",
           "auto_approve": "Kun tämä on käytössä, hakemukset hyväksytään välittömästi ilman vanhempien tarkistusta.",
           "recurring_frequency": "Kuinka usein tehtävä toistuu: Päivittäin, Viikoittain, Kuukausittain, Vuosittain, Mukautettu tai Ei lainkaan. Jos valitset \"Päivittäin - Useita kertoja päivässä\", näkyviin tulee lisänäyttö, jossa voit määrittää tarkat ajat.",
           "custom_interval": "Toistojen välisten aikayksiköiden määrä (esim. 3, jos haluat 'joka 3 viikko'). Käytetään vain mukautetun taajuuden kanssa.",
@@ -877,6 +1022,76 @@
       "edit_chore": {
         "title": "Muokkaa tehtävää",
         "description": "Muokkaa valitun työn tietoja.\n\n📖 [Määritysopas]({documentation_url})",
+        "sections": {
+          "section_root_form": {
+            "name": "Määritelmä",
+            "description": "Identiteetti, tehtävänanto ja ydinsopimuksen asetukset.",
+            "data": {
+              "name": "📋 Työn nimi",
+              "chore_description": "📋 Kuvaus (valinnainen)",
+              "icon": "📋 Kuvake (mdi:xxx)",
+              "default_points": "💰 Annetut pisteet",
+              "assigned_kids": "👥 Määrätyt lapset",
+              "completion_criteria": "👥 Suorituskriteerit"
+            },
+            "data_description": {
+              "name": "Järjestelmässä näkyvä yksilöllinen nimi.",
+              "chore_description": "Valinnaiset ohjeet tai tiedot tehtävän suorittamisesta.",
+              "icon": "Materiaalisuunnittelun kuvake (esim. mdi:luuta, mdi:astianpesukone).",
+              "default_points": "Pisteitä ansaitaan suoritettaessa.",
+              "assigned_kids": "Lapset, jotka näkevät ja voivat vaatia tämän tehtävän.",
+              "completion_criteria": "Määrittää, miten tehtävä suoritetaan, kun se on annettu useille lapsille: yksilöllinen seuranta, jaettu suoritus tai vuoropohjainen kierto."
+            }
+          },
+          "section_schedule": {
+            "name": "Ajoittaa",
+            "description": "Ajoituksen, käyttöajan ja toistuvien aikavälien asetukset.",
+            "data": {
+              "recurring_frequency": "🔄 Aikataulu: Vuorotiheys",
+              "due_date": "📅 Aikataulu: Määräpäivä (valinnainen)",
+              "clear_due_date": "🗑️ Selkeä eräpäivä",
+              "applicable_days": "📅 Aikataulu: Soveltuvat päivät (valinnainen)",
+              "chore_due_window_offset": "⏱️ Eräikkuna: Kuittaa ennen eräpäivää",
+              "chore_claim_lock_until_window": "🔒 Lukitse vaatimus, kunnes eräpäiväaika avautuu?",
+              "custom_interval": "🔄 Aikataulu: Mukautettu aikaväli (mukautettua taajuutta varten)",
+              "custom_interval_unit": "🔄 Aikataulu: Mukautettu intervalliyksikkö"
+            },
+            "data_description": {
+              "recurring_frequency": "Kuinka usein tehtävä toistuu: Päivittäin, Viikoittain, Kuukausittain, Vuosittain, Mukautettu tai Ei lainkaan. Jos valitset \"Päivittäin - Useita kertoja päivässä\", näkyviin tulee lisänäyttö, jossa voit määrittää tarkat ajat.",
+              "due_date": "Valinnainen määräaika. Voidaan yhdistää toistuviin aikatauluihin. ITSENÄISILLE askareille tämä toimii mallina – näkyviin tulee ylimääräinen näyttö, jossa voit määrittää lapsellesi omat päivämäärät.",
+              "clear_due_date": "Valitse tämä ruutu poistaaksesi määräpäivän tästä tehtävästä.",
+              "applicable_days": "Jätä tyhjäksi kaikki päivät. Valitse VAIN tietyt päivät rajoitusta varten.",
+              "chore_due_window_offset": "Kun työn tila muuttuu Odottaa-tilasta Määräpäivä-tilaan. Muoto: '1pv 6h 30m' tai vain '30' minuuteille. Syötä '0' poistaaksesi tilan käytöstä. Esimerkki: '1pv' tarkoittaa, että työ näkyy Erääntymistilassa 1 päivä ennen määräaikaa.",
+              "chore_claim_lock_until_window": "Kun tämä on käytössä, lapset eivät voi lunastaa tätä tehtävää ennen määräajan alkamista.",
+              "custom_interval": "Toistojen välisten aikayksiköiden määrä (esim. 3, jos haluat 'joka 3 viikko'). Käytetään vain mukautetun taajuuden kanssa.",
+              "custom_interval_unit": "Mukautetun aikavälin aikayksikkö (päivät, viikot, kuukaudet). Käytetään vain mukautetun taajuuden kanssa."
+            }
+          },
+          "section_advanced_configurations": {
+            "name": "Lisäasetukset",
+            "description": "Elinkaaren automatisointi, ilmoitukset, näkyvyys ja metatiedot.",
+            "data": {
+              "approval_reset_type": "➡️ Täydennykset sallittu ja hyväksynnän nollausaika",
+              "approval_reset_pending_claim_action": "➡️ Hyväksynnän nollauksessa odottavien korvaushakemusten käsittely",
+              "auto_approve": "✅ Hyväksytäänkö korvaushakemukset automaattisesti?",
+              "overdue_handling_type": "⏰ Myöhässä: Käsittely",
+              "chore_due_reminder_offset": "🔔 Eräpäivämuistutus: Kuittaa ennen eräpäivää",
+              "chore_notifications": "🔔 Ilmoitustapahtumat (valinnainen)",
+              "show_on_calendar": "📅 Näytetäänkö kalenterissa?",
+              "chore_labels": "📋 Tunnisteet (valinnainen)"
+            },
+            "data_description": {
+              "approval_reset_type": "Ohjaa, milloin työn hyväksymissyklin raja aktivoituu (keskiyöllä, eräpäivänä, valmistuttua tai manuaalisesti).",
+              "approval_reset_pending_claim_action": "Määrittää, mitä hyväksymättömille vaatimuksille tapahtuu, kun hyväksynnän nollausraja aktivoituu.",
+              "auto_approve": "Kun tämä on käytössä, hakemukset hyväksytään välittömästi ilman vanhempien tarkistusta.",
+              "overdue_handling_type": "Ohjaa, mitä tapahtuu, kun eräpäivä umpeutuu, ja mitä erääntyneille tehtäville tapahtuu hyväksynnän nollausrajalla.",
+              "chore_due_reminder_offset": "Milloin lähetetään muistutus eräpäivästä. Muoto: '1pv 6t 30m' tai vain '30' minuuteille. Oletusarvo: 30m (30 minuuttia ennen eräpäivää). Syötä '0' poistaaksesi ilmoituksen käytöstä.",
+              "chore_notifications": "Milloin ilmoituksia lähetetään: Vaatimuksen, hyväksynnän, hylkäämisen tai minkä tahansa näiden yhdistelmän yhteydessä.",
+              "show_on_calendar": "Näytä tämä tehtävä kalenterinäkymässä.",
+              "chore_labels": "Tagit askareiden järjestämiseen (esim. 'keittiö', 'ulkona'). Jätä tyhjäksi, jos et tarvitse."
+            }
+          }
+        },
         "data": {
           "name": "📋 Työn nimi",
           "chore_description": "📋 Kuvaus (valinnainen)",
@@ -889,6 +1104,7 @@
           "approval_reset_type": "➡️ Täydennykset sallittu ja hyväksynnän nollausaika",
           "approval_reset_pending_claim_action": "➡️ Hyväksynnän nollauksessa odottavien korvaushakemusten käsittely",
           "overdue_handling_type": "⏰ Myöhässä: Käsittely",
+          "chore_claim_lock_until_window": "🔒 Lukitse vaatimus, kunnes eräpäiväaika avautuu?",
           "auto_approve": "✅ Hyväksytäänkö korvaushakemukset automaattisesti?",
           "recurring_frequency": "🔄 Aikataulu: Vuorotiheys",
           "custom_interval": "🔄 Aikataulu: Mukautettu aikaväli (mukautettua taajuutta varten)",
@@ -912,6 +1128,7 @@
           "approval_reset_type": "Ohjaa, milloin työn hyväksymissyklin raja aktivoituu (keskiyöllä, eräpäivänä, valmistuttua tai manuaalisesti).",
           "approval_reset_pending_claim_action": "Määrittää, mitä hyväksymättömille vaatimuksille tapahtuu, kun hyväksynnän nollausraja aktivoituu.",
           "overdue_handling_type": "Ohjaa, mitä tapahtuu, kun eräpäivä umpeutuu, ja mitä erääntyneille tehtäville tapahtuu hyväksynnän nollausrajalla.",
+          "chore_claim_lock_until_window": "Kun tämä on käytössä, lapset eivät voi lunastaa tätä tehtävää ennen määräajan alkamista.",
           "auto_approve": "Kun tämä on käytössä, hakemukset hyväksytään välittömästi ilman vanhempien tarkistusta.",
           "recurring_frequency": "Kuinka usein tehtävä toistuu: Päivittäin, Viikoittain, Kuukausittain, Vuosittain, Mukautettu tai Ei lainkaan. Jos valitset \"Päivittäin - Useita kertoja päivässä\", näkyviin tulee lisänäyttö, jossa voit määrittää tarkat ajat.",
           "custom_interval": "Toistojen välisten aikayksiköiden määrä (esim. 3, jos haluat 'joka 3 viikko'). Käytetään vain mukautetun taajuuden kanssa.",
@@ -1352,6 +1569,7 @@
           "retention_monthly": "Kuukausittainen tietojen säilytysaika (kuukausina)",
           "retention_yearly": "Vuosittainen tietojen säilytysaika (vuotta)",
           "show_legacy_entities": "Näytä ylimääräiset entiteetit",
+          "kiosk_mode": "Ota kioskitila käyttöön lasten vaatimuksille",
           "backups_max_retained": "Säilytettävien varmuuskopioiden enimmäismäärä",
           "backup_action_selection": "Varmuuskopiointitoiminnot"
         },
@@ -1365,6 +1583,7 @@
           "retention_monthly": "Säilytettävien kuukausittaisten historiatietojen määrä ennen puhdistusta. Vähintään 1, enintään 24.",
           "retention_yearly": "Säilytettävien vuosittaisten historiatietojen määrä ennen puhdistusta. Vähintään 1, enintään 10.",
           "show_legacy_entities": "Näytä lisäentiteetit, kuten anturi ja valinnat, jotka on nyt yhdistetty kojelaudan apuanturiin. Nämä entiteetit ovat valinnaisia taaksepäin yhteensopivuuden takaamiseksi olemassa olevien automaatioiden kanssa.",
+          "kiosk_mode": "Sallii lasten kotitehtävä-/palkintopainikkeiden toiminnan jaetuilla seinätableteilla ilman, että kojelaudan käyttäjän on vastattava lapsen Home Assistant -käyttäjän linkkiä. Turvallisuusvaroitus: kuka tahansa, jolla on pääsy kyseiseen laitteeseen, voi lähettää lasten kotitehtävä-/palkintopyyntöjä.",
           "backups_max_retained": "Varmuuskopiotiedostojen enimmäismäärä, joka säilytetään tunnistetta kohden (esim. 5 manuaalista varmuuskopiota, 5 data_reset-varmuuskopiota). Vanhemmat varmuuskopiot poistetaan automaattisesti jokaisen uuden varmuuskopion luomisen jälkeen. Aseta arvoksi 0, jos haluat poistaa automaattiset varmuuskopiot kokonaan käytöstä.",
           "backup_action_selection": "Valitse varmuuskopioinnin hallintatoiminto: luo manuaalinen varmuuskopio, poista varmuuskopio tai palauta varmuuskopiosta."
         }
@@ -1477,6 +1696,9 @@
       "invalid_badge_count": "Virheellinen merkkien määrä",
       "invalid_chore": "Virheellinen työtehtävä",
       "invalid_chore_count": "Virheellinen tehtävien määrä",
+      "invalid_chore_name": "Virheellinen työn nimi",
+      "invalid_points": "Pisteiden on oltava nolla tai suurempi",
+      "invalid_overdue_reset_combination": "”Eräpäivänä nollaa sitten” -myöhästymiskäsittely toimii vain keskiyön nollaustyyppien kanssa. Valitse hyväksynnän nollaustyypiksi ”Keskiyöllä (kerran)” tai ”Keskiyöllä (toistuvasti)”.",
       "invalid_due_date": "Virheellinen eräpäivä",
       "date_required_for_frequency": "Tälle toistuvalle tiheydelle vaaditaan eräpäivä. Tyhjennä päivämääriä toimii vain, jos tiheys on Ei mitään, Päivittäin tai Viikoittain.",
       "invalid_end_date": "Virheellinen päättymispäivämäärä.",
@@ -1505,6 +1727,7 @@
       "error_daily_multi_times_too_few": "Useita kertoja päivässä -tiheydelle vaaditaan vähintään kaksi kertaa. Yhden kerran tapauksessa käytä tavallista Päivittäistä-tiheyttä.",
       "error_daily_multi_times_too_many": "Enintään kuusi kertaa päivässä sallitaan 'Useita kertoja päivässä' -tiheydellä.",
       "error_daily_multi_due_date_required": "Useita kertoja päivässä -tiheys edellyttää määräpäivän asettamista. Päivämäärä määrittää aikataulutuksen aloituspäivän ja ajat määrittävät kunkin päivän saatavuusikkunat.",
+      "rotation_min_kids": "Kiertotehtävät vaativat vähintään kaksi nimettyä lasta",
       "error_allow_steal_incompatible": "Salli varastaa -myöhästymiskäsittely on yhteensopiva vain rotaatiotöiden (rotation_simple tai rotation_smart) kanssa, joiden nollaustyyppi on 'Kerran päivässä', ja se vaatii määräpäivän varausikkunan avautumisen määrittämiseksi.",
       "error_at_due_date_reset_requires_due_date": "Eräpäivänä tapahtuvat hyväksynnän nollaustyypit (kerran tai useita kertoja) edellyttävät eräpäivän asettamista. Ilman eräpäivää hyväksynnän nollaus ei koskaan käynnisty ja työ pysyy hyväksyttynä toistaiseksi.",
       "error_per_kid_applicable_days_invalid": "Yhdelle tai useammalle lapselle on virheellinen päivien muoto. Päivien on oltava kokonaislukuja 0–6 (maanantai–sunnuntai) ilman kaksoiskappaleita.",
@@ -1621,6 +1844,7 @@
     "target_type": {
       "options": {
         "points": "Pisteet",
+        "points_all_time": "Pisteet (kaikkien aikojen)",
         "points_chores": "Pisteitä kotitöistä",
         "chore_count": "Askareiden määrä",
         "days_all_chores": "Valittujen askareiden valmistumispäivät",
@@ -2112,6 +2336,11 @@
           "description": "Ohjaa, mitä tapahtuu, kun eräpäivä umpeutuu, ja mitä erääntyneille tehtäville tapahtuu hyväksynnän nollausrajalla.",
           "example": "eräpäivä"
         },
+        "chore_claim_lock_until_window": {
+          "name": "Lukitse vaatimus, kunnes ikkuna avautuu",
+          "description": "Jos tämä on totta, lapset eivät voi vaatia tätä tehtävää ennen määräajan alkamista.",
+          "example": "väärä"
+        },
         "auto_approve": {
           "name": "Automaattinen hyväksyntä",
           "description": "Jos tämä on totta, työ hyväksytään automaattisesti, kun se on lunastanut tehtävän.",
@@ -2136,7 +2365,7 @@
     },
     "update_chore": {
       "name": "Päivitä työtehtävä",
-      "description": "Päivitä olemassa olevan työn ominaisuudet. Anna joko tunnus TAI nimi työn tunnistamiseksi. Vain annetut kentät päivitetään. Huomautus: completion_criteria-arvoa ei voi muuttaa luomisen jälkeen.",
+      "description": "Päivitä olemassa olevan työn ominaisuudet. Anna joko tunnus TAI nimi työn tunnistamiseksi. Vain annetut kentät päivitetään.",
       "fields": {
         "id": {
           "name": "Työn tunnus",
@@ -2197,6 +2426,11 @@
           "name": "Myöhästyneiden käsittely",
           "description": "Uusi myöhästymiskäsittelytapa.",
           "example": "ei koskaan myöhässä"
+        },
+        "chore_claim_lock_until_window": {
+          "name": "Lukitse vaatimus, kunnes ikkuna avautuu",
+          "description": "Jos tämä on totta, lapset eivät voi vaatia tätä tehtävää ennen määräajan alkamista.",
+          "example": "totta"
         },
         "auto_approve": {
           "name": "Automaattinen hyväksyntä",
@@ -2561,6 +2795,18 @@
           "chore_last_longest_streak_date": {
             "name": "Viimeisimmän pisimmän putken päivämäärä"
           },
+          "chore_current_missed_streak": {
+            "name": "Nykyinen epäonnistunut putki"
+          },
+          "chore_longest_missed_streak": {
+            "name": "Pisin epäonnistunut putki"
+          },
+          "chore_missed_count": {
+            "name": "Ohitettu (kaikkien aikojen)"
+          },
+          "chore_last_missed": {
+            "name": "Viimeksi ohitettu"
+          },
           "last_claimed": {
             "name": "Viimeksi vaadittu"
           },
@@ -2650,6 +2896,9 @@
           "kid_name": {
             "name": "Lapsen nimi"
           },
+          "points_multiplier": {
+            "name": "Pistekerroin"
+          },
           "point_stat_points_earned_today": {
             "name": "Ansaittu tänään"
           },
@@ -2725,7 +2974,7 @@
           "point_stat_avg_points_per_chore": {
             "name": "Keskimäärin per työ"
           },
-          "point_stat_highest_balance": {
+          "point_stat_highest_balance_all_time": {
             "name": "Korkein saldo koskaan"
           }
         }
@@ -2803,17 +3052,32 @@
           "chore_stat_overdue_today": {
             "name": "Tänään erääntynyt"
           },
+          "chore_stat_missed_today": {
+            "name": "Tänään missattu"
+          },
           "chore_stat_overdue_week": {
             "name": "Tällä viikolla erääntynyt"
+          },
+          "chore_stat_missed_week": {
+            "name": "Tämän viikon missatut"
           },
           "chore_stat_overdue_month": {
             "name": "Tässä kuussa erääntyneet"
           },
+          "chore_stat_missed_month": {
+            "name": "Tässä kuussa unohtunut"
+          },
           "chore_stat_overdue_year": {
             "name": "Myöhässä tänä vuonna"
           },
+          "chore_stat_missed_year": {
+            "name": "Jäi tänä vuonna väliin"
+          },
           "chore_stat_overdue_count_all_time": {
             "name": "Koko ajan myöhässä"
+          },
+          "chore_stat_missed_all_time": {
+            "name": "Koko ajan missattu"
           },
           "chore_stat_claimed_today": {
             "name": "Väitetty tänään"
@@ -2922,6 +3186,9 @@
           },
           "chore_stat_longest_streak": {
             "name": "Pisin putki"
+          },
+          "chore_stat_longest_missed_streak": {
+            "name": "Pisin epäonnistunut putki"
           },
           "chore_stat_avg_per_day_week": {
             "name": "Keskimäärin päivässä (viikossa)"
@@ -4128,6 +4395,15 @@
     },
     "chore_pending_claim": {
       "message": "Chorella on vireillä oleva hyväksyntää tai hylkäämistä odottava vaatimus."
+    },
+    "chore_waiting": {
+      "message": "Tätä tehtävää ei voi vielä lunastaa. Määräaikaa ei ole vielä avattu."
+    },
+    "chore_not_my_turn": {
+      "message": "Tämä tehtävä on vuorottelulupainen. Tällä hetkellä on toisen lapsen vuoro."
+    },
+    "chore_missed_locked": {
+      "message": "Tämä työ on merkitty väliin jääneeksi ja lukittu nykyiselle syklille."
     },
     "chore_completed_by_other": {
       "message": "Toinen lapsi on jo tehnyt tämän tehtävän tällä jaksolla"

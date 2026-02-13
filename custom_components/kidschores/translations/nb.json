@@ -113,6 +113,76 @@
       "chores": {
         "title": "Legg til husarbeid",
         "description": "Lag en ny oppgave med poeng, oppgaver og en regelmessig tidsplan.",
+        "sections": {
+          "section_root_form": {
+            "name": "Definisjon",
+            "description": "Identitet, tildeling og innstillinger for kjernekontrakt.",
+            "data": {
+              "name": "📋 Navn på gjøremål",
+              "chore_description": "📋 Beskrivelse (valgfritt)",
+              "icon": "📋 Ikon (mdi:xxx)",
+              "default_points": "💰 Poeng tildelt",
+              "assigned_kids": "👥 Tildelte barn",
+              "completion_criteria": "👥 Fullføringskriterier"
+            },
+            "data_description": {
+              "name": "Unikt navn som vises i hele systemet.",
+              "chore_description": "Valgfrie instruksjoner eller detaljer om hvordan du fullfører denne oppgaven.",
+              "icon": "Material Design-ikon (f.eks. mdi:kost, mdi:oppvaskmaskin).",
+              "default_points": "Poeng opptjent når fullført.",
+              "assigned_kids": "Barn som kan se og gjøre krav på denne oppgaven.",
+              "completion_criteria": "Styrer hvordan gjøremålet fullføres når flere barn er tildelt: individuell sporing, delt fullføring eller turbasert rotasjon."
+            }
+          },
+          "section_schedule": {
+            "name": "Rute",
+            "description": "Innstillinger for tidtaking, tilgangsvindu og gjentakende intervaller.",
+            "data": {
+              "recurring_frequency": "🔄 Tidsplan: Frekvens",
+              "due_date": "📅 Tidsplan: Forfallsdato (valgfritt)",
+              "clear_due_date": "🗑️ Fjern forfallsdato",
+              "applicable_days": "📅 Tidsplan: Gjeldende dager (valgfritt)",
+              "chore_due_window_offset": "⏱️ Forfallsvindu: Forskyvning før forfallsdato",
+              "chore_claim_lock_until_window": "🔒 Låse krav til forfallsfristen åpnes?",
+              "custom_interval": "🔄 Tidsplan: Tilpasset intervall (for tilpasset frekvens)",
+              "custom_interval_unit": "🔄 Tidsplan: Tilpasset intervallenhet"
+            },
+            "data_description": {
+              "recurring_frequency": "Hvor ofte gjøremålet gjentas: Daglig, Ukentlig, Månedlig, Årlig, Tilpasset eller Ingen.",
+              "due_date": "Valgfri tidsfrist. Kan kombineres med gjentakende timeplaner.",
+              "clear_due_date": "Kryss av i denne boksen for å fjerne forfallsdatoen fra denne gjøremålet.",
+              "applicable_days": "La stå tomt for alle dager. KUN Velg bestemte dager for å begrense.",
+              "chore_due_window_offset": "Når gjøremålets status endres fra Venter til Forfaller. Format: '1d 6t 30m' eller bare '30' for minutter. Skriv inn '0' for å deaktivere. Eksempel: '1d' betyr at gjøremålet vises som 'Forfaller' 1 dag før fristen.",
+              "chore_claim_lock_until_window": "Når det er aktivert, kan ikke barn gjøre krav på denne gjøremålet før tidsfristen starter.",
+              "custom_interval": "Antall tidsenheter mellom repetisjoner (f.eks. 3 for «hver 3. uke»). Brukes kun med tilpasset frekvens.",
+              "custom_interval_unit": "Tidsenhet for tilpasset intervall (dager, uker, måneder). Brukes kun med tilpasset frekvens."
+            }
+          },
+          "section_advanced_configurations": {
+            "name": "Avanserte konfigurasjoner",
+            "description": "Livssyklusautomatisering, varsler, synlighet og metadata.",
+            "data": {
+              "approval_reset_type": "➡️ Tillatte fullføringer og tilbakestilling av godkjenningstid",
+              "approval_reset_pending_claim_action": "➡️ Ventende kravbehandling ved godkjenning Tilbakestilling",
+              "auto_approve": "✅ Automatisk godkjenning av krav?",
+              "overdue_handling_type": "⏰ Forfalt: Håndtering",
+              "chore_due_reminder_offset": "🔔 Forfallspåminnelse: Forskyvning før forfallsdato",
+              "chore_notifications": "🔔 Varslingshendelser (valgfritt)",
+              "show_on_calendar": "📅 Vis i kalenderen?",
+              "chore_labels": "📋 Etiketter (valgfritt)"
+            },
+            "data_description": {
+              "approval_reset_type": "Styrer når grensen for godkjenningssyklusen for gjøremålet utløses (midnatt, forfallsdato, ved fullføring eller manuell utløser).",
+              "approval_reset_pending_claim_action": "Dette er hva som skjer med krav som fortsatt venter på godkjenning når godkjenningen tilbakestilles.",
+              "auto_approve": "Når det er aktivert, godkjennes krav umiddelbart uten foreldrevurdering.",
+              "overdue_handling_type": "Handling etter forfallsdato: Skjul forfalt status, forbli forfalt til det kreves på, eller tilbakestill til venter ved neste godkjenningssyklus.",
+              "chore_due_reminder_offset": "Når påminnelse om forfall skal sendes. Format: '1d 6t 30m' eller bare '30' for minutter. Standard: 30m (30 minutter før forfall). Skriv inn '0' for å deaktivere.",
+              "chore_notifications": "Når varsler skal sendes: Ved krav, ved godkjenning, ved avslag eller en hvilken som helst kombinasjon.",
+              "show_on_calendar": "Vis denne gjøremålet i kalendervisningen.",
+              "chore_labels": "Tagger for å organisere gjøremål (f.eks. «kjøkken», «ute»). La stå tomt hvis det ikke er nødvendig."
+            }
+          }
+        },
         "data": {
           "name": "📋 Navn på gjøremål",
           "chore_description": "📋 Beskrivelse (valgfritt)",
@@ -124,6 +194,7 @@
           "approval_reset_type": "➡️ Tillatte fullføringer og tilbakestilling av godkjenningstid",
           "approval_reset_pending_claim_action": "➡️ Ventende kravbehandling ved godkjenning Tilbakestilling",
           "overdue_handling_type": "⏰ Forfalt: Håndtering",
+          "chore_claim_lock_until_window": "🔒 Låse krav til forfallsfristen åpnes?",
           "auto_approve": "✅ Automatisk godkjenning av krav?",
           "recurring_frequency": "🔄 Tidsplan: Frekvens",
           "custom_interval": "🔄 Tidsplan: Tilpasset intervall (for tilpasset frekvens)",
@@ -146,6 +217,7 @@
           "approval_reset_type": "Styrer når grensen for godkjenningssyklusen for gjøremålet utløses (midnatt, forfallsdato, ved fullføring eller manuell utløser).",
           "approval_reset_pending_claim_action": "Dette er hva som skjer med krav som fortsatt venter på godkjenning når godkjenningen tilbakestilles.",
           "overdue_handling_type": "Handling etter forfallsdato: Skjul forfalt status, forbli forfalt til det kreves på, eller tilbakestill til venter ved neste godkjenningssyklus.",
+          "chore_claim_lock_until_window": "Når det er aktivert, kan ikke barn gjøre krav på denne gjøremålet før tidsfristen starter.",
           "auto_approve": "Når det er aktivert, godkjennes krav umiddelbart uten foreldrevurdering.",
           "recurring_frequency": "Hvor ofte gjøremålet gjentas: Daglig, Ukentlig, Månedlig, Årlig, Tilpasset eller Ingen.",
           "custom_interval": "Antall tidsenheter mellom repetisjoner (f.eks. 3 for «hver 3. uke»). Brukes kun med tilpasset frekvens.",
@@ -356,6 +428,7 @@
       "invalid_challenge_name": "Ugyldig utfordringsnavn",
       "invalid_chore": "Ugyldig gjøremål",
       "invalid_chore_count": "Ugyldig antall gjøremål",
+      "rotation_min_kids": "Rotasjonsarbeid krever minst to tildelte barn",
       "invalid_chore_name": "Ugyldig navn på gjøremål",
       "invalid_points": "Poeng må være null eller større",
       "invalid_overdue_reset_combination": "Håndteringen av forfalte forsinkelser «Nullstill ved forfallsdato» fungerer bare med tilbakestillingstyper ved midnatt. Velg «Ved midnatt (én gang)» eller «Ved midnatt (gjentakende)» for tilbakestillingstypen for godkjenning.",
@@ -481,6 +554,76 @@
       "add_chore": {
         "title": "Legg til husarbeid",
         "description": "Opprett en ny gjøremålsoppgave med poeng, oppgaver og en regelmessig tidsplan.\n\n📖 [Konfigurasjonsveiledning]({documentation_url})",
+        "sections": {
+          "section_root_form": {
+            "name": "Definisjon",
+            "description": "Identitet, tildeling og innstillinger for kjernekontrakt.",
+            "data": {
+              "name": "📋 Navn på gjøremål",
+              "chore_description": "📋 Beskrivelse (valgfritt)",
+              "icon": "📋 Ikon (mdi:xxx)",
+              "default_points": "💰 Poeng tildelt",
+              "assigned_kids": "👥 Tildelte barn",
+              "completion_criteria": "👥 Fullføringskriterier"
+            },
+            "data_description": {
+              "name": "Unikt navn som vises i hele systemet.",
+              "chore_description": "Valgfrie instruksjoner eller detaljer om hvordan du fullfører denne oppgaven.",
+              "icon": "Material Design-ikon (f.eks. mdi:kost, mdi:oppvaskmaskin).",
+              "default_points": "Poeng opptjent når fullført.",
+              "assigned_kids": "Barn som kan se og gjøre krav på denne oppgaven.",
+              "completion_criteria": "Styrer hvordan gjøremålet fullføres når flere barn er tildelt: individuell sporing, delt fullføring eller turbasert rotasjon."
+            }
+          },
+          "section_schedule": {
+            "name": "Rute",
+            "description": "Innstillinger for tidtaking, tilgangsvindu og gjentakende intervaller.",
+            "data": {
+              "recurring_frequency": "🔄 Tidsplan: Frekvens",
+              "due_date": "📅 Tidsplan: Forfallsdato (valgfritt)",
+              "clear_due_date": "🗑️ Fjern forfallsdato",
+              "applicable_days": "📅 Tidsplan: Gjeldende dager (valgfritt)",
+              "chore_due_window_offset": "⏱️ Forfallsvindu: Forskyvning før forfallsdato",
+              "chore_claim_lock_until_window": "🔒 Låse krav til forfallsfristen åpnes?",
+              "custom_interval": "🔄 Tidsplan: Tilpasset intervall (for tilpasset frekvens)",
+              "custom_interval_unit": "🔄 Tidsplan: Tilpasset intervallenhet"
+            },
+            "data_description": {
+              "recurring_frequency": "Hvor ofte gjøremålet gjentas: Daglig, Ukentlig, Månedlig, Årlig, Tilpasset eller Ingen. Hvis du velger «Daglig – Flere ganger per dag», vises et ekstra skjermbilde for å konfigurere de spesifikke tidspunktene.",
+              "due_date": "Valgfri tidsfrist. Kan kombineres med regelmessige timeplaner. For SELVSTENDIGE gjøremål fungerer dette som en mal – et ekstra skjermbilde vil vises som tillater individuelle datoer per barn.",
+              "clear_due_date": "Kryss av i denne boksen for å fjerne forfallsdatoen fra denne gjøremålet.",
+              "applicable_days": "La stå tomt for alle dager. KUN Velg bestemte dager for å begrense.",
+              "chore_due_window_offset": "Når gjøremålets status endres fra Venter til Forfaller. Format: '1d 6t 30m' eller bare '30' for minutter. Skriv inn '0' for å deaktivere. Eksempel: '1d' betyr at gjøremålet vises som 'Forfaller' 1 dag før fristen.",
+              "chore_claim_lock_until_window": "Når det er aktivert, kan ikke barn gjøre krav på denne gjøremålet før tidsfristen starter.",
+              "custom_interval": "Antall tidsenheter mellom repetisjoner (f.eks. 3 for «hver 3. uke»). Brukes kun med tilpasset frekvens.",
+              "custom_interval_unit": "Tidsenhet for tilpasset intervall (dager, uker, måneder). Brukes kun med tilpasset frekvens."
+            }
+          },
+          "section_advanced_configurations": {
+            "name": "Avanserte konfigurasjoner",
+            "description": "Livssyklusautomatisering, varsler, synlighet og metadata.",
+            "data": {
+              "approval_reset_type": "➡️ Tillatte fullføringer og tilbakestilling av godkjenningstid",
+              "approval_reset_pending_claim_action": "➡️ Ventende kravbehandling ved godkjenning Tilbakestilling",
+              "auto_approve": "✅ Automatisk godkjenning av krav?",
+              "overdue_handling_type": "⏰ Forfalt: Håndtering",
+              "chore_due_reminder_offset": "🔔 Forfallspåminnelse: Forskyvning før forfallsdato",
+              "chore_notifications": "🔔 Varslingshendelser (valgfritt)",
+              "show_on_calendar": "📅 Vis i kalenderen?",
+              "chore_labels": "📋 Etiketter (valgfritt)"
+            },
+            "data_description": {
+              "approval_reset_type": "Styrer når grensen for godkjenningssyklusen for gjøremålet utløses (midnatt, forfallsdato, ved fullføring eller manuell utløser).",
+              "approval_reset_pending_claim_action": "Kontrollerer hva som skjer med ikke-godkjente krav når grensen for tilbakestilling av godkjenning utløses.",
+              "auto_approve": "Når det er aktivert, godkjennes krav umiddelbart uten foreldrevurdering.",
+              "overdue_handling_type": "Kontrollerer hva som skjer når forfallsdatoen er over, og hva som skjer med forsinkede gjøremål ved grensen for tilbakestilling av godkjenning.",
+              "chore_due_reminder_offset": "Når påminnelse om forfall skal sendes. Format: '1d 6t 30m' eller bare '30' for minutter. Standard: 30m (30 minutter før forfall). Skriv inn '0' for å deaktivere.",
+              "chore_notifications": "Når varsler skal sendes: Ved krav, ved godkjenning, ved avslag eller en hvilken som helst kombinasjon.",
+              "show_on_calendar": "Vis denne gjøremålet i kalendervisningen.",
+              "chore_labels": "Tagger for å organisere gjøremål (f.eks. «kjøkken», «ute»). La stå tomt hvis det ikke er nødvendig."
+            }
+          }
+        },
         "data": {
           "name": "📋 Navn på gjøremål",
           "chore_description": "📋 Beskrivelse (valgfritt)",
@@ -492,6 +635,7 @@
           "approval_reset_type": "➡️ Tillatte fullføringer og tilbakestilling av godkjenningstid",
           "approval_reset_pending_claim_action": "➡️ Ventende kravbehandling ved godkjenning Tilbakestilling",
           "overdue_handling_type": "⏰ Forfalt: Håndtering",
+          "chore_claim_lock_until_window": "🔒 Låse krav til forfallsfristen åpnes?",
           "auto_approve": "✅ Automatisk godkjenning av krav?",
           "recurring_frequency": "🔄 Tidsplan: Frekvens",
           "custom_interval": "🔄 Tidsplan: Tilpasset intervall (for tilpasset frekvens)",
@@ -515,6 +659,7 @@
           "approval_reset_type": "Styrer når grensen for godkjenningssyklusen for gjøremålet utløses (midnatt, forfallsdato, ved fullføring eller manuell utløser).",
           "approval_reset_pending_claim_action": "Kontrollerer hva som skjer med ikke-godkjente krav når grensen for tilbakestilling av godkjenning utløses.",
           "overdue_handling_type": "Kontrollerer hva som skjer når forfallsdatoen er over, og hva som skjer med forsinkede gjøremål ved grensen for tilbakestilling av godkjenning.",
+          "chore_claim_lock_until_window": "Når det er aktivert, kan ikke barn gjøre krav på denne gjøremålet før tidsfristen starter.",
           "auto_approve": "Når det er aktivert, godkjennes krav umiddelbart uten foreldrevurdering.",
           "recurring_frequency": "Hvor ofte gjøremålet gjentas: Daglig, Ukentlig, Månedlig, Årlig, Tilpasset eller Ingen. Hvis du velger «Daglig – Flere ganger per dag», vises et ekstra skjermbilde for å konfigurere de spesifikke tidspunktene.",
           "custom_interval": "Antall tidsenheter mellom repetisjoner (f.eks. 3 for «hver 3. uke»). Brukes kun med tilpasset frekvens.",
@@ -877,6 +1022,76 @@
       "edit_chore": {
         "title": "Rediger gjøremål",
         "description": "Endre detaljene for den valgte gjøremålet.\n\n📖 [Konfigurasjonsveiledning]({documentation_url})",
+        "sections": {
+          "section_root_form": {
+            "name": "Definisjon",
+            "description": "Identitet, tildeling og innstillinger for kjernekontrakt.",
+            "data": {
+              "name": "📋 Navn på gjøremål",
+              "chore_description": "📋 Beskrivelse (valgfritt)",
+              "icon": "📋 Ikon (mdi:xxx)",
+              "default_points": "💰 Poeng tildelt",
+              "assigned_kids": "👥 Tildelte barn",
+              "completion_criteria": "👥 Fullføringskriterier"
+            },
+            "data_description": {
+              "name": "Unikt navn som vises i hele systemet.",
+              "chore_description": "Valgfrie instruksjoner eller detaljer om hvordan du fullfører denne oppgaven.",
+              "icon": "Material Design-ikon (f.eks. mdi:kost, mdi:oppvaskmaskin).",
+              "default_points": "Poeng opptjent når fullført.",
+              "assigned_kids": "Barn som kan se og gjøre krav på denne oppgaven.",
+              "completion_criteria": "Styrer hvordan gjøremålet fullføres når flere barn er tildelt: individuell sporing, delt fullføring eller turbasert rotasjon."
+            }
+          },
+          "section_schedule": {
+            "name": "Rute",
+            "description": "Innstillinger for tidtaking, tilgangsvindu og gjentakende intervaller.",
+            "data": {
+              "recurring_frequency": "🔄 Tidsplan: Frekvens",
+              "due_date": "📅 Tidsplan: Forfallsdato (valgfritt)",
+              "clear_due_date": "🗑️ Fjern forfallsdato",
+              "applicable_days": "📅 Tidsplan: Gjeldende dager (valgfritt)",
+              "chore_due_window_offset": "⏱️ Forfallsvindu: Forskyvning før forfallsdato",
+              "chore_claim_lock_until_window": "🔒 Låse krav til forfallsfristen åpnes?",
+              "custom_interval": "🔄 Tidsplan: Tilpasset intervall (for tilpasset frekvens)",
+              "custom_interval_unit": "🔄 Tidsplan: Tilpasset intervallenhet"
+            },
+            "data_description": {
+              "recurring_frequency": "Hvor ofte gjøremålet gjentas: Daglig, Ukentlig, Månedlig, Årlig, Tilpasset eller Ingen. Hvis du velger «Daglig – Flere ganger per dag», vises et ekstra skjermbilde for å konfigurere de spesifikke tidspunktene.",
+              "due_date": "Valgfri tidsfrist. Kan kombineres med regelmessige timeplaner. For SELVSTENDIGE gjøremål fungerer dette som en mal – et ekstra skjermbilde vil vises som tillater individuelle datoer per barn.",
+              "clear_due_date": "Kryss av i denne boksen for å fjerne forfallsdatoen fra denne gjøremålet.",
+              "applicable_days": "La stå tomt for alle dager. KUN Velg bestemte dager for å begrense.",
+              "chore_due_window_offset": "Når gjøremålets status endres fra Venter til Forfaller. Format: '1d 6t 30m' eller bare '30' for minutter. Skriv inn '0' for å deaktivere. Eksempel: '1d' betyr at gjøremålet vises som 'Forfaller' 1 dag før fristen.",
+              "chore_claim_lock_until_window": "Når det er aktivert, kan ikke barn gjøre krav på denne gjøremålet før tidsfristen starter.",
+              "custom_interval": "Antall tidsenheter mellom repetisjoner (f.eks. 3 for «hver 3. uke»). Brukes kun med tilpasset frekvens.",
+              "custom_interval_unit": "Tidsenhet for tilpasset intervall (dager, uker, måneder). Brukes kun med tilpasset frekvens."
+            }
+          },
+          "section_advanced_configurations": {
+            "name": "Avanserte konfigurasjoner",
+            "description": "Livssyklusautomatisering, varsler, synlighet og metadata.",
+            "data": {
+              "approval_reset_type": "➡️ Tillatte fullføringer og tilbakestilling av godkjenningstid",
+              "approval_reset_pending_claim_action": "➡️ Ventende kravbehandling ved godkjenning Tilbakestilling",
+              "auto_approve": "✅ Automatisk godkjenning av krav?",
+              "overdue_handling_type": "⏰ Forfalt: Håndtering",
+              "chore_due_reminder_offset": "🔔 Forfallspåminnelse: Forskyvning før forfallsdato",
+              "chore_notifications": "🔔 Varslingshendelser (valgfritt)",
+              "show_on_calendar": "📅 Vis i kalenderen?",
+              "chore_labels": "📋 Etiketter (valgfritt)"
+            },
+            "data_description": {
+              "approval_reset_type": "Styrer når grensen for godkjenningssyklusen for gjøremålet utløses (midnatt, forfallsdato, ved fullføring eller manuell utløser).",
+              "approval_reset_pending_claim_action": "Kontrollerer hva som skjer med ikke-godkjente krav når grensen for tilbakestilling av godkjenning utløses.",
+              "auto_approve": "Når det er aktivert, godkjennes krav umiddelbart uten foreldrevurdering.",
+              "overdue_handling_type": "Kontrollerer hva som skjer når forfallsdatoen er over, og hva som skjer med forsinkede gjøremål ved grensen for tilbakestilling av godkjenning.",
+              "chore_due_reminder_offset": "Når påminnelse om forfall skal sendes. Format: '1d 6t 30m' eller bare '30' for minutter. Standard: 30m (30 minutter før forfall). Skriv inn '0' for å deaktivere.",
+              "chore_notifications": "Når varsler skal sendes: Ved krav, ved godkjenning, ved avslag eller en hvilken som helst kombinasjon.",
+              "show_on_calendar": "Vis denne gjøremålet i kalendervisningen.",
+              "chore_labels": "Tagger for å organisere gjøremål (f.eks. «kjøkken», «ute»). La stå tomt hvis det ikke er nødvendig."
+            }
+          }
+        },
         "data": {
           "name": "📋 Navn på gjøremål",
           "chore_description": "📋 Beskrivelse (valgfritt)",
@@ -889,6 +1104,7 @@
           "approval_reset_type": "➡️ Tillatte fullføringer og tilbakestilling av godkjenningstid",
           "approval_reset_pending_claim_action": "➡️ Ventende kravbehandling ved godkjenning Tilbakestilling",
           "overdue_handling_type": "⏰ Forfalt: Håndtering",
+          "chore_claim_lock_until_window": "🔒 Låse krav til forfallsfristen åpnes?",
           "auto_approve": "✅ Automatisk godkjenning av krav?",
           "recurring_frequency": "🔄 Tidsplan: Frekvens",
           "custom_interval": "🔄 Tidsplan: Tilpasset intervall (for tilpasset frekvens)",
@@ -912,6 +1128,7 @@
           "approval_reset_type": "Styrer når grensen for godkjenningssyklusen for gjøremålet utløses (midnatt, forfallsdato, ved fullføring eller manuell utløser).",
           "approval_reset_pending_claim_action": "Kontrollerer hva som skjer med ikke-godkjente krav når grensen for tilbakestilling av godkjenning utløses.",
           "overdue_handling_type": "Kontrollerer hva som skjer når forfallsdatoen er over, og hva som skjer med forsinkede gjøremål ved grensen for tilbakestilling av godkjenning.",
+          "chore_claim_lock_until_window": "Når det er aktivert, kan ikke barn gjøre krav på denne gjøremålet før tidsfristen starter.",
           "auto_approve": "Når det er aktivert, godkjennes krav umiddelbart uten foreldrevurdering.",
           "recurring_frequency": "Hvor ofte gjøremålet gjentas: Daglig, Ukentlig, Månedlig, Årlig, Tilpasset eller Ingen. Hvis du velger «Daglig – Flere ganger per dag», vises et ekstra skjermbilde for å konfigurere de spesifikke tidspunktene.",
           "custom_interval": "Antall tidsenheter mellom repetisjoner (f.eks. 3 for «hver 3. uke»). Brukes kun med tilpasset frekvens.",
@@ -1352,6 +1569,7 @@
           "retention_monthly": "Månedlig datalagring (måneder)",
           "retention_yearly": "Årlig datalagring (år)",
           "show_legacy_entities": "Vis ekstra enheter",
+          "kiosk_mode": "Aktiver kioskmodus for barnekrav",
           "backups_max_retained": "Maksimalt antall sikkerhetskopier å beholde",
           "backup_action_selection": "Sikkerhetskopieringshandlinger"
         },
@@ -1365,6 +1583,7 @@
           "retention_monthly": "Antall måneder med månedlige historiske data som skal beholdes før opprydding. Minimum 1, maksimum 24.",
           "retention_yearly": "Antall år med årlige historiske data som skal oppbevares før opprydding. Minimum 1, maksimum 10.",
           "show_legacy_entities": "Vis ekstra enheter som sensor og selects som nå er konsolidert inn i dashbordets hjelpesensor. Disse enhetene er valgfrie for bakoverkompatibilitet med eksisterende automatiseringer.",
+          "kiosk_mode": "Lar knapper for krav på gjøremål/belønninger for barn fungere på nettbrett med delt vegg uten at dashbordbrukeren må matche barnets Home Assistant-brukerlenke. Sikkerhetsadvarsel: Alle med tilgang til den enheten kan sende inn krav for barn.",
           "backups_max_retained": "Maksimalt antall sikkerhetskopier som skal beholdes per tag (f.eks. 5 manuelle sikkerhetskopier, 5 data_reset-sikkerhetskopier). Eldre sikkerhetskopier slettes automatisk etter at hver ny sikkerhetskopi opprettes. Sett til 0 for å deaktivere automatiske sikkerhetskopier fullstendig.",
           "backup_action_selection": "Velg en handling for sikkerhetskopieringsadministrasjon: opprett en manuell sikkerhetskopi, slett en sikkerhetskopi eller gjenopprett fra en sikkerhetskopi."
         }
@@ -1477,6 +1696,9 @@
       "invalid_badge_count": "Ugyldig antall merke",
       "invalid_chore": "Ugyldig gjøremål",
       "invalid_chore_count": "Ugyldig antall gjøremål",
+      "invalid_chore_name": "Ugyldig navn på gjøremål",
+      "invalid_points": "Poeng må være null eller større",
+      "invalid_overdue_reset_combination": "Håndteringen av forfalte forsinkelser «Nullstill ved forfallsdato» fungerer bare med tilbakestillingstyper ved midnatt. Velg «Ved midnatt (én gang)» eller «Ved midnatt (gjentakende)» for tilbakestillingstypen for godkjenning.",
       "invalid_due_date": "Ugyldig forfallsdato",
       "date_required_for_frequency": "En forfallsdato kreves for denne gjentakende frekvensen. Fjerne datoer fungerer bare med Ingen, Daglig eller Ukentlig frekvens.",
       "invalid_end_date": "Ugyldig sluttdato.",
@@ -1505,6 +1727,7 @@
       "error_daily_multi_times_too_few": "Minst to ganger kreves for frekvensen «Flere ganger per dag». For én gang, bruk vanlig frekvens «Daglig».",
       "error_daily_multi_times_too_many": "Maksimalt 6 ganger tillatt per dag for frekvensen «Flere ganger per dag».",
       "error_daily_multi_due_date_required": "Frekvensen «Flere ganger per dag» krever at det angis en forfallsdato. Datoen bestemmer når planleggingen starter, og tidspunktene bestemmer tilgjengelighetsvinduene hver dag.",
+      "rotation_min_kids": "Rotasjonsarbeid krever minst to tildelte barn",
       "error_allow_steal_incompatible": "Tillat håndtering av forfalt stjeling er bare kompatibel med rotasjonsoppgaver (rotation_simple eller rotation_smart) av tilbakestillingstypen «Én gang per dag», og krever en forfallsdato for å definere når stjelingsvinduet åpnes.",
       "error_at_due_date_reset_requires_due_date": "Godkjenningsnullstillingstypene «Ved forfallsdato» (én eller flere) krever at det angis en forfallsdato. Uten en forfallsdato vil tilbakestillingen av godkjenningen aldri utløses, og gjøremålet vil forbli godkjent på ubestemt tid.",
       "error_per_kid_applicable_days_invalid": "Ugyldig dagsformat for ett eller flere barn. Dager må være heltall 0–6 (mandag–søndag) uten duplikater.",
@@ -1621,6 +1844,7 @@
     "target_type": {
       "options": {
         "points": "Poeng",
+        "points_all_time": "Poeng (gjennomgående)",
         "points_chores": "Poeng fra husarbeid",
         "chore_count": "Antall gjøremål",
         "days_all_chores": "Dager utvalgte gjøremål fullført",
@@ -2112,6 +2336,11 @@
           "description": "Kontrollerer hva som skjer når forfallsdatoen er over, og hva som skjer med forsinkede gjøremål ved grensen for tilbakestilling av godkjenning.",
           "example": "forfallsdato"
         },
+        "chore_claim_lock_until_window": {
+          "name": "Lås krav til vinduet åpnes",
+          "description": "Hvis det er sant, kan ikke barn kreve denne gjøremålet før tidsfristen begynner.",
+          "example": "falsk"
+        },
         "auto_approve": {
           "name": "Automatisk godkjenning",
           "description": "Hvis det er sant, blir gjøremålet automatisk godkjent når det kreves.",
@@ -2136,7 +2365,7 @@
     },
     "update_chore": {
       "name": "Oppdater gjøremål",
-      "description": "Oppdater egenskapene til en eksisterende gjøremål. Oppgi enten ID ELLER navn for å identifisere gjøremålet. Bare de oppgitte feltene vil bli oppdatert. Merk: completion_criteria kan ikke endres etter opprettelse.",
+      "description": "Oppdater egenskapene til en eksisterende gjøremål. Oppgi enten ID ELLER navn for å identifisere gjøremålet. Bare de oppgitte feltene vil bli oppdatert.",
       "fields": {
         "id": {
           "name": "Gjørmåls-ID",
@@ -2197,6 +2426,11 @@
           "name": "Forsinket håndtering",
           "description": "Ny håndteringsadferd for forfalte tidsfrister.",
           "example": "aldri_forfalt"
+        },
+        "chore_claim_lock_until_window": {
+          "name": "Lås krav til vinduet åpnes",
+          "description": "Hvis det er sant, kan ikke barn kreve denne gjøremålet før tidsfristen begynner.",
+          "example": "ekte"
         },
         "auto_approve": {
           "name": "Automatisk godkjenning",
@@ -2561,6 +2795,18 @@
           "chore_last_longest_streak_date": {
             "name": "Siste lengste seriedato"
           },
+          "chore_current_missed_streak": {
+            "name": "Nåværende tapte rekke"
+          },
+          "chore_longest_missed_streak": {
+            "name": "Lengste tapte rekke"
+          },
+          "chore_missed_count": {
+            "name": "Savnet (hele tiden)"
+          },
+          "chore_last_missed": {
+            "name": "Sist savnet"
+          },
           "last_claimed": {
             "name": "Sist gjort krav på"
           },
@@ -2650,6 +2896,9 @@
           "kid_name": {
             "name": "Barnenavn"
           },
+          "points_multiplier": {
+            "name": "Poengmultiplikator"
+          },
           "point_stat_points_earned_today": {
             "name": "Opptjent i dag"
           },
@@ -2725,7 +2974,7 @@
           "point_stat_avg_points_per_chore": {
             "name": "Gjennomsnitt per gjøremål"
           },
-          "point_stat_highest_balance": {
+          "point_stat_highest_balance_all_time": {
             "name": "Høyeste saldo noensinne"
           }
         }
@@ -2803,17 +3052,32 @@
           "chore_stat_overdue_today": {
             "name": "Forfalt i dag"
           },
+          "chore_stat_missed_today": {
+            "name": "Gikk glipp av i dag"
+          },
           "chore_stat_overdue_week": {
             "name": "Forfalt denne uken"
+          },
+          "chore_stat_missed_week": {
+            "name": "Gikk glipp av denne uken"
           },
           "chore_stat_overdue_month": {
             "name": "Forfalt denne måneden"
           },
+          "chore_stat_missed_month": {
+            "name": "Gikk glipp av denne måneden"
+          },
           "chore_stat_overdue_year": {
             "name": "Forsinket i år"
           },
+          "chore_stat_missed_year": {
+            "name": "Gikk glipp av i år"
+          },
           "chore_stat_overdue_count_all_time": {
             "name": "Forfalt hele tiden"
+          },
+          "chore_stat_missed_all_time": {
+            "name": "Savnet hele tiden"
           },
           "chore_stat_claimed_today": {
             "name": "Krevd i dag"
@@ -2922,6 +3186,9 @@
           },
           "chore_stat_longest_streak": {
             "name": "Lengste rekke"
+          },
+          "chore_stat_longest_missed_streak": {
+            "name": "Lengste tapte rekke"
           },
           "chore_stat_avg_per_day_week": {
             "name": "Gjennomsnitt per dag (uke)"
@@ -4128,6 +4395,15 @@
     },
     "chore_pending_claim": {
       "message": "Chore har et ventende krav som venter på godkjenning eller avvisning"
+    },
+    "chore_waiting": {
+      "message": "Denne gjøremålet kan ikke kreves ennå. Forfallsfristen er ikke åpnet."
+    },
+    "chore_not_my_turn": {
+      "message": "Denne gjøremålet er rotasjonslåst. Det er nå et annet barns tur."
+    },
+    "chore_missed_locked": {
+      "message": "Denne gjøremålet er merket som tapt og låst for gjeldende syklus."
     },
     "chore_completed_by_other": {
       "message": "Denne gjøremålet har allerede blitt fullført av et annet barn i denne perioden"
