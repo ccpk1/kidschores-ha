@@ -157,6 +157,9 @@ class NotificationManager(BaseManager):
 
         # Chore events
         self.listen(const.SIGNAL_SUFFIX_CHORE_CLAIMED, self._handle_chore_claimed)
+        self.listen(
+            const.SIGNAL_SUFFIX_CHORE_CLAIM_UNDONE, self._handle_chore_claim_undone
+        )
         self.listen(const.SIGNAL_SUFFIX_CHORE_APPROVED, self._handle_chore_approved)
         self.listen(
             const.SIGNAL_SUFFIX_CHORE_DISAPPROVED, self._handle_chore_disapproved
@@ -164,6 +167,9 @@ class NotificationManager(BaseManager):
 
         # Reward events
         self.listen(const.SIGNAL_SUFFIX_REWARD_CLAIMED, self._handle_reward_claimed)
+        self.listen(
+            const.SIGNAL_SUFFIX_REWARD_CLAIM_UNDONE, self._handle_reward_claim_undone
+        )
         self.listen(const.SIGNAL_SUFFIX_REWARD_APPROVED, self._handle_reward_approved)
         self.listen(
             const.SIGNAL_SUFFIX_REWARD_DISAPPROVED, self._handle_reward_disapproved
@@ -192,7 +198,7 @@ class NotificationManager(BaseManager):
         self.listen(const.SIGNAL_SUFFIX_KID_DELETED, self._handle_kid_deleted)
 
         const.LOGGER.debug(
-            "NotificationManager initialized with 15 event subscriptions for entry %s",
+            "NotificationManager initialized with 17 event subscriptions for entry %s",
             self.entry_id,
         )
 
@@ -1994,6 +2000,54 @@ class NotificationManager(BaseManager):
             "NotificationManager: Sent reward claimed notification for kid=%s, reward=%s",
             kid_id,
             reward_name,
+        )
+
+    async def _handle_chore_claim_undone(self, payload: dict[str, Any]) -> None:
+        """Handle CHORE_CLAIM_UNDONE event - clear parent claim notifications.
+
+        Args:
+            payload: Event data containing kid_id and chore_id
+        """
+        kid_id = payload.get("kid_id", "")
+        chore_id = payload.get("chore_id", "")
+
+        if not kid_id or not chore_id:
+            return
+
+        await self.clear_notification_for_parents(
+            kid_id,
+            const.NOTIFY_TAG_TYPE_STATUS,
+            chore_id,
+        )
+
+        const.LOGGER.debug(
+            "NotificationManager: Cleared chore claim notifications for kid=%s, chore=%s",
+            kid_id,
+            chore_id,
+        )
+
+    async def _handle_reward_claim_undone(self, payload: dict[str, Any]) -> None:
+        """Handle REWARD_CLAIM_UNDONE event - clear parent claim notifications.
+
+        Args:
+            payload: Event data containing kid_id and reward_id
+        """
+        kid_id = payload.get("kid_id", "")
+        reward_id = payload.get("reward_id", "")
+
+        if not kid_id or not reward_id:
+            return
+
+        await self.clear_notification_for_parents(
+            kid_id,
+            const.NOTIFY_TAG_TYPE_STATUS,
+            reward_id,
+        )
+
+        const.LOGGER.debug(
+            "NotificationManager: Cleared reward claim notifications for kid=%s, reward=%s",
+            kid_id,
+            reward_id,
         )
 
     async def _handle_reward_approved(self, payload: dict[str, Any]) -> None:

@@ -1452,11 +1452,15 @@ class ChoreManager(BaseManager):
         # Update global state
         self._update_global_state(chore_id)
 
-        # No notification (silent undo)
-        # No event emission needed for undo
-
         self._coordinator._persist()
         self._coordinator.async_set_updated_data(self._coordinator._data)
+
+        # Emit event for NotificationManager to clear parent claim notifications
+        self.emit(
+            const.SIGNAL_SUFFIX_CHORE_CLAIM_UNDONE,
+            kid_id=kid_id,
+            chore_id=chore_id,
+        )
 
     # =========================================================================
     # §2 TIME TRIGGER ACTIONS FOR DUE DATE AND APPROVAL RESET HANDLING

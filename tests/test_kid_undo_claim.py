@@ -27,6 +27,7 @@ from unittest.mock import AsyncMock, patch
 from homeassistant.core import HomeAssistant
 import pytest
 
+from custom_components.kidschores import const
 from tests.helpers import (
     CHORE_STATE_CLAIMED,
     CHORE_STATE_PENDING,
@@ -67,6 +68,19 @@ async def scenario_shared(
         hass,
         mock_hass_users,
         "tests/scenarios/scenario_shared.yaml",
+    )
+
+
+@pytest.fixture
+async def scenario_full(
+    hass: HomeAssistant,
+    mock_hass_users: dict[str, Any],
+) -> SetupResult:
+    """Load full scenario with rewards for reward undo tests."""
+    return await setup_from_yaml(
+        hass,
+        mock_hass_users,
+        "tests/scenarios/scenario_full.yaml",
     )
 
 
@@ -211,6 +225,32 @@ class TestKidUndoChore:
         # Pending count should be decremented
         assert final_stats["pending_count"] == 0
 
+    @pytest.mark.asyncio
+    async def test_kid_undo_clears_parent_claim_notification(
+        self,
+        hass: HomeAssistant,
+        scenario_minimal: SetupResult,
+    ) -> None:
+        """Kid undo clears parent claim notification for the chore."""
+        coordinator = scenario_minimal.coordinator
+        kid_id = scenario_minimal.kid_ids["Zoë"]
+        chore_id = scenario_minimal.chore_ids["Make bed"]
+
+        with patch.object(
+            coordinator.notification_manager,
+            "clear_notification_for_parents",
+            new=AsyncMock(),
+        ) as mock_clear:
+            await coordinator.chore_manager.claim_chore(kid_id, chore_id, "Zoë")
+            await coordinator.chore_manager.undo_claim(kid_id, chore_id)
+            await hass.async_block_till_done()
+
+        mock_clear.assert_awaited_once_with(
+            kid_id,
+            const.NOTIFY_TAG_TYPE_STATUS,
+            chore_id,
+        )
+
 
 # =============================================================================
 # PARENT DISAPPROVE TESTS (Verify stats still work)
@@ -264,6 +304,43 @@ class TestParentDisapproveChore:
 # =============================================================================
 # KID UNDO REWARD TESTS
 # =============================================================================
+
+
+class TestKidUndoReward:
+    """Tests for kid undo reward claim (no stat tracking)."""
+
+    @pytest.mark.asyncio
+    async def test_kid_undo_reward_clears_parent_claim_notification(
+        self,
+        hass: HomeAssistant,
+        scenario_full: SetupResult,
+    ) -> None:
+        """Kid undo clears parent claim notification for the reward."""
+        coordinator = scenario_full.coordinator
+        kid_id = scenario_full.kid_ids["Zoë"]
+        reward_id = scenario_full.reward_ids["Extra Screen Time"]
+
+        # Ensure enough points to claim reward in scenario
+        coordinator.kids_data[kid_id][const.DATA_KID_POINTS] = 100.0
+
+        with patch.object(
+            coordinator.notification_manager,
+            "clear_notification_for_parents",
+            new=AsyncMock(),
+        ) as mock_clear:
+            await coordinator.reward_manager.redeem(
+                parent_name="Môm Astrid Stârblüm",
+                kid_id=kid_id,
+                reward_id=reward_id,
+            )
+            await coordinator.reward_manager.undo_claim(kid_id, reward_id)
+            await hass.async_block_till_done()
+
+        mock_clear.assert_awaited_once_with(
+            kid_id,
+            const.NOTIFY_TAG_TYPE_STATUS,
+            reward_id,
+        )
 
 
 # =============================================================================

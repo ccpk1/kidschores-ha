@@ -660,10 +660,15 @@ class RewardManager(BaseManager):
 
         # REMOVED v43: _recalculate_stats_for_kid() - reward_stats dict deleted
 
-        # No notification sent (silent undo)
-
         self.coordinator._persist()
         self.coordinator.async_set_updated_data(self.coordinator._data)
+
+        # Emit event for NotificationManager to clear parent claim notifications
+        self.emit(
+            const.SIGNAL_SUFFIX_REWARD_CLAIM_UNDONE,
+            kid_id=kid_id,
+            reward_id=reward_id,
+        )
 
     # =========================================================================
     # Public API: Reset

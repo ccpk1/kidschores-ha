@@ -211,6 +211,7 @@ SIGNAL_SUFFIX_CHORE_APPROVED: Final = "chore_approved"
 SIGNAL_SUFFIX_CHORE_COMPLETED: Final = "chore_completed"
 SIGNAL_SUFFIX_CHORE_DISAPPROVED: Final = "chore_disapproved"
 SIGNAL_SUFFIX_CHORE_UNDONE: Final = "chore_undone"
+SIGNAL_SUFFIX_CHORE_CLAIM_UNDONE: Final = "chore_claim_undone"
 SIGNAL_SUFFIX_CHORE_OVERDUE: Final = "chore_overdue"
 SIGNAL_SUFFIX_CHORE_MISSED: Final = "chore_missed"  # Phase 5: Missed tracking
 SIGNAL_SUFFIX_CHORE_DUE_REMINDER: Final = "chore_due_reminder"
@@ -223,6 +224,7 @@ SIGNAL_SUFFIX_CHORE_ROTATION_ADVANCED: Final = "chore_rotation_advanced"  # v0.5
 SIGNAL_SUFFIX_REWARD_CLAIMED: Final = "reward_claimed"
 SIGNAL_SUFFIX_REWARD_APPROVED: Final = "reward_approved"
 SIGNAL_SUFFIX_REWARD_DISAPPROVED: Final = "reward_disapproved"
+SIGNAL_SUFFIX_REWARD_CLAIM_UNDONE: Final = "reward_claim_undone"
 SIGNAL_SUFFIX_REWARD_STATUS_RESET: Final = "reward_status_reset"
 
 # Penalty Events (PenaltyManager or EconomyManager)
