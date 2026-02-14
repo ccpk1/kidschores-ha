@@ -18,20 +18,8 @@ run_mypy_quick() {
         return $?
     fi
 
-    mapfile -t changed_py_files < <(
-        git status --porcelain \
-            | awk '{print $2}' \
-            | grep -E '^(custom_components/kidschores|tests)/.*\.py$' || true
-    )
-
-    if [ ${#changed_py_files[@]} -eq 0 ]; then
-        echo "No changed Python files under custom_components/kidschores or tests; skipping mypy"
-        return 0
-    fi
-
-    echo "Checking changed Python files only (${#changed_py_files[@]}):"
-    printf '  - %s\n' "${changed_py_files[@]}"
-    mypy --config-file mypy_quick.ini --explicit-package-bases "${changed_py_files[@]}"
+    echo "Default mode: checking production integration code only"
+    mypy --config-file mypy_quick.ini --explicit-package-bases custom_components/kidschores
 }
 
 echo "🔍 Running ruff linting..."

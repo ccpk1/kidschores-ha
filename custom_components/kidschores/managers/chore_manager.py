@@ -2171,7 +2171,9 @@ class ChoreManager(BaseManager):
                 kid_id,
                 chore_id,
             )
-            kid_info = self._coordinator.kids_data.get(kid_id, {})
+            kid_info: KidData | dict[str, Any] = self._coordinator.kids_data.get(
+                kid_id, {}
+            )
             kid_name = kid_info.get(const.DATA_KID_NAME, "Unknown")
             base_points = float(
                 chore_info.get(const.DATA_CHORE_DEFAULT_POINTS, const.DEFAULT_POINTS)

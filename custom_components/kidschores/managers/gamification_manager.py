@@ -1101,7 +1101,7 @@ class GamificationManager(BaseManager):
         badge_id: str,
     ) -> bool:
         """Return True if periodic badge already has an award recorded this cycle."""
-        kid_data = self.coordinator.kids_data.get(kid_id, {})
+        kid_data: KidData | dict[str, Any] = self.coordinator.kids_data.get(kid_id, {})
 
         badges_earned = cast(
             "dict[str, Any]", kid_data.get(const.DATA_KID_BADGES_EARNED, {})
@@ -1146,7 +1146,7 @@ class GamificationManager(BaseManager):
         kid_id = base_context["kid_id"]
         today_iso = base_context["today_iso"]
 
-        kid_data = self.coordinator.kids_data.get(kid_id, {})
+        kid_data: KidData | dict[str, Any] = self.coordinator.kids_data.get(kid_id, {})
         badge_progress = cast(
             "dict[str, Any]",
             kid_data.get(const.DATA_KID_BADGE_PROGRESS, {}),
@@ -1480,18 +1480,18 @@ class GamificationManager(BaseManager):
                     changed = True
 
         elif target_type in (
-            const.BADGE_TARGET_THRESHOLD_TYPE_DAYS_ALL_CHORES,
-            const.BADGE_TARGET_THRESHOLD_TYPE_DAYS_80_PERCENT,
-            const.BADGE_TARGET_THRESHOLD_TYPE_DAYS_NO_OVERDUE,
-            const.BADGE_TARGET_THRESHOLD_TYPE_DAYS_DUE_ALL,
-            const.BADGE_TARGET_THRESHOLD_TYPE_DAYS_DUE_80_PERCENT,
-            const.BADGE_TARGET_THRESHOLD_TYPE_DAYS_DUE_NO_OVERDUE,
-            const.BADGE_TARGET_THRESHOLD_TYPE_DAYS_MIN_3,
-            const.BADGE_TARGET_THRESHOLD_TYPE_DAYS_MIN_5,
-            const.BADGE_TARGET_THRESHOLD_TYPE_DAYS_MIN_7,
-            const.BADGE_TARGET_THRESHOLD_TYPE_STREAK_ALL_CHORES,
-            const.BADGE_TARGET_THRESHOLD_TYPE_STREAK_80_PERCENT,
-            const.BADGE_TARGET_THRESHOLD_TYPE_STREAK_NO_OVERDUE,
+            const.BADGE_TARGET_THRESHOLD_TYPE_DAYS_SELECTED_CHORES,
+            const.BADGE_TARGET_THRESHOLD_TYPE_DAYS_80PCT_CHORES,
+            const.BADGE_TARGET_THRESHOLD_TYPE_DAYS_SELECTED_CHORES_NO_OVERDUE,
+            const.BADGE_TARGET_THRESHOLD_TYPE_DAYS_SELECTED_DUE_CHORES,
+            const.BADGE_TARGET_THRESHOLD_TYPE_DAYS_80PCT_DUE_CHORES,
+            const.BADGE_TARGET_THRESHOLD_TYPE_DAYS_SELECTED_DUE_CHORES_NO_OVERDUE,
+            const.BADGE_TARGET_THRESHOLD_TYPE_DAYS_MIN_3_CHORES,
+            const.BADGE_TARGET_THRESHOLD_TYPE_DAYS_MIN_5_CHORES,
+            const.BADGE_TARGET_THRESHOLD_TYPE_DAYS_MIN_7_CHORES,
+            const.BADGE_TARGET_THRESHOLD_TYPE_STREAK_SELECTED_CHORES,
+            const.BADGE_TARGET_THRESHOLD_TYPE_STREAK_80PCT_CHORES,
+            const.BADGE_TARGET_THRESHOLD_TYPE_STREAK_SELECTED_CHORES_NO_OVERDUE,
             const.BADGE_TARGET_THRESHOLD_TYPE_STREAK_SELECTED_CHORES,
             const.BADGE_TARGET_THRESHOLD_TYPE_STREAK_SELECTED_CHORES_NO_OVERDUE,
         ):

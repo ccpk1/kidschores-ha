@@ -1,0 +1,358 @@
+# MyPy Backlog Report (2026-02-14)
+
+Total errors: **300**
+
+## Errors by code
+- var-annotated: 117
+- unused-ignore: 46
+- attr-defined: 32
+- arg-type: 17
+- typeddict-unknown-key: 15
+- typeddict-item: 13
+- method-assign: 12
+- index: 11
+- union-attr: 10
+- assignment: 6
+- import-untyped: 5
+- return-value: 3
+- comparison-overlap: 3
+- operator: 3
+- redundant-cast: 2
+- misc: 2
+- call-overload: 1
+- override: 1
+- call-arg: 1
+
+## Top files by error count
+- tests/test_chore_scheduling.py: 34
+- tests/test_workflow_chores.py: 26
+- tests/test_frequency_enhanced.py: 26
+- tests/test_options_flow_daily_multi.py: 25
+- tests/test_chore_manager.py: 22
+- tests/test_backup_flow_navigation.py: 18
+- tests/test_overdue_immediate_reset.py: 15
+- tests/test_chore_services.py: 15
+- custom_components/kidschores/managers/gamification_manager.py: 14
+- tests/test_backup_utilities.py: 12
+- tests/test_scheduler_delegation.py: 8
+- tests/test_workflow_streak_schedule.py: 6
+- tests/test_gamification_shadow_comparison.py: 6
+- tests/test_due_date_services_enhanced_frequencies.py: 6
+- tests/test_badge_target_types.py: 6
+- tests/test_workflow_notifications.py: 6
+- tests/test_points_migration_validation.py: 5
+- tests/test_economy_manager.py: 5
+- tests/test_gamification_engine.py: 4
+- tests/test_calendar_daily_limiter.py: 4
+- tests/test_datetime_edge_cases.py: 3
+- tests/test_storage_manager.py: 3
+- tests/test_calendar_feature.py: 3
+- tests/test_config_flow_fresh_start.py: 3
+- tests/test_ghost_notification_fix.py: 2
+- tests/test_chore_engine.py: 2
+- tests/test_per_kid_applicable_days.py: 2
+- tests/test_entity_loading_extension.py: 2
+- tests/test_data_reset_service.py: 2
+- tests/conftest.py: 1
+
+## Full error list
+- tests/test_ghost_notification_fix.py:65 [var-annotated] Need type annotation for "data" (hint: "data: dict[<type>, <type>] = ...") 
+- tests/test_ghost_notification_fix.py:88 [var-annotated] Need type annotation for "data" (hint: "data: dict[<type>, <type>] = ...") 
+- tests/test_datetime_edge_cases.py:35 [unused-ignore] Unused "type: ignore" comment 
+- tests/test_datetime_edge_cases.py:129 [unused-ignore] Unused "type: ignore" comment 
+- tests/test_datetime_edge_cases.py:217 [unused-ignore] Unused "type: ignore" comment 
+- tests/conftest.py:23 [import-untyped] Skipping analyzing "pytest_homeassistant_custom_component.common": module is installed, but missing library stubs or py.typed marker 
+- custom_components/kidschores/helpers/flow_helpers.py:735 [redundant-cast] Redundant cast to "list[Any]" 
+- custom_components/kidschores/managers/gamification_manager.py:1104 [var-annotated] Need type annotation for "kid_data" 
+- custom_components/kidschores/managers/gamification_manager.py:1149 [var-annotated] Need type annotation for "kid_data" 
+- custom_components/kidschores/managers/gamification_manager.py:1483 [attr-defined] Module has no attribute "BADGE_TARGET_THRESHOLD_TYPE_DAYS_ALL_CHORES"; maybe "BADGE_TARGET_THRESHOLD_TYPE_POINTS_ALL_TIME"? 
+- custom_components/kidschores/managers/gamification_manager.py:1484 [attr-defined] Module has no attribute "BADGE_TARGET_THRESHOLD_TYPE_DAYS_80_PERCENT" 
+- custom_components/kidschores/managers/gamification_manager.py:1485 [attr-defined] Module has no attribute "BADGE_TARGET_THRESHOLD_TYPE_DAYS_NO_OVERDUE" 
+- custom_components/kidschores/managers/gamification_manager.py:1486 [attr-defined] Module has no attribute "BADGE_TARGET_THRESHOLD_TYPE_DAYS_DUE_ALL"; maybe "BADGE_TARGET_THRESHOLD_TYPE_POINTS_CHORES" or "BADGE_TARGET_THRESHOLD_TYPE_CHORE_COUNT"? 
+- custom_components/kidschores/managers/gamification_manager.py:1487 [attr-defined] Module has no attribute "BADGE_TARGET_THRESHOLD_TYPE_DAYS_DUE_80_PERCENT" 
+- custom_components/kidschores/managers/gamification_manager.py:1488 [attr-defined] Module has no attribute "BADGE_TARGET_THRESHOLD_TYPE_DAYS_DUE_NO_OVERDUE" 
+- custom_components/kidschores/managers/gamification_manager.py:1489 [attr-defined] Module has no attribute "BADGE_TARGET_THRESHOLD_TYPE_DAYS_MIN_3"; maybe "BADGE_TARGET_THRESHOLD_TYPE_CHORE_COUNT"? 
+- custom_components/kidschores/managers/gamification_manager.py:1490 [attr-defined] Module has no attribute "BADGE_TARGET_THRESHOLD_TYPE_DAYS_MIN_5"; maybe "BADGE_TARGET_THRESHOLD_TYPE_CHORE_COUNT"? 
+- custom_components/kidschores/managers/gamification_manager.py:1491 [attr-defined] Module has no attribute "BADGE_TARGET_THRESHOLD_TYPE_DAYS_MIN_7"; maybe "BADGE_TARGET_THRESHOLD_TYPE_CHORE_COUNT"? 
+- custom_components/kidschores/managers/gamification_manager.py:1492 [attr-defined] Module has no attribute "BADGE_TARGET_THRESHOLD_TYPE_STREAK_ALL_CHORES"; maybe "BADGE_TARGET_THRESHOLD_TYPE_DAYS_80PCT_CHORES", "BADGE_TARGET_THRESHOLD_TYPE_DAYS_MIN_3_CHORES", or "BADGE_TARGET_THRESHOLD_TYPE_DAYS_MIN_5_CHORES"? 
+- custom_components/kidschores/managers/gamification_manager.py:1493 [attr-defined] Module has no attribute "BADGE_TARGET_THRESHOLD_TYPE_STREAK_80_PERCENT"; maybe "BADGE_TARGET_THRESHOLD_TYPE_DAYS_80PCT_CHORES"? 
+- custom_components/kidschores/managers/gamification_manager.py:1494 [attr-defined] Module has no attribute "BADGE_TARGET_THRESHOLD_TYPE_STREAK_NO_OVERDUE" 
+- custom_components/kidschores/managers/chore_manager.py:2174 [var-annotated] Need type annotation for "kid_info" 
+- tests/test_points_helpers.py:49 [var-annotated] Need type annotation for "user_input" (hint: "user_input: dict[<type>, <type>] = ...") 
+- tests/test_gamification_engine.py:707 [misc] Expected TypedDict key to be string literal 
+- tests/test_gamification_engine.py:742 [typeddict-unknown-key] Extra key "test-kid-123" for TypedDict "ChallengeProgress" 
+- tests/test_gamification_engine.py:779 [typeddict-unknown-key] Extra key "test-kid-123" for TypedDict "ChallengeProgress" 
+- tests/test_gamification_engine.py:801 [typeddict-unknown-key] Extra key "test-kid-123" for TypedDict "ChallengeProgress" 
+- tests/test_chore_engine.py:769 [var-annotated] Need type annotation for "kid_data" 
+- tests/test_chore_engine.py:1343 [var-annotated] Need type annotation for "chore_data" (hint: "chore_data: dict[<type>, <type>] = ...") 
+- tests/test_storage_manager.py:78 [var-annotated] Need type annotation for "test_data" 
+- tests/test_storage_manager.py:398 [var-annotated] Need type annotation for "original_data" 
+- tests/test_storage_manager.py:401 [var-annotated] Need type annotation for "new_data" 
+- tests/test_parents_helpers.py:143 [var-annotated] Need type annotation for "user_input" (hint: "user_input: dict[<type>, <type>] = ...") 
+- tests/test_migration_hardening.py:23 [import-untyped] Skipping analyzing "pytest_homeassistant_custom_component.common": module is installed, but missing library stubs or py.typed marker 
+- tests/test_kids_helpers.py:124 [var-annotated] Need type annotation for "user_input" (hint: "user_input: dict[<type>, <type>] = ...") 
+- tests/test_chore_manager.py:103 [method-assign] Cannot assign to a method 
+- tests/test_chore_manager.py:242 [attr-defined] "def emit(self, suffix: str, **payload: Any) -> None" has no attribute "assert_called" 
+- tests/test_chore_manager.py:243 [attr-defined] "def emit(self, suffix: str, **payload: Any) -> None" has no attribute "call_args" 
+- tests/test_chore_manager.py:249 [attr-defined] "Callable[[bool], None]" has no attribute "assert_called_once" 
+- tests/test_chore_manager.py:257 [typeddict-item] Missing keys ("internal_id", "points", "points_multiplier", "mobile_notify_service", "use_persistent_notifications", "badges_earned", "reward_data", "penalty_applies", "bonus_applies") for TypedDict "KidData" 
+- tests/test_chore_manager.py:284 [attr-defined] "def emit(self, suffix: str, **payload: Any) -> None" has no attribute "assert_called" 
+- tests/test_chore_manager.py:287 [attr-defined] "def emit(self, suffix: str, **payload: Any) -> None" has no attribute "call_args_list" 
+- tests/test_chore_manager.py:319 [attr-defined] "def emit(self, suffix: str, **payload: Any) -> None" has no attribute "reset_mock" 
+- tests/test_chore_manager.py:338 [attr-defined] "def emit(self, suffix: str, **payload: Any) -> None" has no attribute "assert_called" 
+- tests/test_chore_manager.py:341 [attr-defined] "def emit(self, suffix: str, **payload: Any) -> None" has no attribute "call_args_list" 
+- tests/test_chore_manager.py:388 [attr-defined] "def emit(self, suffix: str, **payload: Any) -> None" has no attribute "reset_mock" 
+- tests/test_chore_manager.py:402 [attr-defined] "def emit(self, suffix: str, **payload: Any) -> None" has no attribute "assert_called" 
+- tests/test_chore_manager.py:403 [attr-defined] "def emit(self, suffix: str, **payload: Any) -> None" has no attribute "call_args" 
+- tests/test_chore_manager.py:421 [attr-defined] "def emit(self, suffix: str, **payload: Any) -> None" has no attribute "reset_mock" 
+- tests/test_chore_manager.py:441 [attr-defined] "def emit(self, suffix: str, **payload: Any) -> None" has no attribute "assert_called" 
+- tests/test_chore_manager.py:442 [attr-defined] "def emit(self, suffix: str, **payload: Any) -> None" has no attribute "call_args" 
+- tests/test_chore_manager.py:460 [method-assign] Cannot assign to a method 
+- tests/test_chore_manager.py:471 [method-assign] Cannot assign to a method 
+- tests/test_chore_manager.py:473 [method-assign] Cannot assign to a method 
+- tests/test_chore_manager.py:622 [attr-defined] "def emit(self, suffix: str, **payload: Any) -> None" has no attribute "call_args" 
+- tests/test_chore_manager.py:632 [attr-defined] "def emit(self, suffix: str, **payload: Any) -> None" has no attribute "reset_mock" 
+- tests/test_chore_manager.py:638 [attr-defined] "def emit(self, suffix: str, **payload: Any) -> None" has no attribute "call_args_list" 
+- tests/test_backup_utilities.py:63 [import-untyped] Skipping analyzing "pytest_homeassistant_custom_component.common": module is installed, but missing library stubs or py.typed marker 
+- tests/test_backup_utilities.py:660 [arg-type] Argument 1 to "len" has incompatible type "object"; expected "Sized" 
+- tests/test_backup_utilities.py:661 [index] Value of type "object" is not indexable 
+- tests/test_backup_utilities.py:662 [index] Value of type "object" is not indexable 
+- tests/test_backup_utilities.py:663 [index] Value of type "object" is not indexable 
+- tests/test_backup_utilities.py:664 [index] Value of type "object" is not indexable 
+- tests/test_backup_utilities.py:665 [index] Value of type "object" is not indexable 
+- tests/test_backup_utilities.py:666 [index] Value of type "object" is not indexable 
+- tests/test_backup_utilities.py:667 [index] Value of type "object" is not indexable 
+- tests/test_backup_utilities.py:668 [index] Value of type "object" is not indexable 
+- tests/test_backup_utilities.py:669 [index] Value of type "object" is not indexable 
+- tests/test_backup_utilities.py:738 [arg-type] Argument 1 to "validate_config_entry_settings" has incompatible type "object"; expected "dict[str, Any]" 
+- tests/test_workflow_streak_schedule.py:348 [union-attr] Item "date" of "date | str | None" has no attribute "date" 
+- tests/test_workflow_streak_schedule.py:348 [union-attr] Item "str" of "date | str | None" has no attribute "date" 
+- tests/test_workflow_streak_schedule.py:348 [union-attr] Item "None" of "date | str | None" has no attribute "date" 
+- tests/test_workflow_streak_schedule.py:468 [union-attr] Item "date" of "date | str | None" has no attribute "date" 
+- tests/test_workflow_streak_schedule.py:468 [union-attr] Item "str" of "date | str | None" has no attribute "date" 
+- tests/test_workflow_streak_schedule.py:468 [union-attr] Item "None" of "date | str | None" has no attribute "date" 
+- tests/test_workflow_chores.py:335 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_workflow_chores.py:342 [typeddict-unknown-key] TypedDict "ChoreData" has no key "chore_due_window_offset" 
+- tests/test_workflow_chores.py:369 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_workflow_chores.py:373 [typeddict-unknown-key] TypedDict "ChoreData" has no key "chore_due_window_offset" 
+- tests/test_workflow_chores.py:500 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_workflow_chores.py:591 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_workflow_chores.py:654 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_workflow_chores.py:687 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_workflow_chores.py:739 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_workflow_chores.py:796 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_workflow_chores.py:831 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_workflow_chores.py:960 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_workflow_chores.py:964 [typeddict-unknown-key] TypedDict "ChoreData" has no key "chore_due_window_offset" 
+- tests/test_workflow_chores.py:992 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_workflow_chores.py:996 [typeddict-unknown-key] TypedDict "ChoreData" has no key "chore_due_window_offset" 
+- tests/test_workflow_chores.py:1056 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_workflow_chores.py:1084 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_workflow_chores.py:1124 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_workflow_chores.py:1205 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_workflow_chores.py:1233 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_workflow_chores.py:1290 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_workflow_chores.py:1343 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_workflow_chores.py:2216 [call-overload] No overload variant of "get" of "dict" matches argument types "str", "dict[Never, Never]" 
+- tests/test_workflow_chores.py:2220 [union-attr] Item "object" of "object | Any" has no attribute "get" 
+- tests/test_workflow_chores.py:2262 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_workflow_chores.py:2267 [typeddict-unknown-key] TypedDict "ChoreData" has no key "chore_due_window_offset" 
+- tests/test_reward_services.py:97 [var-annotated] Need type annotation for "reward_info" 
+- tests/test_points_migration_validation.py:22 [import-untyped] Skipping analyzing "pytest_homeassistant_custom_component.common": module is installed, but missing library stubs or py.typed marker 
+- tests/test_points_migration_validation.py:23 [unused-ignore] Unused "type: ignore" comment 
+- tests/test_points_migration_validation.py:155 [union-attr] Item "str" of "dict[str, float] | str" has no attribute "keys" 
+- tests/test_points_migration_validation.py:157 [union-attr] Item "str" of "dict[str, float] | str" has no attribute "keys" 
+- tests/test_points_migration_validation.py:160 [union-attr] Item "str" of "dict[str, float] | str" has no attribute "items" 
+- tests/test_per_kid_applicable_days.py:134 [return-value] Incompatible return value type (got "tuple[str, ChoreData]", expected "tuple[str, dict[str, Any]]") 
+- tests/test_per_kid_applicable_days.py:148 [return-value] Incompatible return value type (got "tuple[str, ChoreData]", expected "tuple[str, dict[str, Any]]") 
+- tests/test_options_flow_per_kid_helper.py:395 [comparison-overlap] Non-overlapping equality check (left operand type: "list[str]", right operand type: "list[int]") 
+- tests/test_options_flow_daily_multi.py:84 [unused-ignore] Unused "type: ignore" comment 
+- tests/test_options_flow_daily_multi.py:92 [unused-ignore] Unused "type: ignore" comment 
+- tests/test_options_flow_daily_multi.py:104 [unused-ignore] Unused "type: ignore" comment 
+- tests/test_options_flow_daily_multi.py:140 [unused-ignore] Unused "type: ignore" comment 
+- tests/test_options_flow_daily_multi.py:144 [unused-ignore] Unused "type: ignore" comment 
+- tests/test_options_flow_daily_multi.py:154 [unused-ignore] Unused "type: ignore" comment 
+- tests/test_options_flow_daily_multi.py:173 [unused-ignore] Unused "type: ignore" comment 
+- tests/test_options_flow_daily_multi.py:191 [comparison-overlap] Non-overlapping equality check (left operand type: "list[str] | None", right operand type: "Literal['08:00|17:00']") 
+- tests/test_options_flow_daily_multi.py:211 [unused-ignore] Unused "type: ignore" comment 
+- tests/test_options_flow_daily_multi.py:215 [unused-ignore] Unused "type: ignore" comment 
+- tests/test_options_flow_daily_multi.py:225 [unused-ignore] Unused "type: ignore" comment 
+- tests/test_options_flow_daily_multi.py:244 [unused-ignore] Unused "type: ignore" comment 
+- tests/test_options_flow_daily_multi.py:273 [unused-ignore] Unused "type: ignore" comment 
+- tests/test_options_flow_daily_multi.py:277 [unused-ignore] Unused "type: ignore" comment 
+- tests/test_options_flow_daily_multi.py:287 [unused-ignore] Unused "type: ignore" comment 
+- tests/test_options_flow_daily_multi.py:306 [unused-ignore] Unused "type: ignore" comment 
+- tests/test_options_flow_daily_multi.py:335 [unused-ignore] Unused "type: ignore" comment 
+- tests/test_options_flow_daily_multi.py:339 [unused-ignore] Unused "type: ignore" comment 
+- tests/test_options_flow_daily_multi.py:349 [unused-ignore] Unused "type: ignore" comment 
+- tests/test_options_flow_daily_multi.py:368 [unused-ignore] Unused "type: ignore" comment 
+- tests/test_options_flow_daily_multi.py:399 [unused-ignore] Unused "type: ignore" comment 
+- tests/test_options_flow_daily_multi.py:403 [unused-ignore] Unused "type: ignore" comment 
+- tests/test_options_flow_daily_multi.py:413 [unused-ignore] Unused "type: ignore" comment 
+- tests/test_options_flow_daily_multi.py:432 [unused-ignore] Unused "type: ignore" comment 
+- tests/test_options_flow_daily_multi.py:453 [comparison-overlap] Non-overlapping equality check (left operand type: "list[str] | None", right operand type: "Literal['06:00|08:00|10:00|12:00|14:00|16:00']") 
+- tests/test_kid_undo_claim.py:290 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_kc_helpers.py:62 [var-annotated] Need type annotation for "kid_info" 
+- tests/test_gamification_shadow_comparison.py:97 [typeddict-item] TypedDict "KidData" has no key "point_stats" 
+- tests/test_gamification_shadow_comparison.py:116 [attr-defined] "object" has no attribute "get" 
+- tests/test_gamification_shadow_comparison.py:173 [assignment] Incompatible types in assignment (expression has type "dict[str, Any]", target has type "KidBadgeProgress") 
+- tests/test_gamification_shadow_comparison.py:193 [attr-defined] "object" has no attribute "get" 
+- tests/test_gamification_shadow_comparison.py:245 [typeddict-item] TypedDict "KidData" has no key "chore_periods" 
+- tests/test_gamification_shadow_comparison.py:330 [attr-defined] "object" has no attribute "get" 
+- tests/test_entity_loading_extension.py:132 [typeddict-item] TypedDict "AchievementData" has no key "type" 
+- tests/test_entity_loading_extension.py:139 [typeddict-item] TypedDict "ChallengeData" has no key "type" 
+- tests/test_economy_manager.py:443 [arg-type] Argument 1 to "len" has incompatible type "object"; expected "Sized" 
+- tests/test_economy_manager.py:444 [index] Value of type "object" is not indexable 
+- tests/test_economy_manager.py:476 [arg-type] Argument 1 to "len" has incompatible type "object"; expected "Sized" 
+- tests/test_economy_manager.py:477 [index] Value of type "object" is not indexable 
+- tests/test_economy_manager.py:498 [arg-type] Argument 1 to "len" has incompatible type "object"; expected "Sized" 
+- tests/test_due_date_services_enhanced_frequencies.py:134 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_due_date_services_enhanced_frequencies.py:221 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_due_date_services_enhanced_frequencies.py:305 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_due_date_services_enhanced_frequencies.py:415 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_due_date_services_enhanced_frequencies.py:511 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_due_date_services_enhanced_frequencies.py:598 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_data_reset_service.py:108 [return-value] Incompatible return value type (got "object", expected "list[Any]") 
+- tests/test_data_reset_service.py:117 [typeddict-unknown-key] TypedDict "KidData" has no key "ledger" 
+- tests/test_calendar_feature.py:62 [typeddict-item] Missing keys ("state", "approval_reset_type", "overdue_handling_type", "approval_reset_pending_claim_action", "description", "chore_labels", "icon", "per_kid_due_dates", "notify_on_claim", "notify_on_approval", "notify_on_disapproval", "completion_criteria") for TypedDict "ChoreData" 
+- tests/test_calendar_feature.py:97 [typeddict-item] Missing keys ("state", "approval_reset_type", "overdue_handling_type", "approval_reset_pending_claim_action", "description", "chore_labels", "icon", "per_kid_due_dates", "notify_on_claim", "notify_on_approval", "notify_on_disapproval", "completion_criteria") for TypedDict "ChoreData" 
+- tests/test_calendar_feature.py:136 [assignment] Incompatible types in assignment (expression has type "dict[str, object]", target has type "ChoreData") 
+- tests/test_badge_target_types.py:478 [typeddict-item] Argument 2 to "__setitem__" has incompatible type "str | date | None"; expected "str" 
+- tests/test_badge_target_types.py:484 [arg-type] Argument 3 to "_advance_non_cumulative_badge_cycle_if_needed" of "GamificationManager" has incompatible type "dict[str, Any]"; expected "BadgeData" 
+- tests/test_badge_target_types.py:536 [arg-type] Argument 3 to "_persist_periodic_badge_progress" of "GamificationManager" has incompatible type "dict[str, Any]"; expected "BadgeData" 
+- tests/test_badge_target_types.py:537 [typeddict-item] Missing keys ("entity_id", "entity_type", "entity_name", "reason", "evaluated_at") for TypedDict "EvaluationResult" 
+- tests/test_badge_target_types.py:600 [arg-type] Argument 3 to "_persist_periodic_badge_progress" of "GamificationManager" has incompatible type "dict[str, Any]"; expected "BadgeData" 
+- tests/test_badge_target_types.py:601 [typeddict-item] Missing keys ("entity_id", "entity_type", "entity_name", "reason", "evaluated_at") for TypedDict "EvaluationResult" 
+- tests/test_backup_flow_navigation.py:48 [unused-ignore] Unused "type: ignore" comment 
+- tests/test_backup_flow_navigation.py:59 [unused-ignore] Unused "type: ignore" comment 
+- tests/test_backup_flow_navigation.py:100 [unused-ignore] Unused "type: ignore" comment 
+- tests/test_backup_flow_navigation.py:135 [unused-ignore] Unused "type: ignore" comment 
+- tests/test_backup_flow_navigation.py:155 [unused-ignore] Unused "type: ignore" comment 
+- tests/test_backup_flow_navigation.py:182 [unused-ignore] Unused "type: ignore" comment 
+- tests/test_backup_flow_navigation.py:201 [unused-ignore] Unused "type: ignore" comment 
+- tests/test_backup_flow_navigation.py:211 [unused-ignore] Unused "type: ignore" comment 
+- tests/test_backup_flow_navigation.py:241 [unused-ignore] Unused "type: ignore" comment 
+- tests/test_backup_flow_navigation.py:265 [unused-ignore] Unused "type: ignore" comment 
+- tests/test_backup_flow_navigation.py:399 [unused-ignore] Unused "type: ignore" comment 
+- tests/test_backup_flow_navigation.py:419 [unused-ignore] Unused "type: ignore" comment 
+- tests/test_backup_flow_navigation.py:439 [unused-ignore] Unused "type: ignore" comment 
+- tests/test_backup_flow_navigation.py:462 [unused-ignore] Unused "type: ignore" comment 
+- tests/test_backup_flow_navigation.py:480 [unused-ignore] Unused "type: ignore" comment 
+- tests/test_backup_flow_navigation.py:491 [unused-ignore] Unused "type: ignore" comment 
+- tests/test_backup_flow_navigation.py:521 [unused-ignore] Unused "type: ignore" comment 
+- tests/test_backup_flow_navigation.py:545 [unused-ignore] Unused "type: ignore" comment 
+- custom_components/kidschores/options_flow.py:2087 [redundant-cast] Redundant cast to "list[Any]" 
+- tests/test_config_flow_fresh_start.py:936 [var-annotated] Need type annotation for "name_to_id_map" (hint: "name_to_id_map: dict[<type>, <type>] = ...") 
+- tests/test_config_flow_fresh_start.py:959 [assignment] Incompatible types in assignment (expression has type "None", target has type "str") 
+- tests/test_config_flow_fresh_start.py:1686 [var-annotated] Need type annotation for "name_to_id_map" (hint: "name_to_id_map: dict[<type>, <type>] = ...") 
+- tests/test_workflow_notifications.py:645 [typeddict-unknown-key] TypedDict "ChoreData" has no key "notify_due_reminder" 
+- tests/test_workflow_notifications.py:702 [typeddict-unknown-key] TypedDict "ChoreData" has no key "notify_due_reminder" 
+- tests/test_workflow_notifications.py:811 [typeddict-unknown-key] TypedDict "ChoreData" has no key "notify_on_due_window" 
+- tests/test_workflow_notifications.py:812 [typeddict-unknown-key] TypedDict "ChoreData" has no key "chore_due_window_offset" 
+- tests/test_workflow_notifications.py:871 [typeddict-unknown-key] TypedDict "ChoreData" has no key "notify_due_reminder" 
+- tests/test_workflow_notifications.py:872 [typeddict-unknown-key] TypedDict "ChoreData" has no key "chore_due_reminder_offset" 
+- tests/test_scheduler_delegation.py:126 [method-assign] Cannot assign to a method 
+- tests/test_scheduler_delegation.py:172 [method-assign] Cannot assign to a method 
+- tests/test_scheduler_delegation.py:229 [method-assign] Cannot assign to a method 
+- tests/test_scheduler_delegation.py:288 [method-assign] Cannot assign to a method 
+- tests/test_scheduler_delegation.py:333 [method-assign] Cannot assign to a method 
+- tests/test_scheduler_delegation.py:411 [method-assign] Cannot assign to a method 
+- tests/test_scheduler_delegation.py:446 [method-assign] Cannot assign to a method 
+- tests/test_scheduler_delegation.py:479 [method-assign] Cannot assign to a method 
+- tests/test_overdue_immediate_reset.py:235 [operator] Unsupported operand types for > ("datetime" and "None") 
+- tests/test_overdue_immediate_reset.py:345 [operator] Unsupported operand types for > ("datetime" and "None") 
+- tests/test_overdue_immediate_reset.py:386 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_overdue_immediate_reset.py:465 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_overdue_immediate_reset.py:516 [operator] Unsupported operand types for > ("datetime" and "None") 
+- tests/test_overdue_immediate_reset.py:539 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_overdue_immediate_reset.py:573 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_overdue_immediate_reset.py:616 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_overdue_immediate_reset.py:625 [arg-type] Argument 1 to "_is_chore_approval_after_reset" of "ChoreManager" has incompatible type "ChoreData | dict[Any, Any]"; expected "ChoreData" 
+- tests/test_overdue_immediate_reset.py:647 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_overdue_immediate_reset.py:657 [arg-type] Argument 1 to "_is_chore_approval_after_reset" of "ChoreManager" has incompatible type "ChoreData | dict[Any, Any]"; expected "ChoreData" 
+- tests/test_overdue_immediate_reset.py:673 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_overdue_immediate_reset.py:683 [arg-type] Argument 1 to "_is_chore_approval_after_reset" of "ChoreManager" has incompatible type "ChoreData | dict[Any, Any]"; expected "ChoreData" 
+- tests/test_overdue_immediate_reset.py:699 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_overdue_immediate_reset.py:709 [arg-type] Argument 1 to "_is_chore_approval_after_reset" of "ChoreManager" has incompatible type "ChoreData | dict[Any, Any]"; expected "ChoreData" 
+- tests/test_options_flow_entity_crud.py:16 [import-untyped] Skipping analyzing "pytest_homeassistant_custom_component.common": module is installed, but missing library stubs or py.typed marker 
+- tests/test_frequency_enhanced.py:86 [override] Return type "datetime" of "now" incompatible with return type "MockDatetime" in supertype "datetime.datetime" 
+- tests/test_frequency_enhanced.py:205 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_frequency_enhanced.py:342 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_frequency_enhanced.py:378 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_frequency_enhanced.py:463 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_frequency_enhanced.py:500 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_frequency_enhanced.py:543 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_frequency_enhanced.py:553 [arg-type] Argument 1 to "parse_daily_multi_times" has incompatible type "list[str] | Any"; expected "str | None" 
+- tests/test_frequency_enhanced.py:573 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_frequency_enhanced.py:579 [arg-type] Argument 1 to "parse_daily_multi_times" has incompatible type "list[str] | Any | None"; expected "str | None" 
+- tests/test_frequency_enhanced.py:605 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_frequency_enhanced.py:614 [arg-type] Argument 1 to "parse_daily_multi_times" has incompatible type "list[str] | Any | None"; expected "str | None" 
+- tests/test_frequency_enhanced.py:633 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_frequency_enhanced.py:640 [arg-type] Argument 1 to "parse_daily_multi_times" has incompatible type "list[str] | Any"; expected "str | None" 
+- tests/test_frequency_enhanced.py:672 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_frequency_enhanced.py:769 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_frequency_enhanced.py:788 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_frequency_enhanced.py:794 [arg-type] Argument 1 to "parse_daily_multi_times" has incompatible type "list[str] | Any"; expected "str | None" 
+- tests/test_frequency_enhanced.py:843 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_frequency_enhanced.py:878 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_frequency_enhanced.py:915 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_frequency_enhanced.py:946 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_frequency_enhanced.py:1082 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_frequency_enhanced.py:1109 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_frequency_enhanced.py:1163 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_frequency_enhanced.py:1219 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_config_flow_use_existing.py:22 [misc] The return type of a generator function should be "Generator" or one of its supertypes 
+- tests/test_chore_services.py:458 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_chore_services.py:492 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_chore_services.py:679 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_chore_services.py:869 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_chore_services.py:936 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_chore_services.py:973 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_chore_services.py:1014 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_chore_services.py:1066 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_chore_services.py:1094 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_chore_services.py:1120 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_chore_services.py:1165 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_chore_services.py:1172 [var-annotated] Need type annotation for "kid_info" 
+- tests/test_chore_services.py:1207 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_chore_services.py:1239 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_chore_services.py:1279 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_chore_scheduling.py:596 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_chore_scheduling.py:613 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_chore_scheduling.py:631 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_chore_scheduling.py:665 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_chore_scheduling.py:689 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_chore_scheduling.py:713 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_chore_scheduling.py:744 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_chore_scheduling.py:783 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_chore_scheduling.py:871 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_chore_scheduling.py:910 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_chore_scheduling.py:981 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_chore_scheduling.py:1059 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_chore_scheduling.py:1248 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_chore_scheduling.py:1302 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_chore_scheduling.py:1554 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_chore_scheduling.py:1600 [var-annotated] Need type annotation for "kid_info" 
+- tests/test_chore_scheduling.py:1638 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_chore_scheduling.py:1710 [var-annotated] Need type annotation for "kid_info" 
+- tests/test_chore_scheduling.py:1752 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_chore_scheduling.py:1763 [var-annotated] Need type annotation for "kid_info" 
+- tests/test_chore_scheduling.py:1906 [var-annotated] Need type annotation for "kid_info" 
+- tests/test_chore_scheduling.py:1954 [var-annotated] Need type annotation for "weekday_info" 
+- tests/test_chore_scheduling.py:1963 [var-annotated] Need type annotation for "weekend_info" 
+- tests/test_chore_scheduling.py:1972 [var-annotated] Need type annotation for "mwf_info" 
+- tests/test_chore_scheduling.py:1992 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_chore_scheduling.py:2200 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_chore_scheduling.py:2217 [typeddict-item] Missing keys ("internal_id", "name", "points", "points_multiplier", "mobile_notify_service", "use_persistent_notifications", "badges_earned", "reward_data", "penalty_applies", "bonus_applies") for TypedDict "KidData" 
+- tests/test_chore_scheduling.py:2266 [typeddict-item] Missing keys ("internal_id", "name", "points", "points_multiplier", "mobile_notify_service", "use_persistent_notifications", "badges_earned", "reward_data", "penalty_applies", "bonus_applies") for TypedDict "KidData" 
+- tests/test_chore_scheduling.py:2306 [typeddict-item] Missing keys ("internal_id", "name", "points", "points_multiplier", "mobile_notify_service", "use_persistent_notifications", "badges_earned", "reward_data", "penalty_applies", "bonus_applies") for TypedDict "KidData" 
+- tests/test_chore_scheduling.py:2400 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_chore_scheduling.py:2447 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_chore_scheduling.py:2612 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_chore_scheduling.py:2669 [var-annotated] Need type annotation for "chore_info" 
+- tests/test_chore_scheduling.py:2740 [var-annotated] Need type annotation for "chore_info" 
+- custom_components/kidschores/config_flow.py:21 [call-arg] Unexpected keyword argument "domain" for "__init_subclass__" of "object" 
+- tests/test_calendar_daily_limiter.py:149 [unused-ignore] Unused "type: ignore" comment 
+- tests/test_calendar_daily_limiter.py:180 [assignment] Incompatible types in assignment (expression has type "def _capture_daily(events: list[Any], summary: str, description: str, applicable_days: list[int], gen_start: datetime, cutoff: datetime, start: datetime, end: datetime) -> None", variable has type "def _generate_recurring_daily_without_due_date(self, events: list[Any], summary: str, description: str, applicable_days: list[int], gen_start: datetime, cutoff: datetime, window_start: datetime, window_end: datetime) -> None") 
+- tests/test_calendar_daily_limiter.py:227 [assignment] Incompatible types in assignment (expression has type "def _capture_multi(events: list[Any], summary: str, description: str, chore: dict[Any, Any], start: datetime, end: datetime) -> None", variable has type "def _generate_recurring_daily_multi_with_due_date(self, events: list[Any], summary: str, description: str, chore: dict[Any, Any], window_start: datetime, window_end: datetime) -> None") 
+- tests/test_calendar_daily_limiter.py:228 [assignment] Incompatible types in assignment (expression has type "def _capture_weekly(events: list[Any], summary: str, description: str, recurring: str, gen_start: datetime, cutoff: datetime, start: datetime, end: datetime) -> None", variable has type "def _generate_recurring_weekly_biweekly_without_due_date(self, events: list[Any], summary: str, description: str, recurring: str, gen_start: datetime, cutoff: datetime, window_start: datetime, window_end: datetime) -> None") 

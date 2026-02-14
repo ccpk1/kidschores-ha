@@ -732,13 +732,10 @@ def build_chore_schema(
             ),
         ): selector.SelectSelector(
             selector.SelectSelectorConfig(
-                options=cast(
-                    "list[selector.SelectOptionDict]",
-                    [
-                        {"value": key, "label": label}
-                        for key, label in const.WEEKDAY_OPTIONS.items()
-                    ],
-                ),
+                options=[
+                    {"value": key, "label": label}
+                    for key, label in const.WEEKDAY_OPTIONS.items()
+                ],
                 multiple=True,
                 translation_key=const.TRANS_KEY_FLOW_HELPERS_APPLICABLE_DAYS,
             )

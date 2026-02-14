@@ -107,17 +107,47 @@ def get_kid_state_for_chore(coordinator: Any, kid_id: str, chore_id: str) -> str
     return const.CHORE_STATE_PENDING
 
 
+def get_expected_reset_display_state(
+    coordinator: Any,
+    kid_id: str,
+    chore_id: str,
+) -> str:
+    """Compute exact expected post-reset display state.
+
+    After a successful reset we expect the chore to be neither approved nor overdue.
+    Display should then be:
+    - DUE when current time is inside due window
+    - otherwise PENDING
+    """
+    now_utc = dt_now_utc()
+    due_dt = coordinator.chore_manager.get_due_date(chore_id, kid_id)
+    due_window_start = coordinator.chore_manager.get_due_window_start(chore_id, kid_id)
+
+    if (
+        due_dt is not None
+        and due_window_start is not None
+        and due_window_start <= now_utc <= due_dt
+    ):
+        return const.CHORE_STATE_DUE
+
+    return const.CHORE_STATE_PENDING
+
+
 def set_chore_due_date_to_past(
     coordinator: Any,
     chore_id: str,
     kid_id: str | None = None,
     days_ago: int = 1,
+    now_utc: datetime | None = None,
 ) -> datetime:
     """Set chore due date to the past WITHOUT resetting state.
 
     This is a copy of the helper from test_chore_scheduling.py.
     """
-    past_date = datetime.now(UTC) - timedelta(days=days_ago)
+    if now_utc is None:
+        now_utc = datetime.now(UTC)
+
+    past_date = now_utc - timedelta(days=days_ago)
     past_date = past_date.replace(hour=17, minute=0, second=0, microsecond=0)
     past_date_iso = dt_util.as_utc(past_date).isoformat()
 
@@ -161,9 +191,13 @@ def set_chore_due_date_to_future(
     chore_id: str,
     kid_id: str | None = None,
     days_ahead: int = 1,
+    now_utc: datetime | None = None,
 ) -> datetime:
     """Set chore due date to the future."""
-    future_date = datetime.now(UTC) + timedelta(days=days_ahead)
+    if now_utc is None:
+        now_utc = datetime.now(UTC)
+
+    future_date = now_utc + timedelta(days=days_ahead)
     future_date = future_date.replace(hour=17, minute=0, second=0, microsecond=0)
     future_date_iso = dt_util.as_utc(future_date).isoformat()
 
@@ -193,6 +227,7 @@ def set_per_kid_due_dates_mixed(
     kid2_id: str,
     kid1_days_ago: int = 1,
     kid2_days_ahead: int = 2,
+    now_utc: datetime | None = None,
 ) -> tuple[datetime, datetime]:
     """Set different due dates for two kids: one past, one future.
 
@@ -208,10 +243,18 @@ def set_per_kid_due_dates_mixed(
         Tuple of (past_date, future_date) as datetime objects
     """
     past_date = set_chore_due_date_to_past(
-        coordinator, chore_id, kid_id=kid1_id, days_ago=kid1_days_ago
+        coordinator,
+        chore_id,
+        kid_id=kid1_id,
+        days_ago=kid1_days_ago,
+        now_utc=now_utc,
     )
     future_date = set_chore_due_date_to_future(
-        coordinator, chore_id, kid_id=kid2_id, days_ahead=kid2_days_ahead
+        coordinator,
+        chore_id,
+        kid_id=kid2_id,
+        days_ahead=kid2_days_ahead,
+        now_utc=now_utc,
     )
     return past_date, future_date
 
@@ -247,6 +290,7 @@ class TestApprovalResetOverdueInteraction:
         coordinator = setup_at_due_date_scenario.coordinator
         kid_id = setup_at_due_date_scenario.kid_ids["Zoë"]
         chore_id = setup_at_due_date_scenario.chore_ids["AtDueDateOnce Reset Chore"]
+        fixed_now = datetime(2026, 2, 14, 0, 5, tzinfo=UTC)
 
         # Approve the chore (kid claims and parent approves)
         with patch.object(
@@ -261,22 +305,26 @@ class TestApprovalResetOverdueInteraction:
         assert initial_state == const.CHORE_STATE_APPROVED
 
         # Set due date to the past
-        set_chore_due_date_to_past(coordinator, chore_id, kid_id=kid_id)
+        set_chore_due_date_to_past(
+            coordinator, chore_id, kid_id=kid_id, now_utc=fixed_now
+        )
 
         # Trigger reset cycle (this is what happens at the scheduled reset time)
         with patch.object(
             coordinator.notification_manager, "notify_kid", new=AsyncMock()
         ):
-            await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
+            await coordinator.chore_manager._on_midnight_rollover(now_utc=fixed_now)
 
-        # Verify reset to PENDING
+        # Verify reset and exact deterministic display based on due-window timing
         final_state = get_kid_state_for_chore(coordinator, kid_id, chore_id)
-        assert final_state == const.CHORE_STATE_PENDING, (
-            f"Expected APPROVED chore to reset to PENDING at due date, got {final_state}"
+        expected_display = get_expected_reset_display_state(coordinator, kid_id, chore_id)
+        assert final_state == expected_display, (
+            f"Expected APPROVED chore post-reset display={expected_display}, got {final_state}"
         )
         assert not coordinator.chore_manager.chore_is_approved_in_period(
             kid_id, chore_id
         )
+        assert not coordinator.chore_manager.chore_is_overdue(kid_id, chore_id)
 
     @pytest.mark.asyncio
     async def test_unclaimed_pending_becomes_overdue_at_due_date(
@@ -296,6 +344,7 @@ class TestApprovalResetOverdueInteraction:
         coordinator = setup_at_due_date_scenario.coordinator
         kid_id = setup_at_due_date_scenario.kid_ids["Zoë"]
         chore_id = setup_at_due_date_scenario.chore_ids["AtDueDateOnce Reset Chore"]
+        fixed_now = datetime(2026, 2, 14, 0, 5, tzinfo=UTC)
 
         # Verify initial pending state (no claim)
         assert not coordinator.chore_manager.chore_has_pending_claim(kid_id, chore_id)
@@ -304,13 +353,15 @@ class TestApprovalResetOverdueInteraction:
         )
 
         # Set due date to the past
-        set_chore_due_date_to_past(coordinator, chore_id, kid_id=kid_id)
+        set_chore_due_date_to_past(
+            coordinator, chore_id, kid_id=kid_id, now_utc=fixed_now
+        )
 
         # Trigger overdue check via periodic update (simulating due date passing)
         with patch.object(
             coordinator.notification_manager, "notify_kid", new=AsyncMock()
         ):
-            await coordinator.chore_manager._on_periodic_update(now_utc=dt_now_utc())
+            await coordinator.chore_manager._on_periodic_update(now_utc=fixed_now)
 
         # Verify overdue status
         assert coordinator.chore_manager.chore_is_overdue(kid_id, chore_id), (
@@ -333,6 +384,7 @@ class TestApprovalResetOverdueInteraction:
         coordinator = setup_at_due_date_scenario.coordinator
         kid_id = setup_at_due_date_scenario.kid_ids["Zoë"]
         chore_id = setup_at_due_date_scenario.chore_ids["AtDueDateOnce Reset Chore"]
+        fixed_now = datetime(2026, 2, 14, 0, 5, tzinfo=UTC)
 
         # Claim the chore
         with patch.object(
@@ -344,20 +396,24 @@ class TestApprovalResetOverdueInteraction:
         assert coordinator.chore_manager.chore_has_pending_claim(kid_id, chore_id)
 
         # Set due date to the past
-        set_chore_due_date_to_past(coordinator, chore_id, kid_id=kid_id)
+        set_chore_due_date_to_past(
+            coordinator, chore_id, kid_id=kid_id, now_utc=fixed_now
+        )
 
         # Trigger reset cycle (which clears pending claims before overdue check runs)
         with patch.object(
             coordinator.notification_manager, "notify_kid", new=AsyncMock()
         ):
-            await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
+            await coordinator.chore_manager._on_midnight_rollover(now_utc=fixed_now)
 
         # With CLEAR action, pending claim should be cleared and state reset to PENDING
         assert not coordinator.chore_manager.chore_has_pending_claim(
             kid_id, chore_id
         ), "Expected pending claim to be cleared after reset"
         final_state = get_kid_state_for_chore(coordinator, kid_id, chore_id)
-        assert final_state == const.CHORE_STATE_PENDING
+        expected_display = get_expected_reset_display_state(coordinator, kid_id, chore_id)
+        assert final_state == expected_display
+        assert not coordinator.chore_manager.chore_is_overdue(kid_id, chore_id)
 
     @pytest.mark.asyncio
     async def test_overdue_resets_to_pending_then_reset_behavior(
@@ -381,16 +437,19 @@ class TestApprovalResetOverdueInteraction:
         coordinator = setup_at_due_date_scenario.coordinator
         kid_id = setup_at_due_date_scenario.kid_ids["Zoë"]
         chore_id = setup_at_due_date_scenario.chore_ids["AtDueDateOnce Reset Chore"]
+        fixed_now = datetime(2026, 2, 14, 0, 5, tzinfo=UTC)
 
         # Set due date to past
-        set_chore_due_date_to_past(coordinator, chore_id, kid_id=kid_id)
+        set_chore_due_date_to_past(
+            coordinator, chore_id, kid_id=kid_id, now_utc=fixed_now
+        )
 
         # Mark overdue via periodic update (simulates mid-day due date passing)
         # This is the correct flow: due date passes → becomes OVERDUE
         with patch.object(
             coordinator.notification_manager, "notify_kid", new=AsyncMock()
         ):
-            await coordinator.chore_manager._on_periodic_update(now_utc=dt_now_utc())
+            await coordinator.chore_manager._on_periodic_update(now_utc=fixed_now)
 
         # Verify overdue status
         assert coordinator.chore_manager.chore_is_overdue(kid_id, chore_id), (
@@ -401,7 +460,7 @@ class TestApprovalResetOverdueInteraction:
         with patch.object(
             coordinator.notification_manager, "notify_kid", new=AsyncMock()
         ):
-            await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
+            await coordinator.chore_manager._on_midnight_rollover(now_utc=fixed_now)
 
         # EXPECTED BEHAVIOR: OVERDUE status IS cleared with AT_DUE_DATE_THEN_RESET
         # The reset logic includes OVERDUE in states_to_skip when overdue_handling
@@ -410,7 +469,9 @@ class TestApprovalResetOverdueInteraction:
             "OVERDUE status should be cleared at reset with AT_DUE_DATE_THEN_RESET"
         )
         final_state = get_kid_state_for_chore(coordinator, kid_id, chore_id)
-        assert final_state == const.CHORE_STATE_PENDING
+        expected_display = get_expected_reset_display_state(coordinator, kid_id, chore_id)
+        assert final_state == expected_display
+        assert not coordinator.chore_manager.chore_is_overdue(kid_id, chore_id)
 
     @pytest.mark.asyncio
     async def test_future_due_date_no_overdue_or_reset(
@@ -426,6 +487,7 @@ class TestApprovalResetOverdueInteraction:
         coordinator = setup_at_due_date_scenario.coordinator
         kid_id = setup_at_due_date_scenario.kid_ids["Zoë"]
         chore_id = setup_at_due_date_scenario.chore_ids["AtDueDateOnce Reset Chore"]
+        fixed_now = datetime(2026, 2, 14, 0, 5, tzinfo=UTC)
 
         # Approve the chore
         with patch.object(
@@ -435,13 +497,15 @@ class TestApprovalResetOverdueInteraction:
             await coordinator.chore_manager.approve_chore("Parent", kid_id, chore_id)
 
         # Set due date to the future
-        set_chore_due_date_to_future(coordinator, chore_id, kid_id=kid_id)
+        set_chore_due_date_to_future(
+            coordinator, chore_id, kid_id=kid_id, now_utc=fixed_now
+        )
 
         # Trigger reset cycle
         with patch.object(
             coordinator.notification_manager, "notify_kid", new=AsyncMock()
         ):
-            await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
+            await coordinator.chore_manager._on_midnight_rollover(now_utc=fixed_now)
 
         # Verify chore was NOT reset (due date in future)
         assert coordinator.chore_manager.chore_is_approved_in_period(
@@ -452,7 +516,7 @@ class TestApprovalResetOverdueInteraction:
         with patch.object(
             coordinator.notification_manager, "notify_kid", new=AsyncMock()
         ):
-            await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
+            await coordinator.chore_manager._on_midnight_rollover(now_utc=fixed_now)
 
         # Verify NOT marked overdue
         assert not coordinator.chore_manager.chore_is_overdue(kid_id, chore_id), (
@@ -706,6 +770,7 @@ class TestPerKidResetIsolation:
         kid1_id = setup_at_due_date_scenario.kid_ids["Zoë"]
         kid2_id = setup_at_due_date_scenario.kid_ids["Max!"]
         chore_id = setup_at_due_date_scenario.chore_ids["Multi Kid Reset Test"]
+        fixed_now = datetime(2026, 2, 14, 0, 5, tzinfo=UTC)
 
         # Both kids claim and get approved
         with patch.object(
@@ -734,19 +799,27 @@ class TestPerKidResetIsolation:
             kid2_id,
             kid1_days_ago=1,
             kid2_days_ahead=2,
+            now_utc=fixed_now,
         )
 
         # Trigger reset cycle (this is what runs at midnight)
         with patch.object(
             coordinator.notification_manager, "notify_kid", new=AsyncMock()
         ):
-            await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
+            await coordinator.chore_manager._on_midnight_rollover(now_utc=fixed_now)
 
-        # ASSERT: Kid1 (past due date) should reset to PENDING
+        # ASSERT: Kid1 (past due date) should reset and resolve to exact display state.
         kid1_state = get_kid_state_for_chore(coordinator, kid1_id, chore_id)
-        assert kid1_state == const.CHORE_STATE_PENDING, (
-            f"Kid1 with past due date should reset to PENDING, got {kid1_state}"
+        kid1_expected_display = get_expected_reset_display_state(
+            coordinator, kid1_id, chore_id
         )
+        assert kid1_state == kid1_expected_display, (
+            f"Kid1 with past due date should display {kid1_expected_display}, got {kid1_state}"
+        )
+        assert not coordinator.chore_manager.chore_is_approved_in_period(
+            kid1_id, chore_id
+        )
+        assert not coordinator.chore_manager.chore_is_overdue(kid1_id, chore_id)
 
         # ASSERT: Kid2 (future due date) should remain APPROVED
         kid2_state = get_kid_state_for_chore(coordinator, kid2_id, chore_id)
@@ -774,6 +847,7 @@ class TestPerKidResetIsolation:
         kid1_id = setup_at_due_date_scenario.kid_ids["Zoë"]
         kid2_id = setup_at_due_date_scenario.kid_ids["Max!"]
         chore_id = setup_at_due_date_scenario.chore_ids["Multi Kid Reset Test"]
+        fixed_now = datetime(2026, 2, 14, 0, 5, tzinfo=UTC)
 
         # Both kids claim and get approved
         with patch.object(
@@ -795,25 +869,44 @@ class TestPerKidResetIsolation:
         )
 
         # Set BOTH due dates to PAST
-        set_chore_due_date_to_past(coordinator, chore_id, kid_id=kid1_id, days_ago=1)
-        set_chore_due_date_to_past(coordinator, chore_id, kid_id=kid2_id, days_ago=1)
+        set_chore_due_date_to_past(
+            coordinator, chore_id, kid_id=kid1_id, days_ago=1, now_utc=fixed_now
+        )
+        set_chore_due_date_to_past(
+            coordinator, chore_id, kid_id=kid2_id, days_ago=1, now_utc=fixed_now
+        )
 
         # Trigger reset cycle
         with patch.object(
             coordinator.notification_manager, "notify_kid", new=AsyncMock()
         ):
-            await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
+            await coordinator.chore_manager._on_midnight_rollover(now_utc=fixed_now)
 
         # ASSERT: BOTH kids should reset to PENDING
         kid1_state = get_kid_state_for_chore(coordinator, kid1_id, chore_id)
         kid2_state = get_kid_state_for_chore(coordinator, kid2_id, chore_id)
 
-        assert kid1_state == const.CHORE_STATE_PENDING, (
-            f"Kid1 with past due date should reset to PENDING, got {kid1_state}"
+        kid1_expected_display = get_expected_reset_display_state(
+            coordinator, kid1_id, chore_id
         )
-        assert kid2_state == const.CHORE_STATE_PENDING, (
-            f"Kid2 with past due date should reset to PENDING, got {kid2_state}"
+        kid2_expected_display = get_expected_reset_display_state(
+            coordinator, kid2_id, chore_id
         )
+
+        assert kid1_state == kid1_expected_display, (
+            f"Kid1 with past due date should display {kid1_expected_display}, got {kid1_state}"
+        )
+        assert kid2_state == kid2_expected_display, (
+            f"Kid2 with past due date should display {kid2_expected_display}, got {kid2_state}"
+        )
+        assert not coordinator.chore_manager.chore_is_approved_in_period(
+            kid1_id, chore_id
+        )
+        assert not coordinator.chore_manager.chore_is_approved_in_period(
+            kid2_id, chore_id
+        )
+        assert not coordinator.chore_manager.chore_is_overdue(kid1_id, chore_id)
+        assert not coordinator.chore_manager.chore_is_overdue(kid2_id, chore_id)
 
     @pytest.mark.asyncio
     async def test_independent_no_kids_reset_when_all_future_due(
@@ -835,6 +928,7 @@ class TestPerKidResetIsolation:
         kid1_id = setup_at_due_date_scenario.kid_ids["Zoë"]
         kid2_id = setup_at_due_date_scenario.kid_ids["Max!"]
         chore_id = setup_at_due_date_scenario.chore_ids["Multi Kid Reset Test"]
+        fixed_now = datetime(2026, 2, 14, 0, 5, tzinfo=UTC)
 
         # Both kids claim and get approved
         with patch.object(
@@ -857,17 +951,17 @@ class TestPerKidResetIsolation:
 
         # Set BOTH due dates to FUTURE
         set_chore_due_date_to_future(
-            coordinator, chore_id, kid_id=kid1_id, days_ahead=2
+            coordinator, chore_id, kid_id=kid1_id, days_ahead=2, now_utc=fixed_now
         )
         set_chore_due_date_to_future(
-            coordinator, chore_id, kid_id=kid2_id, days_ahead=3
+            coordinator, chore_id, kid_id=kid2_id, days_ahead=3, now_utc=fixed_now
         )
 
         # Trigger reset cycle
         with patch.object(
             coordinator.notification_manager, "notify_kid", new=AsyncMock()
         ):
-            await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
+            await coordinator.chore_manager._on_midnight_rollover(now_utc=fixed_now)
 
         # ASSERT: BOTH kids should stay APPROVED (no reset)
         kid1_state = get_kid_state_for_chore(coordinator, kid1_id, chore_id)

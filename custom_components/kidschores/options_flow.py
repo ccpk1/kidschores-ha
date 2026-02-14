@@ -2084,13 +2084,10 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 vol.Optional(f"applicable_days_{kid_name}", default=default_days)
             ] = selector.SelectSelector(
                 selector.SelectSelectorConfig(
-                    options=cast(
-                        "list[selector.SelectOptionDict]",
-                        [
-                            {"value": key, "label": f"{kid_name}: {label}"}
-                            for key, label in const.WEEKDAY_OPTIONS.items()
-                        ],
-                    ),
+                    options=[
+                        {"value": key, "label": f"{kid_name}: {label}"}
+                        for key, label in const.WEEKDAY_OPTIONS.items()
+                    ],
                     multiple=True,
                 )
             )
