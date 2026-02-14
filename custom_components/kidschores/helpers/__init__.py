@@ -28,6 +28,7 @@ from . import (
     device_helpers,
     entity_helpers,
     flow_helpers,
+    report_helpers,
     translation_helpers,
 )
 
@@ -37,5 +38,6 @@ __all__ = [
     "device_helpers",
     "entity_helpers",
     "flow_helpers",
+    "report_helpers",
     "translation_helpers",
 ]

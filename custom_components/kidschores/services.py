@@ -15,7 +15,7 @@ from homeassistant.util import dt as dt_util
 import voluptuous as vol
 
 from . import const
-from .helpers import flow_helpers
+from .helpers import flow_helpers, report_helpers
 from .helpers.auth_helpers import (
     is_user_authorized_for_global_action,
     is_user_authorized_for_kid,
@@ -201,6 +201,64 @@ MANAGE_SHADOW_LINK_SCHEMA = vol.Schema(
         vol.Required(const.FIELD_ACTION): vol.In(
             [const.ACTION_LINK, const.ACTION_UNLINK]
         ),
+    }
+)
+
+GENERATE_ACTIVITY_REPORT_SCHEMA = vol.Schema(
+    {
+        vol.Optional(
+            const.SERVICE_FIELD_REPORT_RANGE_MODE,
+            default=const.REPORT_RANGE_MODE_LAST_7_DAYS,
+        ): vol.In(
+            [
+                const.REPORT_RANGE_MODE_LAST_7_DAYS,
+                const.REPORT_RANGE_MODE_LAST_30_DAYS,
+                const.REPORT_RANGE_MODE_CUSTOM,
+            ]
+        ),
+        vol.Optional(const.SERVICE_FIELD_REPORT_START_DATE): vol.Any(
+            cv.datetime, cv.string
+        ),
+        vol.Optional(const.SERVICE_FIELD_REPORT_END_DATE): vol.Any(
+            cv.datetime, cv.string
+        ),
+        vol.Optional(const.SERVICE_FIELD_KID_NAME): cv.string,
+        vol.Optional(const.SERVICE_FIELD_REPORT_NOTIFY_SERVICE): cv.string,
+        vol.Optional(const.SERVICE_FIELD_REPORT_TITLE): cv.string,
+    }
+)
+
+EXPORT_NORMALIZED_DATA_SCHEMA = vol.Schema(
+    {
+        vol.Optional(
+            const.SERVICE_FIELD_REPORT_RANGE_MODE,
+            default=const.REPORT_RANGE_MODE_LAST_30_DAYS,
+        ): vol.In(
+            [
+                const.REPORT_RANGE_MODE_LAST_7_DAYS,
+                const.REPORT_RANGE_MODE_LAST_30_DAYS,
+                const.REPORT_RANGE_MODE_CUSTOM,
+            ]
+        ),
+        vol.Optional(const.SERVICE_FIELD_REPORT_START_DATE): vol.Any(
+            cv.datetime, cv.string
+        ),
+        vol.Optional(const.SERVICE_FIELD_REPORT_END_DATE): vol.Any(
+            cv.datetime, cv.string
+        ),
+        vol.Optional(const.SERVICE_FIELD_KID_NAME): cv.string,
+        vol.Optional(
+            const.SERVICE_FIELD_EXPORT_INCLUDE_LEDGER, default=True
+        ): cv.boolean,
+        vol.Optional(
+            const.SERVICE_FIELD_EXPORT_INCLUDE_PERIOD_SUMMARIES, default=True
+        ): cv.boolean,
+        vol.Optional(
+            const.SERVICE_FIELD_EXPORT_INCLUDE_ITEMS, default=True
+        ): cv.boolean,
+        vol.Optional(
+            const.SERVICE_FIELD_EXPORT_INCLUDE_ID_MAP, default=True
+        ): cv.boolean,
     }
 )
 
@@ -2277,6 +2335,223 @@ def async_setup_services(hass: HomeAssistant):
     )
 
     # ==========================================================================
+    # REPORTING SERVICE HANDLERS
+    # ==========================================================================
+
+    async def handle_generate_activity_report(call: ServiceCall) -> dict[str, Any]:
+        """Handle kidschores.generate_activity_report service call."""
+        entry_id = get_first_kidschores_entry(hass)
+        if not entry_id:
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND,
+            )
+
+        coordinator = _get_coordinator_by_entry_id(hass, entry_id)
+
+        range_mode = str(
+            call.data.get(
+                const.SERVICE_FIELD_REPORT_RANGE_MODE,
+                const.REPORT_RANGE_MODE_LAST_7_DAYS,
+            )
+        )
+        start_date = call.data.get(const.SERVICE_FIELD_REPORT_START_DATE)
+        end_date = call.data.get(const.SERVICE_FIELD_REPORT_END_DATE)
+
+        if range_mode == const.REPORT_RANGE_MODE_CUSTOM and (
+            start_date is None or end_date is None
+        ):
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_REQUIRED_FIELD,
+                translation_placeholders={
+                    "field": (
+                        f"{const.SERVICE_FIELD_REPORT_START_DATE}/"
+                        f"{const.SERVICE_FIELD_REPORT_END_DATE}"
+                    )
+                },
+            )
+
+        kid_name = call.data.get(const.SERVICE_FIELD_KID_NAME)
+        kid_id: str | None = None
+        if kid_name:
+            kid_id = get_item_id_or_raise(
+                coordinator,
+                const.ENTITY_TYPE_KID,
+                str(kid_name),
+            )
+
+        try:
+            range_result = report_helpers.resolve_report_range(
+                mode=range_mode,
+                start_date=start_date,
+                end_date=end_date,
+                timezone_name="UTC",
+            )
+        except ValueError as err:
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_INVALID_DATE_FORMAT,
+            ) from err
+
+        report_response = report_helpers.build_activity_report(
+            kids_data=coordinator.kids_data,
+            range_result=range_result,
+            kid_id=kid_id,
+            report_title=cast(
+                "str | None",
+                call.data.get(const.SERVICE_FIELD_REPORT_TITLE),
+            ),
+        )
+
+        notify_service = cast(
+            "str | None",
+            call.data.get(const.SERVICE_FIELD_REPORT_NOTIFY_SERVICE),
+        )
+        notify_attempted = notify_service is not None and notify_service.strip() != ""
+        delivered = False
+
+        if notify_attempted and notify_service is not None:
+            notify_service_name = notify_service.strip()
+            if "." in notify_service_name:
+                notify_domain, notify_action = notify_service_name.split(".", 1)
+            else:
+                notify_domain, notify_action = "notify", notify_service_name
+
+            if hass.services.has_service(notify_domain, notify_action):
+                try:
+                    await hass.services.async_call(
+                        notify_domain,
+                        notify_action,
+                        {
+                            "title": call.data.get(const.SERVICE_FIELD_REPORT_TITLE)
+                            or "KidsChores Activity Report",
+                            "message": report_response["markdown"],
+                        },
+                        blocking=True,
+                    )
+                    delivered = True
+                except HomeAssistantError as err:
+                    const.LOGGER.warning(
+                        "Report notify delivery failed for %s: %s",
+                        notify_service_name,
+                        err,
+                    )
+            else:
+                const.LOGGER.warning(
+                    "Report notify service not found: %s",
+                    notify_service_name,
+                )
+
+        report_response["delivery"] = {
+            "notify_attempted": notify_attempted,
+            "notify_service": notify_service,
+            "delivered": delivered,
+        }
+
+        return cast("dict[str, Any]", report_response)
+
+    hass.services.async_register(
+        const.DOMAIN,
+        const.SERVICE_GENERATE_ACTIVITY_REPORT,
+        handle_generate_activity_report,
+        schema=GENERATE_ACTIVITY_REPORT_SCHEMA,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+
+    async def handle_export_normalized_data(call: ServiceCall) -> dict[str, Any]:
+        """Handle kidschores.export_normalized_data service call."""
+        entry_id = get_first_kidschores_entry(hass)
+        if not entry_id:
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_MSG_NO_ENTRY_FOUND,
+            )
+
+        coordinator = _get_coordinator_by_entry_id(hass, entry_id)
+
+        range_mode = str(
+            call.data.get(
+                const.SERVICE_FIELD_REPORT_RANGE_MODE,
+                const.REPORT_RANGE_MODE_LAST_30_DAYS,
+            )
+        )
+        start_date = call.data.get(const.SERVICE_FIELD_REPORT_START_DATE)
+        end_date = call.data.get(const.SERVICE_FIELD_REPORT_END_DATE)
+
+        if range_mode == const.REPORT_RANGE_MODE_CUSTOM and (
+            start_date is None or end_date is None
+        ):
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_REQUIRED_FIELD,
+                translation_placeholders={
+                    "field": (
+                        f"{const.SERVICE_FIELD_REPORT_START_DATE}/"
+                        f"{const.SERVICE_FIELD_REPORT_END_DATE}"
+                    )
+                },
+            )
+
+        kid_name = call.data.get(const.SERVICE_FIELD_KID_NAME)
+        kid_id: str | None = None
+        if kid_name:
+            kid_id = get_item_id_or_raise(
+                coordinator,
+                const.ENTITY_TYPE_KID,
+                str(kid_name),
+            )
+
+        try:
+            range_result = report_helpers.resolve_report_range(
+                mode=range_mode,
+                start_date=start_date,
+                end_date=end_date,
+                timezone_name="UTC",
+            )
+        except ValueError as err:
+            raise HomeAssistantError(
+                translation_domain=const.DOMAIN,
+                translation_key=const.TRANS_KEY_ERROR_INVALID_DATE_FORMAT,
+            ) from err
+
+        export_response = report_helpers.build_normalized_export(
+            kids_data=coordinator.kids_data,
+            chores_data=coordinator.chores_data,
+            rewards_data=coordinator.rewards_data,
+            parents_data=coordinator.parents_data,
+            bonuses_data=coordinator.bonuses_data,
+            penalties_data=coordinator.penalties_data,
+            range_result=range_result,
+            kid_id=kid_id,
+            include_ledger=bool(
+                call.data.get(const.SERVICE_FIELD_EXPORT_INCLUDE_LEDGER, True)
+            ),
+            include_period_summaries=bool(
+                call.data.get(
+                    const.SERVICE_FIELD_EXPORT_INCLUDE_PERIOD_SUMMARIES,
+                    True,
+                )
+            ),
+            include_items=bool(
+                call.data.get(const.SERVICE_FIELD_EXPORT_INCLUDE_ITEMS, True)
+            ),
+            include_id_map=bool(
+                call.data.get(const.SERVICE_FIELD_EXPORT_INCLUDE_ID_MAP, True)
+            ),
+        )
+
+        return cast("dict[str, Any]", export_response)
+
+    hass.services.async_register(
+        const.DOMAIN,
+        const.SERVICE_EXPORT_NORMALIZED_DATA,
+        handle_export_normalized_data,
+        schema=EXPORT_NORMALIZED_DATA_SCHEMA,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+
+    # ==========================================================================
     # RESET SERVICE HANDLERS
     # ==========================================================================
 
@@ -2421,6 +2696,8 @@ async def async_unload_services(hass: HomeAssistant) -> None:
         const.SERVICE_SET_ROTATION_TURN,
         const.SERVICE_RESET_ROTATION,
         const.SERVICE_OPEN_ROTATION_CYCLE,
+        const.SERVICE_GENERATE_ACTIVITY_REPORT,
+        const.SERVICE_EXPORT_NORMALIZED_DATA,
     ]
 
     for service in services:
