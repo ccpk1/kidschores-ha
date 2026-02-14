@@ -1502,33 +1502,55 @@
         "data": {}
       },
       "dashboard_generator": {
-        "title": "Gestiona el tauler de control",
+        "title": "Accions del tauler de control",
         "description": "Creeu, actualitzeu o suprimiu els quadres de comandament de KidsChores Lovelace.\n\n**Targetes personalitzades necessàries** (instal·lades mitjançant el frontend de HACS):\n- Targetes de bolets (custom:mushroom-template-card)\n- Auto-Entities (custom:auto-entities)\n- Mini Graph Card (custom:mini-graph-card)\n\nSense aquestes targetes, els quadres de comandament mostraran errors. Instal·leu-los primer des de HACS abans de generar els quadres de comandament.",
         "data": {
           "dashboard_action": "Acció",
           "dashboard_check_cards": "Comprovar la instal·lació de la targeta"
         },
         "data_description": {
-          "dashboard_action": "Trieu si voleu crear nous quadres de comandament o suprimir els existents.",
+          "dashboard_action": "Trieu una acció: creeu un tauler de control nou, actualitzeu les vistes d'un tauler de control existent o suprimiu els taulers de control.",
           "dashboard_check_cards": "Habilita aquesta opció per verificar que les targetes personalitzades necessàries estiguin instal·lades abans de continuar."
         }
       },
       "dashboard_create": {
-        "title": "Crear/Actualitzar el tauler de control",
+        "title": "Crea un tauler de control",
         "description": "Genera un tauler de control de KidsChores amb pestanyes per a cada nen.\n\nTria un nom per al tauler de control, selecciona els nens que vulguis incloure i, opcionalment, afegeix una pestanya d'administració per a la gestió dels pares.\n\n[📖 Guia de generació de taulers de control]({documentation_url})",
         "data": {
           "dashboard_name": "Nom del tauler de control",
           "dashboard_style": "Estil del tauler de control",
           "dashboard_kid_selection": "Nens (una pestanya per nen)",
-          "dashboard_include_admin": "Inclou la pestanya Administrador",
-          "dashboard_force_rebuild": "Reconstrucció forçada (sobreescriure l'existent)"
+          "dashboard_include_admin": "Inclou la pestanya Administrador"
         },
         "data_description": {
           "dashboard_name": "Nom del tauler de control (apareix a la barra lateral). Suggerit: Tasques",
           "dashboard_style": "Trieu el disseny del tauler de control: Complet (totes les funcions), Minimal (només les essencials) o Compacte (disseny dens).",
           "dashboard_kid_selection": "Seleccioneu per a quins nens voleu crear pestanyes. Cada nen té la seva pròpia vista/pestanya.",
-          "dashboard_include_admin": "Afegeix una pestanya d'administració amb controls parentals per a aprovacions i gestió.",
-          "dashboard_force_rebuild": "Si està habilitat, el tauler de control existent se sobreescriurà. En cas contrari, la generació fallarà si el tauler de control existeix."
+          "dashboard_include_admin": "Afegeix una pestanya d'administració amb controls parentals per a aprovacions i gestió."
+        }
+      },
+      "dashboard_update_select": {
+        "title": "Actualitza el tauler de control",
+        "description": "Seleccioneu un tauler de control de KidsChores existent per actualitzar-lo.\n\nEn mode d'actualització només hi ha disponibles canvis de vista per nen i administrador.",
+        "data": {
+          "dashboard_update_selection": "Tauler de control"
+        },
+        "data_description": {
+          "dashboard_update_selection": "Trieu el tauler de control existent que voleu actualitzar."
+        }
+      },
+      "dashboard_update": {
+        "title": "Actualitzar les vistes del tauler de control",
+        "description": "Actualitza les vistes per a **{dashboard}**.\n\nAjusta la cobertura de la vista per a nens/administradors i el perfil de la plantilla.\n\n[📖 Guia de generació de taulers de control]({documentation_url})",
+        "data": {
+          "dashboard_template_profile": "Perfil de plantilla",
+          "dashboard_kid_selection": "Nens (una pestanya per nen)",
+          "dashboard_include_admin": "Inclou la pestanya Administrador"
+        },
+        "data_description": {
+          "dashboard_template_profile": "Perfil de plantilla aplicat a les vistes de tauler de control infantil seleccionades.",
+          "dashboard_kid_selection": "Seleccioneu quins nens voleu incloure com a visualitzacions al tauler de control actualitzat.",
+          "dashboard_include_admin": "Inclou o elimina la pestanya Administrador en aquest tauler de control."
         }
       },
       "dashboard_delete": {
@@ -1548,7 +1570,7 @@
       },
       "dashboard_generator_confirm": {
         "title": "Confirma la generació del tauler de control",
-        "description": "Es crearan els quadres de comandament següents:\n\n**Estil:** {style}\n**Força la reconstrucció:** {force_rebuild}\n\n**Taulers de comandament:**\n{dashboards}\n\nFeu clic a Envia per generar els quadres de comandament.",
+        "description": "Es crearan els següents quadres de comandament:\n\n**Estil:** {style}\n\n**Taulers de comandament:**\n{dashboards}\n\nFeu clic a Envia per generar els quadres de comandament.",
         "data": {}
       },
       "dashboard_generator_result": {
@@ -1738,6 +1760,7 @@
       "dashboard_save_error": "No s'ha pogut desar el tauler de control a Home Assistant. Consulta els registres del sistema per obtenir més informació.",
       "dashboard_no_name": "Si us plau, introduïu un nom per al tauler de control.",
       "dashboard_no_kids": "Seleccioneu com a mínim un nen o activeu \"Inclou la pestanya d'administració\".",
+      "dashboard_single_kid_required": "Per a l'àmbit \"Un sol fill\", seleccioneu exactament un fill.",
       "dashboard_no_dashboards": "Seleccioneu com a mínim un tauler de control per suprimir."
     },
     "abort": {
@@ -1786,22 +1809,50 @@
     },
     "dashboard_action": {
       "options": {
-        "create": "Crear/Actualitzar el tauler de control",
+        "create": "Crea un nou tauler de control",
+        "update": "Actualitzar les vistes de tauler de control existents",
         "delete": "Suprimeix el tauler de control"
       }
     },
     "dashboard_style": {
       "options": {
-        "dashboard_style_full": "Complet (totes les funcions)",
-        "dashboard_style_minimal": "Mínim (només essencials)",
-        "dashboard_style_compact": "Compacte (disseny dens)",
-        "dashboard_style_admin": "Administrador (tauler de control principal)"
+        "full": "Complet (totes les funcions)",
+        "minimal": "Mínim (només essencials)",
+        "compact": "Compacte (disseny dens)",
+        "admin": "Administrador (tauler de control principal)"
       }
     },
     "dashboard_kid_selection": {
       "options": {}
     },
     "dashboard_delete_selection": {
+      "options": {}
+    },
+    "dashboard_update_selection": {
+      "options": {}
+    },
+    "dashboard_generation_mode": {
+      "options": {
+        "single_multi_view": "Tauler de control únic (vista múltiple)",
+        "per_kid_dashboard": "Taulers de control per nen",
+        "targeted_view_update": "Actualització dirigida"
+      }
+    },
+    "dashboard_target_scope": {
+      "options": {
+        "all_selected_kids": "Tots els nens seleccionats",
+        "single_kid": "Nen solter",
+        "admin_only": "Només administrador"
+      }
+    },
+    "dashboard_template_profile": {
+      "options": {
+        "full": "Complet (totes les funcions)",
+        "minimal": "Mínim (només essencials)",
+        "compact": "Compacte (disseny dens)"
+      }
+    },
+    "dashboard_single_kid": {
       "options": {}
     },
     "manage_actions": {

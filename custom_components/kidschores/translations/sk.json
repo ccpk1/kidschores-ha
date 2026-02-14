@@ -1502,33 +1502,55 @@
         "data": {}
       },
       "dashboard_generator": {
-        "title": "Spravovať ovládací panel",
+        "title": "Akcie na ovládacom paneli",
         "description": "Vytvorte, aktualizujte alebo odstráňte dashboardy KidsChores Lovelace.\n\n**Požadované vlastné karty** (inštalácia cez HACS Frontend):\n- Karty s hubami (custom:mushroom-template-card)\n- Automatické entity (custom:auto-entities)\n- Minigrafová karta (custom:mini-graph-card)\n\nBez týchto kariet budú dashboardy zobrazovať chyby. Pred generovaním dashboardov ich najskôr nainštalujte z HACS.",
         "data": {
           "dashboard_action": "Akcia",
           "dashboard_check_cards": "Skontrolujte inštaláciu karty"
         },
         "data_description": {
-          "dashboard_action": "Vyberte, či chcete vytvoriť nové dashboardy alebo odstrániť existujúce.",
+          "dashboard_action": "Vyberte jednu akciu: vytvoriť nový dashboard, aktualizovať zobrazenia na existujúcom dashboarde alebo odstrániť dashboardy.",
           "dashboard_check_cards": "Povoľte, ak chcete pred pokračovaním overiť, či sú nainštalované požadované vlastné karty."
         }
       },
       "dashboard_create": {
-        "title": "Vytvoriť/aktualizovať dashboard",
+        "title": "Vytvoriť dashboard",
         "description": "Vytvorte dashboard KidsChores s kartami pre každé dieťa.\n\nVyberte názov dashboardu, vyberte deti, ktoré chcete zahrnúť, a voliteľne pridajte kartu Správca pre správu rodičov.\n\n[📖 Sprievodca generovaním dashboardu]({documentation_url})",
         "data": {
           "dashboard_name": "Názov panela s nástrojmi",
           "dashboard_style": "Štýl palubnej dosky",
           "dashboard_kid_selection": "Deti (jedna tableta na dieťa)",
-          "dashboard_include_admin": "Zahrnúť kartu Správca",
-          "dashboard_force_rebuild": "Vynútiť obnovu (prepísať existujúce)"
+          "dashboard_include_admin": "Zahrnúť kartu Správca"
         },
         "data_description": {
           "dashboard_name": "Názov pre dashboard (zobrazí sa v bočnom paneli). Navrhované: Domáce práce",
           "dashboard_style": "Vyberte rozloženie ovládacieho panela: Plné (všetky funkcie), Minimálne (iba základné) alebo Kompaktné (husté rozloženie).",
           "dashboard_kid_selection": "Vyberte, pre ktoré deti chcete vytvoriť karty. Každé dieťa dostane vlastné zobrazenie/kartu.",
-          "dashboard_include_admin": "Pridajte kartu Správca s rodičovskými ovládacími prvkami na schvaľovanie a správu.",
-          "dashboard_force_rebuild": "Ak je povolené, existujúci dashboard bude prepísaný. V opačnom prípade generovanie zlyhá, ak dashboard existuje."
+          "dashboard_include_admin": "Pridajte kartu Správca s rodičovskými ovládacími prvkami na schvaľovanie a správu."
+        }
+      },
+      "dashboard_update_select": {
+        "title": "Aktualizovať ovládací panel",
+        "description": "Vyberte existujúci ovládací panel KidsChores, ktorý chcete aktualizovať.\n\nV režime aktualizácie sú k dispozícii iba zmeny zobrazenia pre jednotlivé deti a správcu.",
+        "data": {
+          "dashboard_update_selection": "Prístrojová doska"
+        },
+        "data_description": {
+          "dashboard_update_selection": "Vyberte existujúci dashboard, ktorý chcete aktualizovať."
+        }
+      },
+      "dashboard_update": {
+        "title": "Aktualizácia zobrazení informačného panela",
+        "description": "Aktualizovať zobrazenia pre **{dashboard}**.\n\nUpravte pokrytie zobrazení pre deti/administrátora a profil šablóny.\n\n[📖 Sprievodca generovaním dashboardu]({documentation_url})",
+        "data": {
+          "dashboard_template_profile": "Profil šablóny",
+          "dashboard_kid_selection": "Deti (jedna tableta na dieťa)",
+          "dashboard_include_admin": "Zahrnúť kartu Správca"
+        },
+        "data_description": {
+          "dashboard_template_profile": "Profil šablóny použitý na vybrané zobrazenia detského panela.",
+          "dashboard_kid_selection": "Vyberte, ktoré deti chcete zahrnúť ako zobrazenia v aktualizovanom dashboarde.",
+          "dashboard_include_admin": "Zahrnúť alebo odstrániť kartu Správca na tomto ovládacom paneli."
         }
       },
       "dashboard_delete": {
@@ -1548,7 +1570,7 @@
       },
       "dashboard_generator_confirm": {
         "title": "Potvrdiť generovanie dashboardu",
-        "description": "Vytvoria sa nasledujúce dashboardy:\n\n**Štýl:** {style}\n**Vynútená obnova:** {force_rebuild}\n\n**Dashboardy:**\n{dashboards}\n\nKliknite na Odoslať a vygenerujte dashboardy.",
+        "description": "Vytvoria sa nasledujúce dashboardy:\n\n**Štýl:** {style}\n\n**Dashboardy:**\n{dashboards}\n\nKliknite na Odoslať a vygenerujte dashboardy.",
         "data": {}
       },
       "dashboard_generator_result": {
@@ -1738,6 +1760,7 @@
       "dashboard_save_error": "Nepodarilo sa uložiť ovládací panel do služby Home Assistant. Podrobnosti nájdete v systémových protokoloch.",
       "dashboard_no_name": "Zadajte názov pre ovládací panel.",
       "dashboard_no_kids": "Vyberte aspoň jedno dieťa alebo povoľte možnosť „Zahrnúť kartu Správca“.",
+      "dashboard_single_kid_required": "V rozsahu „Jedno dieťa“ vyberte presne jedno dieťa.",
       "dashboard_no_dashboards": "Vyberte aspoň jeden dashboard, ktorý chcete odstrániť."
     },
     "abort": {
@@ -1786,22 +1809,50 @@
     },
     "dashboard_action": {
       "options": {
-        "create": "Vytvoriť/aktualizovať dashboard",
+        "create": "Vytvoriť nový dashboard",
+        "update": "Aktualizovať existujúce zobrazenia informačného panela",
         "delete": "Odstrániť informačný panel"
       }
     },
     "dashboard_style": {
       "options": {
-        "dashboard_style_full": "Plná (všetky funkcie)",
-        "dashboard_style_minimal": "Minimálne (iba základné veci)",
-        "dashboard_style_compact": "Kompaktné (husté rozloženie)",
-        "dashboard_style_admin": "Správca (Rodičovský panel)"
+        "full": "Plná (všetky funkcie)",
+        "minimal": "Minimálne (iba základné veci)",
+        "compact": "Kompaktné (husté rozloženie)",
+        "admin": "Správca (Rodičovský panel)"
       }
     },
     "dashboard_kid_selection": {
       "options": {}
     },
     "dashboard_delete_selection": {
+      "options": {}
+    },
+    "dashboard_update_selection": {
+      "options": {}
+    },
+    "dashboard_generation_mode": {
+      "options": {
+        "single_multi_view": "Jeden dashboard (viaceré zobrazenia)",
+        "per_kid_dashboard": "Dashboardy pre každé dieťa",
+        "targeted_view_update": "Cielená aktualizácia"
+      }
+    },
+    "dashboard_target_scope": {
+      "options": {
+        "all_selected_kids": "Všetky vybrané deti",
+        "single_kid": "Slobodné dieťa",
+        "admin_only": "Iba pre správcov"
+      }
+    },
+    "dashboard_template_profile": {
+      "options": {
+        "full": "Plná (všetky funkcie)",
+        "minimal": "Minimálne (iba základné veci)",
+        "compact": "Kompaktné (husté rozloženie)"
+      }
+    },
+    "dashboard_single_kid": {
       "options": {}
     },
     "manage_actions": {

@@ -1502,33 +1502,55 @@
         "data": {}
       },
       "dashboard_generator": {
-        "title": "Upravljanje nadzorne plošče",
+        "title": "Dejanja na nadzorni plošči",
         "description": "Ustvarjanje, posodabljanje ali brisanje nadzornih plošč KidsChores Lovelace.\n\n**Obvezne kartice po meri** (namestitev prek vmesnika HACS):\n- Kartice z gobami (custom:mushroom-template-card)\n- Samodejne entitete (custom:auto-entities)\n- Kartica mini grafa (custom:mini-graph-card)\n\nBrez teh kartic bodo nadzorne plošče prikazovale napake. Najprej jih namestite iz HACS, preden ustvarite nadzorne plošče.",
         "data": {
           "dashboard_action": "Dejanje",
           "dashboard_check_cards": "Preverite namestitev kartice"
         },
         "data_description": {
-          "dashboard_action": "Izberite, ali želite ustvariti nove nadzorne plošče ali izbrisati obstoječe.",
+          "dashboard_action": "Izberite eno dejanje: ustvarite novo nadzorno ploščo, posodobite poglede na obstoječi nadzorni plošči ali izbrišite nadzorne plošče.",
           "dashboard_check_cards": "Omogočite, da pred nadaljevanjem preverite, ali so nameščene zahtevane kartice po meri."
         }
       },
       "dashboard_create": {
-        "title": "Ustvari/posodobi nadzorno ploščo",
+        "title": "Ustvari nadzorno ploščo",
         "description": "Ustvarite nadzorno ploščo KidsChores z zavihki za vsakega otroka.\n\nIzberite ime za nadzorno ploščo, izberite otroke, ki jih želite vključiti, in po želji dodajte zavihek Skrbnik za starševsko upravljanje.\n\n[📖 Vodnik za ustvarjanje nadzornih plošč]({documentation_url})",
         "data": {
           "dashboard_name": "Ime nadzorne plošče",
           "dashboard_style": "Slog nadzorne plošče",
           "dashboard_kid_selection": "Otroci (ena tableta na otroka)",
-          "dashboard_include_admin": "Vključi zavihek »Skrbnik«",
-          "dashboard_force_rebuild": "Vsiljena ponovna izgradnja (prepis obstoječega)"
+          "dashboard_include_admin": "Vključi zavihek »Skrbnik«"
         },
         "data_description": {
           "dashboard_name": "Ime za nadzorno ploščo (prikaže se v stranski vrstici). Predlagano: Opravila",
           "dashboard_style": "Izberite postavitev nadzorne plošče: Polna (vse funkcije), Minimalna (samo bistvene funkcije) ali Kompaktna (gosta postavitev).",
           "dashboard_kid_selection": "Izberite, za katere otroke želite ustvariti zavihke. Vsak otrok dobi svoj pogled/zavihek.",
-          "dashboard_include_admin": "Dodajte zavihek Skrbnik s starševskimi kontrolami za odobritve in upravljanje.",
-          "dashboard_force_rebuild": "Če je omogočeno, bo obstoječa nadzorna plošča prepisana. V nasprotnem primeru generiranje ne uspe, če nadzorna plošča obstaja."
+          "dashboard_include_admin": "Dodajte zavihek Skrbnik s starševskimi kontrolami za odobritve in upravljanje."
+        }
+      },
+      "dashboard_update_select": {
+        "title": "Posodobi nadzorno ploščo",
+        "description": "Izberite obstoječo nadzorno ploščo KidsChores, ki jo želite posodobiti.\n\nV načinu posodabljanja so na voljo samo spremembe pogleda za posameznega otroka in skrbnika.",
+        "data": {
+          "dashboard_update_selection": "Nadzorna plošča"
+        },
+        "data_description": {
+          "dashboard_update_selection": "Izberite obstoječo nadzorno ploščo, ki jo želite posodobiti."
+        }
+      },
+      "dashboard_update": {
+        "title": "Posodobi poglede nadzorne plošče",
+        "description": "Posodobi poglede za **{dashboard}**.\n\nPrilagodi pokritost pogledov za otroke/skrbnike in profil predloge.\n\n[📖 Vodnik za ustvarjanje nadzorne plošče]({documentation_url})",
+        "data": {
+          "dashboard_template_profile": "Profil predloge",
+          "dashboard_kid_selection": "Otroci (ena tableta na otroka)",
+          "dashboard_include_admin": "Vključi zavihek »Skrbnik«"
+        },
+        "data_description": {
+          "dashboard_template_profile": "Profil predloge je bil uporabljen za izbrane poglede nadzorne plošče za otroke.",
+          "dashboard_kid_selection": "Izberite, katere otroke želite vključiti kot poglede na posodobljeni nadzorni plošči.",
+          "dashboard_include_admin": "Vključite ali odstranite zavihek Skrbnik na tej nadzorni plošči."
         }
       },
       "dashboard_delete": {
@@ -1548,7 +1570,7 @@
       },
       "dashboard_generator_confirm": {
         "title": "Potrdi generiranje nadzorne plošče",
-        "description": "Ustvarjene bodo naslednje nadzorne plošče:\n\n**Slog:** {style}\n**Vsilna ponovna izgradnja:** {force_rebuild}\n\n**Nadzorne plošče:**\n{dashboards}\n\nKliknite Pošlji, da ustvarite nadzorne plošče.",
+        "description": "Ustvarjene bodo naslednje nadzorne plošče:\n\n**Slog:** {style}\n\n**Nadzorne plošče:**\n{dashboards}\n\nKliknite Pošlji, da ustvarite nadzorne plošče.",
         "data": {}
       },
       "dashboard_generator_result": {
@@ -1738,6 +1760,7 @@
       "dashboard_save_error": "Nadzorne plošče ni bilo mogoče shraniti v Home Assistant. Za podrobnosti preverite sistemske dnevnike.",
       "dashboard_no_name": "Vnesite ime za nadzorno ploščo.",
       "dashboard_no_kids": "Izberite vsaj enega otroka ali omogočite možnost »Vključi zavihek za skrbnike«.",
+      "dashboard_single_kid_required": "Za obseg »En otrok« izberite natanko enega otroka.",
       "dashboard_no_dashboards": "Izberite vsaj eno nadzorno ploščo za brisanje."
     },
     "abort": {
@@ -1786,22 +1809,50 @@
     },
     "dashboard_action": {
       "options": {
-        "create": "Ustvari/posodobi nadzorno ploščo",
+        "create": "Ustvari novo nadzorno ploščo",
+        "update": "Posodobi obstoječe poglede nadzorne plošče",
         "delete": "Izbriši nadzorno ploščo"
       }
     },
     "dashboard_style": {
       "options": {
-        "dashboard_style_full": "Polno (vse funkcije)",
-        "dashboard_style_minimal": "Minimalno (samo osnovno)",
-        "dashboard_style_compact": "Kompaktna (gosta postavitev)",
-        "dashboard_style_admin": "Skrbnik (nadrejena nadzorna plošča)"
+        "full": "Polno (vse funkcije)",
+        "minimal": "Minimalno (samo osnovno)",
+        "compact": "Kompaktna (gosta postavitev)",
+        "admin": "Skrbnik (nadrejena nadzorna plošča)"
       }
     },
     "dashboard_kid_selection": {
       "options": {}
     },
     "dashboard_delete_selection": {
+      "options": {}
+    },
+    "dashboard_update_selection": {
+      "options": {}
+    },
+    "dashboard_generation_mode": {
+      "options": {
+        "single_multi_view": "Ena nadzorna plošča (več pogledov)",
+        "per_kid_dashboard": "Nadzorne plošče za vsakega otroka",
+        "targeted_view_update": "Ciljno usmerjena posodobitev"
+      }
+    },
+    "dashboard_target_scope": {
+      "options": {
+        "all_selected_kids": "Vsi izbrani otroci",
+        "single_kid": "Samski otrok",
+        "admin_only": "Samo za skrbnike"
+      }
+    },
+    "dashboard_template_profile": {
+      "options": {
+        "full": "Polno (vse funkcije)",
+        "minimal": "Minimalno (samo osnovno)",
+        "compact": "Kompaktna (gosta postavitev)"
+      }
+    },
+    "dashboard_single_kid": {
       "options": {}
     },
     "manage_actions": {

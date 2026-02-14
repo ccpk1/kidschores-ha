@@ -1502,33 +1502,55 @@
         "data": {}
       },
       "dashboard_generator": {
-        "title": "Dashboard beheren",
+        "title": "Dashboardacties",
         "description": "KidsChores Lovelace-dashboards maken, bijwerken of verwijderen.\n\n**Vereiste aangepaste kaarten** (installeren via HACS Frontend):\n- Mushroom Cards (custom:mushroom-template-card)\n- Auto-Entities (custom:auto-entities)\n- Mini Graph Card (custom:mini-graph-card)\n\nZonder deze kaarten zullen dashboards fouten weergeven. Installeer ze eerst via HACS voordat u dashboards genereert.",
         "data": {
           "dashboard_action": "Actie",
           "dashboard_check_cards": "Controlekaartinstallatie"
         },
         "data_description": {
-          "dashboard_action": "Kies of je nieuwe dashboards wilt aanmaken of bestaande dashboards wilt verwijderen.",
+          "dashboard_action": "Kies één actie: een nieuw dashboard maken, weergaven op een bestaand dashboard bijwerken of dashboards verwijderen.",
           "dashboard_check_cards": "Schakel deze optie in om te controleren of de vereiste aangepaste kaarten zijn geïnstalleerd voordat u verdergaat."
         }
       },
       "dashboard_create": {
-        "title": "Dashboard aanmaken/bijwerken",
+        "title": "Dashboard maken",
         "description": "Genereer een KidsChores-dashboard met tabbladen voor elk kind.\n\nKies een naam voor het dashboard, selecteer de kinderen die u wilt opnemen en voeg optioneel een beheerderstabblad toe voor ouderbeheer.\n\n[📖 Handleiding voor het genereren van dashboards]({documentation_url})",
         "data": {
           "dashboard_name": "Dashboardnaam",
           "dashboard_style": "Dashboardstijl",
           "dashboard_kid_selection": "Kinderen (één tablet per kind)",
-          "dashboard_include_admin": "Voeg het beheerderstabblad toe",
-          "dashboard_force_rebuild": "Geforceerde heropbouw (bestaande versie overschrijven)"
+          "dashboard_include_admin": "Voeg het beheerderstabblad toe"
         },
         "data_description": {
           "dashboard_name": "Naam voor het dashboard (verschijnt in de zijbalk). Voorgesteld: Taken",
           "dashboard_style": "Kies de lay-out van het dashboard: Volledig (alle functies), Minimaal (alleen de essentie) of Compact (overzichtelijke lay-out).",
           "dashboard_kid_selection": "Selecteer voor welke kinderen je tabbladen wilt aanmaken. Elk kind krijgt zijn of haar eigen weergave/tabblad.",
-          "dashboard_include_admin": "Voeg een beheerderstabblad toe met bovenliggende beheeropties voor goedkeuringen en beheer.",
-          "dashboard_force_rebuild": "Indien ingeschakeld, wordt het bestaande dashboard overschreven. Anders mislukt de generatie als het dashboard al bestaat."
+          "dashboard_include_admin": "Voeg een beheerderstabblad toe met bovenliggende beheeropties voor goedkeuringen en beheer."
+        }
+      },
+      "dashboard_update_select": {
+        "title": "Dashboard bijwerken",
+        "description": "Selecteer een bestaand KidsChores-dashboard om bij te werken.\n\nIn de update-modus zijn alleen wijzigingen per kind en in de beheerdersweergave beschikbaar.",
+        "data": {
+          "dashboard_update_selection": "Dashboard"
+        },
+        "data_description": {
+          "dashboard_update_selection": "Kies het bestaande dashboard dat u wilt bijwerken."
+        }
+      },
+      "dashboard_update": {
+        "title": "Dashboardweergaven bijwerken",
+        "description": "Update de weergaven voor **{dashboard}**.\n\nPas de weergavedekking voor kinderen/beheerders en het sjabloonprofiel aan.\n\n[📖 Handleiding voor het genereren van dashboards]({documentation_url})",
+        "data": {
+          "dashboard_template_profile": "Sjabloonprofiel",
+          "dashboard_kid_selection": "Kinderen (één tablet per kind)",
+          "dashboard_include_admin": "Voeg het beheerderstabblad toe"
+        },
+        "data_description": {
+          "dashboard_template_profile": "Sjabloonprofiel toegepast op geselecteerde dashboardweergaven voor kinderen.",
+          "dashboard_kid_selection": "Selecteer welke kinderen u wilt weergeven in het bijgewerkte dashboard.",
+          "dashboard_include_admin": "Voeg het tabblad 'Beheer' toe aan of verwijder het uit dit dashboard."
         }
       },
       "dashboard_delete": {
@@ -1548,7 +1570,7 @@
       },
       "dashboard_generator_confirm": {
         "title": "Bevestig het genereren van het dashboard",
-        "description": "De volgende dashboards worden aangemaakt:\n\n**Stijl:** {style}\n**Geforceerd opnieuw opbouwen:** {force_rebuild}\n\n**Dashboards:**\n{dashboards}\n\nKlik op Verzenden om de dashboards te genereren.",
+        "description": "De volgende dashboards worden aangemaakt:\n\n**Stijl:** {style}\n\n**Dashboards:**\n{dashboards}\n\nKlik op Verzenden om de dashboards te genereren.",
         "data": {}
       },
       "dashboard_generator_result": {
@@ -1738,6 +1760,7 @@
       "dashboard_save_error": "Het opslaan van het dashboard in Home Assistant is mislukt. Raadpleeg de systeemlogboeken voor meer informatie.",
       "dashboard_no_name": "Geef het dashboard een naam.",
       "dashboard_no_kids": "Selecteer ten minste één kind of schakel 'Beheertabblad toevoegen' in.",
+      "dashboard_single_kid_required": "Voor het bereik 'Enkel kind' selecteert u precies één kind.",
       "dashboard_no_dashboards": "Selecteer ten minste één dashboard om te verwijderen."
     },
     "abort": {
@@ -1786,22 +1809,50 @@
     },
     "dashboard_action": {
       "options": {
-        "create": "Dashboard aanmaken/bijwerken",
+        "create": "Een nieuw dashboard maken",
+        "update": "Bestaande dashboardweergaven bijwerken",
         "delete": "Dashboard verwijderen"
       }
     },
     "dashboard_style": {
       "options": {
-        "dashboard_style_full": "Volledig (alle functies)",
-        "dashboard_style_minimal": "Minimaal (alleen de essentie)",
-        "dashboard_style_compact": "Compact (Dichte lay-out)",
-        "dashboard_style_admin": "Beheerder (dashboard voor ouders)"
+        "full": "Volledig (alle functies)",
+        "minimal": "Minimaal (alleen de essentie)",
+        "compact": "Compact (Dichte lay-out)",
+        "admin": "Beheerder (dashboard voor ouders)"
       }
     },
     "dashboard_kid_selection": {
       "options": {}
     },
     "dashboard_delete_selection": {
+      "options": {}
+    },
+    "dashboard_update_selection": {
+      "options": {}
+    },
+    "dashboard_generation_mode": {
+      "options": {
+        "single_multi_view": "Eén dashboard (meerdere weergaven)",
+        "per_kid_dashboard": "Dashboards per kind",
+        "targeted_view_update": "Gerichte update"
+      }
+    },
+    "dashboard_target_scope": {
+      "options": {
+        "all_selected_kids": "Alle geselecteerde kinderen",
+        "single_kid": "Enig kind",
+        "admin_only": "Alleen voor beheerders"
+      }
+    },
+    "dashboard_template_profile": {
+      "options": {
+        "full": "Volledig (alle functies)",
+        "minimal": "Minimaal (alleen de essentie)",
+        "compact": "Compact (Dichte lay-out)"
+      }
+    },
+    "dashboard_single_kid": {
       "options": {}
     },
     "manage_actions": {

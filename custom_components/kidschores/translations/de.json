@@ -1502,33 +1502,55 @@
         "data": {}
       },
       "dashboard_generator": {
-        "title": "Dashboard verwalten",
+        "title": "Dashboard-Aktionen",
         "description": "KidsChores Lovelace-Dashboards erstellen, aktualisieren oder löschen.\n\n**Erforderliche benutzerdefinierte Karten** (Installation über das HACS-Frontend):\n- Pilzkarten (custom:mushroom-template-card)\n- Automatische Entitäten (custom:auto-entities)\n- Mini-Graphkarte (custom:mini-graph-card)\n\nOhne diese Karten werden Dashboards Fehler anzeigen. Installieren Sie sie zuerst über HACS, bevor Sie Dashboards generieren.",
         "data": {
           "dashboard_action": "Aktion",
           "dashboard_check_cards": "Installation der Scheckkarte"
         },
         "data_description": {
-          "dashboard_action": "Wählen Sie aus, ob Sie neue Dashboards erstellen oder bestehende löschen möchten.",
+          "dashboard_action": "Wählen Sie eine Aktion aus: ein neues Dashboard erstellen, Ansichten in einem bestehenden Dashboard aktualisieren oder Dashboards löschen.",
           "dashboard_check_cards": "Aktivieren Sie diese Option, um vor dem Fortfahren zu überprüfen, ob die erforderlichen benutzerdefinierten Karten installiert sind."
         }
       },
       "dashboard_create": {
-        "title": "Dashboard erstellen/aktualisieren",
+        "title": "Dashboard erstellen",
         "description": "Erstelle ein KidsChores-Dashboard mit Registerkarten für jedes Kind.\n\nWähle einen Namen für das Dashboard, die Kinder aus, die einbezogen werden sollen, und füge optional eine Admin-Registerkarte für die Elternverwaltung hinzu.\n\n[📖 Anleitung zur Dashboard-Erstellung]({documentation_url})",
         "data": {
           "dashboard_name": "Dashboard-Name",
           "dashboard_style": "Dashboard-Stil",
           "dashboard_kid_selection": "Kinder (eine Tablette pro Kind)",
-          "dashboard_include_admin": "Admin-Registerkarte einbinden",
-          "dashboard_force_rebuild": "Neuerstellung erzwingen (vorhandene Daten überschreiben)"
+          "dashboard_include_admin": "Admin-Registerkarte einbinden"
         },
         "data_description": {
           "dashboard_name": "Name für das Dashboard (erscheint in der Seitenleiste). Vorschlag: Aufgaben",
           "dashboard_style": "Wählen Sie das Dashboard-Layout: Vollständig (alle Funktionen), Minimal (nur das Wesentliche) oder Kompakt (dichtes Layout).",
           "dashboard_kid_selection": "Wählen Sie aus, für welche Kinder Registerkarten erstellt werden sollen. Jedes Kind erhält seine eigene Ansicht/Registerkarte.",
-          "dashboard_include_admin": "Fügen Sie eine Registerkarte „Admin“ mit übergeordneten Steuerelementen für Genehmigungen und Verwaltung hinzu.",
-          "dashboard_force_rebuild": "Ist diese Option aktiviert, wird das bestehende Dashboard überschrieben. Andernfalls schlägt die Generierung fehl, falls bereits ein Dashboard existiert."
+          "dashboard_include_admin": "Fügen Sie eine Registerkarte „Admin“ mit übergeordneten Steuerelementen für Genehmigungen und Verwaltung hinzu."
+        }
+      },
+      "dashboard_update_select": {
+        "title": "Dashboard aktualisieren",
+        "description": "Wählen Sie ein vorhandenes KidsChores-Dashboard zum Aktualisieren aus.\n\nIm Aktualisierungsmodus sind nur Änderungen pro Kind und in der Administratoransicht verfügbar.",
+        "data": {
+          "dashboard_update_selection": "Armaturenbrett"
+        },
+        "data_description": {
+          "dashboard_update_selection": "Wählen Sie das vorhandene Dashboard aus, das Sie aktualisieren möchten."
+        }
+      },
+      "dashboard_update": {
+        "title": "Dashboard-Ansichten aktualisieren",
+        "description": "Ansichten für **{dashboard}** aktualisieren.\n\nAnsichtsabdeckung für Kinder/Administratoren und Vorlagenprofil anpassen.\n\n[📖 Leitfaden zur Dashboard-Erstellung]({documentation_url})",
+        "data": {
+          "dashboard_template_profile": "Vorlagenprofil",
+          "dashboard_kid_selection": "Kinder (eine Tablette pro Kind)",
+          "dashboard_include_admin": "Admin-Registerkarte einbinden"
+        },
+        "data_description": {
+          "dashboard_template_profile": "Vorlagenprofil auf ausgewählte Kinder-Dashboard-Ansichten angewendet.",
+          "dashboard_kid_selection": "Wählen Sie aus, welche Kinder als Ansichten im aktualisierten Dashboard angezeigt werden sollen.",
+          "dashboard_include_admin": "Fügen Sie die Registerkarte „Admin“ in dieses Dashboard ein oder entfernen Sie sie."
         }
       },
       "dashboard_delete": {
@@ -1548,7 +1570,7 @@
       },
       "dashboard_generator_confirm": {
         "title": "Dashboard-Generierung bestätigen",
-        "description": "Folgende Dashboards werden erstellt:\n\n**Stil:** {style}\n**Neuaufbau erzwingen:** {force_rebuild}\n\n**Dashboards:**\n{dashboards}\n\nKlicken Sie auf „Senden“, um die Dashboards zu generieren.",
+        "description": "Folgende Dashboards werden erstellt:\n\n**Stil:** {style}\n\n**Dashboards:**\n{dashboards}\n\nKlicken Sie auf „Absenden“, um die Dashboards zu generieren.",
         "data": {}
       },
       "dashboard_generator_result": {
@@ -1738,6 +1760,7 @@
       "dashboard_save_error": "Das Dashboard konnte nicht in Home Assistant gespeichert werden. Weitere Informationen finden Sie in den Systemprotokollen.",
       "dashboard_no_name": "Bitte geben Sie einen Namen für das Dashboard ein.",
       "dashboard_no_kids": "Bitte wählen Sie mindestens ein Kind aus oder aktivieren Sie die Option „Admin-Registerkarte einbeziehen“.",
+      "dashboard_single_kid_required": "Für den Bereich „Einzelnes Kind“ wählen Sie genau ein Kind aus.",
       "dashboard_no_dashboards": "Bitte wählen Sie mindestens ein Dashboard zum Löschen aus."
     },
     "abort": {
@@ -1786,22 +1809,50 @@
     },
     "dashboard_action": {
       "options": {
-        "create": "Dashboard erstellen/aktualisieren",
+        "create": "Neues Dashboard erstellen",
+        "update": "Bestehende Dashboard-Ansichten aktualisieren",
         "delete": "Dashboard löschen"
       }
     },
     "dashboard_style": {
       "options": {
-        "dashboard_style_full": "Vollversion (Alle Funktionen)",
-        "dashboard_style_minimal": "Minimal (nur das Nötigste)",
-        "dashboard_style_compact": "Kompakt (dichte Anordnung)",
-        "dashboard_style_admin": "Admin (Übergeordnetes Dashboard)"
+        "full": "Vollversion (Alle Funktionen)",
+        "minimal": "Minimal (nur das Nötigste)",
+        "compact": "Kompakt (dichte Anordnung)",
+        "admin": "Admin (Übergeordnetes Dashboard)"
       }
     },
     "dashboard_kid_selection": {
       "options": {}
     },
     "dashboard_delete_selection": {
+      "options": {}
+    },
+    "dashboard_update_selection": {
+      "options": {}
+    },
+    "dashboard_generation_mode": {
+      "options": {
+        "single_multi_view": "Einzel-Dashboard (Mehrfachansicht)",
+        "per_kid_dashboard": "Dashboards pro Kind",
+        "targeted_view_update": "Gezieltes Update"
+      }
+    },
+    "dashboard_target_scope": {
+      "options": {
+        "all_selected_kids": "Alle ausgewählten Kinder",
+        "single_kid": "Einzelkind",
+        "admin_only": "Nur für Administratoren"
+      }
+    },
+    "dashboard_template_profile": {
+      "options": {
+        "full": "Vollversion (Alle Funktionen)",
+        "minimal": "Minimal (nur das Nötigste)",
+        "compact": "Kompakt (dichte Anordnung)"
+      }
+    },
+    "dashboard_single_kid": {
       "options": {}
     },
     "manage_actions": {

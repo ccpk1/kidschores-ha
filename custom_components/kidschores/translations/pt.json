@@ -1502,33 +1502,55 @@
         "data": {}
       },
       "dashboard_generator": {
-        "title": "Gerir painel de controle",
+        "title": "Ações do painel de controlo",
         "description": "Crie, atualize ou apague painéis do KidsChores Lovelace.\n\n**Cartões personalizados necessários** (instalar através do frontend do HACS):\n- Cartões Mushroom (custom:mushroom-template-card)\n- Auto-Entities (custom:auto-entities)\n- Mini Graph Card (custom:mini-graph-card)\n\nSem estes cartões, os painéis apresentarão erros. Instale-os primeiro pelo HACS antes de gerar os painéis.",
         "data": {
           "dashboard_action": "Ação",
           "dashboard_check_cards": "Instalação do cartão de verificação"
         },
         "data_description": {
-          "dashboard_action": "Escolha se pretende criar novos painéis ou eliminar os existentes.",
+          "dashboard_action": "Escolha uma ação: criar um novo painel, atualizar as vistas num painel existente ou eliminar painéis.",
           "dashboard_check_cards": "Ative para verificar se os cartões personalizados necessários estão instalados antes de prosseguir."
         }
       },
       "dashboard_create": {
-        "title": "Criar/Atualizar Painel de Controlo",
+        "title": "Criar painel de controlo",
         "description": "Gere um painel KidsChores com separadores para cada criança.\n\nEscolha um nome para o painel, selecione as crianças que pretende incluir e, opcionalmente, adicione um separador de Administrador para gestão pelos pais.\n\n[📖 Guia de Geração de Painéis]({documentation_url})",
         "data": {
           "dashboard_name": "Nome do painel de controlo",
           "dashboard_style": "Estilo do painel de controlo",
           "dashboard_kid_selection": "Crianças (um tablet por criança)",
-          "dashboard_include_admin": "Incluir guia de administração",
-          "dashboard_force_rebuild": "Forçar reconstrução (sobrescrever existente)"
+          "dashboard_include_admin": "Incluir guia de administração"
         },
         "data_description": {
           "dashboard_name": "Nome para o painel (aparece na barra lateral). Sugestão: Tarefas",
           "dashboard_style": "Escolha o layout do painel: Completo (todas as funcionalidades), Minimalista (apenas o essencial) ou Compacto (layout denso).",
           "dashboard_kid_selection": "Selecione para que crianças pretende criar separadores. Cada criança terá a sua própria visualização/tab.",
-          "dashboard_include_admin": "Adicione um separador de Administração com controlos principais para aprovações e gestão.",
-          "dashboard_force_rebuild": "Se estiver ativada, a função sobrescreverá o painel existente. Caso contrário, a geração falhará se o painel já existir."
+          "dashboard_include_admin": "Adicione um separador de Administração com controlos principais para aprovações e gestão."
+        }
+      },
+      "dashboard_update_select": {
+        "title": "Painel de atualização",
+        "description": "Selecione um painel KidsChores existente para atualizar.\n\nApenas as alterações de visualização por criança e de administrador estão disponíveis no modo de atualização.",
+        "data": {
+          "dashboard_update_selection": "Painel"
+        },
+        "data_description": {
+          "dashboard_update_selection": "Selecione o painel de controlo existente que pretende atualizar."
+        }
+      },
+      "dashboard_update": {
+        "title": "Atualizar as visualizações do painel de controlo",
+        "description": "Atualizar as vistas para **{dashboard}**.\n\nAjustar a cobertura de visualização das crianças/administradores e o perfil do modelo.\n\n[📖 Guia de Geração do Painel]({documentation_url})",
+        "data": {
+          "dashboard_template_profile": "Perfil do modelo",
+          "dashboard_kid_selection": "Crianças (um tablet por criança)",
+          "dashboard_include_admin": "Incluir guia de administração"
+        },
+        "data_description": {
+          "dashboard_template_profile": "Modelo de perfil aplicado às visualizações selecionadas do painel infantil.",
+          "dashboard_kid_selection": "Selecione quais as crianças a incluir como visualizações no painel atualizado.",
+          "dashboard_include_admin": "Incluir ou remover o separador Administrador neste painel."
         }
       },
       "dashboard_delete": {
@@ -1548,7 +1570,7 @@
       },
       "dashboard_generator_confirm": {
         "title": "Confirmar geração do painel",
-        "description": "Serão criados os seguintes painéis:\n\n**Estilo:** {style}\n**Forçar Recriação:** {force_rebuild}\n\n**Painéis:**\n{dashboards}\n\nClique em Enviar para gerar os painéis.",
+        "description": "Serão criados os seguintes painéis:\n\n**Estilo:** {style}\n\n**Painéis:**\n{dashboards}\n\nClique em Enviar para gerar os painéis.",
         "data": {}
       },
       "dashboard_generator_result": {
@@ -1738,6 +1760,7 @@
       "dashboard_save_error": "Falha ao guardar o painel no Home Assistant. Verifique os registos do sistema para obter detalhes.",
       "dashboard_no_name": "Por favor, introduza um nome para o painel de controlo.",
       "dashboard_no_kids": "Selecione pelo menos uma criança ou ative a opção \"Incluir separador de administrador\".",
+      "dashboard_single_kid_required": "Para a opção \"Filho único\", selecione exatamente um filho.",
       "dashboard_no_dashboards": "Selecione pelo menos um painel para eliminar."
     },
     "abort": {
@@ -1786,22 +1809,50 @@
     },
     "dashboard_action": {
       "options": {
-        "create": "Criar/Atualizar Painel de Controlo",
+        "create": "Criar novo painel de controlo",
+        "update": "Atualizar as visualizações de painel existentes",
         "delete": "Apagar painel de controlo"
       }
     },
     "dashboard_style": {
       "options": {
-        "dashboard_style_full": "Completo (Todas as características)",
-        "dashboard_style_minimal": "Minimalista (apenas o essencial)",
-        "dashboard_style_compact": "Compacto (Layout denso)",
-        "dashboard_style_admin": "Administrador (Painel de controlo principal)"
+        "full": "Completo (Todas as características)",
+        "minimal": "Minimalista (apenas o essencial)",
+        "compact": "Compacto (Layout denso)",
+        "admin": "Administrador (Painel de controlo principal)"
       }
     },
     "dashboard_kid_selection": {
       "options": {}
     },
     "dashboard_delete_selection": {
+      "options": {}
+    },
+    "dashboard_update_selection": {
+      "options": {}
+    },
+    "dashboard_generation_mode": {
+      "options": {
+        "single_multi_view": "Painel único (visualização múltipla)",
+        "per_kid_dashboard": "Painéis de controlo por criança",
+        "targeted_view_update": "Atualização direcionada"
+      }
+    },
+    "dashboard_target_scope": {
+      "options": {
+        "all_selected_kids": "Todas as crianças selecionadas",
+        "single_kid": "Filho único",
+        "admin_only": "Apenas para administradores"
+      }
+    },
+    "dashboard_template_profile": {
+      "options": {
+        "full": "Completo (Todas as características)",
+        "minimal": "Minimalista (apenas o essencial)",
+        "compact": "Compacto (Layout denso)"
+      }
+    },
+    "dashboard_single_kid": {
       "options": {}
     },
     "manage_actions": {
