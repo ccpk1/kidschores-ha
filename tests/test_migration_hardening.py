@@ -476,6 +476,34 @@ class TestSchema44Gate:
         assert "some_phase" in applied
         assert "schema_44_beta4" in applied
 
+    def test_schema_44_removes_legacy_kid_chore_badge_refs(self, migrator) -> None:
+        """Schema 44 removes legacy badge_refs from kid chore records."""
+        migrator.coordinator._data[const.DATA_META] = {
+            const.DATA_META_SCHEMA_VERSION: const.SCHEMA_VERSION_STORAGE_ONLY,
+            const.DATA_META_MIGRATIONS_APPLIED: ["config_to_storage"],
+        }
+
+        kids = migrator.coordinator._data.setdefault(const.DATA_KIDS, {})
+        kids["kid-uuid-1"][const.DATA_KID_CHORE_DATA] = {
+            "chore-uuid-1": {
+                const.DATA_KID_CHORE_DATA_STATE: const.CHORE_STATE_PENDING,
+                const.DATA_KID_CHORE_DATA_BADGE_REFS: ["badge-a", "badge-b"],
+            },
+            "chore-uuid-2": {
+                const.DATA_KID_CHORE_DATA_STATE: const.CHORE_STATE_PENDING,
+            },
+        }
+
+        migrator._migrate_to_schema_44()
+
+        kid_chore_data = kids["kid-uuid-1"][const.DATA_KID_CHORE_DATA]
+        assert (
+            const.DATA_KID_CHORE_DATA_BADGE_REFS not in kid_chore_data["chore-uuid-1"]
+        )
+        assert (
+            const.DATA_KID_CHORE_DATA_BADGE_REFS not in kid_chore_data["chore-uuid-2"]
+        )
+
 
 # =============================================================================
 # FULL CASCADE INTEGRATION

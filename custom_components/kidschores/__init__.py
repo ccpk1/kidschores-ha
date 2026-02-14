@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.exceptions import ConfigEntryNotReady, HomeAssistantError
 
 from . import const
 from .coordinator import KidsChoresConfigEntry, KidsChoresDataCoordinator
@@ -224,6 +224,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: KidsChoresConfigEntry) -
         const.LOGGER.warning(
             "System manager setup failed (some cleanup may not work): %s", err
         )
+
+    # Dashboard storage dedupe (v0.5.0 migration safety)
+    # Remove stale duplicate kcd-* records to prevent Lovelace panel collisions
+    # on subsequent Home Assistant startups.
+    try:
+        from .helpers import dashboard_builder as dbuilder
+
+        dedupe_removed = await dbuilder.async_dedupe_kidschores_dashboards(hass)
+        removed_total = sum(dedupe_removed.values())
+        if removed_total > 0:
+            const.LOGGER.info(
+                "Startup dashboard dedupe removed %d duplicate entries: %s",
+                removed_total,
+                dedupe_removed,
+            )
+    except HomeAssistantError as err:
+        const.LOGGER.warning("Startup dashboard dedupe failed: %s", err)
 
     # Set up services required by the integration.
     async_setup_services(hass)

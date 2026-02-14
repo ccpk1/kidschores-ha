@@ -127,6 +127,26 @@ DASHBOARD_TEMPLATE_URL_PATTERN: Final = "https://raw.githubusercontent.com/ad-ha
 # Local fallback template path (relative to integration package)
 DASHBOARD_LOCAL_TEMPLATE_PATH: Final = "templates/dashboard_{style}.yaml"
 
+# Dashboard generation modes (Phase 2 scaffolding)
+DASHBOARD_GENERATION_MODE_SINGLE_MULTI_VIEW: Final = "single_multi_view"
+DASHBOARD_GENERATION_MODE_PER_KID_DASHBOARD: Final = "per_kid_dashboard"
+DASHBOARD_GENERATION_MODE_TARGETED_VIEW_UPDATE: Final = "targeted_view_update"
+DASHBOARD_GENERATION_MODES: Final = [
+    DASHBOARD_GENERATION_MODE_SINGLE_MULTI_VIEW,
+    DASHBOARD_GENERATION_MODE_PER_KID_DASHBOARD,
+    DASHBOARD_GENERATION_MODE_TARGETED_VIEW_UPDATE,
+]
+
+# Dashboard target scope model (Phase 2 scaffolding)
+DASHBOARD_TARGET_SCOPE_ALL_SELECTED_KIDS: Final = "all_selected_kids"
+DASHBOARD_TARGET_SCOPE_SINGLE_KID: Final = "single_kid"
+DASHBOARD_TARGET_SCOPE_ADMIN_ONLY: Final = "admin_only"
+DASHBOARD_TARGET_SCOPES: Final = [
+    DASHBOARD_TARGET_SCOPE_ALL_SELECTED_KIDS,
+    DASHBOARD_TARGET_SCOPE_SINGLE_KID,
+    DASHBOARD_TARGET_SCOPE_ADMIN_ONLY,
+]
+
 # ==============================================================================
 # Event Infrastructure (Phase 0: Layered Architecture Foundation)
 # ==============================================================================
@@ -836,13 +856,19 @@ CFOF_DASHBOARD_INPUT_INCLUDE_ADMIN: Final = "dashboard_include_admin"
 CFOF_DASHBOARD_INPUT_FORCE_REBUILD: Final = "dashboard_force_rebuild"
 CFOF_DASHBOARD_INPUT_ACTION: Final = "dashboard_action"
 CFOF_DASHBOARD_INPUT_DELETE_SELECTION: Final = "dashboard_delete_selection"
+CFOF_DASHBOARD_INPUT_UPDATE_SELECTION: Final = "dashboard_update_selection"
 CFOF_DASHBOARD_INPUT_CHECK_CARDS: Final = "dashboard_check_cards"
+CFOF_DASHBOARD_INPUT_GENERATION_MODE: Final = "dashboard_generation_mode"
+CFOF_DASHBOARD_INPUT_TARGET_SCOPE: Final = "dashboard_target_scope"
+CFOF_DASHBOARD_INPUT_SINGLE_KID: Final = "dashboard_single_kid"
+CFOF_DASHBOARD_INPUT_TEMPLATE_PROFILE: Final = "dashboard_template_profile"
 
 # Dashboard Generator Defaults
 DASHBOARD_DEFAULT_NAME: Final = "Chores"
 
 # Dashboard Generator Actions
 DASHBOARD_ACTION_CREATE: Final = "create"
+DASHBOARD_ACTION_UPDATE: Final = "update"
 DASHBOARD_ACTION_DELETE: Final = "delete"
 
 # Chore Custom Interval Reset Periods
@@ -3676,10 +3702,17 @@ TRANS_KEY_CFOF_DASHBOARD_SAVE_ERROR: Final = "dashboard_save_error"
 TRANS_KEY_CFOF_DASHBOARD_SUCCESS: Final = "dashboard_success"
 TRANS_KEY_CFOF_DASHBOARD_NO_NAME: Final = "dashboard_no_name"
 TRANS_KEY_CFOF_DASHBOARD_NO_KIDS: Final = "dashboard_no_kids"
+TRANS_KEY_CFOF_DASHBOARD_SINGLE_KID_REQUIRED: Final = "dashboard_single_kid_required"
 TRANS_KEY_CFOF_DASHBOARD_ACTION: Final = "dashboard_action"
 TRANS_KEY_CFOF_DASHBOARD_ACTION_CREATE: Final = "dashboard_action_create"
+TRANS_KEY_CFOF_DASHBOARD_ACTION_UPDATE: Final = "dashboard_action_update"
 TRANS_KEY_CFOF_DASHBOARD_ACTION_DELETE: Final = "dashboard_action_delete"
+TRANS_KEY_CFOF_DASHBOARD_GENERATION_MODE: Final = "dashboard_generation_mode"
+TRANS_KEY_CFOF_DASHBOARD_TARGET_SCOPE: Final = "dashboard_target_scope"
+TRANS_KEY_CFOF_DASHBOARD_TEMPLATE_PROFILE: Final = "dashboard_template_profile"
+TRANS_KEY_CFOF_DASHBOARD_SINGLE_KID: Final = "dashboard_single_kid"
 TRANS_KEY_CFOF_DASHBOARD_DELETE_SELECTION: Final = "dashboard_delete_selection"
+TRANS_KEY_CFOF_DASHBOARD_UPDATE_SELECTION: Final = "dashboard_update_selection"
 TRANS_KEY_CFOF_DASHBOARD_NO_DASHBOARDS: Final = "dashboard_no_dashboards"
 TRANS_KEY_CFOF_DASHBOARD_DELETED: Final = "dashboard_deleted"
 

@@ -1502,33 +1502,55 @@
         "data": {}
       },
       "dashboard_generator": {
-        "title": "Manage Dashboard",
+        "title": "Dashboard Actions",
         "description": "Create, update, or delete KidsChores Lovelace dashboards.\n\n**Required Custom Cards** (install via HACS Frontend):\n- Mushroom Cards (custom:mushroom-template-card)\n- Auto-Entities (custom:auto-entities)\n- Mini Graph Card (custom:mini-graph-card)\n\nWithout these cards, dashboards will show errors. Install them first from HACS before generating dashboards.",
         "data": {
           "dashboard_action": "Action",
           "dashboard_check_cards": "Check Card Installation"
         },
         "data_description": {
-          "dashboard_action": "Choose whether to create new dashboards or delete existing ones.",
+          "dashboard_action": "Choose one action: create a new dashboard, update views on an existing dashboard, or delete dashboards.",
           "dashboard_check_cards": "Enable to verify that required custom cards are installed before proceeding."
         }
       },
       "dashboard_create": {
-        "title": "Create / Update Dashboard",
+        "title": "Create Dashboard",
         "description": "Generate a KidsChores dashboard with tabs for each kid.\n\nChoose a name for the dashboard, select kids to include, and optionally add an Admin tab for parent management.\n\n[📖 Dashboard Generation Guide]({documentation_url})",
         "data": {
           "dashboard_name": "Dashboard Name",
           "dashboard_style": "Dashboard Style",
           "dashboard_kid_selection": "Kids (one tab per kid)",
-          "dashboard_include_admin": "Include Admin Tab",
-          "dashboard_force_rebuild": "Force Rebuild (overwrite existing)"
+          "dashboard_include_admin": "Include Admin Tab"
         },
         "data_description": {
           "dashboard_name": "Name for the dashboard (appears in sidebar). Suggested: Chores",
           "dashboard_style": "Choose the dashboard layout: Full (all features), Minimal (essentials only), or Compact (dense layout).",
           "dashboard_kid_selection": "Select which kids to create tabs for. Each kid gets their own view/tab.",
-          "dashboard_include_admin": "Add an Admin tab with parent controls for approvals and management.",
-          "dashboard_force_rebuild": "If enabled, existing dashboard will be overwritten. Otherwise, generation fails if dashboard exists."
+          "dashboard_include_admin": "Add an Admin tab with parent controls for approvals and management."
+        }
+      },
+      "dashboard_update_select": {
+        "title": "Update Dashboard",
+        "description": "Select an existing KidsChores dashboard to update.\n\nOnly per-kid and admin view changes are available in update mode.",
+        "data": {
+          "dashboard_update_selection": "Dashboard"
+        },
+        "data_description": {
+          "dashboard_update_selection": "Choose the existing dashboard you want to update."
+        }
+      },
+      "dashboard_update": {
+        "title": "Update Dashboard Views",
+        "description": "Update views for **{dashboard}**.\n\nAdjust kids/admin view coverage and template profile.\n\n[📖 Dashboard Generation Guide]({documentation_url})",
+        "data": {
+          "dashboard_template_profile": "Template Profile",
+          "dashboard_kid_selection": "Kids (one tab per kid)",
+          "dashboard_include_admin": "Include Admin Tab"
+        },
+        "data_description": {
+          "dashboard_template_profile": "Template profile applied to selected kid dashboard views.",
+          "dashboard_kid_selection": "Select which kids to include as views in the updated dashboard.",
+          "dashboard_include_admin": "Include or remove the Admin tab in this dashboard."
         }
       },
       "dashboard_delete": {
@@ -1548,7 +1570,7 @@
       },
       "dashboard_generator_confirm": {
         "title": "Confirm Dashboard Generation",
-        "description": "The following dashboards will be created:\n\n**Style:** {style}\n**Force Rebuild:** {force_rebuild}\n\n**Dashboards:**\n{dashboards}\n\nClick Submit to generate the dashboards.",
+        "description": "The following dashboards will be created:\n\n**Style:** {style}\n\n**Dashboards:**\n{dashboards}\n\nClick Submit to generate the dashboards.",
         "data": {}
       },
       "dashboard_generator_result": {
@@ -1738,6 +1760,7 @@
       "dashboard_save_error": "Failed to save dashboard to Home Assistant. Check system logs for details.",
       "dashboard_no_name": "Please enter a name for the dashboard.",
       "dashboard_no_kids": "Please select at least one kid or enable 'Include Admin Tab'.",
+      "dashboard_single_kid_required": "For 'Single kid' scope, select exactly one kid.",
       "dashboard_no_dashboards": "Please select at least one dashboard to delete."
     },
     "abort": {
@@ -1786,22 +1809,50 @@
     },
     "dashboard_action": {
       "options": {
-        "create": "Create / Update Dashboard",
+        "create": "Create New Dashboard",
+        "update": "Update Existing Dashboard Views",
         "delete": "Delete Dashboard"
       }
     },
     "dashboard_style": {
       "options": {
-        "dashboard_style_full": "Full (All features)",
-        "dashboard_style_minimal": "Minimal (Essentials only)",
-        "dashboard_style_compact": "Compact (Dense layout)",
-        "dashboard_style_admin": "Admin (Parent dashboard)"
+        "full": "Full (All features)",
+        "minimal": "Minimal (Essentials only)",
+        "compact": "Compact (Dense layout)",
+        "admin": "Admin (Parent dashboard)"
       }
     },
     "dashboard_kid_selection": {
       "options": {}
     },
     "dashboard_delete_selection": {
+      "options": {}
+    },
+    "dashboard_update_selection": {
+      "options": {}
+    },
+    "dashboard_generation_mode": {
+      "options": {
+        "single_multi_view": "Single dashboard (multi-view)",
+        "per_kid_dashboard": "Per-kid dashboards",
+        "targeted_view_update": "Targeted update"
+      }
+    },
+    "dashboard_target_scope": {
+      "options": {
+        "all_selected_kids": "All selected kids",
+        "single_kid": "Single kid",
+        "admin_only": "Admin only"
+      }
+    },
+    "dashboard_template_profile": {
+      "options": {
+        "full": "Full (All features)",
+        "minimal": "Minimal (Essentials only)",
+        "compact": "Compact (Dense layout)"
+      }
+    },
+    "dashboard_single_kid": {
       "options": {}
     },
     "manage_actions": {

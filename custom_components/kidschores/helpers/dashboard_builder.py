@@ -27,6 +27,7 @@ from homeassistant.components.lovelace.const import (
     DOMAIN as LOVELACE_DOMAIN,
     LOVELACE_DATA,
     MODE_STORAGE,
+    ConfigNotFound,
 )
 from homeassistant.components.lovelace.dashboard import (
     DashboardsCollection,
@@ -40,7 +41,7 @@ import jinja2
 import yaml
 
 from .. import const
-from .dashboard_helpers import build_dashboard_context
+from .dashboard_helpers import build_dashboard_context, resolve_kid_template_profile
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -269,6 +270,17 @@ def get_multi_view_url_path(dashboard_name: str) -> str:
     return f"kcd-{slug}"
 
 
+def _get_collection_items(collection: DashboardsCollection) -> list[dict[str, Any]]:
+    """Return dashboard items from DashboardsCollection across HA storage shapes."""
+    raw_data = collection.data
+    if isinstance(raw_data, dict):
+        items_obj = raw_data.get("items")
+        if isinstance(items_obj, list):
+            return [item for item in items_obj if isinstance(item, dict)]
+        return [item for item in raw_data.values() if isinstance(item, dict)]
+    return []
+
+
 # ==============================================================================
 # Dashboard Existence Check
 # ==============================================================================
@@ -297,6 +309,95 @@ def check_dashboard_exists(hass: HomeAssistant, url_path: str) -> bool:
     return False
 
 
+async def async_check_dashboard_exists(hass: HomeAssistant, url_path: str) -> bool:
+    """Check if a dashboard with the given URL path already exists.
+
+    Includes runtime panel/dashboard checks and persisted collection items.
+
+    Args:
+        hass: Home Assistant instance.
+        url_path: Dashboard URL path to check (e.g., "kcd-alice").
+
+    Returns:
+        True if dashboard exists, False otherwise.
+    """
+    if check_dashboard_exists(hass, url_path):
+        return True
+
+    dashboards_collection = DashboardsCollection(hass)
+    await dashboards_collection.async_load()
+
+    for item in _get_collection_items(dashboards_collection):
+        if item.get(CONF_URL_PATH) == url_path:
+            return True
+
+    return False
+
+
+async def async_dedupe_kidschores_dashboards(
+    hass: HomeAssistant,
+    url_path: str | None = None,
+) -> dict[str, int]:
+    """Remove duplicate KidsChores dashboard records from collection storage.
+
+    Keeps the most recent record for each url path and removes older duplicates.
+
+    Args:
+        hass: Home Assistant instance.
+        url_path: Optional specific url path to dedupe.
+
+    Returns:
+        Mapping of url_path to number of removed duplicate records.
+    """
+    dashboards_collection = DashboardsCollection(hass)
+    await dashboards_collection.async_load()
+
+    matching_items: dict[str, list[dict[str, Any]]] = {}
+    for item in _get_collection_items(dashboards_collection):
+        item_url_path = item.get(CONF_URL_PATH)
+        if not isinstance(item_url_path, str):
+            continue
+        if not item_url_path.startswith(const.DASHBOARD_URL_PATH_PREFIX):
+            continue
+        if url_path and item_url_path != url_path:
+            continue
+        matching_items.setdefault(item_url_path, []).append(item)
+
+    removed_by_path: dict[str, int] = {}
+
+    for target_url_path, items in matching_items.items():
+        if len(items) <= 1:
+            continue
+
+        # Keep newest item (last in collection order), remove older duplicates
+        to_remove = items[:-1]
+        removed_count = 0
+        for duplicate_item in to_remove:
+            duplicate_id = duplicate_item.get("id")
+            if not isinstance(duplicate_id, str):
+                continue
+            try:
+                await dashboards_collection.async_delete_item(duplicate_id)
+                removed_count += 1
+            except HomeAssistantError as err:
+                const.LOGGER.warning(
+                    "Failed to delete duplicate dashboard entry %s for %s: %s",
+                    duplicate_id,
+                    target_url_path,
+                    err,
+                )
+
+        if removed_count > 0:
+            removed_by_path[target_url_path] = removed_count
+            const.LOGGER.info(
+                "Deduplicated dashboard entries for %s (removed=%d)",
+                target_url_path,
+                removed_count,
+            )
+
+    return removed_by_path
+
+
 # ==============================================================================
 # Dashboard Creation
 # ==============================================================================
@@ -307,6 +408,7 @@ async def create_kidschores_dashboard(
     dashboard_name: str,
     kid_names: list[str],
     style: str = const.DASHBOARD_STYLE_FULL,
+    kid_template_profiles: dict[str, str] | None = None,
     include_admin: bool = True,
     force_rebuild: bool = False,
     show_in_sidebar: bool = True,
@@ -324,6 +426,7 @@ async def create_kidschores_dashboard(
         dashboard_name: User-specified dashboard name (e.g., "Chores").
         kid_names: List of kid names to create views for.
         style: Dashboard style (full, minimal, compact).
+        kid_template_profiles: Optional per-kid template profile map.
         include_admin: Whether to include an admin view tab.
         force_rebuild: If True, delete existing dashboard first.
         show_in_sidebar: Whether to show in sidebar.
@@ -348,26 +451,46 @@ async def create_kidschores_dashboard(
     title = dashboard_name
 
     # Check if dashboard already exists
-    if check_dashboard_exists(hass, url_path):
+    should_delete_existing = False
+    if await async_check_dashboard_exists(hass, url_path):
         if not force_rebuild:
             raise DashboardExistsError(
                 f"Dashboard '{url_path}' already exists. Use force_rebuild=True to overwrite."
             )
-        # Delete existing dashboard
-        await _delete_dashboard(hass, url_path)
+        # Defer delete until template fetch/render succeeds (non-destructive preflight)
+        should_delete_existing = True
 
-    # Fetch kid template
-    template_str = await fetch_dashboard_template(hass, style)
+    template_cache: dict[str, str] = {}
+
+    async def _get_template(target_style: str) -> str:
+        if target_style not in template_cache:
+            template_cache[target_style] = await fetch_dashboard_template(
+                hass, target_style
+            )
+        return template_cache[target_style]
+
+    # Ensure default style template is available for fallback behavior
+    await _get_template(style)
 
     # Build views for each kid
     views: list[dict[str, Any]] = []
 
     for kid_name in kid_names:
-        kid_context = build_dashboard_context(kid_name)
+        kid_style = resolve_kid_template_profile(
+            kid_name,
+            style,
+            kid_template_profiles,
+        )
+        template_str = await _get_template(kid_style)
+        kid_context = build_dashboard_context(kid_name, template_profile=kid_style)
         # Convert TypedDict to regular dict for generic render function
         kid_view = render_dashboard_template(template_str, dict(kid_context))
         views.append(kid_view)
-        const.LOGGER.debug("Built view for kid: %s", kid_name)
+        const.LOGGER.debug(
+            "Built view for kid: %s (template_profile=%s)",
+            kid_name,
+            kid_style,
+        )
 
     # Add admin view if requested
     if include_admin:
@@ -383,6 +506,9 @@ async def create_kidschores_dashboard(
 
     # Combine all views into dashboard config
     dashboard_config = build_multi_view_dashboard(views)
+
+    if should_delete_existing:
+        await _delete_dashboard(hass, url_path)
 
     # Create the dashboard entry
     await _create_dashboard_entry(
@@ -408,6 +534,139 @@ async def create_kidschores_dashboard(
     return url_path
 
 
+def _is_admin_view(view: dict[str, Any]) -> bool:
+    """Return True if a view appears to be the admin view."""
+    path = view.get("path")
+    if isinstance(path, str) and path.lower() == "admin":
+        return True
+
+    title = view.get("title")
+    if isinstance(title, str) and "admin" in title.lower():
+        return True
+
+    return False
+
+
+async def update_kidschores_dashboard_views(
+    hass: HomeAssistant,
+    url_path: str,
+    kid_names: list[str],
+    template_profile: str,
+    include_admin: bool,
+) -> int:
+    """Update selected views on an existing dashboard without deleting it.
+
+    Keeps existing dashboard metadata/title and preserves non-selected kid views.
+
+    Args:
+        hass: Home Assistant instance.
+        url_path: Existing dashboard url path.
+        kid_names: Kids to update in-place.
+        template_profile: Template profile to apply for updated kid views.
+        include_admin: Whether admin view should exist after update.
+
+    Returns:
+        Number of views in the updated dashboard config.
+
+    Raises:
+        DashboardSaveError: If dashboard is missing or cannot be saved.
+        DashboardTemplateError: If required templates cannot be fetched.
+        DashboardRenderError: If template rendering fails.
+    """
+    if LOVELACE_DATA not in hass.data:
+        raise DashboardSaveError("Lovelace not initialized")
+
+    lovelace_data = hass.data[LOVELACE_DATA]
+    if url_path not in lovelace_data.dashboards:
+        raise DashboardSaveError(f"Dashboard '{url_path}' not found")
+
+    dashboard = lovelace_data.dashboards[url_path]
+    try:
+        existing_config = await dashboard.async_load(False)
+    except ConfigNotFound as err:
+        raise DashboardSaveError(
+            f"Dashboard '{url_path}' has no stored config"
+        ) from err
+
+    if not isinstance(existing_config, dict):
+        raise DashboardSaveError(f"Dashboard '{url_path}' has invalid stored config")
+
+    existing_views_raw = existing_config.get("views", [])
+    existing_views: list[dict[str, Any]] = [
+        view for view in existing_views_raw if isinstance(view, dict)
+    ]
+
+    template_cache: dict[str, str] = {}
+
+    async def _get_template(target_style: str) -> str:
+        if target_style not in template_cache:
+            template_cache[target_style] = await fetch_dashboard_template(
+                hass, target_style
+            )
+        return template_cache[target_style]
+
+    updated_kid_views_by_path: dict[str, dict[str, Any]] = {}
+    for kid_name in kid_names:
+        kid_template = await _get_template(template_profile)
+        kid_context = build_dashboard_context(
+            kid_name, template_profile=template_profile
+        )
+        kid_view = render_dashboard_template(kid_template, dict(kid_context))
+        kid_path = kid_view.get("path")
+        if isinstance(kid_path, str):
+            updated_kid_views_by_path[kid_path] = kid_view
+        else:
+            # Template should always provide a path; append fallback if missing
+            existing_views.append(kid_view)
+
+    merged_views: list[dict[str, Any]] = []
+    replaced_kid_paths: set[str] = set()
+    existing_admin_view: dict[str, Any] | None = None
+
+    for view in existing_views:
+        if _is_admin_view(view):
+            existing_admin_view = view
+            continue
+
+        path = view.get("path")
+        if isinstance(path, str) and path in updated_kid_views_by_path:
+            merged_views.append(updated_kid_views_by_path[path])
+            replaced_kid_paths.add(path)
+            continue
+
+        merged_views.append(view)
+
+    for path, view in updated_kid_views_by_path.items():
+        if path not in replaced_kid_paths:
+            merged_views.append(view)
+
+    if include_admin:
+        admin_template = await fetch_dashboard_template(
+            hass, const.DASHBOARD_STYLE_ADMIN
+        )
+        admin_view = render_dashboard_template(admin_template, {})
+        merged_views.append(admin_view if isinstance(admin_view, dict) else {})
+    elif existing_admin_view is not None:
+        const.LOGGER.debug("Removed admin view from dashboard: %s", url_path)
+
+    new_config = dict(existing_config)
+    new_config["views"] = merged_views
+
+    try:
+        await dashboard.async_save(new_config)
+    except HomeAssistantError as err:
+        raise DashboardSaveError(f"Failed to save dashboard config: {err}") from err
+
+    const.LOGGER.info(
+        "Updated dashboard views in-place: %s (kids_updated=%d, include_admin=%s, views=%d)",
+        url_path,
+        len(kid_names),
+        include_admin,
+        len(merged_views),
+    )
+    return len(merged_views)
+
+
 async def _delete_dashboard(hass: HomeAssistant, url_path: str) -> None:
     """Delete an existing dashboard.
 
@@ -429,8 +688,9 @@ async def _delete_dashboard(hass: HomeAssistant, url_path: str) -> None:
 
     items_to_delete = [
         item_id
-        for item_id, item in dashboards_collection.data.items()
+        for item in _get_collection_items(dashboards_collection)
         if item.get(CONF_URL_PATH) == url_path
+        if isinstance(item_id := item.get("id"), str)
     ]
 
     for item_id in items_to_delete:
@@ -537,19 +797,41 @@ async def _create_dashboard_entry(
     dashboards_collection = DashboardsCollection(hass)
     await dashboards_collection.async_load()
 
-    try:
-        await dashboards_collection.async_create_item(dashboard_config)
-        const.LOGGER.debug("Dashboard entry saved to collection: %s", url_path)
-    except HomeAssistantError as err:
-        const.LOGGER.error("Failed to create dashboard entry: %s", err)
-        raise DashboardSaveError(f"Failed to create dashboard entry: {err}") from err
+    existing_items = [
+        item
+        for item in _get_collection_items(dashboards_collection)
+        if item.get(CONF_URL_PATH) == url_path
+    ]
 
-    # Get the created item (includes auto-generated 'id')
-    created_item = None
-    for item in dashboards_collection.async_items():
-        if item.get(CONF_URL_PATH) == url_path:
-            created_item = item
-            break
+    if len(existing_items) > 1:
+        await async_dedupe_kidschores_dashboards(hass, url_path=url_path)
+        await dashboards_collection.async_load()
+        existing_items = [
+            item
+            for item in _get_collection_items(dashboards_collection)
+            if item.get(CONF_URL_PATH) == url_path
+        ]
+
+    created_item: dict[str, Any] | None = None
+
+    if existing_items:
+        # Reuse existing entry to keep create path idempotent
+        created_item = existing_items[-1]
+        const.LOGGER.debug("Reusing existing dashboard entry: %s", url_path)
+    else:
+        try:
+            await dashboards_collection.async_create_item(dashboard_config)
+            const.LOGGER.debug("Dashboard entry saved to collection: %s", url_path)
+        except HomeAssistantError as err:
+            const.LOGGER.error("Failed to create dashboard entry: %s", err)
+            raise DashboardSaveError(
+                f"Failed to create dashboard entry: {err}"
+            ) from err
+
+        for item in _get_collection_items(dashboards_collection):
+            if item.get(CONF_URL_PATH) == url_path:
+                created_item = item
+                break
 
     if not created_item:
         raise DashboardSaveError(f"Dashboard '{url_path}' not found in collection")
@@ -562,18 +844,32 @@ async def _create_dashboard_entry(
 
     lovelace_data = hass.data[LOVELACE_DATA]
 
-    # Create the storage-mode dashboard object (needs 'id' from created_item)
-    lovelace_storage = LovelaceStorage(hass, created_item)
-    lovelace_data.dashboards[url_path] = lovelace_storage
+    # Create or reuse storage-mode dashboard object
+    if url_path in lovelace_data.dashboards:
+        current_dashboard = lovelace_data.dashboards[url_path]
+        current_config = getattr(current_dashboard, "config", None)
+        current_id = (
+            current_config.get("id") if isinstance(current_config, dict) else None
+        )
+        if current_id == created_item.get("id"):
+            lovelace_storage = current_dashboard
+        else:
+            lovelace_storage = LovelaceStorage(hass, created_item)
+            lovelace_data.dashboards[url_path] = lovelace_storage
+    else:
+        lovelace_storage = LovelaceStorage(hass, created_item)
+        lovelace_data.dashboards[url_path] = lovelace_storage
 
     const.LOGGER.debug("LovelaceStorage created for: %s", url_path)
 
     # Step 3: Register the frontend panel
+    panel_exists = DATA_PANELS in hass.data and url_path in hass.data[DATA_PANELS]
+
     panel_kwargs: dict[str, Any] = {
         "frontend_url_path": url_path,
         "require_admin": require_admin,
         "config": {"mode": MODE_STORAGE},
-        "update": False,
+        "update": panel_exists,
     }
 
     if show_in_sidebar:

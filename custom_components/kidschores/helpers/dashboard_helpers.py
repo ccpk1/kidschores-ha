@@ -50,6 +50,13 @@ class DashboardContext(TypedDict):
     kid: DashboardKidContext
 
 
+class DashboardKidTemplateProfiles(TypedDict, total=False):
+    """Optional per-kid template profile map.
+
+    Keys are kid display names, values are style/profile identifiers.
+    """
+
+
 # ==============================================================================
 # Context Builder Functions
 # ==============================================================================
@@ -76,13 +83,19 @@ def build_kid_context(kid_name: str) -> DashboardKidContext:
     )
 
 
-def build_dashboard_context(kid_name: str) -> DashboardContext:
+def build_dashboard_context(
+    kid_name: str,
+    *,
+    template_profile: str | None = None,
+) -> DashboardContext:
     """Build full context for dashboard template rendering.
 
     This is the dict passed to the Jinja2 template engine with << >> delimiters.
 
     Args:
         kid_name: The kid's exact display name from storage.
+        template_profile: Optional template profile for future granular flows.
+            Phase 2 scaffolding keeps context shape unchanged.
 
     Returns:
         DashboardContext ready for template rendering.
@@ -94,9 +107,36 @@ def build_dashboard_context(kid_name: str) -> DashboardContext:
         >>> ctx["kid"]["slug"]
         'alice'
     """
+    _ = template_profile
+
     return DashboardContext(
         kid=build_kid_context(kid_name),
     )
+
+
+def resolve_kid_template_profile(
+    kid_name: str,
+    default_style: str,
+    kid_template_profiles: dict[str, str] | None = None,
+) -> str:
+    """Resolve template profile for a kid with safe fallback.
+
+    Args:
+        kid_name: Kid display name.
+        default_style: Default selected style.
+        kid_template_profiles: Optional per-kid profile mapping.
+
+    Returns:
+        Resolved style/profile for this kid.
+    """
+    if not kid_template_profiles:
+        return default_style
+
+    resolved = kid_template_profiles.get(kid_name, default_style)
+    if resolved in const.DASHBOARD_STYLES:
+        return resolved
+
+    return default_style
 
 
 def get_all_kid_names(coordinator: KidsChoresDataCoordinator) -> list[str]:
@@ -185,16 +225,69 @@ def build_dashboard_style_options() -> list[selector.SelectOptionDict]:
     return [
         selector.SelectOptionDict(
             value=const.DASHBOARD_STYLE_FULL,
-            label=const.TRANS_KEY_CFOF_DASHBOARD_STYLE_FULL,
+            label=const.DASHBOARD_STYLE_FULL,
         ),
         selector.SelectOptionDict(
             value=const.DASHBOARD_STYLE_MINIMAL,
-            label=const.TRANS_KEY_CFOF_DASHBOARD_STYLE_MINIMAL,
+            label=const.DASHBOARD_STYLE_MINIMAL,
         ),
         # selector.SelectOptionDict(
         #    value=const.DASHBOARD_STYLE_COMPACT,
         #    label=const.TRANS_KEY_CFOF_DASHBOARD_STYLE_COMPACT,
         # ),
+    ]
+
+
+def build_dashboard_generation_mode_options() -> list[selector.SelectOptionDict]:
+    """Build generation mode selection options for granular dashboard flow."""
+    return [
+        selector.SelectOptionDict(
+            value=const.DASHBOARD_GENERATION_MODE_SINGLE_MULTI_VIEW,
+            label=const.DASHBOARD_GENERATION_MODE_SINGLE_MULTI_VIEW,
+        ),
+        selector.SelectOptionDict(
+            value=const.DASHBOARD_GENERATION_MODE_PER_KID_DASHBOARD,
+            label=const.DASHBOARD_GENERATION_MODE_PER_KID_DASHBOARD,
+        ),
+        selector.SelectOptionDict(
+            value=const.DASHBOARD_GENERATION_MODE_TARGETED_VIEW_UPDATE,
+            label=const.DASHBOARD_GENERATION_MODE_TARGETED_VIEW_UPDATE,
+        ),
+    ]
+
+
+def build_dashboard_target_scope_options() -> list[selector.SelectOptionDict]:
+    """Build target scope options for granular dashboard updates."""
+    return [
+        selector.SelectOptionDict(
+            value=const.DASHBOARD_TARGET_SCOPE_ALL_SELECTED_KIDS,
+            label=const.DASHBOARD_TARGET_SCOPE_ALL_SELECTED_KIDS,
+        ),
+        selector.SelectOptionDict(
+            value=const.DASHBOARD_TARGET_SCOPE_SINGLE_KID,
+            label=const.DASHBOARD_TARGET_SCOPE_SINGLE_KID,
+        ),
+        selector.SelectOptionDict(
+            value=const.DASHBOARD_TARGET_SCOPE_ADMIN_ONLY,
+            label=const.DASHBOARD_TARGET_SCOPE_ADMIN_ONLY,
+        ),
+    ]
+
+
+def build_dashboard_template_profile_options() -> list[selector.SelectOptionDict]:
+    """Build template profile options.
+
+    Admin profile is excluded because it is managed by include-admin toggle.
+    """
+    return [
+        selector.SelectOptionDict(
+            value=const.DASHBOARD_STYLE_FULL,
+            label=const.DASHBOARD_STYLE_FULL,
+        ),
+        selector.SelectOptionDict(
+            value=const.DASHBOARD_STYLE_MINIMAL,
+            label=const.DASHBOARD_STYLE_MINIMAL,
+        ),
     ]
 
 
@@ -215,6 +308,8 @@ def build_dashboard_kid_options(
 
 def build_dashboard_generator_schema(
     coordinator: KidsChoresDataCoordinator,
+    *,
+    include_granular_controls: bool = False,
 ) -> vol.Schema:
     """Build the schema for dashboard generator options flow step.
 
@@ -238,25 +333,76 @@ def build_dashboard_generator_schema(
         ): selector.TextSelector(
             selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT)
         ),
-        # Style selection
+    }
+
+    if include_granular_controls:
+        schema_fields[
+            vol.Optional(
+                const.CFOF_DASHBOARD_INPUT_GENERATION_MODE,
+                default=const.DASHBOARD_GENERATION_MODE_SINGLE_MULTI_VIEW,
+            )
+        ] = selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=build_dashboard_generation_mode_options(),
+                mode=selector.SelectSelectorMode.DROPDOWN,
+                translation_key=const.TRANS_KEY_CFOF_DASHBOARD_GENERATION_MODE,
+            )
+        )
+        schema_fields[
+            vol.Optional(
+                const.CFOF_DASHBOARD_INPUT_TARGET_SCOPE,
+                default=const.DASHBOARD_TARGET_SCOPE_ALL_SELECTED_KIDS,
+            )
+        ] = selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=build_dashboard_target_scope_options(),
+                mode=selector.SelectSelectorMode.DROPDOWN,
+                translation_key=const.TRANS_KEY_CFOF_DASHBOARD_TARGET_SCOPE,
+            )
+        )
+        schema_fields[
+            vol.Optional(
+                const.CFOF_DASHBOARD_INPUT_TEMPLATE_PROFILE,
+                default=const.DASHBOARD_STYLE_FULL,
+            )
+        ] = selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=build_dashboard_template_profile_options(),
+                mode=selector.SelectSelectorMode.DROPDOWN,
+                translation_key=const.TRANS_KEY_CFOF_DASHBOARD_TEMPLATE_PROFILE,
+            )
+        )
+        if kid_options:
+            schema_fields[vol.Optional(const.CFOF_DASHBOARD_INPUT_SINGLE_KID)] = (
+                selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=kid_options,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                        translation_key=const.TRANS_KEY_CFOF_DASHBOARD_SINGLE_KID,
+                    )
+                )
+            )
+
+    # Style selection
+    schema_fields[
         vol.Required(
             const.CFOF_DASHBOARD_INPUT_STYLE,
             default=const.DASHBOARD_STYLE_FULL,
-        ): selector.SelectSelector(
-            selector.SelectSelectorConfig(
-                options=style_options,
-                mode=selector.SelectSelectorMode.DROPDOWN,
-                translation_key=const.TRANS_KEY_CFOF_DASHBOARD_STYLE,
-            )
-        ),
-    }
+        )
+    ] = selector.SelectSelector(
+        selector.SelectSelectorConfig(
+            options=style_options,
+            mode=selector.SelectSelectorMode.DROPDOWN,
+            translation_key=const.TRANS_KEY_CFOF_DASHBOARD_STYLE,
+        )
+    )
 
     # Kid selection (multi-select, pre-select all)
     if kid_options:
         schema_fields[
             vol.Optional(
                 const.CFOF_DASHBOARD_INPUT_KID_SELECTION,
-                default=kid_names,  # Pre-select all kids
+                default=kid_names,
             )
         ] = selector.SelectSelector(
             selector.SelectSelectorConfig(
@@ -272,14 +418,6 @@ def build_dashboard_generator_schema(
         vol.Optional(
             const.CFOF_DASHBOARD_INPUT_INCLUDE_ADMIN,
             default=True,
-        )
-    ] = selector.BooleanSelector()
-
-    # Force rebuild checkbox
-    schema_fields[
-        vol.Optional(
-            const.CFOF_DASHBOARD_INPUT_FORCE_REBUILD,
-            default=False,
         )
     ] = selector.BooleanSelector()
 
@@ -434,6 +572,10 @@ def build_dashboard_action_schema(
             label=const.DASHBOARD_ACTION_CREATE,
         ),
         selector.SelectOptionDict(
+            value=const.DASHBOARD_ACTION_UPDATE,
+            label=const.DASHBOARD_ACTION_UPDATE,
+        ),
+        selector.SelectOptionDict(
             value=const.DASHBOARD_ACTION_DELETE,
             label=const.DASHBOARD_ACTION_DELETE,
         ),
@@ -457,6 +599,81 @@ def build_dashboard_action_schema(
             ): selector.BooleanSelector(),
         }
     )
+
+
+def build_dashboard_update_selection_schema(
+    hass: Any,
+) -> vol.Schema | None:
+    """Build schema for selecting one existing dashboard to update."""
+    dashboards = get_existing_kidschores_dashboards(hass)
+
+    if not dashboards:
+        return None
+
+    dashboard_options = [
+        selector.SelectOptionDict(value=d["value"], label=d["label"])
+        for d in dashboards
+    ]
+
+    return vol.Schema(
+        {
+            vol.Required(
+                const.CFOF_DASHBOARD_INPUT_UPDATE_SELECTION,
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=dashboard_options,
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                    multiple=False,
+                    translation_key=const.TRANS_KEY_CFOF_DASHBOARD_UPDATE_SELECTION,
+                )
+            ),
+        }
+    )
+
+
+def build_dashboard_update_schema(
+    coordinator: KidsChoresDataCoordinator,
+) -> vol.Schema:
+    """Build minimal schema for updating views on an existing dashboard."""
+    kid_options = build_dashboard_kid_options(coordinator)
+    kid_names = get_all_kid_names(coordinator)
+
+    schema_fields: dict[vol.Marker, Any] = {
+        vol.Optional(
+            const.CFOF_DASHBOARD_INPUT_TEMPLATE_PROFILE,
+            default=const.DASHBOARD_STYLE_FULL,
+        ): selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=build_dashboard_template_profile_options(),
+                mode=selector.SelectSelectorMode.DROPDOWN,
+                translation_key=const.TRANS_KEY_CFOF_DASHBOARD_TEMPLATE_PROFILE,
+            )
+        ),
+    }
+
+    if kid_options:
+        schema_fields[
+            vol.Optional(
+                const.CFOF_DASHBOARD_INPUT_KID_SELECTION,
+                default=kid_names,
+            )
+        ] = selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=kid_options,
+                mode=selector.SelectSelectorMode.DROPDOWN,
+                multiple=True,
+                translation_key=const.TRANS_KEY_CFOF_DASHBOARD_KID_SELECTION,
+            )
+        )
+
+    schema_fields[
+        vol.Optional(
+            const.CFOF_DASHBOARD_INPUT_INCLUDE_ADMIN,
+            default=True,
+        )
+    ] = selector.BooleanSelector()
+
+    return vol.Schema(schema_fields)
 
 
 def build_dashboard_delete_schema(

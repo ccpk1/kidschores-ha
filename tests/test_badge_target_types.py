@@ -25,6 +25,7 @@ from homeassistant.data_entry_flow import FlowResultType
 import pytest
 
 from custom_components.kidschores import const
+from custom_components.kidschores.utils.dt_utils import dt_add_interval, dt_today_iso
 from tests.helpers import (
     # Badge type constants
     BADGE_TYPE_DAILY,
@@ -350,6 +351,371 @@ class TestPeriodicBadgeTargetTypes:
             badge_info[const.DATA_BADGE_TARGET][const.DATA_BADGE_TARGET_TYPE]
             == "days_all_chores"
         )
+
+    async def test_periodic_badge_evaluation_persists_progress(
+        self,
+        hass: HomeAssistant,
+        setup_minimal: SetupResult,
+    ) -> None:
+        """Periodic evaluation writes non-cumulative badge progress fields.
+
+        Regression guard for layered-architecture refactor misses where badge
+        evaluation occurred without persisting progress updates.
+        """
+        config_entry = setup_minimal.config_entry
+        coordinator = setup_minimal.coordinator
+
+        kid_id = next(iter(coordinator.kids_data.keys()))
+
+        badge_data = {
+            CFOF_BADGES_INPUT_NAME: "Progress Write Guard",
+            CFOF_BADGES_INPUT_ICON: "mdi:progress-check",
+            CFOF_BADGES_INPUT_TARGET_TYPE: "chore_count",
+            CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE: 99,
+            CFOF_BADGES_INPUT_ASSIGNED_TO: [kid_id],
+            CFOF_BADGES_INPUT_SELECTED_CHORES: [],
+            CFOF_BADGES_INPUT_AWARD_POINTS: 10.0,
+            CFOF_BADGES_INPUT_AWARD_ITEMS: ["points"],
+        }
+
+        await add_badge_via_options_flow(
+            hass,
+            config_entry.entry_id,
+            BADGE_TYPE_PERIODIC,
+            badge_data,
+        )
+
+        badge_id, _ = get_badge_by_name(coordinator, "Progress Write Guard")
+
+        await coordinator.gamification_manager._evaluate_kid(kid_id)
+
+        kid_progress = coordinator.kids_data[kid_id].get(DATA_KID_BADGE_PROGRESS, {})
+        badge_progress = kid_progress.get(badge_id, {})
+
+        assert const.DATA_KID_BADGE_PROGRESS_OVERALL_PROGRESS in badge_progress
+        assert const.DATA_KID_BADGE_PROGRESS_CRITERIA_MET in badge_progress
+        assert const.DATA_KID_BADGE_PROGRESS_CHORES_CYCLE_COUNT in badge_progress
+        assert const.DATA_KID_BADGE_PROGRESS_LAST_UPDATE_DAY in badge_progress
+
+    async def test_periodic_badge_all_scope_does_not_materialize_all_chores(
+        self,
+        hass: HomeAssistant,
+        setup_minimal: SetupResult,
+    ) -> None:
+        """Badge progress stores explicit selection only; empty means all chores."""
+        config_entry = setup_minimal.config_entry
+        coordinator = setup_minimal.coordinator
+
+        kid_id = next(iter(coordinator.kids_data.keys()))
+
+        badge_data = {
+            CFOF_BADGES_INPUT_NAME: "All Scope Storage Guard",
+            CFOF_BADGES_INPUT_ICON: "mdi:format-list-bulleted",
+            CFOF_BADGES_INPUT_TARGET_TYPE: "points",
+            CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE: 100,
+            CFOF_BADGES_INPUT_ASSIGNED_TO: [kid_id],
+            CFOF_BADGES_INPUT_SELECTED_CHORES: [],
+            CFOF_BADGES_INPUT_AWARD_POINTS: 5.0,
+            CFOF_BADGES_INPUT_AWARD_ITEMS: ["points"],
+        }
+
+        await add_badge_via_options_flow(
+            hass,
+            config_entry.entry_id,
+            BADGE_TYPE_PERIODIC,
+            badge_data,
+        )
+
+        badge_id, _ = get_badge_by_name(coordinator, "All Scope Storage Guard")
+        badge_progress = coordinator.kids_data[kid_id][DATA_KID_BADGE_PROGRESS][
+            badge_id
+        ]
+        assert (
+            badge_progress.get(const.DATA_KID_BADGE_PROGRESS_TRACKED_CHORES, []) == []
+        )
+
+    async def test_periodic_badge_rollover_updates_stale_end_date(
+        self,
+        hass: HomeAssistant,
+        setup_minimal: SetupResult,
+    ) -> None:
+        """Expired periodic/daily cycle dates are rolled forward before evaluation."""
+        config_entry = setup_minimal.config_entry
+        coordinator = setup_minimal.coordinator
+
+        kid_id = next(iter(coordinator.kids_data.keys()))
+
+        badge_data = {
+            CFOF_BADGES_INPUT_NAME: "Rollover Guard",
+            CFOF_BADGES_INPUT_ICON: "mdi:calendar-refresh",
+            CFOF_BADGES_INPUT_TARGET_TYPE: "points",
+            CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE: 999,
+            CFOF_BADGES_INPUT_ASSIGNED_TO: [kid_id],
+            CFOF_BADGES_INPUT_SELECTED_CHORES: [],
+            CFOF_BADGES_INPUT_AWARD_POINTS: 5.0,
+            CFOF_BADGES_INPUT_AWARD_ITEMS: ["points"],
+        }
+
+        await add_badge_via_options_flow(
+            hass,
+            config_entry.entry_id,
+            BADGE_TYPE_DAILY,
+            badge_data,
+        )
+
+        badge_id, badge_info = get_badge_by_name(coordinator, "Rollover Guard")
+        badge_progress = coordinator.kids_data[kid_id][DATA_KID_BADGE_PROGRESS][
+            badge_id
+        ]
+
+        today_iso = dt_today_iso()
+        stale_end = dt_add_interval(
+            today_iso,
+            interval_unit=const.TIME_UNIT_DAYS,
+            delta=-2,
+            return_type=const.HELPER_RETURN_ISO_DATE,
+        )
+        badge_progress[const.DATA_KID_BADGE_PROGRESS_END_DATE] = stale_end
+        badge_progress[const.DATA_KID_BADGE_PROGRESS_POINTS_CYCLE_COUNT] = 42.0
+
+        changed = coordinator.gamification_manager._advance_non_cumulative_badge_cycle_if_needed(
+            kid_id,
+            badge_id,
+            badge_info,
+            today_iso=today_iso,
+        )
+
+        assert changed is True
+        assert str(badge_progress[const.DATA_KID_BADGE_PROGRESS_END_DATE]) >= today_iso
+        expected_start = dt_add_interval(
+            today_iso,
+            interval_unit=const.TIME_UNIT_DAYS,
+            delta=-1,
+            return_type=const.HELPER_RETURN_ISO_DATE,
+        )
+        assert (
+            badge_progress[const.DATA_KID_BADGE_PROGRESS_START_DATE] == expected_start
+        )
+        assert badge_progress[const.DATA_KID_BADGE_PROGRESS_POINTS_CYCLE_COUNT] == 0.0
+
+    async def test_points_badge_persist_sets_last_update_day_and_rounds_progress(
+        self,
+        hass: HomeAssistant,
+        setup_minimal: SetupResult,
+    ) -> None:
+        """Points-based daily/periodic progress sets day marker and precision."""
+        config_entry = setup_minimal.config_entry
+        coordinator = setup_minimal.coordinator
+
+        kid_id = next(iter(coordinator.kids_data.keys()))
+
+        badge_data = {
+            CFOF_BADGES_INPUT_NAME: "Points Persist Guard",
+            CFOF_BADGES_INPUT_ICON: "mdi:counter",
+            CFOF_BADGES_INPUT_TARGET_TYPE: "points",
+            CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE: 50,
+            CFOF_BADGES_INPUT_ASSIGNED_TO: [kid_id],
+            CFOF_BADGES_INPUT_SELECTED_CHORES: [],
+            CFOF_BADGES_INPUT_AWARD_POINTS: 5.0,
+            CFOF_BADGES_INPUT_AWARD_ITEMS: ["points"],
+        }
+
+        await add_badge_via_options_flow(
+            hass,
+            config_entry.entry_id,
+            BADGE_TYPE_DAILY,
+            badge_data,
+        )
+
+        badge_id, badge_info = get_badge_by_name(coordinator, "Points Persist Guard")
+        today_iso = dt_today_iso()
+
+        changed = coordinator.gamification_manager._persist_periodic_badge_progress(
+            kid_id,
+            badge_id,
+            badge_info,
+            {
+                "criteria_met": False,
+                "overall_progress": 0.5720000000000001,
+                "criterion_results": [
+                    {
+                        "criterion_type": const.BADGE_TARGET_THRESHOLD_TYPE_POINTS,
+                        "met": False,
+                        "current_value": 28.6,
+                        "required_value": 50,
+                        "progress": 0.5720000000000001,
+                        "reason": "test",
+                    }
+                ],
+            },
+            already_earned=False,
+            today_iso=today_iso,
+        )
+
+        assert changed is True
+
+        badge_progress = coordinator.kids_data[kid_id][DATA_KID_BADGE_PROGRESS][
+            badge_id
+        ]
+        assert (
+            badge_progress[const.DATA_KID_BADGE_PROGRESS_LAST_UPDATE_DAY] == today_iso
+        )
+        assert badge_progress[const.DATA_KID_BADGE_PROGRESS_OVERALL_PROGRESS] == 0.57
+
+    async def test_periodic_badge_status_earned_when_criteria_met(
+        self,
+        hass: HomeAssistant,
+        setup_minimal: SetupResult,
+    ) -> None:
+        """Status moves to earned when periodic criteria are met."""
+        config_entry = setup_minimal.config_entry
+        coordinator = setup_minimal.coordinator
+
+        kid_id = next(iter(coordinator.kids_data.keys()))
+
+        badge_data = {
+            CFOF_BADGES_INPUT_NAME: "Status Earned Guard",
+            CFOF_BADGES_INPUT_ICON: "mdi:check-decagram",
+            CFOF_BADGES_INPUT_TARGET_TYPE: "points",
+            CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE: 10,
+            CFOF_BADGES_INPUT_ASSIGNED_TO: [kid_id],
+            CFOF_BADGES_INPUT_SELECTED_CHORES: [],
+            CFOF_BADGES_INPUT_AWARD_POINTS: 5.0,
+            CFOF_BADGES_INPUT_AWARD_ITEMS: ["points"],
+        }
+
+        await add_badge_via_options_flow(
+            hass,
+            config_entry.entry_id,
+            BADGE_TYPE_DAILY,
+            badge_data,
+        )
+
+        badge_id, badge_info = get_badge_by_name(coordinator, "Status Earned Guard")
+        today_iso = dt_today_iso()
+
+        changed = coordinator.gamification_manager._persist_periodic_badge_progress(
+            kid_id,
+            badge_id,
+            badge_info,
+            {
+                "criteria_met": True,
+                "overall_progress": 1.0,
+                "criterion_results": [
+                    {
+                        "criterion_type": const.BADGE_TARGET_THRESHOLD_TYPE_POINTS,
+                        "met": True,
+                        "current_value": 10,
+                        "required_value": 10,
+                        "progress": 1.0,
+                        "reason": "test",
+                    }
+                ],
+            },
+            already_earned=True,
+            today_iso=today_iso,
+        )
+
+        assert changed is True
+        badge_progress = coordinator.kids_data[kid_id][DATA_KID_BADGE_PROGRESS][
+            badge_id
+        ]
+        assert (
+            badge_progress[const.DATA_KID_BADGE_PROGRESS_STATUS]
+            == const.BADGE_STATE_EARNED
+        )
+
+    async def test_periodic_reaward_guard_detects_award_in_current_cycle(
+        self,
+        hass: HomeAssistant,
+        setup_minimal: SetupResult,
+    ) -> None:
+        """Periodic re-award guard blocks duplicate awards in same cycle window."""
+        config_entry = setup_minimal.config_entry
+        coordinator = setup_minimal.coordinator
+
+        kid_id = next(iter(coordinator.kids_data.keys()))
+
+        badge_data = {
+            CFOF_BADGES_INPUT_NAME: "Reaward Cycle Guard",
+            CFOF_BADGES_INPUT_ICON: "mdi:repeat-once",
+            CFOF_BADGES_INPUT_TARGET_TYPE: "points",
+            CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE: 1,
+            CFOF_BADGES_INPUT_ASSIGNED_TO: [kid_id],
+            CFOF_BADGES_INPUT_SELECTED_CHORES: [],
+            CFOF_BADGES_INPUT_AWARD_POINTS: 5.0,
+            CFOF_BADGES_INPUT_AWARD_ITEMS: ["points"],
+        }
+
+        await add_badge_via_options_flow(
+            hass,
+            config_entry.entry_id,
+            BADGE_TYPE_DAILY,
+            badge_data,
+        )
+
+        badge_id, _ = get_badge_by_name(coordinator, "Reaward Cycle Guard")
+        today_iso = dt_today_iso()
+
+        coordinator.gamification_manager.update_badges_earned_for_kid(kid_id, badge_id)
+
+        badge_progress = coordinator.kids_data[kid_id][DATA_KID_BADGE_PROGRESS][
+            badge_id
+        ]
+        badge_progress[const.DATA_KID_BADGE_PROGRESS_START_DATE] = today_iso
+        badge_progress[const.DATA_KID_BADGE_PROGRESS_END_DATE] = today_iso
+
+        assert (
+            coordinator.gamification_manager._is_periodic_award_recorded_for_current_cycle(
+                kid_id,
+                badge_id,
+            )
+            is True
+        )
+
+    async def test_normalize_all_scope_tracked_chores_legacy_storage(
+        self,
+        hass: HomeAssistant,
+        setup_minimal: SetupResult,
+    ) -> None:
+        """Legacy all-scope tracked chore snapshots are normalized to empty list."""
+        config_entry = setup_minimal.config_entry
+        coordinator = setup_minimal.coordinator
+
+        kid_id = next(iter(coordinator.kids_data.keys()))
+
+        badge_data = {
+            CFOF_BADGES_INPUT_NAME: "Legacy Scope Normalize Guard",
+            CFOF_BADGES_INPUT_ICON: "mdi:restore-alert",
+            CFOF_BADGES_INPUT_TARGET_TYPE: "points",
+            CFOF_BADGES_INPUT_TARGET_THRESHOLD_VALUE: 100,
+            CFOF_BADGES_INPUT_ASSIGNED_TO: [kid_id],
+            CFOF_BADGES_INPUT_SELECTED_CHORES: [],
+            CFOF_BADGES_INPUT_AWARD_POINTS: 5.0,
+            CFOF_BADGES_INPUT_AWARD_ITEMS: ["points"],
+        }
+
+        await add_badge_via_options_flow(
+            hass,
+            config_entry.entry_id,
+            BADGE_TYPE_PERIODIC,
+            badge_data,
+        )
+
+        badge_id, _ = get_badge_by_name(coordinator, "Legacy Scope Normalize Guard")
+        badge_progress = coordinator.kids_data[kid_id][DATA_KID_BADGE_PROGRESS][
+            badge_id
+        ]
+
+        badge_progress[const.DATA_KID_BADGE_PROGRESS_TRACKED_CHORES] = [
+            "legacy-1",
+            "legacy-2",
+        ]
+
+        normalized = coordinator.gamification_manager._normalize_all_scope_tracked_chores_storage()
+
+        assert normalized == 1
+        assert badge_progress[const.DATA_KID_BADGE_PROGRESS_TRACKED_CHORES] == []
 
 
 # ============================================================================
