@@ -20,6 +20,7 @@ Test Organization:
 # pylint: disable=redefined-outer-name
 # hass fixture required for HA test setup
 
+from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock, patch
 
@@ -31,6 +32,10 @@ from tests.helpers import (
     ATTR_GLOBAL_STATE,
     CHORE_STATE_APPROVED,
     CHORE_STATE_CLAIMED,
+    CHORE_STATE_CLAIMED_IN_PART,
+    CHORE_STATE_MISSED,
+    CHORE_STATE_NOT_MY_TURN,
+    CHORE_STATE_OVERDUE,
     CHORE_STATE_PENDING,
     COMPLETION_CRITERIA_SHARED,
     COMPLETION_CRITERIA_SHARED_FIRST,
@@ -173,6 +178,22 @@ def get_chore_global_state_from_sensor(
     return chore_state.attributes.get(ATTR_GLOBAL_STATE, "")
 
 
+def get_chore_attributes_from_sensor(
+    hass: HomeAssistant, kid_slug: str, chore_name: str
+) -> dict[str, Any]:
+    """Get all chore sensor attributes for a kid/chore pair."""
+    dashboard = get_dashboard_helper(hass, kid_slug)
+    chore = find_chore(dashboard, chore_name)
+    if chore is None:
+        return {}
+
+    chore_state = hass.states.get(chore["eid"])
+    if chore_state is None:
+        return {}
+
+    return dict(chore_state.attributes)
+
+
 def get_points_from_sensor(hass: HomeAssistant, kid_slug: str) -> float:
     """Get kid's points from sensor entity.
 
@@ -296,6 +317,71 @@ class TestIndependentChores:
         final_points = get_points_from_sensor(hass, "zoe")
         assert final_points == initial_points
 
+    @pytest.mark.asyncio
+    async def test_pre_window_claim_lock_shows_waiting_and_blocks_claim(
+        self,
+        hass: HomeAssistant,
+        scenario_minimal: SetupResult,
+    ) -> None:
+        """Independent chore resolves to waiting before due window when lock enabled."""
+        from custom_components.kidschores import const
+
+        coordinator = scenario_minimal.coordinator
+        chore_name = "Make bed"
+        chore_id = scenario_minimal.chore_ids[chore_name]
+        kid_id = scenario_minimal.kid_ids["Zoë"]
+
+        chore_info = coordinator.chores_data.get(chore_id, {})
+        chore_info[const.DATA_CHORE_PER_KID_DUE_DATES] = {
+            kid_id: (dt_now_utc() + timedelta(hours=3)).isoformat()
+        }
+        chore_info[const.DATA_CHORE_DUE_DATE] = (
+            dt_now_utc() + timedelta(hours=3)
+        ).isoformat()
+        chore_info[const.DATA_CHORE_DUE_WINDOW_OFFSET] = "1h"
+        chore_info[const.DATA_CHORE_CLAIM_LOCK_UNTIL_WINDOW] = True
+
+        await coordinator.chore_manager._on_periodic_update(now_utc=dt_now_utc())
+        await hass.async_block_till_done()
+
+        assert (
+            get_chore_state_from_sensor(hass, "zoe", chore_name)
+            == const.CHORE_STATE_WAITING
+        )
+        attrs = get_chore_attributes_from_sensor(hass, "zoe", chore_name)
+        assert attrs.get(const.ATTR_CAN_CLAIM) is False
+        assert attrs.get(const.ATTR_CHORE_LOCK_REASON) == const.CHORE_STATE_WAITING
+
+    @pytest.mark.asyncio
+    async def test_pre_window_without_claim_lock_stays_pending_and_claimable(
+        self,
+        hass: HomeAssistant,
+        scenario_minimal: SetupResult,
+    ) -> None:
+        """Independent chore stays pending before due window when lock disabled."""
+        from custom_components.kidschores import const
+
+        coordinator = scenario_minimal.coordinator
+        chore_name = "Make bed"
+        chore_id = scenario_minimal.chore_ids[chore_name]
+
+        chore_info = coordinator.chores_data.get(chore_id, {})
+        chore_info[const.DATA_CHORE_DUE_DATE] = (
+            dt_now_utc() + timedelta(hours=3)
+        ).isoformat()
+        chore_info[const.DATA_CHORE_DUE_WINDOW_OFFSET] = "1h"
+        chore_info[const.DATA_CHORE_CLAIM_LOCK_UNTIL_WINDOW] = False
+
+        await coordinator.chore_manager._on_periodic_update(now_utc=dt_now_utc())
+        await hass.async_block_till_done()
+
+        assert (
+            get_chore_state_from_sensor(hass, "zoe", chore_name) == CHORE_STATE_PENDING
+        )
+        attrs = get_chore_attributes_from_sensor(hass, "zoe", chore_name)
+        assert attrs.get(const.ATTR_CAN_CLAIM) is True
+        assert attrs.get(const.ATTR_CHORE_LOCK_REASON) is None
+
 
 # =============================================================================
 # AUTO-APPROVE TESTS
@@ -376,6 +462,56 @@ class TestSharedFirstChores:
         )
 
     @pytest.mark.asyncio
+    async def test_secondary_kid_remains_completed_by_other_when_due_and_overdue(
+        self,
+        hass: HomeAssistant,
+        scenario_shared: SetupResult,
+        mock_hass_users: dict[str, Any],
+    ) -> None:
+        """Secondary kid stays completed_by_other even after due date passes.
+
+        This is a focused regression for shared_first display priority:
+        completed_by_other must take precedence over due/overdue for blocked kids.
+        """
+        from custom_components.kidschores import const
+
+        coordinator = scenario_shared.coordinator
+        chore_name = "Shared First Pending Hold"
+        chore_id = scenario_shared.chore_ids[chore_name]
+
+        # Zoë claims first; Max becomes secondary blocked kid
+        kid1_context = Context(user_id=mock_hass_users["kid1"].id)
+        claim_result = await claim_chore(hass, "zoe", chore_name, kid1_context)
+        assert claim_result.success, f"Claim failed: {claim_result.error}"
+
+        # Secondary kid baseline state/attributes from chore status sensor
+        assert (
+            get_chore_state_from_sensor(hass, "max", chore_name) == "completed_by_other"
+        )
+        max_attrs_before = get_chore_attributes_from_sensor(hass, "max", chore_name)
+        assert max_attrs_before.get(const.ATTR_CAN_CLAIM) is False
+        assert max_attrs_before.get(const.ATTR_GLOBAL_STATE) == CHORE_STATE_CLAIMED
+        assert max_attrs_before.get(const.ATTR_CHORE_LOCK_REASON) is None
+
+        # Force chore past due date WITHOUT resetting state/ownership.
+        # Do not use set_due_date() here because that API intentionally resets
+        # chore state for all kids to begin a fresh cycle.
+        chore_info = coordinator.chores_data.get(chore_id, {})
+        chore_info[const.DATA_CHORE_DUE_DATE] = (
+            dt_now_utc() - timedelta(minutes=5)
+        ).isoformat()
+        await coordinator.chore_manager._on_periodic_update(now_utc=dt_now_utc())
+        await hass.async_block_till_done()
+
+        # Regression expectation: secondary kid must remain completed_by_other
+        # (not due/overdue) while blocked from claiming.
+        assert (
+            get_chore_state_from_sensor(hass, "max", chore_name) == "completed_by_other"
+        )
+        max_attrs_after = get_chore_attributes_from_sensor(hass, "max", chore_name)
+        assert max_attrs_after.get(const.ATTR_CAN_CLAIM) is False
+
+    @pytest.mark.asyncio
     async def test_approve_grants_points_to_claimer_only(
         self,
         hass: HomeAssistant,
@@ -416,6 +552,56 @@ class TestSharedFirstChores:
         assert get_points_from_sensor(hass, "lila") == initial_lila_points
 
     @pytest.mark.asyncio
+    async def test_auto_approve_secondary_kid_remains_completed_by_other_when_overdue(
+        self,
+        hass: HomeAssistant,
+        scenario_shared: SetupResult,
+        mock_hass_users: dict[str, Any],
+    ) -> None:
+        """Auto-approve shared_first keeps secondary kid blocked across overdue."""
+        from custom_components.kidschores import const
+
+        coordinator = scenario_shared.coordinator
+        chore_name = "Shared First Auto Approve"
+        chore_id = scenario_shared.chore_ids[chore_name]
+
+        initial_zoe_points = get_points_from_sensor(hass, "zoe")
+        initial_max_points = get_points_from_sensor(hass, "max")
+
+        # Zoë claims; auto-approve should immediately complete for Zoë
+        kid1_context = Context(user_id=mock_hass_users["kid1"].id)
+        claim_result = await claim_chore(hass, "zoe", chore_name, kid1_context)
+        assert claim_result.success, f"Claim failed: {claim_result.error}"
+        await hass.async_block_till_done()
+
+        # Winner approved, secondary blocked by completed_by_other
+        assert (
+            get_chore_state_from_sensor(hass, "zoe", chore_name) == CHORE_STATE_APPROVED
+        )
+        assert get_points_from_sensor(hass, "zoe") == initial_zoe_points + 15.0
+        assert (
+            get_chore_state_from_sensor(hass, "max", chore_name) == "completed_by_other"
+        )
+        max_attrs_before = get_chore_attributes_from_sensor(hass, "max", chore_name)
+        assert max_attrs_before.get(const.ATTR_CAN_CLAIM) is False
+        assert get_points_from_sensor(hass, "max") == initial_max_points
+
+        # Force due date to the past WITHOUT reset, then run periodic update
+        chore_info = coordinator.chores_data.get(chore_id, {})
+        chore_info[const.DATA_CHORE_DUE_DATE] = (
+            dt_now_utc() - timedelta(minutes=5)
+        ).isoformat()
+        await coordinator.chore_manager._on_periodic_update(now_utc=dt_now_utc())
+        await hass.async_block_till_done()
+
+        # Secondary kid remains completed_by_other and blocked after overdue pass
+        assert (
+            get_chore_state_from_sensor(hass, "max", chore_name) == "completed_by_other"
+        )
+        max_attrs_after = get_chore_attributes_from_sensor(hass, "max", chore_name)
+        assert max_attrs_after.get(const.ATTR_CAN_CLAIM) is False
+
+    @pytest.mark.asyncio
     async def test_disapprove_resets_all_kids(
         self,
         hass: HomeAssistant,
@@ -446,6 +632,78 @@ class TestSharedFirstChores:
             == CHORE_STATE_PENDING
         )
 
+    @pytest.mark.asyncio
+    async def test_secondary_kid_stays_completed_by_other_in_due_window(
+        self,
+        hass: HomeAssistant,
+        scenario_shared: SetupResult,
+        mock_hass_users: dict[str, Any],
+    ) -> None:
+        """Secondary shared_first kid remains completed_by_other inside due window."""
+        from custom_components.kidschores import const
+
+        coordinator = scenario_shared.coordinator
+        chore_name = "Shared First Pending Hold"
+        chore_id = scenario_shared.chore_ids[chore_name]
+
+        kid1_context = Context(user_id=mock_hass_users["kid1"].id)
+        claim_result = await claim_chore(hass, "zoe", chore_name, kid1_context)
+        assert claim_result.success, f"Claim failed: {claim_result.error}"
+
+        chore_info = coordinator.chores_data.get(chore_id, {})
+        chore_info[const.DATA_CHORE_DUE_DATE] = (
+            dt_now_utc() + timedelta(minutes=30)
+        ).isoformat()
+        await coordinator.chore_manager._on_periodic_update(now_utc=dt_now_utc())
+        await hass.async_block_till_done()
+
+        assert (
+            get_chore_state_from_sensor(hass, "max", chore_name) == "completed_by_other"
+        )
+        max_attrs = get_chore_attributes_from_sensor(hass, "max", chore_name)
+        assert max_attrs.get(const.ATTR_CAN_CLAIM) is False
+
+    @pytest.mark.asyncio
+    async def test_disapprove_after_past_due_resets_all_shared_first_kids(
+        self,
+        hass: HomeAssistant,
+        scenario_shared: SetupResult,
+        mock_hass_users: dict[str, Any],
+    ) -> None:
+        """Disapprove clears shared_first winner/secondary states even when past due."""
+        from custom_components.kidschores import const
+
+        coordinator = scenario_shared.coordinator
+        chore_name = "Shared First Pending Hold"
+        chore_id = scenario_shared.chore_ids[chore_name]
+
+        kid1_context = Context(user_id=mock_hass_users["kid1"].id)
+        parent_context = Context(user_id=mock_hass_users["parent1"].id)
+
+        claim_result = await claim_chore(hass, "zoe", chore_name, kid1_context)
+        assert claim_result.success, f"Claim failed: {claim_result.error}"
+
+        chore_info = coordinator.chores_data.get(chore_id, {})
+        chore_info[const.DATA_CHORE_DUE_DATE] = (
+            dt_now_utc() - timedelta(minutes=5)
+        ).isoformat()
+        await coordinator.chore_manager._on_periodic_update(now_utc=dt_now_utc())
+        await hass.async_block_till_done()
+
+        disapprove_result = await disapprove_chore(
+            hass, "zoe", chore_name, parent_context
+        )
+        assert disapprove_result.success, (
+            f"Disapprove failed: {disapprove_result.error}"
+        )
+
+        assert (
+            get_chore_state_from_sensor(hass, "zoe", chore_name) == CHORE_STATE_OVERDUE
+        )
+        assert (
+            get_chore_state_from_sensor(hass, "max", chore_name) == CHORE_STATE_OVERDUE
+        )
+
 
 # =============================================================================
 # SHARED_ALL CHORE TESTS
@@ -460,6 +718,137 @@ class TestSharedAllChores:
     - Each kid gets their own points when approved
     - All kids share the same global state tracking
     """
+
+    @pytest.mark.asyncio
+    async def test_secondary_kid_not_blocked_and_overdue_claimable_when_due_passes(
+        self,
+        hass: HomeAssistant,
+        scenario_shared: SetupResult,
+        mock_hass_users: dict[str, Any],
+    ) -> None:
+        """Shared_all secondary kid is not blocked and becomes overdue (claimable)."""
+        from custom_components.kidschores import const
+
+        coordinator = scenario_shared.coordinator
+        chore_name = "Shared All Pending Hold"
+        chore_id = scenario_shared.chore_ids[chore_name]
+
+        # Pin pre-overdue state: move due date far enough out that kid2 is not in
+        # due window and should resolve to PENDING before any overdue transition.
+        chore_info = coordinator.chores_data.get(chore_id, {})
+        chore_info[const.DATA_CHORE_DUE_DATE] = (
+            dt_now_utc() + timedelta(days=2)
+        ).isoformat()
+
+        # Zoë claims first, but Max should remain claimable (shared_all semantics)
+        kid1_context = Context(user_id=mock_hass_users["kid1"].id)
+        claim_result = await claim_chore(hass, "zoe", chore_name, kid1_context)
+        assert claim_result.success, f"Claim failed: {claim_result.error}"
+
+        assert (
+            get_chore_state_from_sensor(hass, "zoe", chore_name) == CHORE_STATE_CLAIMED
+        )
+        assert (
+            get_chore_state_from_sensor(hass, "max", chore_name) == CHORE_STATE_PENDING
+        )
+
+        max_attrs_before = get_chore_attributes_from_sensor(hass, "max", chore_name)
+        assert max_attrs_before.get(const.ATTR_CAN_CLAIM) is True
+        assert (
+            max_attrs_before.get(const.ATTR_GLOBAL_STATE) == CHORE_STATE_CLAIMED_IN_PART
+        )
+
+        # Force due date to past (no reset API) and run scheduler periodic update
+        chore_info[const.DATA_CHORE_DUE_DATE] = (
+            dt_now_utc() - timedelta(minutes=5)
+        ).isoformat()
+        await coordinator.chore_manager._on_periodic_update(now_utc=dt_now_utc())
+        await hass.async_block_till_done()
+
+        # Shared_all secondary kid should transition to overdue and remain claimable
+        assert (
+            get_chore_state_from_sensor(hass, "max", chore_name) == CHORE_STATE_OVERDUE
+        )
+        assert (
+            get_chore_state_from_sensor(hass, "max", chore_name) != "completed_by_other"
+        )
+
+        max_attrs_after = get_chore_attributes_from_sensor(hass, "max", chore_name)
+        assert max_attrs_after.get(const.ATTR_CAN_CLAIM) is True
+        assert max_attrs_after.get(const.ATTR_GLOBAL_STATE) == CHORE_STATE_OVERDUE
+
+    @pytest.mark.asyncio
+    async def test_secondary_kid_enters_due_state_before_overdue_for_shared_all(
+        self,
+        hass: HomeAssistant,
+        scenario_shared: SetupResult,
+        mock_hass_users: dict[str, Any],
+    ) -> None:
+        """Shared_all secondary kid can be pinned to due state and remains claimable."""
+        from custom_components.kidschores import const
+
+        coordinator = scenario_shared.coordinator
+        chore_name = "Shared All Pending Hold"
+        chore_id = scenario_shared.chore_ids[chore_name]
+
+        # Configure due date inside due window (> now, < default 1h offset)
+        chore_info = coordinator.chores_data.get(chore_id, {})
+        chore_info[const.DATA_CHORE_DUE_DATE] = (
+            dt_now_utc() + timedelta(minutes=30)
+        ).isoformat()
+
+        # Zoë claims first; Max remains independently claimable in shared_all
+        kid1_context = Context(user_id=mock_hass_users["kid1"].id)
+        claim_result = await claim_chore(hass, "zoe", chore_name, kid1_context)
+        assert claim_result.success, f"Claim failed: {claim_result.error}"
+
+        # Secondary kid should resolve to DUE (not completed_by_other)
+        assert get_chore_state_from_sensor(hass, "max", chore_name) == "due"
+        assert (
+            get_chore_state_from_sensor(hass, "max", chore_name) != "completed_by_other"
+        )
+
+        max_attrs = get_chore_attributes_from_sensor(hass, "max", chore_name)
+        assert max_attrs.get(const.ATTR_CAN_CLAIM) is True
+        assert max_attrs.get(const.ATTR_GLOBAL_STATE) == CHORE_STATE_CLAIMED_IN_PART
+
+    @pytest.mark.asyncio
+    async def test_secondary_kid_enters_missed_when_strict_overdue_lock_enabled(
+        self,
+        hass: HomeAssistant,
+        scenario_shared: SetupResult,
+        mock_hass_users: dict[str, Any],
+    ) -> None:
+        """Shared_all secondary kid resolves to missed under strict overdue lock."""
+        from custom_components.kidschores import const
+
+        coordinator = scenario_shared.coordinator
+        chore_name = "Shared All Pending Hold"
+        chore_id = scenario_shared.chore_ids[chore_name]
+
+        # Configure strict missed lock and past due
+        chore_info = coordinator.chores_data.get(chore_id, {})
+        chore_info[const.DATA_CHORE_OVERDUE_HANDLING_TYPE] = (
+            const.OVERDUE_HANDLING_AT_DUE_DATE_MARK_MISSED_AND_LOCK
+        )
+        chore_info[const.DATA_CHORE_DUE_DATE] = (
+            dt_now_utc() - timedelta(minutes=5)
+        ).isoformat()
+
+        # Zoë claims first to ensure shared_all global remains in-part while Max hits missed
+        kid1_context = Context(user_id=mock_hass_users["kid1"].id)
+        claim_result = await claim_chore(hass, "zoe", chore_name, kid1_context)
+        assert claim_result.success, f"Claim failed: {claim_result.error}"
+
+        await coordinator.chore_manager._on_periodic_update(now_utc=dt_now_utc())
+        await hass.async_block_till_done()
+
+        assert (
+            get_chore_state_from_sensor(hass, "max", chore_name) == CHORE_STATE_MISSED
+        )
+        max_attrs = get_chore_attributes_from_sensor(hass, "max", chore_name)
+        assert max_attrs.get(const.ATTR_CAN_CLAIM) is False
+        assert max_attrs.get(const.ATTR_CHORE_LOCK_REASON) == CHORE_STATE_MISSED
 
     @pytest.mark.asyncio
     async def test_each_kid_gets_points_on_approval(
@@ -553,6 +942,437 @@ class TestSharedAllChores:
             get_chore_state_from_sensor(hass, "lila", "Family dinner cleanup")
             == CHORE_STATE_PENDING
         )
+
+    @pytest.mark.asyncio
+    async def test_secondary_kid_waiting_before_window_when_claim_lock_enabled_shared_all(
+        self,
+        hass: HomeAssistant,
+        scenario_shared: SetupResult,
+    ) -> None:
+        """Shared_all secondary kid resolves to waiting pre-window when lock enabled."""
+        from custom_components.kidschores import const
+
+        coordinator = scenario_shared.coordinator
+        chore_name = "Shared All Pending Hold"
+        chore_id = scenario_shared.chore_ids[chore_name]
+
+        chore_info = coordinator.chores_data.get(chore_id, {})
+        chore_info[const.DATA_CHORE_DUE_DATE] = (
+            dt_now_utc() + timedelta(hours=3)
+        ).isoformat()
+        chore_info[const.DATA_CHORE_DUE_WINDOW_OFFSET] = "1h"
+        chore_info[const.DATA_CHORE_CLAIM_LOCK_UNTIL_WINDOW] = True
+
+        await coordinator.chore_manager._on_periodic_update(now_utc=dt_now_utc())
+        await hass.async_block_till_done()
+
+        assert (
+            get_chore_state_from_sensor(hass, "max", chore_name)
+            == const.CHORE_STATE_WAITING
+        )
+        max_attrs = get_chore_attributes_from_sensor(hass, "max", chore_name)
+        assert max_attrs.get(const.ATTR_CAN_CLAIM) is False
+        assert max_attrs.get(const.ATTR_CHORE_LOCK_REASON) == const.CHORE_STATE_WAITING
+
+    @pytest.mark.asyncio
+    async def test_secondary_kid_pending_pre_window_when_claim_lock_disabled_shared_all(
+        self,
+        hass: HomeAssistant,
+        scenario_shared: SetupResult,
+        mock_hass_users: dict[str, Any],
+    ) -> None:
+        """Shared_all secondary kid stays pending pre-window when lock disabled."""
+        from custom_components.kidschores import const
+
+        coordinator = scenario_shared.coordinator
+        chore_name = "Shared All Pending Hold"
+        chore_id = scenario_shared.chore_ids[chore_name]
+
+        chore_info = coordinator.chores_data.get(chore_id, {})
+        chore_info[const.DATA_CHORE_DUE_DATE] = (
+            dt_now_utc() + timedelta(hours=3)
+        ).isoformat()
+        chore_info[const.DATA_CHORE_DUE_WINDOW_OFFSET] = "1h"
+        chore_info[const.DATA_CHORE_CLAIM_LOCK_UNTIL_WINDOW] = False
+
+        kid1_context = Context(user_id=mock_hass_users["kid1"].id)
+        claim_result = await claim_chore(hass, "zoe", chore_name, kid1_context)
+        assert claim_result.success, f"Claim failed: {claim_result.error}"
+
+        await coordinator.chore_manager._on_periodic_update(now_utc=dt_now_utc())
+        await hass.async_block_till_done()
+
+        assert (
+            get_chore_state_from_sensor(hass, "max", chore_name) == CHORE_STATE_PENDING
+        )
+        max_attrs = get_chore_attributes_from_sensor(hass, "max", chore_name)
+        assert max_attrs.get(const.ATTR_CAN_CLAIM) is True
+        assert max_attrs.get(const.ATTR_CHORE_LOCK_REASON) is None
+
+
+class TestRotationSimpleChores:
+    """Tests for chores with completion_criteria='rotation_simple'."""
+
+    @pytest.mark.asyncio
+    async def test_non_turn_kid_stays_not_my_turn_and_locked_when_due_passes(
+        self,
+        hass: HomeAssistant,
+        scenario_shared: SetupResult,
+    ) -> None:
+        """Non-turn kid remains not_my_turn (not overdue/due) in rotation_simple."""
+        from custom_components.kidschores import const
+
+        coordinator = scenario_shared.coordinator
+        chore_name = "Vacuum Living Room"
+        chore_id = scenario_shared.chore_ids[chore_name]
+
+        zoe_state = get_chore_state_from_sensor(hass, "zoe", chore_name)
+        max_state = get_chore_state_from_sensor(hass, "max", chore_name)
+
+        # Exactly one kid should be blocked as not_my_turn in simple rotation
+        non_turn_slug = ""
+        if (
+            zoe_state == CHORE_STATE_NOT_MY_TURN
+            and max_state != CHORE_STATE_NOT_MY_TURN
+        ):
+            non_turn_slug = "zoe"
+        elif (
+            max_state == CHORE_STATE_NOT_MY_TURN
+            and zoe_state != CHORE_STATE_NOT_MY_TURN
+        ):
+            non_turn_slug = "max"
+
+        assert non_turn_slug, (
+            "Expected exactly one non-turn kid in not_my_turn state for rotation_simple"
+        )
+
+        attrs_before = get_chore_attributes_from_sensor(hass, non_turn_slug, chore_name)
+        assert attrs_before.get(const.ATTR_CAN_CLAIM) is False
+        assert attrs_before.get(const.ATTR_CHORE_LOCK_REASON) == CHORE_STATE_NOT_MY_TURN
+
+        # Force due date into the past and run scheduler periodic update.
+        # Rotation lock should still take precedence for non-turn kid.
+        chore_info = coordinator.chores_data.get(chore_id, {})
+        chore_info[const.DATA_CHORE_DUE_DATE] = (
+            dt_now_utc() - timedelta(minutes=5)
+        ).isoformat()
+        await coordinator.chore_manager._on_periodic_update(now_utc=dt_now_utc())
+        await hass.async_block_till_done()
+
+        assert (
+            get_chore_state_from_sensor(hass, non_turn_slug, chore_name)
+            == CHORE_STATE_NOT_MY_TURN
+        )
+        attrs_after = get_chore_attributes_from_sensor(hass, non_turn_slug, chore_name)
+        assert attrs_after.get(const.ATTR_CAN_CLAIM) is False
+        assert attrs_after.get(const.ATTR_CHORE_LOCK_REASON) == CHORE_STATE_NOT_MY_TURN
+
+    @pytest.mark.asyncio
+    async def test_non_turn_kid_stays_not_my_turn_before_due_when_allow_steal_enabled(
+        self,
+        hass: HomeAssistant,
+        scenario_shared: SetupResult,
+    ) -> None:
+        """Rotation simple non-turn kid remains locked before steal window opens."""
+        from custom_components.kidschores import const
+
+        coordinator = scenario_shared.coordinator
+        chore_name = "Vacuum Living Room"
+        chore_id = scenario_shared.chore_ids[chore_name]
+
+        chore_info = coordinator.chores_data.get(chore_id, {})
+        chore_info[const.DATA_CHORE_OVERDUE_HANDLING_TYPE] = (
+            const.OVERDUE_HANDLING_AT_DUE_DATE_ALLOW_STEAL
+        )
+        chore_info[const.DATA_CHORE_DUE_DATE] = (
+            dt_now_utc() + timedelta(minutes=30)
+        ).isoformat()
+
+        zoe_state = get_chore_state_from_sensor(hass, "zoe", chore_name)
+        max_state = get_chore_state_from_sensor(hass, "max", chore_name)
+        non_turn_slug = ""
+        if (
+            zoe_state == CHORE_STATE_NOT_MY_TURN
+            and max_state != CHORE_STATE_NOT_MY_TURN
+        ):
+            non_turn_slug = "zoe"
+        elif (
+            max_state == CHORE_STATE_NOT_MY_TURN
+            and zoe_state != CHORE_STATE_NOT_MY_TURN
+        ):
+            non_turn_slug = "max"
+
+        assert non_turn_slug, "Expected one non-turn kid before steal window opens"
+        attrs = get_chore_attributes_from_sensor(hass, non_turn_slug, chore_name)
+        assert attrs.get(const.ATTR_CAN_CLAIM) is False
+        assert attrs.get(const.ATTR_CHORE_LOCK_REASON) == CHORE_STATE_NOT_MY_TURN
+
+    @pytest.mark.asyncio
+    async def test_non_turn_kid_transitions_to_overdue_when_allow_steal_enabled_and_past_due(
+        self,
+        hass: HomeAssistant,
+        scenario_shared: SetupResult,
+    ) -> None:
+        """Rotation simple non-turn kid becomes overdue/claimable after due in steal mode."""
+        from custom_components.kidschores import const
+
+        coordinator = scenario_shared.coordinator
+        chore_name = "Vacuum Living Room"
+        chore_id = scenario_shared.chore_ids[chore_name]
+
+        chore_info = coordinator.chores_data.get(chore_id, {})
+        chore_info[const.DATA_CHORE_OVERDUE_HANDLING_TYPE] = (
+            const.OVERDUE_HANDLING_AT_DUE_DATE_ALLOW_STEAL
+        )
+        chore_info[const.DATA_CHORE_DUE_DATE] = (
+            dt_now_utc() + timedelta(minutes=30)
+        ).isoformat()
+
+        zoe_state = get_chore_state_from_sensor(hass, "zoe", chore_name)
+        max_state = get_chore_state_from_sensor(hass, "max", chore_name)
+        non_turn_slug = ""
+        if (
+            zoe_state == CHORE_STATE_NOT_MY_TURN
+            and max_state != CHORE_STATE_NOT_MY_TURN
+        ):
+            non_turn_slug = "zoe"
+        elif (
+            max_state == CHORE_STATE_NOT_MY_TURN
+            and zoe_state != CHORE_STATE_NOT_MY_TURN
+        ):
+            non_turn_slug = "max"
+
+        assert non_turn_slug, "Expected one non-turn kid before steal window opens"
+
+        chore_info[const.DATA_CHORE_DUE_DATE] = (
+            dt_now_utc() - timedelta(minutes=5)
+        ).isoformat()
+        await coordinator.chore_manager._on_periodic_update(now_utc=dt_now_utc())
+        await hass.async_block_till_done()
+
+        assert (
+            get_chore_state_from_sensor(hass, non_turn_slug, chore_name)
+            == CHORE_STATE_OVERDUE
+        )
+        attrs_after = get_chore_attributes_from_sensor(hass, non_turn_slug, chore_name)
+        assert attrs_after.get(const.ATTR_CAN_CLAIM) is True
+        assert attrs_after.get(const.ATTR_CHORE_LOCK_REASON) is None
+
+
+class TestRotationSmartChores:
+    """Tests for chores with completion_criteria='rotation_smart'."""
+
+    @pytest.mark.asyncio
+    async def test_non_turn_kid_stays_not_my_turn_and_locked_when_due_passes(
+        self,
+        hass: HomeAssistant,
+        scenario_shared: SetupResult,
+    ) -> None:
+        """Non-turn kid remains not_my_turn (not overdue/due) in rotation_smart."""
+        from custom_components.kidschores import const
+
+        coordinator = scenario_shared.coordinator
+        chore_name = "Clean Bathroom Mirror"
+        chore_id = scenario_shared.chore_ids[chore_name]
+
+        zoe_state = get_chore_state_from_sensor(hass, "zoe", chore_name)
+        lila_state = get_chore_state_from_sensor(hass, "lila", chore_name)
+
+        # Exactly one kid should be blocked as not_my_turn in smart rotation
+        non_turn_slug = ""
+        if (
+            zoe_state == CHORE_STATE_NOT_MY_TURN
+            and lila_state != CHORE_STATE_NOT_MY_TURN
+        ):
+            non_turn_slug = "zoe"
+        elif (
+            lila_state == CHORE_STATE_NOT_MY_TURN
+            and zoe_state != CHORE_STATE_NOT_MY_TURN
+        ):
+            non_turn_slug = "lila"
+
+        assert non_turn_slug, (
+            "Expected exactly one non-turn kid in not_my_turn state for rotation_smart"
+        )
+
+        attrs_before = get_chore_attributes_from_sensor(hass, non_turn_slug, chore_name)
+        assert attrs_before.get(const.ATTR_CAN_CLAIM) is False
+        assert attrs_before.get(const.ATTR_CHORE_LOCK_REASON) == CHORE_STATE_NOT_MY_TURN
+
+        # Force due date into the past and run scheduler periodic update.
+        # Rotation lock should still take precedence for non-turn kid.
+        chore_info = coordinator.chores_data.get(chore_id, {})
+        chore_info[const.DATA_CHORE_DUE_DATE] = (
+            dt_now_utc() - timedelta(minutes=5)
+        ).isoformat()
+        await coordinator.chore_manager._on_periodic_update(now_utc=dt_now_utc())
+        await hass.async_block_till_done()
+
+        assert (
+            get_chore_state_from_sensor(hass, non_turn_slug, chore_name)
+            == CHORE_STATE_NOT_MY_TURN
+        )
+        attrs_after = get_chore_attributes_from_sensor(hass, non_turn_slug, chore_name)
+        assert attrs_after.get(const.ATTR_CAN_CLAIM) is False
+        assert attrs_after.get(const.ATTR_CHORE_LOCK_REASON) == CHORE_STATE_NOT_MY_TURN
+
+    @pytest.mark.asyncio
+    async def test_non_turn_kid_transitions_to_overdue_when_allow_steal_and_past_due(
+        self,
+        hass: HomeAssistant,
+        scenario_shared: SetupResult,
+    ) -> None:
+        """Rotation smart non-turn kid moves from not_my_turn to overdue when steal opens."""
+        from custom_components.kidschores import const
+
+        coordinator = scenario_shared.coordinator
+        chore_name = "Clean Bathroom Mirror"
+        chore_id = scenario_shared.chore_ids[chore_name]
+
+        chore_info = coordinator.chores_data.get(chore_id, {})
+        chore_info[const.DATA_CHORE_OVERDUE_HANDLING_TYPE] = (
+            const.OVERDUE_HANDLING_AT_DUE_DATE_ALLOW_STEAL
+        )
+        chore_info[const.DATA_CHORE_DUE_DATE] = (
+            dt_now_utc() + timedelta(minutes=30)
+        ).isoformat()
+
+        zoe_state = get_chore_state_from_sensor(hass, "zoe", chore_name)
+        lila_state = get_chore_state_from_sensor(hass, "lila", chore_name)
+        non_turn_slug = ""
+        if (
+            zoe_state == CHORE_STATE_NOT_MY_TURN
+            and lila_state != CHORE_STATE_NOT_MY_TURN
+        ):
+            non_turn_slug = "zoe"
+        elif (
+            lila_state == CHORE_STATE_NOT_MY_TURN
+            and zoe_state != CHORE_STATE_NOT_MY_TURN
+        ):
+            non_turn_slug = "lila"
+
+        assert non_turn_slug, "Expected one non-turn kid before steal window opens"
+
+        attrs_before = get_chore_attributes_from_sensor(hass, non_turn_slug, chore_name)
+        assert attrs_before.get(const.ATTR_CAN_CLAIM) is False
+        assert attrs_before.get(const.ATTR_CHORE_LOCK_REASON) == CHORE_STATE_NOT_MY_TURN
+
+        # Open steal window by passing due date
+        chore_info[const.DATA_CHORE_DUE_DATE] = (
+            dt_now_utc() - timedelta(minutes=5)
+        ).isoformat()
+        await coordinator.chore_manager._on_periodic_update(now_utc=dt_now_utc())
+        await hass.async_block_till_done()
+
+        assert (
+            get_chore_state_from_sensor(hass, non_turn_slug, chore_name)
+            == CHORE_STATE_OVERDUE
+        )
+        attrs_after = get_chore_attributes_from_sensor(hass, non_turn_slug, chore_name)
+        assert attrs_after.get(const.ATTR_CAN_CLAIM) is True
+        assert attrs_after.get(const.ATTR_CHORE_LOCK_REASON) is None
+
+    @pytest.mark.asyncio
+    async def test_rotation_override_bypasses_not_my_turn_for_non_turn_kid(
+        self,
+        hass: HomeAssistant,
+        scenario_shared: SetupResult,
+        mock_hass_users: dict[str, Any],
+    ) -> None:
+        """Rotation override allows non-turn kid claim without immediate state flip."""
+        from custom_components.kidschores import const
+
+        coordinator = scenario_shared.coordinator
+        chore_name = "Clean Bathroom Mirror"
+        chore_id = scenario_shared.chore_ids[chore_name]
+
+        chore_info = coordinator.chores_data.get(chore_id, {})
+        chore_info[const.DATA_CHORE_DUE_DATE] = (
+            dt_now_utc() + timedelta(days=2)
+        ).isoformat()
+
+        zoe_state = get_chore_state_from_sensor(hass, "zoe", chore_name)
+        lila_state = get_chore_state_from_sensor(hass, "lila", chore_name)
+        non_turn_slug = ""
+        if (
+            zoe_state == CHORE_STATE_NOT_MY_TURN
+            and lila_state != CHORE_STATE_NOT_MY_TURN
+        ):
+            non_turn_slug = "zoe"
+        elif (
+            lila_state == CHORE_STATE_NOT_MY_TURN
+            and zoe_state != CHORE_STATE_NOT_MY_TURN
+        ):
+            non_turn_slug = "lila"
+
+        assert non_turn_slug, "Expected one non-turn kid before override"
+
+        chore_info[const.DATA_CHORE_ROTATION_CYCLE_OVERRIDE] = True
+        await coordinator.chore_manager._on_periodic_update(now_utc=dt_now_utc())
+        await hass.async_block_till_done()
+
+        kid_ctx_by_slug = {
+            "zoe": Context(user_id=mock_hass_users["kid1"].id),
+            "lila": Context(user_id=mock_hass_users["kid3"].id),
+        }
+        claim_result = await claim_chore(
+            hass,
+            non_turn_slug,
+            chore_name,
+            kid_ctx_by_slug[non_turn_slug],
+        )
+        assert claim_result.success, (
+            f"Expected override to permit claim for {non_turn_slug}: "
+            f"{claim_result.error}"
+        )
+
+    @pytest.mark.asyncio
+    async def test_non_turn_kid_remains_not_my_turn_under_strict_missed_policy(
+        self,
+        hass: HomeAssistant,
+        scenario_shared: SetupResult,
+    ) -> None:
+        """Rotation smart non-turn lock keeps precedence over strict missed when not in turn."""
+        from custom_components.kidschores import const
+
+        coordinator = scenario_shared.coordinator
+        chore_name = "Clean Bathroom Mirror"
+        chore_id = scenario_shared.chore_ids[chore_name]
+
+        chore_info = coordinator.chores_data.get(chore_id, {})
+        chore_info[const.DATA_CHORE_OVERDUE_HANDLING_TYPE] = (
+            const.OVERDUE_HANDLING_AT_DUE_DATE_MARK_MISSED_AND_LOCK
+        )
+        chore_info[const.DATA_CHORE_DUE_DATE] = (
+            dt_now_utc() - timedelta(minutes=5)
+        ).isoformat()
+
+        zoe_state = get_chore_state_from_sensor(hass, "zoe", chore_name)
+        lila_state = get_chore_state_from_sensor(hass, "lila", chore_name)
+        non_turn_slug = ""
+        if (
+            zoe_state == CHORE_STATE_NOT_MY_TURN
+            and lila_state != CHORE_STATE_NOT_MY_TURN
+        ):
+            non_turn_slug = "zoe"
+        elif (
+            lila_state == CHORE_STATE_NOT_MY_TURN
+            and zoe_state != CHORE_STATE_NOT_MY_TURN
+        ):
+            non_turn_slug = "lila"
+
+        assert non_turn_slug, "Expected one non-turn kid for rotation_smart"
+
+        await coordinator.chore_manager._on_periodic_update(now_utc=dt_now_utc())
+        await hass.async_block_till_done()
+
+        assert (
+            get_chore_state_from_sensor(hass, non_turn_slug, chore_name)
+            == CHORE_STATE_NOT_MY_TURN
+        )
+        attrs = get_chore_attributes_from_sensor(hass, non_turn_slug, chore_name)
+        assert attrs.get(const.ATTR_CAN_CLAIM) is False
+        assert attrs.get(const.ATTR_CHORE_LOCK_REASON) == CHORE_STATE_NOT_MY_TURN
 
 
 # =============================================================================

@@ -32,6 +32,16 @@ These types transition to `overdue` but remain claimable:
 - `at_due_date_clear_immediate_on_late`
 - `at_due_date_clear_and_mark_missed` _(existing: at due date records miss; at approval reset boundary, overdue policy clears overdue status and resets chore state to `pending`)_
 
+### Manager-level display overlay (post-FSM)
+
+The table above describes engine-level FSM resolution (`resolve_kid_chore_state()`).
+`SHARED_FIRST` adds a manager-level display overlay in `get_chore_status_context()`:
+
+- If another assigned kid has active ownership in the current cycle,
+  secondary kids resolve to display state `completed_by_other`
+- This overlay takes precedence over `pending`, `due`, and `overdue` for blocked kids
+- This is a **display-only** state and is not persisted in kid FSM storage
+
 ### Strict Overdue Type (Priority 4)
 
 - `at_due_date_mark_missed_and_lock` _(NEW D-02: at due date records miss and locks state; at approval reset boundary, overdue policy unlocks `missed` and resets chore state to `pending`. Only compatible with `at_midnight_\*` approval reset types)\_

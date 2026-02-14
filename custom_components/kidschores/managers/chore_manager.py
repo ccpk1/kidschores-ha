@@ -422,6 +422,10 @@ class ChoreManager(BaseManager):
                     const.LOGGER.exception(
                         "ChoreManager: Critical - failed to persist periodic changes"
                     )
+            else:
+                # Refresh listeners even when no storage changed so time-derived
+                # FSM states (waiting/due/pending) are re-evaluated.
+                self._coordinator.async_set_updated_data(self._coordinator._data)
 
     def _on_kid_deleted(self, payload: dict[str, Any]) -> None:
         """Remove deleted kid from all chore assignments.
@@ -3185,9 +3189,17 @@ class ChoreManager(BaseManager):
                         const.DATA_KID_CHORE_DATA_STATE, const.CHORE_STATE_PENDING
                     )
                     other_kid_states[other_kid_id] = other_state
-                    if other_state in (
-                        const.CHORE_STATE_CLAIMED,
-                        const.CHORE_STATE_APPROVED,
+                    other_claimed_by = other_kid_chore_data.get(
+                        const.DATA_CHORE_CLAIMED_BY
+                    )
+                    other_completed_by = other_kid_chore_data.get(
+                        const.DATA_CHORE_COMPLETED_BY
+                    )
+                    if (
+                        other_state
+                        in (const.CHORE_STATE_CLAIMED, const.CHORE_STATE_APPROVED)
+                        or bool(other_claimed_by)
+                        or bool(other_completed_by)
                     ):
                         is_completed_by_other = True
                         break
@@ -3201,6 +3213,11 @@ class ChoreManager(BaseManager):
             resolved_state=display_state,
             lock_reason=lock_reason,
         )
+
+        if is_completed_by_other:
+            can_claim = False
+            claim_error = const.TRANS_KEY_ERROR_CHORE_COMPLETED_BY_OTHER
+
         can_approve, approve_error = self.can_approve_chore(kid_id, chore_id)
 
         # Raw stored state
@@ -3208,9 +3225,14 @@ class ChoreManager(BaseManager):
             const.DATA_KID_CHORE_DATA_STATE, const.CHORE_STATE_PENDING
         )
 
-        # Fall back to completed_by_other for SHARED_FIRST if another kid active
-        # (This is a display-only state not in FSM)
-        if is_completed_by_other and display_state == const.CHORE_STATE_PENDING:
+        # Apply completed_by_other display state for SHARED_FIRST if another kid
+        # is active. This display-only state should take precedence over
+        # due/overdue/pending for blocked kids.
+        if is_completed_by_other and display_state in (
+            const.CHORE_STATE_PENDING,
+            const.CHORE_STATE_DUE,
+            const.CHORE_STATE_OVERDUE,
+        ):
             display_state = const.CHORE_STATE_COMPLETED_BY_OTHER
 
         context_lock_reason = None

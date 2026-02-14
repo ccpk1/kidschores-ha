@@ -682,6 +682,16 @@ class ChoreEngine:
         ):
             return (const.CHORE_STATE_MISSED, const.CHORE_STATE_MISSED)
 
+        # P4.5 — Rotation steal window opened
+        # For at_due_date_allow_steal, once past due the not_my_turn lock is
+        # lifted (P3) and the chore should present as overdue/claimable.
+        if (
+            overdue_type == const.OVERDUE_HANDLING_AT_DUE_DATE_ALLOW_STEAL
+            and due_date is not None
+            and now > due_date
+        ):
+            return (const.CHORE_STATE_OVERDUE, None)
+
         # P5 — Overdue (relaxed: still claimable)
         if (
             overdue_type in _RELAXED_OVERDUE_TYPES

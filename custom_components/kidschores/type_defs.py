@@ -44,7 +44,7 @@ NOTE: TypedDict is STATIC ANALYSIS ONLY. All runtime error handling
 TypedDict does NOT enforce types at runtime.
 """
 
-from typing import Any, NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 
 # =============================================================================
 # Type Aliases (for readability)
@@ -236,6 +236,48 @@ class BadgeTarget(TypedDict, total=False):
     threshold_value: float
     target_type: str  # POINTS, CHORE_COUNT, DAYS_*, STREAK_*
     maintenance_rules: NotRequired[float]  # For cumulative badges
+
+
+# Canonical target contract for unified target tracking initiative.
+# This type is additive in Phase 1 and is used as a cross-goal mapping contract
+# for badges, achievements, and challenges in later phases.
+CanonicalTargetType = Literal[
+    "points",
+    "points_chores",
+    "chore_count",
+    "daily_completion",
+    "daily_completion_due",
+    "daily_completion_no_overdue",
+    "daily_completion_due_no_overdue",
+    "daily_minimum",
+    "streak",
+    "streak_due",
+    "streak_no_overdue",
+    "streak_due_no_overdue",
+    "total_with_baseline",
+    "total_within_window",
+    "badge_award_count",
+]
+
+
+class CanonicalTargetDefinition(TypedDict, total=False):
+    """Canonical target mapping for badge/achievement/challenge evaluation.
+
+    Phase 1 contract only: this defines target-mapping shape and does not
+    change runtime behavior yet.
+    """
+
+    target_type: CanonicalTargetType
+    threshold_value: float
+    source_entity_type: Literal["badge", "achievement", "challenge"]
+    source_item_id: str
+    source_raw_type: str
+    use_due_only_scope: NotRequired[bool]
+    require_no_overdue: NotRequired[bool]
+    min_count_required: NotRequired[int]
+    percent_required: NotRequired[float]
+    baseline_value: NotRequired[float]
+    tracked_chore_ids: NotRequired[list[str]]
 
 
 class BadgeResetSchedule(TypedDict, total=False):
@@ -754,6 +796,27 @@ class EvaluationContext(_EvaluationContextRequired, total=False):
     today_stats: dict[str, Any]  # Today's computed stats
     today_completion: dict[str, Any]  # Today's completion state (all tracked)
     today_completion_due: dict[str, Any]  # Today's completion (due today only)
+
+
+class TargetProgressMutationState(TypedDict, total=False):
+    """Canonical progress fields for idempotent target mutation.
+
+    Same-day idempotency rules:
+    - `last_update_day` is the gate key for same-day re-evaluation.
+    - `days_cycle_count` and `streak_count` can increment at most once per day.
+    - Re-evaluation on the same `today_iso` must not double-increment counters.
+    - Undo/regression paths must reference `last_update_day` before decrement/reset.
+    """
+
+    last_update_day: ISODate
+    days_cycle_count: NotRequired[int]
+    streak_count: NotRequired[int]
+    points_cycle_count: NotRequired[float]
+    chores_cycle_count: NotRequired[int]
+    today_approved_count: NotRequired[int]
+    today_total_count: NotRequired[int]
+    today_has_overdue: NotRequired[bool]
+    was_incremented_today: NotRequired[bool]
 
 
 class CriterionResult(TypedDict):
