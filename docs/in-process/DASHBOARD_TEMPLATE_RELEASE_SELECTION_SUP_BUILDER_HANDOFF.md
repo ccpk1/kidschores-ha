@@ -14,6 +14,10 @@ phase_focus: Phase 1 policy lock + Phase 2 resolver MVP
 
 [HANDOFF_TO_BUILDER_RELEASE_SELECTION_MVP](DASHBOARD_TEMPLATE_RELEASE_SELECTION_IN-PROCESS.md)
 
+## Implementation runbook
+
+- [Execution checklist](DASHBOARD_TEMPLATE_RELEASE_SELECTION_SUP_IMPLEMENTATION_CHECKLIST.md)
+
 ## Handoff objective
 
 Implement release-aware dashboard template selection that:
@@ -23,16 +27,28 @@ Implement release-aware dashboard template selection that:
 
 ## UX allow/restrict contract (must implement exactly)
 
-1. Show `release_mode` in create/update forms with:
+1. Step 1 is a single CRUD hub with actions: `create`, `update`, `delete`, `exit`.
+2. `create` action takes dashboard name only, creates blank dashboard, then routes to Step 2.
+3. `delete` action uses same single dashboard selector as `update`, requires confirm, then returns to Step 1.
+4. Show `release_mode` only on Step 1 `update` path (advanced collapsed):
   - `latest_compatible` (default)
   - `pin_release`
-2. Show `release_tag` selector **only** when `pin_release` is selected.
-3. `release_tag` options must come from parsed compatible releases only:
+5. Show `release_tag` selector **only** when `pin_release` is selected.
+6. `release_tag` options must come from parsed compatible releases only:
   - allow: tags meeting minimum floor and parser contract
   - restrict: below-floor tags, malformed tags, unknown formats
-4. Do not allow free-text release input in MVP.
-5. Do not expose minimum-floor override in MVP.
-6. On any resolver failure, generation must continue using fallback path (never hard-stop solely due to release lookup).
+7. Do not allow free-text release input in MVP.
+8. Do not expose minimum-floor override in MVP.
+9. On any resolver failure, generation must continue using fallback path (never hard-stop solely due to release lookup).
+10. Step 2 must include exactly:
+  - Section A kid views: selected kids + kid template profile (no per-kid override controls)
+  - Section B admin views: mode (`none`, `global`, `per_kid`, `both`) + required admin template selector(s)
+  - Section C display/visibility: show in sidebar, require admin, icon
+11. Step 2 validation is mandatory:
+  - block when no kids and admin mode `none`
+  - block when global mode is selected and global admin template missing
+  - block when per-kid mode is selected and per-kid admin template missing
+  - block when per-kid mode selected and no kids selected
 
 ## Required user messaging states
 
@@ -123,6 +139,7 @@ Implement release-aware dashboard template selection that:
 
 - Create/update/delete flow remains clear and non-redundant.
 - New release controls and errors are fully translated in English resources.
+- Step 1/Step 2 structure and validation follow locked UX contract exactly.
 
 ## Suggested test delivery for builder
 

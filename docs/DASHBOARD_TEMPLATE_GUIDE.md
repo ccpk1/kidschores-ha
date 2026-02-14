@@ -29,6 +29,40 @@ kcd-chores (Dashboard)
 
 ---
 
+## Release compatibility policy (Phase 1)
+
+Dashboard template release selection uses a strict compatibility gate to prevent
+installing incompatible dashboard templates for a given integration version.
+
+### Source of truth order
+
+1. **Dashboard release metadata manifest** (future target in dashboard repo)
+2. **Integration-side fallback map** in [custom_components/kidschores/const.py](../custom_components/kidschores/const.py):
+
+- `DASHBOARD_RELEASE_MIN_INTEGRATION_BY_TAG`
+- `DASHBOARD_RELEASE_MIN_COMPAT_TAG`
+
+### Compatibility evaluation
+
+A dashboard release is selectable only if:
+
+- release tag matches supported parser contract (`KCD_vX.Y.Z` or `KCD_vX.Y.Z_betaN`)
+- release is not below minimum compatibility floor
+- installed integration version satisfies release minimum requirement
+
+### Example
+
+- `KCD_v0.5.4` requires integration `0.5.2+`
+- integration `0.5.1` → release excluded from selector
+- integration `0.5.2+` → release available and can be selected
+
+### Recovery safety net
+
+If release lookup or compatibility filtering fails, the generator must fall back
+to bundled local templates shipped with the integration package.
+
+---
+
 ## Template File Structure
 
 ### Location

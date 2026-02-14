@@ -5,28 +5,42 @@
 - **Name / Code**: Dashboard Template Release Selection (DASH-REL-SELECT-01)
 - **Target release / milestone**: v0.5.0-beta5 (or next patch after beta4)
 - **Owner / driver(s)**: KidsChores Team (Integration + Dashboard coordination)
-- **Status**: Not started
+- **Status**: In progress (Phase 4 complete; Phase 4 Part B UX refinements queued)
 
 ## Summary & immediate steps
 
-| Phase / Step | Description | % complete | Quick notes |
-| ------------------------------ | ----------------------------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------- |
-| Phase 1 – Release policy | Define release-source rules, minimum supported tag, and fallback behavior | 0% | Must handle pre-releases and tag format differences safely |
-| Phase 2 – Core resolver | Add GitHub release discovery + tag resolution + template URL construction | 0% | Keep local template fallback intact for reliability |
-| Phase 3 – Options flow UX | Show selectable release list, default to newest compatible, allow override | 0% | Preserve create/update/delete clarity from recent UX cleanup |
-| Phase 4 – Validation | Add focused tests and failure-mode checks | 0% | No dedicated dashboard generator tests currently cover release selection |
+| Phase / Step                            | Description                                                                            | % complete | Quick notes                                                                                                                |
+| --------------------------------------- | -------------------------------------------------------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Phase 1 – Release policy                | Define release-source rules, minimum supported tag, and fallback behavior              | 100%       | Parser contract, compatibility floor constants, prerelease policy, docs complete                                           |
+| Phase 2 – Core resolver                 | Add GitHub release discovery + tag resolution + template URL construction              | 100%       | Discovery + compatibility filtering + release URL resolver wired; local fallback preserved                                 |
+| Phase 3 – Options flow UX               | Show selectable release list, default to newest compatible, allow override             | 100%       | CRUD hub + shared configure step + locked validation + delete-confirm return flow implemented                              |
+| Phase 4 – Validation                    | Add focused tests and failure-mode checks                                              | 100%       | Added resolver, fetch-fallback, and options-flow release tests; all passing                                                |
+| Phase 4 (Part B) – Update UX refinement | Reorganize update form sections, clarify language, simplify template version selection | 90%        | Update flow now uses a single "Dashboard template version" selector; remaining item is finalizing Part B test completeness |
 
 1. **Key objective** – Allow users to select dashboard template releases from the dashboard repo, default to the newest compatible release, and optionally enforce a minimum release floor.
 2. **Summary of recent work**
-   - Current template fetch path is style-only and points to a single hardcoded source (`main`) via `DASHBOARD_TEMPLATE_URL_PATTERN` in `custom_components/kidschores/const.py` (~line 125).
-   - Template resolution entry point is `fetch_dashboard_template()` in `custom_components/kidschores/helpers/dashboard_builder.py` (~lines 70-110), with local fallback already implemented.
+   - Implemented Phase 1 release policy constants in `const.py` (release source, tag grammar, minimum compatibility floor, prerelease defaults).
+   - Implemented Phase 2 resolver flow in `dashboard_builder.py`: GitHub release discovery, compatibility filtering, newest-compatible default selection, pinned fallback handling, and release-aware template URL resolution.
+   - Added release-aware URL pattern constant in `const.py` for tag/ref-based template fetching.
+   - Implemented Phase 3 options flow UX in `options_flow.py` and `dashboard_helpers.py`: Step 1 CRUD routing, create name-only path, shared Step 2 configure form, update-only release controls, and locked admin/kid validation rules.
+   - Updated dashboard translation copy/options for new step fields and validation errors in `translations/en.json`.
+   - Added Phase 4 focused tests:
+     - `tests/test_dashboard_template_release_resolution.py`
+     - `tests/test_dashboard_builder_release_fetch.py`
+     - `tests/test_options_flow_dashboard_release_selection.py`
+   - Completed dead dashboard code/constants scan and identified stale symbols for follow-up cleanup (see Notes & follow-up).
+   - Added user-facing translation key/value for release incompatibility messaging.
+   - Documented compatibility matrix source of truth and recovery behavior in `docs/DASHBOARD_TEMPLATE_GUIDE.md`.
+   - Template resolution entry point `fetch_dashboard_template()` now resolves compatible release tags first and only falls back to bundled local templates when remote resolution/fetch fails.
    - Dashboard create/update UX already supports explicit action routing in `custom_components/kidschores/options_flow.py` (~lines 3990-4170).
    - Existing translation blocks for dashboard forms are centralized in `custom_components/kidschores/translations/en.json` (~lines 1504-1555).
+   - New user-approved direction: fold update-screen usability cleanup into current phase as Phase 4 Part B.
 3. **Next steps (short term)**
-   - [ ] Finalize release tag compatibility contract with dashboard repo owner (tag grammar + prerelease handling).
-   - [ ] Implement resolver abstraction and wire into template fetch path.
-   - [ ] Add release selector fields in create/update dashboard forms.
-   - [ ] Add tests for newest-default, pinned selection, and minimum-version rejection.
+   - [x] Finalize release tag compatibility contract with dashboard repo owner (tag grammar + prerelease handling).
+   - [x] Implement resolver abstraction and wire into template fetch path.
+   - [x] Add release selector fields in create/update dashboard forms.
+   - [x] Add tests for newest-default, pinned selection, and minimum-version rejection.
+   - [ ] Execute Phase 4 Part B update-screen UX refinements (section layout, language, selector simplification, admin view visibility controls).
 4. **Risks / blockers**
    - GitHub API availability/rate limits may prevent release list fetch; graceful fallback behavior is mandatory.
    - Release tags may not strictly follow SemVer; parser must support current observed format (`KCD_v0.5.0_beta3`).
@@ -43,6 +57,8 @@
    - [custom_components/kidschores/options_flow.py](../../custom_components/kidschores/options_flow.py)
    - [custom_components/kidschores/const.py](../../custom_components/kidschores/const.py)
    - [custom_components/kidschores/translations/en.json](../../custom_components/kidschores/translations/en.json)
+   - [docs/in-process/DASHBOARD_TEMPLATE_RELEASE_SELECTION_SUP_BUILDER_HANDOFF.md](DASHBOARD_TEMPLATE_RELEASE_SELECTION_SUP_BUILDER_HANDOFF.md)
+   - [docs/in-process/DASHBOARD_TEMPLATE_RELEASE_SELECTION_SUP_IMPLEMENTATION_CHECKLIST.md](DASHBOARD_TEMPLATE_RELEASE_SELECTION_SUP_IMPLEMENTATION_CHECKLIST.md)
 6. **Decisions & completion check**
    - **Decisions captured**:
      - Release source should be dashboard repo releases (not integration repo `main` branch) for deterministic template behavior.
@@ -62,14 +78,54 @@
 
 ## Option presentation and allow/restrict policy
 
+### Locked UX flow (v1)
+
+#### Step 1 – Dashboard actions (CRUD hub)
+
+- Actions shown on one screen: `Create`, `Update`, `Delete`, `Exit`.
+- `Create` path:
+  - Input: dashboard name only.
+  - Behavior: create empty dashboard shell, then route to Step 2 for configuration.
+  - No advanced template/release controls used in this path.
+- `Update` path:
+  - Input: single dashboard selector.
+  - Advanced collapsed section available only here for template/release source behavior.
+  - Routes to Step 2.
+- `Delete` path:
+  - Input: same single dashboard selector used by Update (single selection only).
+  - Requires explicit confirm step.
+  - After delete, return to Step 1 CRUD hub with success/failure status.
+
+#### Step 2 – Configure selected dashboard
+
+- Section A (kid views):
+  - selected kids (multi-select)
+  - kid template profile (applies to selected kids)
+  - no per-kid override/advanced controls in v1
+- Section B (admin views):
+  - admin mode: `none`, `global`, `per_kid`, `both`
+  - global admin template required when mode includes `global`
+  - per-kid admin template required when mode includes `per_kid`
+- Section C (display/visibility – lightweight):
+  - show in sidebar
+  - require admin
+  - icon
+
+#### Step 2 validation (locked)
+
+1. Block submit when no kids selected and admin mode is `none`.
+2. Block submit when admin mode includes `global` and global admin template is missing.
+3. Block submit when admin mode includes `per_kid` and per-kid admin template is missing.
+4. Block submit when admin mode includes `per_kid` and no kids are selected.
+
 ### User-facing controls (MVP)
 
-| Control | Visible when | Allowed values | Restricted / blocked values | Default | User feedback |
-| --- | --- | --- | --- | --- | --- |
-| `release_mode` | Always (create + update) | `latest_compatible`, `pin_release` | None | `latest_compatible` | Short description under field |
-| `release_tag` | Only when `release_mode = pin_release` | Tags returned by resolver and marked compatible | Any tag below minimum floor, malformed tags, missing assets | Newest compatible tag pre-selected | Inline error if selected tag becomes unavailable |
-| `include_prereleases` | Optional advanced toggle (Phase 3) | `true`, `false` | If hidden, user cannot change | `true` during beta cycle | Helper text explains beta-default behavior |
-| `minimum_release_override` | Not shown in MVP (operator-only follow-up) | N/A in MVP | All user overrides blocked in MVP | Integration constant | Info text: minimum is enforced automatically |
+| Control                    | Visible when                                                | Allowed values                                  | Restricted / blocked values                                 | Default                            | User feedback                                    |
+| -------------------------- | ----------------------------------------------------------- | ----------------------------------------------- | ----------------------------------------------------------- | ---------------------------------- | ------------------------------------------------ |
+| `release_mode`             | Step 1 Update action only (advanced collapsed)              | `latest_compatible`, `pin_release`              | None                                                        | `latest_compatible`                | Short description under field                    |
+| `release_tag`              | Step 1 Update action only when `release_mode = pin_release` | Tags returned by resolver and marked compatible | Any tag below minimum floor, malformed tags, missing assets | Newest compatible tag pre-selected | Inline error if selected tag becomes unavailable |
+| `include_prereleases`      | Optional advanced toggle (Phase 3)                          | `true`, `false`                                 | If hidden, user cannot change                               | `true` during beta cycle           | Helper text explains beta-default behavior       |
+| `minimum_release_override` | Not shown in MVP (operator-only follow-up)                  | N/A in MVP                                      | All user overrides blocked in MVP                           | Integration constant               | Info text: minimum is enforced automatically     |
 
 ### Enforcement rules (authoritative)
 
@@ -92,6 +148,7 @@
 5. If user has pinned a now-incompatible release, block that selection and auto-fallback to newest compatible.
 
 Example policy for your case:
+
 - Dashboard `KCD_v0.5.4` carries `min_integration_version = 0.5.2`.
 - If installed integration is `0.5.1`, `KCD_v0.5.4` is excluded from the selector and cannot be chosen.
 - If installed integration is `0.5.2+`, it appears and may be selected (or auto-selected if newest compatible).
@@ -106,18 +163,19 @@ compatibility_note: Requires integration 0.5.2+
 ```
 
 MVP implementation note:
+
 - Until dashboard release assets expose metadata, enforce compatibility in integration constants as a temporary gate.
 - Promote to release-embedded metadata once dashboard repo adopts compatibility manifests.
 
 ### UX response matrix
 
-| Scenario | Behavior | Result copy expectation |
-| --- | --- | --- |
-| API reachable, compatible releases found | Show selector list; default newest compatible | “Using latest compatible release: {tag}” |
-| User pins valid compatible release | Use pinned release | “Using pinned release: {tag}” |
-| User pins tag that later disappears | Fallback to newest compatible | “Pinned release unavailable; used {fallback_tag}” |
-| Only below-floor releases found | Reject remote set; use bundled local | “No compatible remote release found; used bundled template” |
-| API timeout/rate-limit/network error | Skip remote selection; use bundled local | “Release service unavailable; used bundled template” |
+| Scenario                                 | Behavior                                      | Result copy expectation                                     |
+| ---------------------------------------- | --------------------------------------------- | ----------------------------------------------------------- |
+| API reachable, compatible releases found | Show selector list; default newest compatible | “Using latest compatible release: {tag}”                    |
+| User pins valid compatible release       | Use pinned release                            | “Using pinned release: {tag}”                               |
+| User pins tag that later disappears      | Fallback to newest compatible                 | “Pinned release unavailable; used {fallback_tag}”           |
+| Only below-floor releases found          | Reject remote set; use bundled local          | “No compatible remote release found; used bundled template” |
+| API timeout/rate-limit/network error     | Skip remote selection; use bundled local      | “Release service unavailable; used bundled template”        |
 
 ### Recommended MVP decision
 
@@ -129,19 +187,19 @@ MVP implementation note:
 
 - **Goal**: Define exactly which dashboard releases are selectable and how compatibility is enforced.
 - **Steps / detailed work items**
-  1. [ ] Define canonical tag parser contract and accepted formats
+  1. [x] Define canonical tag parser contract and accepted formats
      - Files: `custom_components/kidschores/helpers/dashboard_builder.py` (~template fetching section), `custom_components/kidschores/const.py` (~dashboard constants)
      - Support at minimum:
        - `KCD_vX.Y.Z_betaN`
        - `KCD_vX.Y.Z`
      - Reject malformed tags without crashing flow.
-  2. [ ] Add minimum compatible dashboard release constant(s)
+  2. [x] Add minimum compatible dashboard release constant(s)
      - File: `custom_components/kidschores/const.py` (~dashboard constants near lines 100-140)
      - Introduce constants (names TBD by builder) for floor tag and user-facing message key.
-  3. [ ] Define prerelease policy (include/exclude toggle)
-     - Files: `const.py`, `dashboard_helpers.py` (selector defaults)
+  3. [x] Define prerelease policy (include/exclude toggle)
+     - Files: `const.py`, `dashboard_builder.py` (selector defaults will be wired in Phase 3)
      - Default recommendation: include prereleases while integration itself is beta.
-  4. [ ] Document compatibility matrix source of truth
+  4. [x] Document compatibility matrix source of truth
      - Files: `docs/DASHBOARD_TEMPLATE_GUIDE.md`, optional short note in `README.md`
      - Clarify “integration version → minimum dashboard release” mapping.
 - **Key issues**
@@ -152,24 +210,24 @@ MVP implementation note:
 
 - **Goal**: Resolve selected/default release to template URLs with robust fallback behavior.
 - **Steps / detailed work items**
-  1. [ ] Add release listing helper using GitHub Releases API
-     - File: `custom_components/kidschores/helpers/dashboard_builder.py` (~new helper block near fetch functions)
-     - Endpoint target: `ccpk1/kidschores-ha-dashboard` releases list.
-  2. [ ] Implement release normalization + sort logic
-     - File: `dashboard_builder.py`
-     - Build deterministic “newest compatible” selection from fetched releases.
-  3. [ ] Build release-aware template URL constructor
-     - Files: `const.py` (URL patterns), `dashboard_builder.py`
-     - Resolve templates from selected tag/ref instead of fixed `main` path.
-  4. [ ] Preserve existing fallback chain
-     - File: `dashboard_builder.py` (`fetch_dashboard_template`)
-     - New order:
-       1) Selected/newest compatible release template
-       2) Fallback compatible release (if selected missing)
-       3) Local bundled template
-  5. [ ] Add structured diagnostics logging for release resolution
-     - File: `dashboard_builder.py`
-     - Log selected tag, fallback reason, and final source used (without sensitive data).
+  1.  [x] Add release listing helper using GitHub Releases API
+  - File: `custom_components/kidschores/helpers/dashboard_builder.py` (~new helper block near fetch functions)
+  - Endpoint target: `ccpk1/kidschores-ha-dashboard` releases list.
+  2.  [x] Implement release normalization + sort logic
+  - File: `dashboard_builder.py`
+  - Build deterministic “newest compatible” selection from fetched releases.
+  3.  [x] Build release-aware template URL constructor
+  - Files: `const.py` (URL patterns), `dashboard_builder.py`
+  - Resolve templates from selected tag/ref instead of fixed `main` path.
+  4.  [x] Preserve existing fallback chain
+  - File: `dashboard_builder.py` (`fetch_dashboard_template`)
+  - New order:
+    1.  Selected/newest compatible release template
+    2.  Fallback compatible release (if selected missing)
+    3.  Local bundled template
+  5.  [x] Add structured diagnostics logging for release resolution
+  - File: `dashboard_builder.py`
+  - Log selected tag, fallback reason, and final source used (without sensitive data).
 - **Key issues**
   - Rate limits for anonymous GitHub API calls; include timeout and “best effort” behavior.
   - Must not block dashboard generation when remote API is unavailable.
@@ -178,24 +236,22 @@ MVP implementation note:
 
 - **Goal**: Expose release controls without reintroducing dashboard-flow complexity.
 - **Steps / detailed work items**
-  1. [ ] Add selector fields for template release strategy
-     - File: `custom_components/kidschores/helpers/dashboard_helpers.py` (schema builders around lines 190-260)
-     - Proposed controls:
-       - `release_mode`: `latest_compatible` (default) / `pin_release`
-       - `release_tag`: selectable when pinned mode chosen
-  2. [ ] Add optional minimum release field policy
-     - Files: `dashboard_helpers.py`, `options_flow.py`
-     - Two allowed implementations (pick one in build):
-       - **A (recommended)** hardcoded minimum in integration constants, surfaced as read-only info text.
-       - **B** advanced override field for operators (validated, hidden behind advanced mode).
-  3. [ ] Wire create/update steps to pass release selection through confirmation/execute path
-     - File: `custom_components/kidschores/options_flow.py` (~lines 3990-4170 and confirm step)
-     - Ensure update flow preserves existing non-selected views as currently implemented.
-  4. [ ] Add translation keys and copy for new fields/errors
-     - Files: `custom_components/kidschores/const.py` (~translation keys block), `custom_components/kidschores/translations/en.json` (~dashboard sections and selector options)
-  5. [ ] Add clear user-facing fallback messaging
-     - File: `options_flow.py` result step and/or errors
-     - Example behavior: “Selected release unavailable; used newest compatible release X” or “Used bundled template fallback”.
+  1.  [x] Implement Step 1 CRUD hub with single-screen action branching
+  - File: `custom_components/kidschores/options_flow.py`
+  - Actions: create (blank), update, delete, exit.
+  - Delete uses same selector as update (single selection).
+  2.  [x] Restrict template/release advanced controls to Update path only
+  - Files: `custom_components/kidschores/helpers/dashboard_helpers.py`, `custom_components/kidschores/options_flow.py`
+  - Create/Delete paths must not surface release controls.
+  3.  [x] Implement Step 2 sections exactly as locked UX
+  - Files: `custom_components/kidschores/helpers/dashboard_helpers.py`, `custom_components/kidschores/options_flow.py`
+  - Section A kid views (no advanced overrides), Section B admin mode+templates, Section C display/visibility.
+  4.  [x] Implement strict Step 2 validation contract
+  - Files: `custom_components/kidschores/options_flow.py`, `custom_components/kidschores/translations/en.json`
+  - Enforce admin-template requirements based on selected admin mode.
+  5.  [x] Add translation keys and fallback/result copy for CRUD + update flows
+  - Files: `custom_components/kidschores/const.py`, `custom_components/kidschores/translations/en.json`
+  - Include update-only release/fallback messaging.
 - **Key issues**
   - Release list fetch can be slow; avoid introducing latency that makes options flow feel stalled.
   - Must keep current create/update/delete intent model simple.
@@ -204,46 +260,133 @@ MVP implementation note:
 
 - **Goal**: Prevent regressions and guarantee safe fallback behavior under failure modes.
 - **Steps / detailed work items**
-  1. [ ] Add resolver unit tests
-     - File: `tests/test_dashboard_template_release_resolution.py` (new)
-     - Cases:
-       - Newest compatible selection from mixed tags
-       - Pinning exact tag
-       - Floor rejection for too-old tags
-       - Malformed tag ignore behavior
-  2. [ ] Add options flow tests for release fields and defaults
-     - File: `tests/test_options_flow_dashboard_release_selection.py` (new)
-     - Cases:
-       - Default `latest_compatible`
-       - Pinned flow with selected release
-       - Release fetch failure fallback messaging
-  3. [ ] Add integration-level fetch fallback tests
-     - File: `tests/test_dashboard_builder_release_fetch.py` (new)
-     - Cases:
-       - API timeout → local fallback
-       - Selected tag missing template file → fallback release/local path
-  4. [ ] Validate translation completeness for new keys
-     - File: `custom_components/kidschores/translations/en.json`
-     - Ensure no orphan keys and correct selector mapping.
-  5. [ ] Execute standard quality gates (builder execution)
-     - `./utils/quick_lint.sh --fix`
-     - `mypy custom_components/kidschores/`
-     - `python -m pytest tests/ -v --tb=line`
+  1.  [x] Add resolver unit tests
+  - File: `tests/test_dashboard_template_release_resolution.py` (new)
+  - Cases:
+    - Newest compatible selection from mixed tags
+    - Pinning exact tag
+    - Floor rejection for too-old tags
+    - Malformed tag ignore behavior
+  2.  [x] Add options flow tests for release fields and defaults
+  - File: `tests/test_options_flow_dashboard_release_selection.py` (new)
+  - Cases:
+    - Default `latest_compatible`
+    - Pinned flow with selected release
+    - Release fetch failure fallback messaging
+  3.  [x] Add integration-level fetch fallback tests
+  - File: `tests/test_dashboard_builder_release_fetch.py` (new)
+  - Cases:
+    - API timeout → local fallback
+    - Selected tag missing template file → fallback release/local path
+  4.  [x] Validate translation completeness for new keys
+  - File: `custom_components/kidschores/translations/en.json`
+  - Ensure no orphan keys and correct selector mapping.
+  5.  [x] Execute standard quality gates (builder execution)
+  - `./utils/quick_lint.sh --fix`
+  - `mypy custom_components/kidschores/`
+  - `python -m pytest tests/ -v --tb=line`
 - **Key issues**
   - Existing environment may still show unrelated mypy parse blocker in `core`; isolate dashboard tests first.
   - GitHub API interactions should be mocked to keep tests deterministic.
 
+### Phase 4 (Part B) – Update dashboard UX refinements
+
+- **Goal**: Reduce confusion and friction on the Update Dashboard screen without changing create/delete behavior.
+- **Scope lock**:
+  - Update screen only (`dashboard_configure` when flow mode is update)
+  - Keep existing backend compatibility gates and fallback behavior intact
+  - No storage model changes
+  - Add optional admin-view-only visibility filtering using linked parent Home Assistant user IDs
+- **Steps / detailed work items**
+  1. [x] Convert update configure form to explicit section containers (`section()`)
+     - Files: `custom_components/kidschores/helpers/dashboard_helpers.py`, `custom_components/kidschores/options_flow.py`
+     - Target structure:
+       - Section 1 (expanded): Kid views
+       - Section 2 (expanded): Admin views
+       - Section 3 (collapsed): Access & sidebar
+       - Section 4 (collapsed): Template version
+  2. [x] Reorder fields for decision-first flow and conditional reveal
+     - Files: `custom_components/kidschores/helpers/dashboard_helpers.py`
+     - Show admin template selectors only when selected admin layout requires them.
+  3. [x] Replace ambiguous labels/descriptions with intent-first copy
+     - File: `custom_components/kidschores/translations/en.json`
+     - Replace terms like “Admin Mode” with clearer wording (e.g., “Admin layout”).
+  4. [x] Unify template selector labels to dynamic human-friendly display names
+     - File: `custom_components/kidschores/helpers/dashboard_helpers.py`
+     - Label resolution strategy:
+       - metadata display title (if present in template header) →
+       - filename/key humanization (Propercase) →
+       - raw key fallback.
+  5. [x] Simplify release controls to one selector in update UX
+     - Files: `custom_components/kidschores/helpers/dashboard_helpers.py`, `custom_components/kidschores/options_flow.py`, `custom_components/kidschores/translations/en.json`
+     - Replace dual `release_mode` + `release_tag` UX with single “Dashboard template version” selector:
+       - default = newest compatible
+       - includes relevant compatible tags for explicit selection
+       - avoid “pin” terminology in user-facing copy.
+  6. [x] Add admin-view visibility policy control for update/create apply step
+     - Files: `custom_components/kidschores/helpers/dashboard_helpers.py`, `custom_components/kidschores/options_flow.py`, `custom_components/kidschores/helpers/dashboard_builder.py`, `custom_components/kidschores/translations/en.json`
+     - Behavior:
+       - Add a simple selector for admin view visibility policy.
+       - When policy is parent-linked, write HA `visible` user UUID list only on admin views.
+       - Kid views remain unaffected.
+       - If no parent HA users are linked, admin view stays unrestricted (no invalid empty user list).
+  7. [ ] Add/update focused options-flow tests for Part B behavior
+     - File: `tests/test_options_flow_dashboard_release_selection.py`
+     - Cases:
+       - section presence and default collapsed/expanded state
+       - conditional field visibility for admin layouts
+       - single version selector default and non-default selection behavior
+       - admin visibility policy passed through to builder behavior.
+     - Progress note:
+       - ✅ Added sectioned update payload regression (`test_dashboard_update_accepts_sectioned_configure_payload`)
+       - ✅ Added conditional admin-layout reveal regression (`test_dashboard_update_reveals_per_kid_admin_template_on_mode_change`)
+       - ✅ Added template label readability regression (`test_dashboard_template_labels_are_human_friendly`)
+       - ✅ Existing admin visibility passthrough coverage remains in place
+       - ✅ Translation copy updated to intent-first wording (Admin Layout) across dashboard configure + related validation errors
+       - ✅ Added single-selector explicit release selection regression (`test_dashboard_update_non_default_release_selection_passes_pinned_tag`)
+- **Key issues**
+  - Form framework has limited dynamic controls; use simplest consistent conditional rendering supported by HA section forms.
+  - Dynamic template labels must remain deterministic when metadata is missing.
+
+### Dead dashboard code/constants scan (requested)
+
+- **Scan status**: complete
+- **Focused cleanup completed**:
+  - Removed dead helper functions in `custom_components/kidschores/helpers/dashboard_helpers.py`:
+    - `build_dashboard_style_options()`
+    - `format_dashboard_confirm_summary()`
+    - `format_dashboard_results()`
+    - `build_dashboard_update_schema()`
+    - `build_dashboard_delete_schema()`
+  - Removed legacy options-flow paths in `custom_components/kidschores/options_flow.py`:
+    - `async_step_dashboard_generator_confirm()`
+    - `async_step_dashboard_generator_result()`
+    - `async_step_dashboard_update()` wrapper
+  - Removed stale constants in `custom_components/kidschores/const.py` (unused old dashboard flow/input/translation keys and old template path mode constants).
+  - Removed orphan translation blocks in `custom_components/kidschores/translations/en.json`:
+    - `step.dashboard_update`
+    - `step.dashboard_generator_confirm`
+    - `step.dashboard_generator_result`
+    - selector entries `dashboard_style` and `dashboard_delete_selection`
+
 ## Testing & validation
 
-- Tests executed: Planning-only task (no code implementation).
-- Outstanding tests (not run and why): All implementation tests pending builder execution after code changes.
-- Links to failing logs or CI runs if relevant: N/A for planning-only deliverable.
+- Tests executed:
+  - `./utils/quick_lint.sh --fix` ✅ passed (ruff + format + mypy_quick + boundary checks)
+  - `python -m pytest tests/test_setup_helper.py -q` ✅ 5/5 passed
+  - `python -m pytest tests/test_dashboard_template_release_resolution.py tests/test_dashboard_builder_release_fetch.py tests/test_options_flow_dashboard_release_selection.py -q` ✅ 8/8 passed
+  - `mypy --config-file mypy_quick.ini --explicit-package-bases custom_components/kidschores` ✅ 0 errors
+  - `./utils/quick_lint.sh --fix` ✅ passed after focused cleanup
+  - `runTests` on dashboard release test set ✅ 8/8 passed after focused cleanup
+- Additional gate note:
+  - `mypy custom_components/kidschores/` ❌ blocked by unrelated external syntax issue in `/workspaces/core/homeassistant/helpers/device_registry.py:407`
+- Outstanding tests (not run and why): Phase 4 release-specific tests are pending implementation in later phases.
 
 ## Notes & follow-up
 
 - **Recommended product behavior (MVP)**:
-  - Default to `latest_compatible` release.
-  - Expose optional `pin_release` selector for advanced users.
+  - Default to newest compatible release.
+  - Expose a single explicit “Dashboard template version” selector for update mode.
   - Enforce one integration-defined minimum release floor.
   - Keep local templates as final safety net.
 - **No storage schema migration expected** for MVP if release preference remains flow-scoped or stored in existing options fields.

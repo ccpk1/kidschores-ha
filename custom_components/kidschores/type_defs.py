@@ -82,6 +82,65 @@ class ParentData(TypedDict):
     linked_shadow_kid_id: NotRequired[str | None]  # Only set if shadow kid created
 
 
+# =============================================================================
+# Reporting service response contracts
+# =============================================================================
+
+
+class ReportRangeResult(TypedDict):
+    """Resolved report range metadata.
+
+    Used by report helper functions and returned in service responses.
+    """
+
+    mode: str
+    start_iso: str
+    end_iso: str
+    timezone: str
+
+
+class ReportDailyBlock(TypedDict):
+    """Daily activity aggregate block for markdown reports."""
+
+    date: str
+    earned: float
+    spent: float
+    net: float
+    transactions: int
+    markdown_section: str
+
+
+class ReportDeliveryStatus(TypedDict):
+    """Delivery status metadata for report notifications."""
+
+    notify_attempted: bool
+    notify_service: str | None
+    delivered: bool
+
+
+class ActivityReportResponse(TypedDict):
+    """Response payload for generate_activity_report service."""
+
+    range: ReportRangeResult
+    scope: dict[str, Any]
+    summary: dict[str, float | int]
+    daily: list[ReportDailyBlock]
+    markdown: str
+    supplemental: dict[str, Any]
+    delivery: ReportDeliveryStatus
+
+
+class NormalizedExportResponse(TypedDict):
+    """Response payload for export_normalized_data service."""
+
+    meta: dict[str, Any]
+    id_map: dict[str, dict[str, str]]
+    kids: list[dict[str, Any]]
+    ledger_entries: list[dict[str, Any]]
+    period_summaries: dict[str, Any]
+    raw_refs: dict[str, Any]
+
+
 class RewardData(TypedDict):
     """Type definition for a reward entity."""
 
@@ -223,6 +282,50 @@ class ChoreData(TypedDict):
 
     # Claims restriction (v0.5.0 Chore Logic - blocks claims before due window)
     chore_claim_lock_until_window: NotRequired[bool]
+
+
+ResetTrigger = Literal[
+    "approval",
+    "due_date",
+    "midnight",
+]
+
+ResetBoundaryCategory = Literal[
+    "hold",
+    "clear_only",
+    "reset_and_reschedule",
+]
+
+ResetDecision = Literal[
+    "hold",
+    "reset_only",
+    "reset_and_reschedule",
+    "auto_approve_pending",
+]
+
+
+class ResetContext(TypedDict, total=False):
+    """Policy input contract for reset decisioning."""
+
+    trigger: ResetTrigger
+    approval_reset_type: str
+    overdue_handling_type: str
+    completion_criteria: str
+    all_kids_approved: bool
+    approval_after_reset: bool
+    boundary_category: ResetBoundaryCategory | None
+    has_pending_claim: bool
+    pending_claim_action: str
+
+
+class ResetApplyContext(TypedDict, total=False):
+    """Execution contract for applying a reset action."""
+
+    kid_id: str
+    chore_id: str
+    decision: ResetDecision
+    reschedule_kid_id: str | None
+    allow_reschedule: bool
 
 
 # =============================================================================
@@ -1219,6 +1322,7 @@ __all__ = [
     # Event Payload Types
     "AchievementUnlockedEvent",
     "AchievementsCollection",
+    "ActivityReportResponse",
     "BadgeAwards",
     "BadgeData",
     "BadgeEarnedEvent",
@@ -1275,6 +1379,7 @@ __all__ = [
     "KidsCollection",
     # Ledger types (Economy Stack)
     "LedgerEntry",
+    "NormalizedExportResponse",
     "ParentData",
     "ParentsCollection",
     "PenaltiesCollection",
@@ -1282,6 +1387,14 @@ __all__ = [
     "PenaltyData",
     "PeriodicStatsEntry",
     "PointsChangedEvent",
+    "ReportDailyBlock",
+    "ReportDeliveryStatus",
+    "ReportRangeResult",
+    "ResetApplyContext",
+    "ResetBoundaryCategory",
+    "ResetContext",
+    "ResetDecision",
+    "ResetTrigger",
     "RewardApprovedEvent",
     "RewardData",
     "RewardDisapprovedEvent",

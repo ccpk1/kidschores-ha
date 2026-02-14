@@ -10,7 +10,10 @@ All functions here require a `hass` object or interact with HA APIs.
 from __future__ import annotations
 
 import asyncio
+from dataclasses import dataclass
+import json
 from pathlib import Path
+import re
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.frontend import (
@@ -38,6 +41,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.util import slugify
 import jinja2
+from packaging.version import InvalidVersion, Version
 import yaml
 
 from .. import const
@@ -48,6 +52,304 @@ if TYPE_CHECKING:
 
 # Template fetch timeout in seconds
 TEMPLATE_FETCH_TIMEOUT = 10
+
+
+@dataclass(frozen=True, slots=True)
+class DashboardReleaseSelection:
+    """Resolved dashboard release selection result."""
+
+    selected_tag: str | None
+    fallback_tag: str | None
+    reason: str
+
+
+@dataclass(frozen=True, slots=True)
+class DashboardReleaseTag:
+    """Normalized representation of a supported dashboard release tag.
+
+    Supported formats:
+      - `KCD_vX.Y.Z`
+      - `KCD_vX.Y.Z_betaN`
+    """
+
+    raw_tag: str
+    major: int
+    minor: int
+    patch: int
+    prerelease_label: str | None = None
+    prerelease_number: int | None = None
+
+    @property
+    def is_prerelease(self) -> bool:
+        """Return True when this tag is a prerelease (currently beta tags)."""
+        return self.prerelease_label is not None
+
+    @property
+    def sort_key(self) -> tuple[int, int, int, int, int]:
+        """Return deterministic key for newest-first release selection.
+
+        Stable tags sort after prereleases for the same semantic version.
+        """
+        stability_rank = 0 if self.is_prerelease else 1
+        prerelease_number = self.prerelease_number or 0
+        return (
+            self.major,
+            self.minor,
+            self.patch,
+            stability_rank,
+            prerelease_number,
+        )
+
+
+def parse_dashboard_release_tag(tag: str) -> DashboardReleaseTag | None:
+    """Parse supported dashboard release tag formats.
+
+    Args:
+        tag: Release tag string from dashboard repository.
+
+    Returns:
+        Parsed DashboardReleaseTag for supported formats, else None.
+    """
+    match = re.match(const.DASHBOARD_RELEASE_TAG_PATTERN, tag)
+    if match is None:
+        return None
+
+    prerelease_label = match.group("pre_label")
+    prerelease_number_raw = match.group("pre_num")
+
+    prerelease_number: int | None = None
+    if prerelease_label is not None:
+        # Defensive parse; regex already constrains to digits.
+        prerelease_number = int(prerelease_number_raw) if prerelease_number_raw else 0
+
+    return DashboardReleaseTag(
+        raw_tag=tag,
+        major=int(match.group("major")),
+        minor=int(match.group("minor")),
+        patch=int(match.group("patch")),
+        prerelease_label=prerelease_label,
+        prerelease_number=prerelease_number,
+    )
+
+
+def is_supported_dashboard_release_tag(tag: str) -> bool:
+    """Return True when tag matches the supported parser contract."""
+    return parse_dashboard_release_tag(tag) is not None
+
+
+def release_tag_passes_prerelease_policy(
+    tag: str,
+    include_prereleases: bool = const.DASHBOARD_RELEASE_INCLUDE_PRERELEASES_DEFAULT,
+) -> bool:
+    """Return True when a parsed release tag passes prerelease policy.
+
+    Args:
+        tag: Release tag string to evaluate.
+        include_prereleases: Whether prereleases are allowed in selection.
+
+    Returns:
+        True if tag is supported and policy allows it.
+    """
+    parsed_tag = parse_dashboard_release_tag(tag)
+    if parsed_tag is None:
+        return False
+
+    if include_prereleases:
+        return True
+
+    return not parsed_tag.is_prerelease
+
+
+def _build_release_template_url(style: str, release_ref: str) -> str:
+    """Build release-aware remote template URL for style and release ref."""
+    return const.DASHBOARD_RELEASE_TEMPLATE_URL_PATTERN.format(
+        owner=const.DASHBOARD_RELEASE_REPO_OWNER,
+        repo=const.DASHBOARD_RELEASE_REPO_NAME,
+        ref=release_ref,
+        style=style,
+    )
+
+
+def _release_meets_floor(tag: str) -> bool:
+    """Return True when release tag is >= configured compatibility floor."""
+    parsed_tag = parse_dashboard_release_tag(tag)
+    floor_tag = parse_dashboard_release_tag(const.DASHBOARD_RELEASE_MIN_COMPAT_TAG)
+    if parsed_tag is None or floor_tag is None:
+        return False
+    return parsed_tag.sort_key >= floor_tag.sort_key
+
+
+def _is_release_integration_compatible(tag: str, integration_version: Version) -> bool:
+    """Return True when integration version satisfies per-tag minimum version map."""
+    min_required = const.DASHBOARD_RELEASE_MIN_INTEGRATION_BY_TAG.get(tag)
+    if min_required is None:
+        return True
+    try:
+        min_required_version = Version(min_required)
+    except InvalidVersion:
+        const.LOGGER.debug(
+            "Invalid minimum integration version mapping for tag %s: %s",
+            tag,
+            min_required,
+        )
+        return False
+    return integration_version >= min_required_version
+
+
+def _read_manifest_version() -> str | None:
+    """Read integration version from manifest.json."""
+    manifest_path = Path(__file__).parent.parent / "manifest.json"
+    try:
+        raw_manifest = manifest_path.read_text(encoding="utf-8")
+    except OSError:
+        return None
+
+    try:
+        manifest_data = json.loads(raw_manifest)
+    except json.JSONDecodeError:
+        return None
+
+    version_value = manifest_data.get("version")
+    return version_value if isinstance(version_value, str) else None
+
+
+async def _get_installed_integration_version(hass: HomeAssistant) -> Version | None:
+    """Return installed integration version parsed as Version or None."""
+    raw_version = await hass.async_add_executor_job(_read_manifest_version)
+    if raw_version is None:
+        return None
+    try:
+        return Version(raw_version)
+    except InvalidVersion:
+        const.LOGGER.debug(
+            "Could not parse integration version from manifest: %s", raw_version
+        )
+        return None
+
+
+async def _fetch_dashboard_releases(hass: HomeAssistant) -> list[dict[str, Any]]:
+    """Fetch release payloads from GitHub Releases API."""
+    session = async_get_clientsession(hass)
+    releases_url = const.DASHBOARD_RELEASES_API_URL.format(
+        owner=const.DASHBOARD_RELEASE_REPO_OWNER,
+        repo=const.DASHBOARD_RELEASE_REPO_NAME,
+    )
+
+    async with asyncio.timeout(TEMPLATE_FETCH_TIMEOUT):
+        async with session.get(releases_url) as response:
+            if response.status != 200:
+                raise HomeAssistantError(
+                    f"HTTP {response.status} fetching releases from {releases_url}"
+                )
+            payload = await response.json(content_type=None)
+
+    if not isinstance(payload, list):
+        raise HomeAssistantError("Unexpected releases API response shape")
+    return [release for release in payload if isinstance(release, dict)]
+
+
+async def discover_compatible_dashboard_release_tags(
+    hass: HomeAssistant,
+    include_prereleases: bool = const.DASHBOARD_RELEASE_INCLUDE_PRERELEASES_DEFAULT,
+) -> list[str]:
+    """Return compatible dashboard release tags, sorted newest-first."""
+    integration_version = await _get_installed_integration_version(hass)
+    releases_payload = await _fetch_dashboard_releases(hass)
+
+    compatible_tags: list[DashboardReleaseTag] = []
+
+    for release in releases_payload:
+        tag_name = release.get("tag_name")
+        if not isinstance(tag_name, str):
+            continue
+
+        parsed = parse_dashboard_release_tag(tag_name)
+        if parsed is None:
+            const.LOGGER.debug(
+                "Ignoring unsupported dashboard release tag: %s", tag_name
+            )
+            continue
+
+        if not release_tag_passes_prerelease_policy(
+            tag_name,
+            include_prereleases=include_prereleases,
+        ):
+            continue
+
+        if not _release_meets_floor(tag_name):
+            const.LOGGER.debug(
+                "Filtered dashboard release below floor: %s (floor=%s)",
+                tag_name,
+                const.DASHBOARD_RELEASE_MIN_COMPAT_TAG,
+            )
+            continue
+
+        if integration_version is not None and not _is_release_integration_compatible(
+            tag_name, integration_version
+        ):
+            const.LOGGER.debug(
+                "Filtered dashboard release by integration compatibility: tag=%s version=%s",
+                tag_name,
+                integration_version,
+            )
+            continue
+
+        compatible_tags.append(parsed)
+
+    compatible_tags.sort(key=lambda item: item.sort_key, reverse=True)
+    return [item.raw_tag for item in compatible_tags]
+
+
+async def resolve_dashboard_release_selection(
+    hass: HomeAssistant,
+    pinned_release_tag: str | None = None,
+    include_prereleases: bool = const.DASHBOARD_RELEASE_INCLUDE_PRERELEASES_DEFAULT,
+) -> DashboardReleaseSelection:
+    """Resolve release selection from pinned/default behavior with fallback."""
+    try:
+        compatible_tags = await discover_compatible_dashboard_release_tags(
+            hass,
+            include_prereleases=include_prereleases,
+        )
+    except (TimeoutError, HomeAssistantError, ValueError) as err:
+        const.LOGGER.debug("Dashboard release discovery unavailable: %s", err)
+        return DashboardReleaseSelection(
+            selected_tag=None,
+            fallback_tag=None,
+            reason="release_service_unavailable",
+        )
+
+    if not compatible_tags:
+        return DashboardReleaseSelection(
+            selected_tag=None,
+            fallback_tag=None,
+            reason="no_compatible_remote_release",
+        )
+
+    newest_compatible = compatible_tags[0]
+
+    if pinned_release_tag:
+        if pinned_release_tag in compatible_tags:
+            return DashboardReleaseSelection(
+                selected_tag=pinned_release_tag,
+                fallback_tag=(
+                    newest_compatible
+                    if pinned_release_tag != newest_compatible
+                    else None
+                ),
+                reason="pinned_release",
+            )
+        return DashboardReleaseSelection(
+            selected_tag=newest_compatible,
+            fallback_tag=None,
+            reason="pinned_unavailable_fallback_latest",
+        )
+
+    return DashboardReleaseSelection(
+        selected_tag=newest_compatible,
+        fallback_tag=None,
+        reason="latest_compatible",
+    )
 
 
 # ==============================================================================
@@ -79,6 +381,8 @@ class DashboardSaveError(HomeAssistantError):
 async def fetch_dashboard_template(
     hass: HomeAssistant,
     style: str = const.DASHBOARD_STYLE_FULL,
+    pinned_release_tag: str | None = None,
+    include_prereleases: bool = const.DASHBOARD_RELEASE_INCLUDE_PRERELEASES_DEFAULT,
 ) -> str:
     """Fetch dashboard template, trying remote first then local fallback.
 
@@ -92,27 +396,55 @@ async def fetch_dashboard_template(
     Raises:
         DashboardTemplateError: If both remote and local fetch fail.
     """
-    # Attempt 1: Remote fetch from GitHub
-    remote_url = const.DASHBOARD_TEMPLATE_URL_PATTERN.format(style=style)
-    try:
-        template_content = await _fetch_remote_template(hass, remote_url)
-        const.LOGGER.debug(
-            "Fetched dashboard template from remote: %s",
-            remote_url,
-        )
-        return template_content
-    except (TimeoutError, HomeAssistantError) as err:
-        const.LOGGER.debug(
-            "Remote template fetch failed, trying local fallback: %s",
-            err,
-        )
+    release_selection = await resolve_dashboard_release_selection(
+        hass,
+        pinned_release_tag=pinned_release_tag,
+        include_prereleases=include_prereleases,
+    )
+
+    release_candidates: list[str] = []
+    if release_selection.selected_tag is not None:
+        release_candidates.append(release_selection.selected_tag)
+    if (
+        release_selection.fallback_tag is not None
+        and release_selection.fallback_tag not in release_candidates
+    ):
+        release_candidates.append(release_selection.fallback_tag)
+
+    for index, candidate_tag in enumerate(release_candidates):
+        remote_url = _build_release_template_url(style=style, release_ref=candidate_tag)
+        try:
+            template_content = await _fetch_remote_template(hass, remote_url)
+            const.LOGGER.debug(
+                "Fetched dashboard template from remote release: style=%s tag=%s reason=%s",
+                style,
+                candidate_tag,
+                release_selection.reason,
+            )
+            return template_content
+        except (TimeoutError, HomeAssistantError) as err:
+            if index + 1 < len(release_candidates):
+                const.LOGGER.debug(
+                    "Remote template candidate failed, trying fallback release: style=%s tag=%s err=%s",
+                    style,
+                    candidate_tag,
+                    err,
+                )
+            else:
+                const.LOGGER.debug(
+                    "Remote template fetch failed after release resolution: style=%s reason=%s err=%s",
+                    style,
+                    release_selection.reason,
+                    err,
+                )
 
     # Attempt 2: Local bundled fallback
     try:
         template_content = await _fetch_local_template(hass, style)
         const.LOGGER.debug(
-            "Using bundled dashboard template for style: %s",
+            "Using bundled dashboard template for style=%s (resolution_reason=%s)",
             style,
+            release_selection.reason,
         )
         return template_content
     except FileNotFoundError as err:
@@ -414,6 +746,10 @@ async def create_kidschores_dashboard(
     show_in_sidebar: bool = True,
     require_admin: bool = False,
     icon: str = "mdi:clipboard-list",
+    admin_view_visibility: str = const.DASHBOARD_ADMIN_VIEW_VISIBILITY_ALL,
+    admin_visible_user_ids: list[str] | None = None,
+    pinned_release_tag: str | None = None,
+    include_prereleases: bool = const.DASHBOARD_RELEASE_INCLUDE_PRERELEASES_DEFAULT,
 ) -> str:
     """Create a KidsChores dashboard with views for multiple kids.
 
@@ -465,7 +801,10 @@ async def create_kidschores_dashboard(
     async def _get_template(target_style: str) -> str:
         if target_style not in template_cache:
             template_cache[target_style] = await fetch_dashboard_template(
-                hass, target_style
+                hass,
+                target_style,
+                pinned_release_tag=pinned_release_tag,
+                include_prereleases=include_prereleases,
             )
         return template_cache[target_style]
 
@@ -495,12 +834,20 @@ async def create_kidschores_dashboard(
     # Add admin view if requested
     if include_admin:
         admin_template_str = await fetch_dashboard_template(
-            hass, const.DASHBOARD_STYLE_ADMIN
+            hass,
+            const.DASHBOARD_STYLE_ADMIN,
+            pinned_release_tag=pinned_release_tag,
+            include_prereleases=include_prereleases,
         )
         # Admin template still needs comment stripping via Jinja2 render
         # Pass empty context since admin doesn't need kid injection
         admin_view = render_dashboard_template(admin_template_str, {})
         if isinstance(admin_view, dict):
+            if visible_entries := _build_admin_visible_users(
+                admin_view_visibility,
+                admin_visible_user_ids,
+            ):
+                admin_view["visible"] = visible_entries
             views.append(admin_view)
             const.LOGGER.debug("Added admin view")
 
@@ -547,12 +894,41 @@ def _is_admin_view(view: dict[str, Any]) -> bool:
     return False
 
 
+def _build_admin_visible_users(
+    admin_view_visibility: str,
+    admin_visible_user_ids: list[str] | None,
+) -> list[dict[str, str]] | None:
+    """Build Home Assistant `visible` entries for admin view access control."""
+    if admin_view_visibility != const.DASHBOARD_ADMIN_VIEW_VISIBILITY_LINKED_PARENTS:
+        return None
+
+    if not admin_visible_user_ids:
+        return None
+
+    visible: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for user_id in admin_visible_user_ids:
+        if not isinstance(user_id, str):
+            continue
+        normalized_user_id = user_id.strip()
+        if not normalized_user_id or normalized_user_id in seen:
+            continue
+        seen.add(normalized_user_id)
+        visible.append({"user": normalized_user_id})
+
+    return visible or None
+
+
 async def update_kidschores_dashboard_views(
     hass: HomeAssistant,
     url_path: str,
     kid_names: list[str],
     template_profile: str,
     include_admin: bool,
+    admin_view_visibility: str = const.DASHBOARD_ADMIN_VIEW_VISIBILITY_ALL,
+    admin_visible_user_ids: list[str] | None = None,
+    pinned_release_tag: str | None = None,
+    include_prereleases: bool = const.DASHBOARD_RELEASE_INCLUDE_PRERELEASES_DEFAULT,
 ) -> int:
     """Update selected views on an existing dashboard without deleting it.
 
@@ -601,7 +977,10 @@ async def update_kidschores_dashboard_views(
     async def _get_template(target_style: str) -> str:
         if target_style not in template_cache:
             template_cache[target_style] = await fetch_dashboard_template(
-                hass, target_style
+                hass,
+                target_style,
+                pinned_release_tag=pinned_release_tag,
+                include_prereleases=include_prereleases,
             )
         return template_cache[target_style]
 
@@ -642,10 +1021,21 @@ async def update_kidschores_dashboard_views(
 
     if include_admin:
         admin_template = await fetch_dashboard_template(
-            hass, const.DASHBOARD_STYLE_ADMIN
+            hass,
+            const.DASHBOARD_STYLE_ADMIN,
+            pinned_release_tag=pinned_release_tag,
+            include_prereleases=include_prereleases,
         )
         admin_view = render_dashboard_template(admin_template, {})
-        merged_views.append(admin_view if isinstance(admin_view, dict) else {})
+        if isinstance(admin_view, dict):
+            if visible_entries := _build_admin_visible_users(
+                admin_view_visibility,
+                admin_visible_user_ids,
+            ):
+                admin_view["visible"] = visible_entries
+            merged_views.append(admin_view)
+        else:
+            merged_views.append({})
     elif existing_admin_view is not None:
         const.LOGGER.debug("Removed admin view from dashboard: %s", url_path)
 

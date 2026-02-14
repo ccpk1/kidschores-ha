@@ -102,6 +102,8 @@ PLACEHOLDER_DOCUMENTATION_URL: Final = "documentation_url"
 # ==============================================================================
 # Templates use style-based naming (not version-suffixed).
 # Schema version is bumped ONLY for breaking Python context changes.
+# Phase 1 release policy adds explicit release-source, compatibility-floor,
+# and prerelease defaults for deterministic template resolution.
 
 # Schema version for template context structure (bump when context dict changes)
 DASHBOARD_TEMPLATE_SCHEMA_VERSION: Final = 1
@@ -121,14 +123,37 @@ DASHBOARD_STYLES: Final = [
     DASHBOARD_STYLE_ADMIN,
 ]
 
-# Remote template URL pattern (style-based, no version suffix)
-DASHBOARD_TEMPLATE_URL_PATTERN: Final = "https://raw.githubusercontent.com/ad-ha/kidschores-ha/main/templates/dashboard_{style}.yaml"
+# Release-aware remote template URL pattern (resolved by tag/ref)
+DASHBOARD_RELEASE_TEMPLATE_URL_PATTERN: Final = "https://raw.githubusercontent.com/{owner}/{repo}/{ref}/templates/dashboard_{style}.yaml"
 
-# Local fallback template path (relative to integration package)
-DASHBOARD_LOCAL_TEMPLATE_PATH: Final = "templates/dashboard_{style}.yaml"
+# Release source for remote dashboard template catalogs (Phase 1 policy)
+DASHBOARD_RELEASE_REPO_OWNER: Final = "ccpk1"
+DASHBOARD_RELEASE_REPO_NAME: Final = "kidschores-ha-dashboard"
+DASHBOARD_RELEASES_API_URL: Final = (
+    "https://api.github.com/repos/{owner}/{repo}/releases"
+)
 
-# Dashboard generation modes (Phase 2 scaffolding)
-DASHBOARD_GENERATION_MODE_SINGLE_MULTI_VIEW: Final = "single_multi_view"
+# Supported release-tag grammar (parser contract)
+# Accepted examples:
+#   - KCD_v0.5.0_beta3
+#   - KCD_v0.5.4
+DASHBOARD_RELEASE_TAG_PATTERN: Final = (
+    r"^KCD_v(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)"
+    r"(?:_(?P<pre_label>beta)(?P<pre_num>\d+))?$"
+)
+
+# Default prerelease policy while integration is in beta cycle
+DASHBOARD_RELEASE_INCLUDE_PRERELEASES_DEFAULT: Final = True
+
+# Minimum remote dashboard release we consider compatible by default.
+# Older releases are excluded from user selection in the release picker.
+DASHBOARD_RELEASE_MIN_COMPAT_TAG: Final = "KCD_v0.5.0_beta1"
+
+# MVP compatibility map fallback (used until release metadata manifest is available)
+# Structure: dashboard release tag -> minimum KidsChores integration version required.
+DASHBOARD_RELEASE_MIN_INTEGRATION_BY_TAG: Final[dict[str, str]] = {
+    "KCD_v0.5.4": "0.5.0"
+}
 
 # ==============================================================================
 # Event Infrastructure (Phase 0: Layered Architecture Foundation)
@@ -523,8 +548,7 @@ OPTIONS_FLOW_STEP_PASTE_JSON_RESTORE: Final = "paste_json_restore"
 
 # OptionsFlow Dashboard Generator Steps
 OPTIONS_FLOW_STEP_DASHBOARD_GENERATOR: Final = "dashboard_generator"
-OPTIONS_FLOW_STEP_DASHBOARD_GENERATOR_CONFIRM: Final = "dashboard_generator_confirm"
-OPTIONS_FLOW_STEP_DASHBOARD_GENERATOR_RESULT: Final = "dashboard_generator_result"
+OPTIONS_FLOW_STEP_DASHBOARD_CONFIGURE: Final = "dashboard_configure"
 OPTIONS_FLOW_STEP_DASHBOARD_DELETE: Final = "dashboard_delete"
 OPTIONS_FLOW_STEP_DASHBOARD_DELETE_CONFIRM: Final = "dashboard_delete_confirm"
 
@@ -832,15 +856,26 @@ CFOF_SYSTEM_INPUT_BACKUPS_MAX_RETAINED: Final = "backups_max_retained"
 
 # Dashboard Generator Input Fields (OptionsFlow)
 CFOF_DASHBOARD_INPUT_NAME: Final = "dashboard_name"
-CFOF_DASHBOARD_INPUT_STYLE: Final = "dashboard_style"
 CFOF_DASHBOARD_INPUT_KID_SELECTION: Final = "dashboard_kid_selection"
-CFOF_DASHBOARD_INPUT_INCLUDE_ADMIN: Final = "dashboard_include_admin"
-CFOF_DASHBOARD_INPUT_FORCE_REBUILD: Final = "dashboard_force_rebuild"
 CFOF_DASHBOARD_INPUT_ACTION: Final = "dashboard_action"
-CFOF_DASHBOARD_INPUT_DELETE_SELECTION: Final = "dashboard_delete_selection"
 CFOF_DASHBOARD_INPUT_UPDATE_SELECTION: Final = "dashboard_update_selection"
 CFOF_DASHBOARD_INPUT_CHECK_CARDS: Final = "dashboard_check_cards"
 CFOF_DASHBOARD_INPUT_TEMPLATE_PROFILE: Final = "dashboard_template_profile"
+CFOF_DASHBOARD_INPUT_ADMIN_MODE: Final = "dashboard_admin_mode"
+CFOF_DASHBOARD_INPUT_ADMIN_TEMPLATE_GLOBAL: Final = "dashboard_admin_template_global"
+CFOF_DASHBOARD_INPUT_ADMIN_TEMPLATE_PER_KID: Final = "dashboard_admin_template_per_kid"
+CFOF_DASHBOARD_INPUT_ADMIN_VIEW_VISIBILITY: Final = "dashboard_admin_view_visibility"
+CFOF_DASHBOARD_INPUT_SHOW_IN_SIDEBAR: Final = "dashboard_show_in_sidebar"
+CFOF_DASHBOARD_INPUT_REQUIRE_ADMIN: Final = "dashboard_require_admin"
+CFOF_DASHBOARD_INPUT_ICON: Final = "dashboard_icon"
+CFOF_DASHBOARD_INPUT_RELEASE_SELECTION: Final = "dashboard_release_selection"
+CFOF_DASHBOARD_INPUT_RELEASE_MODE: Final = "dashboard_release_mode"
+CFOF_DASHBOARD_INPUT_RELEASE_TAG: Final = "dashboard_release_tag"
+CFOF_DASHBOARD_INPUT_INCLUDE_PRERELEASES: Final = "dashboard_include_prereleases"
+CFOF_DASHBOARD_SECTION_KID_VIEWS: Final = "section_kid_views"
+CFOF_DASHBOARD_SECTION_ADMIN_VIEWS: Final = "section_admin_views"
+CFOF_DASHBOARD_SECTION_ACCESS_SIDEBAR: Final = "section_access_sidebar"
+CFOF_DASHBOARD_SECTION_TEMPLATE_VERSION: Final = "section_template_version"
 
 # Dashboard Generator Defaults
 DASHBOARD_DEFAULT_NAME: Final = "Chores"
@@ -849,6 +884,19 @@ DASHBOARD_DEFAULT_NAME: Final = "Chores"
 DASHBOARD_ACTION_CREATE: Final = "create"
 DASHBOARD_ACTION_UPDATE: Final = "update"
 DASHBOARD_ACTION_DELETE: Final = "delete"
+DASHBOARD_ACTION_EXIT: Final = "exit"
+
+# Dashboard admin-mode options (Phase 3)
+DASHBOARD_ADMIN_MODE_NONE: Final = "none"
+DASHBOARD_ADMIN_MODE_GLOBAL: Final = "global"
+DASHBOARD_ADMIN_MODE_PER_KID: Final = "per_kid"
+DASHBOARD_ADMIN_MODE_BOTH: Final = "both"
+DASHBOARD_ADMIN_VIEW_VISIBILITY_ALL: Final = "all_users"
+DASHBOARD_ADMIN_VIEW_VISIBILITY_LINKED_PARENTS: Final = "linked_parents"
+
+# Dashboard release-mode options (Phase 3)
+DASHBOARD_RELEASE_MODE_LATEST_COMPATIBLE: Final = "latest_compatible"
+DASHBOARD_RELEASE_MODE_PIN_RELEASE: Final = "pin_release"
 
 # Chore Custom Interval Reset Periods
 CUSTOM_INTERVAL_UNIT_OPTIONS: Final = [
@@ -1936,6 +1984,18 @@ CHORE_CTX_LAST_COMPLETED: Final = "last_completed"
 CHORE_SCAN_TRIGGER_MIDNIGHT: Final = "midnight"  # AT_MIDNIGHT_* chore processing
 CHORE_SCAN_TRIGGER_DUE_DATE: Final = "due_date"  # AT_DUE_DATE_* chore processing
 
+# Reset policy trigger + decision constants (Phase 1 unification)
+CHORE_RESET_TRIGGER_APPROVAL: Final = "approval"
+
+CHORE_RESET_BOUNDARY_CATEGORY_HOLD: Final = "hold"
+CHORE_RESET_BOUNDARY_CATEGORY_CLEAR_ONLY: Final = "clear_only"
+CHORE_RESET_BOUNDARY_CATEGORY_RESET_AND_RESCHEDULE: Final = "reset_and_reschedule"
+
+CHORE_RESET_DECISION_HOLD: Final = "hold"
+CHORE_RESET_DECISION_RESET_ONLY: Final = "reset_only"
+CHORE_RESET_DECISION_RESET_AND_RESCHEDULE: Final = "reset_and_reschedule"
+CHORE_RESET_DECISION_AUTO_APPROVE_PENDING: Final = "auto_approve_pending"
+
 # Scanner Result Category Keys (process_time_checks return dict keys)
 CHORE_SCAN_RESULT_OVERDUE: Final = "overdue"  # Chores past due date
 CHORE_SCAN_RESULT_IN_DUE_WINDOW: Final = "in_due_window"  # Chores within due window
@@ -2862,6 +2922,8 @@ SERVICE_OPEN_ROTATION_CYCLE: Final = "open_rotation_cycle"
 SERVICE_MANAGE_SHADOW_LINK: Final = "manage_shadow_link"
 SERVICE_UPDATE_CHORE: Final = "update_chore"
 SERVICE_UPDATE_REWARD: Final = "update_reward"
+SERVICE_GENERATE_ACTIVITY_REPORT: Final = "generate_activity_report"
+SERVICE_EXPORT_NORMALIZED_DATA: Final = "export_normalized_data"
 
 
 # ------------------------------------------------------------------------------------------------
@@ -2978,6 +3040,24 @@ SERVICE_FIELD_BONUS_NAME: Final = "bonus_name"
 
 # Badge service fields
 SERVICE_FIELD_BADGE_NAME: Final = "badge_name"
+
+# Reporting service fields
+SERVICE_FIELD_REPORT_RANGE_MODE: Final = "range_mode"
+SERVICE_FIELD_REPORT_START_DATE: Final = "start_date"
+SERVICE_FIELD_REPORT_END_DATE: Final = "end_date"
+SERVICE_FIELD_REPORT_NOTIFY_SERVICE: Final = "notify_service"
+SERVICE_FIELD_REPORT_TITLE: Final = "report_title"
+
+# Export service fields
+SERVICE_FIELD_EXPORT_INCLUDE_LEDGER: Final = "include_ledger"
+SERVICE_FIELD_EXPORT_INCLUDE_PERIOD_SUMMARIES: Final = "include_period_summaries"
+SERVICE_FIELD_EXPORT_INCLUDE_ITEMS: Final = "include_items"
+SERVICE_FIELD_EXPORT_INCLUDE_ID_MAP: Final = "include_id_map"
+
+# Reporting range modes
+REPORT_RANGE_MODE_LAST_7_DAYS: Final = "last_7_days"
+REPORT_RANGE_MODE_LAST_30_DAYS: Final = "last_30_days"
+REPORT_RANGE_MODE_CUSTOM: Final = "custom"
 
 # Legacy aliases (for backwards compatibility with existing automations)
 # TODO: Deprecate in v0.6.0 after migration period
@@ -3672,13 +3752,7 @@ TRANS_KEY_CFOF_INVALID_RETENTION_PERIOD: Final = "invalid_retention_period"
 TRANS_KEY_CFOF_INVALID_POINTS_ADJUST_VALUES: Final = "invalid_points_adjust_values"
 
 # Dashboard Generator Translation Keys (Phase 4)
-TRANS_KEY_CFOF_DASHBOARD_STYLE: Final = "dashboard_style"
 TRANS_KEY_CFOF_DASHBOARD_KID_SELECTION: Final = "dashboard_kid_selection"
-TRANS_KEY_CFOF_DASHBOARD_FORCE_REBUILD: Final = "dashboard_force_rebuild"
-TRANS_KEY_CFOF_DASHBOARD_STYLE_FULL: Final = "dashboard_style_full"
-TRANS_KEY_CFOF_DASHBOARD_STYLE_MINIMAL: Final = "dashboard_style_minimal"
-TRANS_KEY_CFOF_DASHBOARD_STYLE_COMPACT: Final = "dashboard_style_compact"
-TRANS_KEY_CFOF_DASHBOARD_STYLE_ADMIN: Final = "dashboard_style_admin"
 TRANS_KEY_CFOF_DASHBOARD_EXISTS: Final = "dashboard_exists"
 TRANS_KEY_CFOF_DASHBOARD_TEMPLATE_ERROR: Final = "dashboard_template_error"
 TRANS_KEY_CFOF_DASHBOARD_RENDER_ERROR: Final = "dashboard_render_error"
@@ -3690,11 +3764,39 @@ TRANS_KEY_CFOF_DASHBOARD_ACTION: Final = "dashboard_action"
 TRANS_KEY_CFOF_DASHBOARD_ACTION_CREATE: Final = "dashboard_action_create"
 TRANS_KEY_CFOF_DASHBOARD_ACTION_UPDATE: Final = "dashboard_action_update"
 TRANS_KEY_CFOF_DASHBOARD_ACTION_DELETE: Final = "dashboard_action_delete"
+TRANS_KEY_CFOF_DASHBOARD_ACTION_EXIT: Final = "dashboard_action_exit"
 TRANS_KEY_CFOF_DASHBOARD_TEMPLATE_PROFILE: Final = "dashboard_template_profile"
-TRANS_KEY_CFOF_DASHBOARD_DELETE_SELECTION: Final = "dashboard_delete_selection"
 TRANS_KEY_CFOF_DASHBOARD_UPDATE_SELECTION: Final = "dashboard_update_selection"
 TRANS_KEY_CFOF_DASHBOARD_NO_DASHBOARDS: Final = "dashboard_no_dashboards"
 TRANS_KEY_CFOF_DASHBOARD_DELETED: Final = "dashboard_deleted"
+TRANS_KEY_CFOF_DASHBOARD_RELEASE_INCOMPATIBLE: Final = "dashboard_release_incompatible"
+TRANS_KEY_CFOF_DASHBOARD_ADMIN_MODE: Final = "dashboard_admin_mode"
+TRANS_KEY_CFOF_DASHBOARD_ADMIN_TEMPLATE_GLOBAL: Final = (
+    "dashboard_admin_template_global"
+)
+TRANS_KEY_CFOF_DASHBOARD_ADMIN_TEMPLATE_PER_KID: Final = (
+    "dashboard_admin_template_per_kid"
+)
+TRANS_KEY_CFOF_DASHBOARD_ADMIN_VIEW_VISIBILITY: Final = (
+    "dashboard_admin_view_visibility"
+)
+TRANS_KEY_CFOF_DASHBOARD_SHOW_IN_SIDEBAR: Final = "dashboard_show_in_sidebar"
+TRANS_KEY_CFOF_DASHBOARD_REQUIRE_ADMIN: Final = "dashboard_require_admin"
+TRANS_KEY_CFOF_DASHBOARD_ICON: Final = "dashboard_icon"
+TRANS_KEY_CFOF_DASHBOARD_RELEASE_SELECTION: Final = "dashboard_release_selection"
+TRANS_KEY_CFOF_DASHBOARD_RELEASE_MODE: Final = "dashboard_release_mode"
+TRANS_KEY_CFOF_DASHBOARD_RELEASE_TAG: Final = "dashboard_release_tag"
+TRANS_KEY_CFOF_DASHBOARD_INCLUDE_PRERELEASES: Final = "dashboard_include_prereleases"
+TRANS_KEY_CFOF_DASHBOARD_NO_KIDS_WITHOUT_ADMIN: Final = "dashboard_no_kids_no_admin"
+TRANS_KEY_CFOF_DASHBOARD_ADMIN_GLOBAL_TEMPLATE_REQUIRED: Final = (
+    "dashboard_admin_global_template_required"
+)
+TRANS_KEY_CFOF_DASHBOARD_ADMIN_PER_KID_TEMPLATE_REQUIRED: Final = (
+    "dashboard_admin_per_kid_template_required"
+)
+TRANS_KEY_CFOF_DASHBOARD_ADMIN_PER_KID_NEEDS_KIDS: Final = (
+    "dashboard_admin_per_kid_needs_kids"
+)
 
 # Flow Helpers Translation Keys
 TRANS_KEY_FLOW_HELPERS_APPLICABLE_DAYS: Final = "applicable_days"

@@ -9,8 +9,12 @@ All functions here require a `hass` object or interact with HA APIs.
 
 from __future__ import annotations
 
+from itertools import islice
+from pathlib import Path
+import re
 from typing import TYPE_CHECKING, Any, TypedDict
 
+from homeassistant.data_entry_flow import section
 from homeassistant.helpers import selector
 from homeassistant.util import slugify
 import voluptuous as vol
@@ -20,6 +24,58 @@ from .. import const
 if TYPE_CHECKING:
     from ..coordinator import KidsChoresDataCoordinator
     from ..type_defs import KidData
+
+
+DASHBOARD_CONFIGURE_SECTION_KEYS = (
+    const.CFOF_DASHBOARD_SECTION_KID_VIEWS,
+    const.CFOF_DASHBOARD_SECTION_ADMIN_VIEWS,
+    const.CFOF_DASHBOARD_SECTION_ACCESS_SIDEBAR,
+    const.CFOF_DASHBOARD_SECTION_TEMPLATE_VERSION,
+)
+
+_TEMPLATE_HEADER_TITLE_PATTERN = re.compile(
+    r"KidsChores Dashboard Template\s*-\s*(?P<title>.*?)\s*--#>"
+)
+
+
+def _humanize_template_key(style_key: str) -> str:
+    """Convert template key to human-friendly title format."""
+    normalized = style_key.replace("_", " ").replace("-", " ").strip()
+    return normalized.title() if normalized else style_key
+
+
+def _extract_template_metadata_title(style_key: str) -> str | None:
+    """Extract display title from template header metadata if present."""
+    template_path = (
+        Path(__file__).resolve().parent.parent
+        / "templates"
+        / f"dashboard_{style_key}.yaml"
+    )
+    if not template_path.exists():
+        return None
+
+    with template_path.open(encoding="utf-8") as template_file:
+        for line in islice(template_file, 30):
+            match = _TEMPLATE_HEADER_TITLE_PATTERN.search(line)
+            if match is None:
+                continue
+            title = match.group("title").strip()
+            if title:
+                return title.title()
+    return None
+
+
+def resolve_template_display_label(style_key: str) -> str:
+    """Resolve template label via metadata title, humanized key, or raw key."""
+    metadata_title = _extract_template_metadata_title(style_key)
+    if metadata_title:
+        return metadata_title
+
+    humanized_key = _humanize_template_key(style_key)
+    if humanized_key and humanized_key != style_key:
+        return humanized_key
+
+    return style_key
 
 
 # ==============================================================================
@@ -156,30 +212,6 @@ def get_all_kid_names(coordinator: KidsChoresDataCoordinator) -> list[str]:
 # ==============================================================================
 
 
-def build_dashboard_style_options() -> list[selector.SelectOptionDict]:
-    """Build style selection options for dashboard generator form.
-
-    Admin is now a checkbox, not a style option.
-
-    Returns:
-        List of SelectOptionDict for style selector.
-    """
-    return [
-        selector.SelectOptionDict(
-            value=const.DASHBOARD_STYLE_FULL,
-            label=const.DASHBOARD_STYLE_FULL,
-        ),
-        selector.SelectOptionDict(
-            value=const.DASHBOARD_STYLE_MINIMAL,
-            label=const.DASHBOARD_STYLE_MINIMAL,
-        ),
-        # selector.SelectOptionDict(
-        #    value=const.DASHBOARD_STYLE_COMPACT,
-        #    label=const.TRANS_KEY_CFOF_DASHBOARD_STYLE_COMPACT,
-        # ),
-    ]
-
-
 def build_dashboard_template_profile_options() -> list[selector.SelectOptionDict]:
     """Build template profile options.
 
@@ -188,13 +220,84 @@ def build_dashboard_template_profile_options() -> list[selector.SelectOptionDict
     return [
         selector.SelectOptionDict(
             value=const.DASHBOARD_STYLE_FULL,
-            label=const.DASHBOARD_STYLE_FULL,
+            label=resolve_template_display_label(const.DASHBOARD_STYLE_FULL),
         ),
         selector.SelectOptionDict(
             value=const.DASHBOARD_STYLE_MINIMAL,
-            label=const.DASHBOARD_STYLE_MINIMAL,
+            label=resolve_template_display_label(const.DASHBOARD_STYLE_MINIMAL),
         ),
     ]
+
+
+def build_dashboard_admin_mode_options() -> list[selector.SelectOptionDict]:
+    """Build admin mode options for dashboard configuration step."""
+    return [
+        selector.SelectOptionDict(
+            value=const.DASHBOARD_ADMIN_MODE_NONE,
+            label=const.DASHBOARD_ADMIN_MODE_NONE,
+        ),
+        selector.SelectOptionDict(
+            value=const.DASHBOARD_ADMIN_MODE_GLOBAL,
+            label=const.DASHBOARD_ADMIN_MODE_GLOBAL,
+        ),
+        selector.SelectOptionDict(
+            value=const.DASHBOARD_ADMIN_MODE_PER_KID,
+            label=const.DASHBOARD_ADMIN_MODE_PER_KID,
+        ),
+        selector.SelectOptionDict(
+            value=const.DASHBOARD_ADMIN_MODE_BOTH,
+            label=const.DASHBOARD_ADMIN_MODE_BOTH,
+        ),
+    ]
+
+
+def build_dashboard_admin_template_options() -> list[selector.SelectOptionDict]:
+    """Build admin template options.
+
+    Current MVP supports a single admin template profile.
+    """
+    return [
+        selector.SelectOptionDict(
+            value=const.DASHBOARD_STYLE_ADMIN,
+            label=resolve_template_display_label(const.DASHBOARD_STYLE_ADMIN),
+        )
+    ]
+
+
+def build_dashboard_admin_view_visibility_options() -> list[selector.SelectOptionDict]:
+    """Build visibility options for admin views."""
+    return [
+        selector.SelectOptionDict(
+            value=const.DASHBOARD_ADMIN_VIEW_VISIBILITY_ALL,
+            label=const.DASHBOARD_ADMIN_VIEW_VISIBILITY_ALL,
+        ),
+        selector.SelectOptionDict(
+            value=const.DASHBOARD_ADMIN_VIEW_VISIBILITY_LINKED_PARENTS,
+            label=const.DASHBOARD_ADMIN_VIEW_VISIBILITY_LINKED_PARENTS,
+        ),
+    ]
+
+
+def build_dashboard_release_selection_options(
+    release_tags: list[str] | None,
+) -> list[selector.SelectOptionDict]:
+    """Build update-only template version selector options.
+
+    The first option keeps the existing automatic newest-compatible behavior.
+    Additional options allow explicitly selecting a discovered compatible tag.
+    """
+    options: list[selector.SelectOptionDict] = [
+        selector.SelectOptionDict(
+            value=const.DASHBOARD_RELEASE_MODE_LATEST_COMPATIBLE,
+            label=const.DASHBOARD_RELEASE_MODE_LATEST_COMPATIBLE,
+        )
+    ]
+    if not release_tags:
+        return options
+
+    for tag in release_tags:
+        options.append(selector.SelectOptionDict(value=tag, label=tag))
+    return options
 
 
 def build_dashboard_kid_options(
@@ -212,53 +315,62 @@ def build_dashboard_kid_options(
     return [selector.SelectOptionDict(value=name, label=name) for name in kid_names]
 
 
-def build_dashboard_generator_schema(
+def build_dashboard_create_name_schema() -> vol.Schema:
+    """Build schema for Step 1 create path (dashboard name only)."""
+    return vol.Schema(
+        {
+            vol.Required(
+                const.CFOF_DASHBOARD_INPUT_NAME,
+                default=const.DASHBOARD_DEFAULT_NAME,
+            ): selector.TextSelector(
+                selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT)
+            )
+        }
+    )
+
+
+def build_dashboard_configure_schema(
     coordinator: KidsChoresDataCoordinator,
+    *,
+    include_release_controls: bool,
+    release_tags: list[str] | None = None,
+    selected_kids_default: list[str] | None = None,
+    template_profile_default: str = const.DASHBOARD_STYLE_FULL,
+    admin_mode_default: str = const.DASHBOARD_ADMIN_MODE_GLOBAL,
+    admin_template_global_default: str = const.DASHBOARD_STYLE_ADMIN,
+    admin_template_per_kid_default: str = const.DASHBOARD_STYLE_ADMIN,
+    admin_view_visibility_default: str = const.DASHBOARD_ADMIN_VIEW_VISIBILITY_ALL,
+    show_in_sidebar_default: bool = True,
+    require_admin_default: bool = False,
+    icon_default: str = "mdi:clipboard-list",
+    include_prereleases_default: bool = (
+        const.DASHBOARD_RELEASE_INCLUDE_PRERELEASES_DEFAULT
+    ),
+    release_selection_default: str = const.DASHBOARD_RELEASE_MODE_LATEST_COMPATIBLE,
 ) -> vol.Schema:
-    """Build the schema for dashboard generator options flow step.
-
-    Creates a multi-view dashboard with one tab per kid plus optional admin tab.
-
-    Args:
-        coordinator: KidsChoresDataCoordinator instance.
-
-    Returns:
-        Voluptuous schema for the form.
-    """
-    style_options = build_dashboard_style_options()
+    """Build unified Step 2 dashboard configuration schema."""
     kid_options = build_dashboard_kid_options(coordinator)
     kid_names = get_all_kid_names(coordinator)
+    default_selected_kids = selected_kids_default or kid_names
 
-    schema_fields: dict[vol.Marker, Any] = {
-        # Dashboard name (user-specified, suggest "Chores")
-        vol.Required(
-            const.CFOF_DASHBOARD_INPUT_NAME,
-            default=const.DASHBOARD_DEFAULT_NAME,
-        ): selector.TextSelector(
-            selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT)
+    kid_view_fields: dict[vol.Marker, Any] = {
+        vol.Optional(
+            const.CFOF_DASHBOARD_INPUT_TEMPLATE_PROFILE,
+            default=template_profile_default,
+        ): selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=build_dashboard_template_profile_options(),
+                mode=selector.SelectSelectorMode.DROPDOWN,
+                translation_key=const.TRANS_KEY_CFOF_DASHBOARD_TEMPLATE_PROFILE,
+            )
         ),
     }
 
-    # Style selection
-    schema_fields[
-        vol.Required(
-            const.CFOF_DASHBOARD_INPUT_STYLE,
-            default=const.DASHBOARD_STYLE_FULL,
-        )
-    ] = selector.SelectSelector(
-        selector.SelectSelectorConfig(
-            options=style_options,
-            mode=selector.SelectSelectorMode.DROPDOWN,
-            translation_key=const.TRANS_KEY_CFOF_DASHBOARD_STYLE,
-        )
-    )
-
-    # Kid selection (multi-select, pre-select all)
     if kid_options:
-        schema_fields[
+        kid_view_fields[
             vol.Optional(
                 const.CFOF_DASHBOARD_INPUT_KID_SELECTION,
-                default=kid_names,
+                default=default_selected_kids,
             )
         ] = selector.SelectSelector(
             selector.SelectSelectorConfig(
@@ -269,83 +381,135 @@ def build_dashboard_generator_schema(
             )
         )
 
-    # Include admin view checkbox
-    schema_fields[
+    admin_view_fields: dict[vol.Marker, Any] = {
         vol.Optional(
-            const.CFOF_DASHBOARD_INPUT_INCLUDE_ADMIN,
-            default=True,
+            const.CFOF_DASHBOARD_INPUT_ADMIN_MODE,
+            default=admin_mode_default,
+        ): selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=build_dashboard_admin_mode_options(),
+                mode=selector.SelectSelectorMode.DROPDOWN,
+                translation_key=const.TRANS_KEY_CFOF_DASHBOARD_ADMIN_MODE,
+            )
+        ),
+        vol.Optional(
+            const.CFOF_DASHBOARD_INPUT_ADMIN_VIEW_VISIBILITY,
+            default=admin_view_visibility_default,
+        ): selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=build_dashboard_admin_view_visibility_options(),
+                mode=selector.SelectSelectorMode.DROPDOWN,
+                translation_key=const.TRANS_KEY_CFOF_DASHBOARD_ADMIN_VIEW_VISIBILITY,
+            )
+        ),
+    }
+
+    if not include_release_controls or admin_mode_default in (
+        const.DASHBOARD_ADMIN_MODE_GLOBAL,
+        const.DASHBOARD_ADMIN_MODE_BOTH,
+    ):
+        admin_view_fields[
+            vol.Optional(
+                const.CFOF_DASHBOARD_INPUT_ADMIN_TEMPLATE_GLOBAL,
+                default=admin_template_global_default,
+            )
+        ] = selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=build_dashboard_admin_template_options(),
+                mode=selector.SelectSelectorMode.DROPDOWN,
+                translation_key=const.TRANS_KEY_CFOF_DASHBOARD_ADMIN_TEMPLATE_GLOBAL,
+            )
         )
-    ] = selector.BooleanSelector()
 
-    return vol.Schema(schema_fields)
+    if not include_release_controls or admin_mode_default in (
+        const.DASHBOARD_ADMIN_MODE_PER_KID,
+        const.DASHBOARD_ADMIN_MODE_BOTH,
+    ):
+        admin_view_fields[
+            vol.Optional(
+                const.CFOF_DASHBOARD_INPUT_ADMIN_TEMPLATE_PER_KID,
+                default=admin_template_per_kid_default,
+            )
+        ] = selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=build_dashboard_admin_template_options(),
+                mode=selector.SelectSelectorMode.DROPDOWN,
+                translation_key=const.TRANS_KEY_CFOF_DASHBOARD_ADMIN_TEMPLATE_PER_KID,
+            )
+        )
+
+    access_sidebar_fields: dict[vol.Marker, Any] = {
+        vol.Optional(
+            const.CFOF_DASHBOARD_INPUT_SHOW_IN_SIDEBAR,
+            default=show_in_sidebar_default,
+        ): selector.BooleanSelector(),
+        vol.Optional(
+            const.CFOF_DASHBOARD_INPUT_REQUIRE_ADMIN,
+            default=require_admin_default,
+        ): selector.BooleanSelector(),
+        vol.Optional(
+            const.CFOF_DASHBOARD_INPUT_ICON,
+            default=icon_default,
+        ): selector.IconSelector(),
+    }
+
+    template_version_fields: dict[vol.Marker, Any] = {}
+    if include_release_controls:
+        template_version_fields[
+            vol.Optional(
+                const.CFOF_DASHBOARD_INPUT_INCLUDE_PRERELEASES,
+                default=include_prereleases_default,
+            )
+        ] = selector.BooleanSelector()
+
+        template_version_fields[
+            vol.Optional(
+                const.CFOF_DASHBOARD_INPUT_RELEASE_SELECTION,
+                default=release_selection_default,
+            )
+        ] = selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=build_dashboard_release_selection_options(release_tags),
+                mode=selector.SelectSelectorMode.DROPDOWN,
+                translation_key=const.TRANS_KEY_CFOF_DASHBOARD_RELEASE_SELECTION,
+            )
+        )
+
+    if include_release_controls:
+        sectioned_schema_fields: dict[vol.Marker, Any] = {
+            vol.Optional(const.CFOF_DASHBOARD_SECTION_KID_VIEWS): section(
+                vol.Schema(kid_view_fields)
+            ),
+            vol.Optional(const.CFOF_DASHBOARD_SECTION_ADMIN_VIEWS): section(
+                vol.Schema(admin_view_fields)
+            ),
+            vol.Optional(const.CFOF_DASHBOARD_SECTION_ACCESS_SIDEBAR): section(
+                vol.Schema(access_sidebar_fields),
+                {"collapsed": True},
+            ),
+            vol.Optional(const.CFOF_DASHBOARD_SECTION_TEMPLATE_VERSION): section(
+                vol.Schema(template_version_fields),
+                {"collapsed": True},
+            ),
+        }
+        return vol.Schema(sectioned_schema_fields, extra=vol.ALLOW_EXTRA)
+
+    flat_schema_fields: dict[vol.Marker, Any] = {
+        **kid_view_fields,
+        **admin_view_fields,
+        **access_sidebar_fields,
+    }
+    return vol.Schema(flat_schema_fields)
 
 
-def format_dashboard_confirm_summary(
-    dashboard_name: str,
-    style: str,
-    selected_kids: list[str],
-    include_admin: bool,
-) -> str:
-    """Build the summary text for dashboard generation confirmation.
-
-    Args:
-        dashboard_name: User-specified dashboard name.
-        style: Selected dashboard style.
-        selected_kids: List of selected kid names.
-        include_admin: Whether admin view is included.
-
-    Returns:
-        Formatted summary string for display.
-    """
-    from .dashboard_builder import get_multi_view_url_path
-
-    url_path = get_multi_view_url_path(dashboard_name)
-
-    lines = [
-        f"Dashboard: {dashboard_name} ({url_path})",
-        f"Style: {style}",
-        "",
-        "Views (tabs):",
-    ]
-
-    for kid in selected_kids:
-        lines.append(f"  • {kid}")
-
-    if include_admin:
-        lines.append("  • Admin")
-
-    return "\n".join(lines)
-
-
-def format_dashboard_results(results: list[dict[str, Any]]) -> str:
-    """Format dashboard generation results for display.
-
-    Args:
-        results: List of generation results (DashboardGenerationResult dicts).
-
-    Returns:
-        Formatted result string.
-    """
-    success_items = [
-        f"✓ {r['name']} → {r.get('url_path', 'N/A')}"
-        for r in results
-        if r.get("success")
-    ]
-    failure_items = [
-        f"✗ {r['name']}: {r.get('error', 'Unknown error')}"
-        for r in results
-        if not r.get("success")
-    ]
-
-    result_text = ""
-    if success_items:
-        result_text += "\n".join(success_items)
-    if failure_items:
-        if result_text:
-            result_text += "\n\n"
-        result_text += "\n".join(failure_items)
-
-    return result_text
+def normalize_dashboard_configure_input(user_input: dict[str, Any]) -> dict[str, Any]:
+    """Normalize dashboard configure payload for sectioned and flat forms."""
+    normalized: dict[str, Any] = dict(user_input)
+    for section_key in DASHBOARD_CONFIGURE_SECTION_KEYS:
+        section_data = normalized.pop(section_key, None)
+        if isinstance(section_data, dict):
+            normalized.update(section_data)
+    return normalized
 
 
 # ==============================================================================
@@ -405,7 +569,7 @@ def get_existing_kidschores_dashboards(
 def build_dashboard_action_schema(
     check_cards_default: bool = True,
 ) -> vol.Schema:
-    """Build schema for dashboard action selection (create/delete).
+    """Build schema for dashboard action selection.
 
     Args:
         check_cards_default: Default value for the check cards checkbox.
@@ -425,6 +589,10 @@ def build_dashboard_action_schema(
         selector.SelectOptionDict(
             value=const.DASHBOARD_ACTION_DELETE,
             label=const.DASHBOARD_ACTION_DELETE,
+        ),
+        selector.SelectOptionDict(
+            value=const.DASHBOARD_ACTION_EXIT,
+            label=const.DASHBOARD_ACTION_EXIT,
         ),
     ]
 
@@ -472,88 +640,6 @@ def build_dashboard_update_selection_schema(
                     mode=selector.SelectSelectorMode.DROPDOWN,
                     multiple=False,
                     translation_key=const.TRANS_KEY_CFOF_DASHBOARD_UPDATE_SELECTION,
-                )
-            ),
-        }
-    )
-
-
-def build_dashboard_update_schema(
-    coordinator: KidsChoresDataCoordinator,
-) -> vol.Schema:
-    """Build minimal schema for updating views on an existing dashboard."""
-    kid_options = build_dashboard_kid_options(coordinator)
-    kid_names = get_all_kid_names(coordinator)
-
-    schema_fields: dict[vol.Marker, Any] = {
-        vol.Optional(
-            const.CFOF_DASHBOARD_INPUT_TEMPLATE_PROFILE,
-            default=const.DASHBOARD_STYLE_FULL,
-        ): selector.SelectSelector(
-            selector.SelectSelectorConfig(
-                options=build_dashboard_template_profile_options(),
-                mode=selector.SelectSelectorMode.DROPDOWN,
-                translation_key=const.TRANS_KEY_CFOF_DASHBOARD_TEMPLATE_PROFILE,
-            )
-        ),
-    }
-
-    if kid_options:
-        schema_fields[
-            vol.Optional(
-                const.CFOF_DASHBOARD_INPUT_KID_SELECTION,
-                default=kid_names,
-            )
-        ] = selector.SelectSelector(
-            selector.SelectSelectorConfig(
-                options=kid_options,
-                mode=selector.SelectSelectorMode.DROPDOWN,
-                multiple=True,
-                translation_key=const.TRANS_KEY_CFOF_DASHBOARD_KID_SELECTION,
-            )
-        )
-
-    schema_fields[
-        vol.Optional(
-            const.CFOF_DASHBOARD_INPUT_INCLUDE_ADMIN,
-            default=True,
-        )
-    ] = selector.BooleanSelector()
-
-    return vol.Schema(schema_fields)
-
-
-def build_dashboard_delete_schema(
-    hass: Any,
-) -> vol.Schema | None:
-    """Build schema for dashboard deletion selection.
-
-    Args:
-        hass: Home Assistant instance.
-
-    Returns:
-        Voluptuous schema for deletion, or None if no dashboards exist.
-    """
-    dashboards = get_existing_kidschores_dashboards(hass)
-
-    if not dashboards:
-        return None
-
-    dashboard_options = [
-        selector.SelectOptionDict(value=d["value"], label=d["label"])
-        for d in dashboards
-    ]
-
-    return vol.Schema(
-        {
-            vol.Required(
-                const.CFOF_DASHBOARD_INPUT_DELETE_SELECTION,
-            ): selector.SelectSelector(
-                selector.SelectSelectorConfig(
-                    options=dashboard_options,
-                    mode=selector.SelectSelectorMode.DROPDOWN,
-                    multiple=True,
-                    translation_key=const.TRANS_KEY_CFOF_DASHBOARD_DELETE_SELECTION,
                 )
             ),
         }

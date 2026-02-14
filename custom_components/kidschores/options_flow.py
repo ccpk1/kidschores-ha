@@ -58,13 +58,26 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         self._chore_template_date_raw: Any = None  # Template date for per-kid helper
         # Dashboard generator state
         self._dashboard_name: str = const.DASHBOARD_DEFAULT_NAME
-        self._dashboard_style: str = const.DASHBOARD_STYLE_FULL
-        self._dashboard_include_admin: bool = True
-        self._dashboard_force_rebuild: bool = False
         self._dashboard_selected_kids: list[str] = []
         self._dashboard_template_profile: str = const.DASHBOARD_STYLE_FULL
+        self._dashboard_admin_mode: str = const.DASHBOARD_ADMIN_MODE_GLOBAL
+        self._dashboard_admin_template_global: str = const.DASHBOARD_STYLE_ADMIN
+        self._dashboard_admin_template_per_kid: str = const.DASHBOARD_STYLE_ADMIN
+        self._dashboard_admin_view_visibility: str = (
+            const.DASHBOARD_ADMIN_VIEW_VISIBILITY_ALL
+        )
+        self._dashboard_show_in_sidebar: bool = True
+        self._dashboard_require_admin: bool = False
+        self._dashboard_icon: str = "mdi:clipboard-list"
+        self._dashboard_release_selection: str = (
+            const.DASHBOARD_RELEASE_MODE_LATEST_COMPATIBLE
+        )
+        self._dashboard_include_prereleases: bool = (
+            const.DASHBOARD_RELEASE_INCLUDE_PRERELEASES_DEFAULT
+        )
+        self._dashboard_flow_mode: str = const.DASHBOARD_ACTION_CREATE
+        self._dashboard_status_message: str = ""
         self._dashboard_update_url_path: str | None = None
-        self._dashboard_results: list[dict[str, Any]] = []
         self._dashboard_delete_selection: list[str] = []
         self._dashboard_dedupe_removed: dict[str, int] = {}
 
@@ -3913,7 +3926,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
     ) -> ConfigFlowResult:
         """Handle the dashboard generator action selection.
 
-        First step: Select whether to create or delete dashboards.
+        First step: Select dashboard CRUD action.
         """
         from .helpers import dashboard_helpers as dh
 
@@ -3973,16 +3986,23 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 return await self.async_step_dashboard_delete()
             if action == const.DASHBOARD_ACTION_UPDATE:
                 return await self.async_step_dashboard_update_select()
+            if action == const.DASHBOARD_ACTION_EXIT:
+                return await self.async_step_init()
             # Default to create flow
             return await self.async_step_dashboard_create()
 
         # Show action selection
         schema = dh.build_dashboard_action_schema()
+        status_message = (
+            self._dashboard_status_message or "No recent dashboard actions."
+        )
+        self._dashboard_status_message = ""
 
         return self.async_show_form(
             step_id=const.OPTIONS_FLOW_STEP_DASHBOARD_GENERATOR,
             data_schema=schema,
             errors=errors,
+            description_placeholders={"status": status_message},
         )
 
     async def async_step_dashboard_create(
@@ -3990,59 +4010,29 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
     ) -> ConfigFlowResult:
         """Handle the dashboard creation form.
 
-        Create a new multi-view dashboard with simple defaults.
+        Step 1 create path: capture dashboard name only, then route to Step 2.
         """
         from .helpers import dashboard_helpers as dh
 
         errors: dict[str, str] = {}
-        coordinator = self._get_coordinator()
 
         if user_input is not None:
-            self._dashboard_dedupe_removed = {}
             dashboard_name = str(
                 user_input.get(
                     const.CFOF_DASHBOARD_INPUT_NAME, const.DASHBOARD_DEFAULT_NAME
                 )
             ).strip()
-            style = str(
-                user_input.get(
-                    const.CFOF_DASHBOARD_INPUT_STYLE, const.DASHBOARD_STYLE_FULL
-                )
-            )
-            include_admin = bool(
-                user_input.get(const.CFOF_DASHBOARD_INPUT_INCLUDE_ADMIN, True)
-            )
 
             # Validate dashboard name
             if not dashboard_name:
                 errors[const.CFOP_ERROR_BASE] = const.TRANS_KEY_CFOF_DASHBOARD_NO_NAME
             else:
-                # Validate kid selection
-                selected_kids_input = user_input.get(
-                    const.CFOF_DASHBOARD_INPUT_KID_SELECTION, []
-                )
-                selected_kids: list[str] = (
-                    list(selected_kids_input) if selected_kids_input else []
-                )
+                self._dashboard_name = dashboard_name
+                self._dashboard_update_url_path = None
+                self._dashboard_flow_mode = const.DASHBOARD_ACTION_CREATE
+                return await self.async_step_dashboard_configure()
 
-                # Must have at least one kid OR include admin
-                if not errors and not selected_kids and not include_admin:
-                    errors[const.CFOP_ERROR_BASE] = (
-                        const.TRANS_KEY_CFOF_DASHBOARD_NO_KIDS
-                    )
-                else:
-                    # Store selections in instance for confirm step
-                    self._dashboard_name = dashboard_name
-                    self._dashboard_style = style
-                    self._dashboard_include_admin = include_admin
-                    self._dashboard_force_rebuild = False
-                    self._dashboard_selected_kids = selected_kids
-                    self._dashboard_template_profile = style
-                    self._dashboard_update_url_path = None
-                    return await self.async_step_dashboard_generator_confirm()
-
-        # Use helper to build schema
-        schema = dh.build_dashboard_generator_schema(coordinator)
+        schema = dh.build_dashboard_create_name_schema()
 
         return self.async_show_form(
             step_id="dashboard_create",
@@ -4067,7 +4057,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             )
             if isinstance(selected_url_path, str) and selected_url_path:
                 self._dashboard_update_url_path = selected_url_path
-                return await self.async_step_dashboard_update()
+                self._dashboard_flow_mode = const.DASHBOARD_ACTION_UPDATE
+                return await self.async_step_dashboard_configure()
 
             errors[const.CFOP_ERROR_BASE] = const.TRANS_KEY_CFOF_DASHBOARD_NO_DASHBOARDS
 
@@ -4084,62 +4075,317 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             errors=errors,
         )
 
-    async def async_step_dashboard_update(
+    async def async_step_dashboard_configure(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Apply view-level updates to a selected existing dashboard."""
-        from .helpers import dashboard_helpers as dh
+        """Unified Step 2 dashboard configuration for create/update flows."""
+        from .helpers import dashboard_builder as builder, dashboard_helpers as dh
 
         errors: dict[str, str] = {}
         coordinator = self._get_coordinator()
+        is_update_flow = self._dashboard_flow_mode == const.DASHBOARD_ACTION_UPDATE
 
-        if not self._dashboard_update_url_path:
+        if is_update_flow and not self._dashboard_update_url_path:
             return await self.async_step_dashboard_update_select()
 
-        if user_input is not None:
-            include_admin = bool(
-                user_input.get(const.CFOF_DASHBOARD_INPUT_INCLUDE_ADMIN, True)
-            )
-            template_profile = str(
-                user_input.get(
-                    const.CFOF_DASHBOARD_INPUT_TEMPLATE_PROFILE,
-                    const.DASHBOARD_STYLE_FULL,
+        available_release_tags: list[str] = []
+        if is_update_flow:
+            try:
+                available_release_tags = (
+                    await builder.discover_compatible_dashboard_release_tags(self.hass)
                 )
-            )
+            except (TimeoutError, ValueError) as err:
+                const.LOGGER.debug(
+                    "Release tags unavailable while building dashboard update schema: %s",
+                    err,
+                )
+
+        if user_input is not None:
+            user_input = dh.normalize_dashboard_configure_input(user_input)
+            self._dashboard_dedupe_removed = {}
             selected_kids_input = user_input.get(
-                const.CFOF_DASHBOARD_INPUT_KID_SELECTION, []
+                const.CFOF_DASHBOARD_INPUT_KID_SELECTION,
+                [],
             )
             selected_kids: list[str] = (
                 list(selected_kids_input) if selected_kids_input else []
             )
 
-            if not selected_kids and not include_admin:
-                errors[const.CFOP_ERROR_BASE] = const.TRANS_KEY_CFOF_DASHBOARD_NO_KIDS
+            template_profile = str(
+                user_input.get(
+                    const.CFOF_DASHBOARD_INPUT_TEMPLATE_PROFILE,
+                    self._dashboard_template_profile,
+                )
+            )
+            admin_mode = str(
+                user_input.get(
+                    const.CFOF_DASHBOARD_INPUT_ADMIN_MODE,
+                    self._dashboard_admin_mode,
+                )
+            )
+            has_admin_template_global_input = (
+                const.CFOF_DASHBOARD_INPUT_ADMIN_TEMPLATE_GLOBAL in user_input
+            )
+            has_admin_template_per_kid_input = (
+                const.CFOF_DASHBOARD_INPUT_ADMIN_TEMPLATE_PER_KID in user_input
+            )
+            admin_template_global = str(
+                user_input.get(
+                    const.CFOF_DASHBOARD_INPUT_ADMIN_TEMPLATE_GLOBAL,
+                    self._dashboard_admin_template_global,
+                )
+            ).strip()
+            admin_template_per_kid = str(
+                user_input.get(
+                    const.CFOF_DASHBOARD_INPUT_ADMIN_TEMPLATE_PER_KID,
+                    self._dashboard_admin_template_per_kid,
+                )
+            ).strip()
+            admin_view_visibility = str(
+                user_input.get(
+                    const.CFOF_DASHBOARD_INPUT_ADMIN_VIEW_VISIBILITY,
+                    self._dashboard_admin_view_visibility,
+                )
+            )
+            show_in_sidebar = bool(
+                user_input.get(
+                    const.CFOF_DASHBOARD_INPUT_SHOW_IN_SIDEBAR,
+                    self._dashboard_show_in_sidebar,
+                )
+            )
+            require_admin = bool(
+                user_input.get(
+                    const.CFOF_DASHBOARD_INPUT_REQUIRE_ADMIN,
+                    self._dashboard_require_admin,
+                )
+            )
+            icon = str(
+                user_input.get(const.CFOF_DASHBOARD_INPUT_ICON, self._dashboard_icon)
+            ).strip()
 
-            if not errors:
-                # Reconstruct dashboard name from selected url path (kcd-*)
-                selected_url_path = self._dashboard_update_url_path
-                base_name = selected_url_path.removeprefix(
-                    const.DASHBOARD_URL_PATH_PREFIX
+            release_selection = str(
+                user_input.get(
+                    const.CFOF_DASHBOARD_INPUT_RELEASE_SELECTION,
+                    self._dashboard_release_selection,
+                )
+            ).strip()
+            legacy_release_mode = str(
+                user_input.get(
+                    const.CFOF_DASHBOARD_INPUT_RELEASE_MODE,
+                    const.DASHBOARD_RELEASE_MODE_LATEST_COMPATIBLE,
+                )
+            )
+            legacy_release_tag_value = user_input.get(
+                const.CFOF_DASHBOARD_INPUT_RELEASE_TAG
+            )
+            legacy_release_tag = (
+                str(legacy_release_tag_value).strip()
+                if legacy_release_tag_value
+                else const.SENTINEL_EMPTY
+            )
+            if (
+                const.CFOF_DASHBOARD_INPUT_RELEASE_SELECTION not in user_input
+                and legacy_release_mode == const.DASHBOARD_RELEASE_MODE_PIN_RELEASE
+                and legacy_release_tag
+            ):
+                release_selection = legacy_release_tag
+            include_prereleases = bool(
+                user_input.get(
+                    const.CFOF_DASHBOARD_INPUT_INCLUDE_PRERELEASES,
+                    self._dashboard_include_prereleases,
+                )
+            )
+
+            # Update flow only: when admin layout changes, rerender with newly
+            # relevant template selector fields before full validation.
+            if is_update_flow:
+                needs_global_template = admin_mode in (
+                    const.DASHBOARD_ADMIN_MODE_GLOBAL,
+                    const.DASHBOARD_ADMIN_MODE_BOTH,
+                )
+                needs_per_kid_template = admin_mode in (
+                    const.DASHBOARD_ADMIN_MODE_PER_KID,
+                    const.DASHBOARD_ADMIN_MODE_BOTH,
+                )
+                if (needs_global_template and not has_admin_template_global_input) or (
+                    needs_per_kid_template and not has_admin_template_per_kid_input
+                ):
+                    self._dashboard_selected_kids = selected_kids
+                    self._dashboard_template_profile = template_profile
+                    self._dashboard_admin_mode = admin_mode
+                    self._dashboard_admin_template_global = admin_template_global
+                    self._dashboard_admin_template_per_kid = admin_template_per_kid
+                    self._dashboard_admin_view_visibility = admin_view_visibility
+                    self._dashboard_show_in_sidebar = show_in_sidebar
+                    self._dashboard_require_admin = require_admin
+                    self._dashboard_icon = icon or "mdi:clipboard-list"
+                    self._dashboard_release_selection = release_selection
+                    self._dashboard_include_prereleases = include_prereleases
+                    return await self.async_step_dashboard_configure()
+
+            if not selected_kids and admin_mode == const.DASHBOARD_ADMIN_MODE_NONE:
+                errors[const.CFOP_ERROR_BASE] = (
+                    const.TRANS_KEY_CFOF_DASHBOARD_NO_KIDS_WITHOUT_ADMIN
+                )
+            elif (
+                admin_mode
+                in (
+                    const.DASHBOARD_ADMIN_MODE_GLOBAL,
+                    const.DASHBOARD_ADMIN_MODE_BOTH,
+                )
+                and not admin_template_global
+            ):
+                errors[const.CFOP_ERROR_BASE] = (
+                    const.TRANS_KEY_CFOF_DASHBOARD_ADMIN_GLOBAL_TEMPLATE_REQUIRED
+                )
+            elif (
+                admin_mode
+                in (
+                    const.DASHBOARD_ADMIN_MODE_PER_KID,
+                    const.DASHBOARD_ADMIN_MODE_BOTH,
+                )
+                and not admin_template_per_kid
+            ):
+                errors[const.CFOP_ERROR_BASE] = (
+                    const.TRANS_KEY_CFOF_DASHBOARD_ADMIN_PER_KID_TEMPLATE_REQUIRED
+                )
+            elif (
+                admin_mode
+                in (
+                    const.DASHBOARD_ADMIN_MODE_PER_KID,
+                    const.DASHBOARD_ADMIN_MODE_BOTH,
+                )
+                and not selected_kids
+            ):
+                errors[const.CFOP_ERROR_BASE] = (
+                    const.TRANS_KEY_CFOF_DASHBOARD_ADMIN_PER_KID_NEEDS_KIDS
+                )
+            elif (
+                is_update_flow
+                and release_selection != const.DASHBOARD_RELEASE_MODE_LATEST_COMPATIBLE
+                and available_release_tags
+                and release_selection not in available_release_tags
+            ):
+                errors[const.CFOP_ERROR_BASE] = (
+                    const.TRANS_KEY_CFOF_DASHBOARD_RELEASE_INCOMPATIBLE
                 )
 
-                self._dashboard_name = base_name
-                self._dashboard_style = template_profile
-                self._dashboard_include_admin = include_admin
-                self._dashboard_force_rebuild = True
+            if not errors:
+                include_admin = admin_mode != const.DASHBOARD_ADMIN_MODE_NONE
+                pinned_release_tag = (
+                    release_selection
+                    if is_update_flow
+                    and release_selection
+                    != const.DASHBOARD_RELEASE_MODE_LATEST_COMPATIBLE
+                    else None
+                )
+
                 self._dashboard_selected_kids = selected_kids
                 self._dashboard_template_profile = template_profile
-                return await self.async_step_dashboard_generator_confirm()
+                self._dashboard_admin_mode = admin_mode
+                self._dashboard_admin_template_global = admin_template_global
+                self._dashboard_admin_template_per_kid = admin_template_per_kid
+                self._dashboard_show_in_sidebar = show_in_sidebar
+                self._dashboard_require_admin = require_admin
+                self._dashboard_icon = icon or "mdi:clipboard-list"
+                self._dashboard_admin_view_visibility = admin_view_visibility
+                self._dashboard_release_selection = release_selection
+                self._dashboard_include_prereleases = include_prereleases
+                admin_visible_user_ids = (
+                    self._get_parent_ha_user_ids()
+                    if admin_view_visibility
+                    == const.DASHBOARD_ADMIN_VIEW_VISIBILITY_LINKED_PARENTS
+                    else None
+                )
 
-        schema = dh.build_dashboard_update_schema(coordinator)
-        selected_dashboard = self._dashboard_update_url_path
+                try:
+                    if is_update_flow:
+                        url_path = self._dashboard_update_url_path
+                        if url_path is None:
+                            return await self.async_step_dashboard_update_select()
+
+                        view_count = await builder.update_kidschores_dashboard_views(
+                            self.hass,
+                            url_path=url_path,
+                            kid_names=selected_kids,
+                            template_profile=template_profile,
+                            include_admin=include_admin,
+                            admin_view_visibility=admin_view_visibility,
+                            admin_visible_user_ids=admin_visible_user_ids,
+                            pinned_release_tag=pinned_release_tag,
+                            include_prereleases=include_prereleases,
+                        )
+                        self._dashboard_status_message = f"Updated {url_path} (views={view_count}, release_selection={release_selection})"
+                    else:
+                        dedupe_removed = (
+                            await builder.async_dedupe_kidschores_dashboards(
+                                self.hass,
+                                url_path=builder.get_multi_view_url_path(
+                                    self._dashboard_name
+                                ),
+                            )
+                        )
+                        self._dashboard_dedupe_removed = dedupe_removed
+
+                        url_path = await builder.create_kidschores_dashboard(
+                            self.hass,
+                            dashboard_name=self._dashboard_name,
+                            kid_names=selected_kids,
+                            style=template_profile,
+                            kid_template_profiles=dict.fromkeys(
+                                selected_kids, template_profile
+                            )
+                            if selected_kids
+                            else None,
+                            include_admin=include_admin,
+                            force_rebuild=False,
+                            show_in_sidebar=show_in_sidebar,
+                            require_admin=require_admin,
+                            icon=self._dashboard_icon,
+                            admin_view_visibility=admin_view_visibility,
+                            admin_visible_user_ids=admin_visible_user_ids,
+                        )
+                        self._dashboard_status_message = f"Created {url_path} (kids={len(selected_kids)}, admin_mode={admin_mode})"
+
+                    return await self.async_step_dashboard_generator()
+                except builder.DashboardTemplateError:
+                    errors[const.CFOP_ERROR_BASE] = (
+                        const.TRANS_KEY_CFOF_DASHBOARD_TEMPLATE_ERROR
+                    )
+                except builder.DashboardRenderError:
+                    errors[const.CFOP_ERROR_BASE] = (
+                        const.TRANS_KEY_CFOF_DASHBOARD_RENDER_ERROR
+                    )
+                except builder.DashboardSaveError as err:
+                    const.LOGGER.error("Dashboard save failed: %s", err)
+                    errors[const.CFOP_ERROR_BASE] = (
+                        const.TRANS_KEY_CFOF_DASHBOARD_SAVE_ERROR
+                    )
+
+        schema = dh.build_dashboard_configure_schema(
+            coordinator,
+            include_release_controls=is_update_flow,
+            release_tags=available_release_tags,
+            selected_kids_default=self._dashboard_selected_kids,
+            template_profile_default=self._dashboard_template_profile,
+            admin_mode_default=self._dashboard_admin_mode,
+            admin_template_global_default=self._dashboard_admin_template_global,
+            admin_template_per_kid_default=self._dashboard_admin_template_per_kid,
+            admin_view_visibility_default=self._dashboard_admin_view_visibility,
+            show_in_sidebar_default=self._dashboard_show_in_sidebar,
+            require_admin_default=self._dashboard_require_admin,
+            icon_default=self._dashboard_icon,
+            include_prereleases_default=self._dashboard_include_prereleases,
+            release_selection_default=self._dashboard_release_selection,
+        )
 
         return self.async_show_form(
-            step_id="dashboard_update",
+            step_id=const.OPTIONS_FLOW_STEP_DASHBOARD_CONFIGURE,
             data_schema=schema,
             errors=errors,
             description_placeholders={
-                "dashboard": selected_dashboard,
+                "mode": self._dashboard_flow_mode,
+                "dashboard": self._dashboard_update_url_path or self._dashboard_name,
                 const.PLACEHOLDER_DOCUMENTATION_URL: const.DOC_URL_DASHBOARD_GENERATION,
             },
         )
@@ -4156,12 +4402,11 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            selected_dashboards = user_input.get(
-                const.CFOF_DASHBOARD_INPUT_DELETE_SELECTION, []
+            selected_dashboard = user_input.get(
+                const.CFOF_DASHBOARD_INPUT_UPDATE_SELECTION
             )
-            if selected_dashboards:
-                # Store for confirm step
-                self._dashboard_delete_selection = list(selected_dashboards)
+            if isinstance(selected_dashboard, str) and selected_dashboard:
+                self._dashboard_delete_selection = [selected_dashboard]
                 return await self.async_step_dashboard_delete_confirm()
             errors[const.CFOP_ERROR_BASE] = const.TRANS_KEY_CFOF_DASHBOARD_NO_DASHBOARDS
 
@@ -4169,8 +4414,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         dedupe_removed = await builder.async_dedupe_kidschores_dashboards(self.hass)
         self._dashboard_dedupe_removed = dedupe_removed
 
-        # Build schema with existing dashboards
-        schema = dh.build_dashboard_delete_schema(self.hass)
+        # Reuse update selector to enforce single-select deletion contract
+        schema = dh.build_dashboard_update_selection_schema(self.hass)
 
         if schema is None:
             # No dashboards to delete - show message and go back
@@ -4189,37 +4434,16 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         from .helpers import dashboard_builder as builder
 
         if user_input is not None:
-            # Execute deletion
-            results: list[dict[str, Any]] = []
+            url_path = self._dashboard_delete_selection[0]
+            try:
+                await builder.delete_kidschores_dashboard(self.hass, url_path)
+                const.LOGGER.info("Deleted dashboard: %s", url_path)
+                self._dashboard_status_message = f"Deleted {url_path}"
+            except Exception as err:
+                const.LOGGER.error("Failed to delete dashboard %s: %s", url_path, err)
+                self._dashboard_status_message = f"Failed to delete {url_path}: {err}"
 
-            for url_path in self._dashboard_delete_selection:
-                try:
-                    await builder.delete_kidschores_dashboard(self.hass, url_path)
-                    results.append(
-                        {
-                            "name": url_path,
-                            "success": True,
-                            "url_path": url_path,
-                            "error": None,
-                        }
-                    )
-                    const.LOGGER.info("Deleted dashboard: %s", url_path)
-                except Exception as err:
-                    results.append(
-                        {
-                            "name": url_path,
-                            "success": False,
-                            "url_path": url_path,
-                            "error": str(err),
-                        }
-                    )
-                    const.LOGGER.error(
-                        "Failed to delete dashboard %s: %s", url_path, err
-                    )
-
-            # Store results and show result
-            self._dashboard_results = results
-            return await self.async_step_dashboard_generator_result()
+            return await self.async_step_dashboard_generator()
 
         # Show confirmation
         dashboards_to_delete = ", ".join(self._dashboard_delete_selection)
@@ -4228,182 +4452,6 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             step_id=const.OPTIONS_FLOW_STEP_DASHBOARD_DELETE_CONFIRM,
             data_schema=vol.Schema({}),
             description_placeholders={"dashboards": dashboards_to_delete},
-        )
-
-    async def async_step_dashboard_generator_confirm(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
-        """Confirm and execute dashboard generation.
-
-        Shows summary of what will be created and executes on confirmation.
-        """
-        from .helpers import dashboard_builder as builder, dashboard_helpers as dh
-
-        errors: dict[str, str] = {}
-
-        # Use stored instance variables
-        dashboard_name = self._dashboard_name
-        style = self._dashboard_style
-        include_admin = self._dashboard_include_admin
-        force_rebuild = self._dashboard_force_rebuild
-        selected_kids = self._dashboard_selected_kids
-        template_profile = self._dashboard_template_profile
-
-        if user_input is not None:
-            self._dashboard_dedupe_removed = {}
-            try:
-                results: list[dict[str, Any]] = []
-
-                if self._dashboard_update_url_path:
-                    url_path = self._dashboard_update_url_path
-                    view_count = await builder.update_kidschores_dashboard_views(
-                        self.hass,
-                        url_path=url_path,
-                        kid_names=selected_kids,
-                        template_profile=template_profile,
-                        include_admin=include_admin,
-                    )
-                    results.append(
-                        {
-                            "name": url_path,
-                            "url_path": url_path,
-                            "success": True,
-                            "error": None,
-                            "view_count": view_count,
-                        }
-                    )
-                else:
-                    dedupe_removed = await builder.async_dedupe_kidschores_dashboards(
-                        self.hass,
-                        url_path=builder.get_multi_view_url_path(dashboard_name),
-                    )
-                    self._dashboard_dedupe_removed = dedupe_removed
-
-                    url_path = await builder.create_kidschores_dashboard(
-                        self.hass,
-                        dashboard_name=dashboard_name,
-                        kid_names=selected_kids,
-                        style=style,
-                        kid_template_profiles=dict.fromkeys(
-                            selected_kids, template_profile
-                        )
-                        if selected_kids
-                        else None,
-                        include_admin=include_admin,
-                        force_rebuild=force_rebuild,
-                    )
-                    results.append(
-                        {
-                            "name": dashboard_name,
-                            "url_path": url_path,
-                            "success": True,
-                            "error": None,
-                            "view_count": len(selected_kids)
-                            + (1 if include_admin else 0),
-                        }
-                    )
-
-                self._dashboard_results = results
-                return await self.async_step_dashboard_generator_result()
-            except builder.DashboardExistsError:
-                result = {
-                    "name": dashboard_name,
-                    "url_path": None,
-                    "success": False,
-                    "error": const.TRANS_KEY_CFOF_DASHBOARD_EXISTS,
-                    "view_count": 0,
-                }
-            except builder.DashboardTemplateError:
-                result = {
-                    "name": dashboard_name,
-                    "url_path": None,
-                    "success": False,
-                    "error": const.TRANS_KEY_CFOF_DASHBOARD_TEMPLATE_ERROR,
-                    "view_count": 0,
-                }
-            except builder.DashboardRenderError:
-                result = {
-                    "name": dashboard_name,
-                    "url_path": None,
-                    "success": False,
-                    "error": const.TRANS_KEY_CFOF_DASHBOARD_RENDER_ERROR,
-                    "view_count": 0,
-                }
-            except builder.DashboardSaveError as err:
-                const.LOGGER.error(
-                    "Dashboard save failed for %s: %s", dashboard_name, err
-                )
-                result = {
-                    "name": dashboard_name,
-                    "url_path": None,
-                    "success": False,
-                    "error": const.TRANS_KEY_CFOF_DASHBOARD_SAVE_ERROR,
-                    "view_count": 0,
-                }
-
-            # Store results in instance and show result step
-            self._dashboard_results = [result]
-            return await self.async_step_dashboard_generator_result()
-
-        # Use helper to build summary text
-        summary_text = dh.format_dashboard_confirm_summary(
-            dashboard_name, style, selected_kids, include_admin
-        )
-
-        return self.async_show_form(
-            step_id=const.OPTIONS_FLOW_STEP_DASHBOARD_GENERATOR_CONFIRM,
-            data_schema=vol.Schema({}),
-            errors=errors,
-            description_placeholders={
-                "style": style,
-                "force_rebuild": str(force_rebuild),
-                "template_profile": template_profile,
-                "dashboards": summary_text,
-            },
-        )
-
-    async def async_step_dashboard_generator_result(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
-        """Show dashboard generation results.
-
-        Displays success/failure for each dashboard and returns to main menu.
-        """
-        from .helpers import dashboard_helpers as dh
-
-        results = self._dashboard_results
-
-        if user_input is not None:
-            # User acknowledged results, return to main menu
-            return await self.async_step_init()
-
-        # Use helper to format results
-        success_count = sum(1 for r in results if r.get("success"))
-        failure_count = len(results) - success_count
-
-        dedupe_results = [
-            {
-                "name": url_path,
-                "success": True,
-                "url_path": f"dedupe_removed={removed_count}",
-                "error": None,
-            }
-            for url_path, removed_count in self._dashboard_dedupe_removed.items()
-            if removed_count > 0
-        ]
-        if dedupe_results:
-            results = [*results, *dedupe_results]
-
-        result_text = dh.format_dashboard_results(results)
-
-        return self.async_show_form(
-            step_id=const.OPTIONS_FLOW_STEP_DASHBOARD_GENERATOR_RESULT,
-            data_schema=vol.Schema({}),
-            description_placeholders={
-                "success_count": str(success_count),
-                "failure_count": str(failure_count),
-                "results": result_text,
-            },
         )
 
     # ----------------------------------------------------------------------------------
@@ -5318,6 +5366,25 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             )
             return {}
         return coordinator.data.get(key, {})
+
+    def _get_parent_ha_user_ids(self) -> list[str]:
+        """Return distinct linked parent Home Assistant user IDs."""
+        coordinator = self._get_coordinator()
+        parents_data = coordinator.parents_data
+
+        user_ids: list[str] = []
+        seen: set[str] = set()
+        for parent_data in parents_data.values():
+            user_id = parent_data.get(const.DATA_PARENT_HA_USER_ID)
+            if not isinstance(user_id, str):
+                continue
+            normalized_user_id = user_id.strip()
+            if not normalized_user_id or normalized_user_id in seen:
+                continue
+            seen.add(normalized_user_id)
+            user_ids.append(normalized_user_id)
+
+        return user_ids
 
     def _mark_reload_needed(self):
         """Mark that a reload is needed after the current flow completes.

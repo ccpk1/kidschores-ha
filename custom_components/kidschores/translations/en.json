@@ -1503,7 +1503,7 @@
       },
       "dashboard_generator": {
         "title": "Dashboard Actions",
-        "description": "Create, update, or delete KidsChores Lovelace dashboards.\n\n**Required Custom Cards** (install via HACS Frontend):\n- Mushroom Cards (custom:mushroom-template-card)\n- Auto-Entities (custom:auto-entities)\n- Mini Graph Card (custom:mini-graph-card)\n\nWithout these cards, dashboards will show errors. Install them first from HACS before generating dashboards.",
+        "description": "Create, update, or delete KidsChores Lovelace dashboards.\n\nStatus: {status}\n\n**Required Custom Cards** (install via HACS Frontend):\n- Mushroom Cards (custom:mushroom-template-card)\n- Auto-Entities (custom:auto-entities)\n- Mini Graph Card (custom:mini-graph-card)\n\nWithout these cards, dashboards will show errors. Install them first from HACS before generating dashboards.",
         "data": {
           "dashboard_action": "Action",
           "dashboard_check_cards": "Check Card Installation"
@@ -1515,18 +1515,12 @@
       },
       "dashboard_create": {
         "title": "Create Dashboard",
-        "description": "Generate a KidsChores dashboard with tabs for each kid.\n\nChoose a name for the dashboard, select kids to include, and optionally add an Admin tab for parent management.\n\n[📖 Dashboard Generation Guide]({documentation_url})",
+        "description": "Enter a dashboard name, then continue to configuration.\n\n[📖 Dashboard Generation Guide]({documentation_url})",
         "data": {
-          "dashboard_name": "Dashboard Name",
-          "dashboard_style": "Dashboard Style",
-          "dashboard_kid_selection": "Kids (one tab per kid)",
-          "dashboard_include_admin": "Include Admin Tab"
+          "dashboard_name": "Dashboard Name"
         },
         "data_description": {
-          "dashboard_name": "Name for the dashboard (appears in sidebar). Suggested: Chores",
-          "dashboard_style": "Choose the dashboard layout: Full (all features), Minimal (essentials only), or Compact (dense layout).",
-          "dashboard_kid_selection": "Select which kids to create tabs for. Each kid gets their own view/tab.",
-          "dashboard_include_admin": "Add an Admin tab with parent controls for approvals and management."
+          "dashboard_name": "Name for the dashboard (appears in sidebar). Suggested: Chores"
         }
       },
       "dashboard_update_select": {
@@ -1539,43 +1533,105 @@
           "dashboard_update_selection": "Choose the existing dashboard you want to update."
         }
       },
-      "dashboard_update": {
-        "title": "Update Dashboard Views",
-        "description": "Update views for **{dashboard}**.\n\nAdjust kids/admin view coverage and template profile.\n\n[📖 Dashboard Generation Guide]({documentation_url})",
+      "dashboard_configure": {
+        "title": "Configure Dashboard",
+        "description": "Configure dashboard sections for **{dashboard}** (mode: {mode}).\n\nSection A: Kid views\nSection B: Admin views\nSection C: Display and visibility\n\n[📖 Dashboard Generation Guide]({documentation_url})",
+        "sections": {
+          "section_kid_views": {
+            "name": "Kid views",
+            "description": "Choose the kid template style and which kids to include.",
+            "data": {
+              "dashboard_template_profile": "Kid Template Profile",
+              "dashboard_kid_selection": "Kids"
+            },
+            "data_description": {
+              "dashboard_template_profile": "Template profile applied to selected kid views.",
+              "dashboard_kid_selection": "Select kids to include in this dashboard."
+            }
+          },
+          "section_admin_views": {
+            "name": "Admin views",
+            "description": "Choose which admin layout to generate and who can see it.",
+            "data": {
+              "dashboard_admin_mode": "Admin Layout",
+              "dashboard_admin_template_global": "Global Admin Template",
+              "dashboard_admin_template_per_kid": "Per-Kid Admin Template",
+              "dashboard_admin_view_visibility": "Admin View Visibility"
+            },
+            "data_description": {
+              "dashboard_admin_mode": "Choose the admin layout: none, global, per-kid, or both.",
+              "dashboard_admin_template_global": "Template used when Admin Layout includes Global.",
+              "dashboard_admin_template_per_kid": "Template used when Admin Layout includes Per-Kid.",
+              "dashboard_admin_view_visibility": "Control who can see admin views. Parent-linked visibility uses linked parent HA users."
+            }
+          },
+          "section_access_sidebar": {
+            "name": "Access & Sidebar",
+            "description": "Control sidebar visibility and access restrictions.",
+            "data": {
+              "dashboard_show_in_sidebar": "Show in Sidebar",
+              "dashboard_require_admin": "Require Admin",
+              "dashboard_icon": "Dashboard Icon"
+            },
+            "data_description": {
+              "dashboard_show_in_sidebar": "Show this dashboard in the Home Assistant sidebar.",
+              "dashboard_require_admin": "Restrict dashboard access to admin users.",
+              "dashboard_icon": "Sidebar icon for this dashboard."
+            }
+          },
+          "section_template_version": {
+            "name": "Template Version",
+            "description": "Select how update mode chooses compatible dashboard templates.",
+            "data": {
+              "dashboard_include_prereleases": "Include Prereleases",
+              "dashboard_release_selection": "Dashboard Template Version"
+            },
+            "data_description": {
+              "dashboard_include_prereleases": "Include prerelease dashboard tags in release discovery.",
+              "dashboard_release_selection": "Choose automatic latest compatible selection or explicitly select a compatible release tag."
+            }
+          }
+        },
         "data": {
-          "dashboard_template_profile": "Template Profile",
-          "dashboard_kid_selection": "Kids (one tab per kid)",
-          "dashboard_include_admin": "Include Admin Tab"
+          "dashboard_template_profile": "Kid Template Profile",
+          "dashboard_kid_selection": "Kids",
+          "dashboard_admin_mode": "Admin Layout",
+          "dashboard_admin_template_global": "Global Admin Template",
+          "dashboard_admin_template_per_kid": "Per-Kid Admin Template",
+          "dashboard_admin_view_visibility": "Admin View Visibility",
+          "dashboard_show_in_sidebar": "Show in Sidebar",
+          "dashboard_require_admin": "Require Admin",
+          "dashboard_icon": "Dashboard Icon",
+          "dashboard_include_prereleases": "Include Prereleases",
+          "dashboard_release_selection": "Dashboard Template Version"
         },
         "data_description": {
-          "dashboard_template_profile": "Template profile applied to selected kid dashboard views.",
-          "dashboard_kid_selection": "Select which kids to include as views in the updated dashboard.",
-          "dashboard_include_admin": "Include or remove the Admin tab in this dashboard."
+          "dashboard_template_profile": "Template profile applied to selected kid views.",
+          "dashboard_kid_selection": "Select kids to include in this dashboard.",
+          "dashboard_admin_mode": "Choose the admin layout: none, global, per-kid, or both.",
+          "dashboard_admin_template_global": "Template used when Admin Layout includes Global.",
+          "dashboard_admin_template_per_kid": "Template used when Admin Layout includes Per-Kid.",
+          "dashboard_admin_view_visibility": "Control who can see admin views. Parent-linked visibility uses linked parent HA users.",
+          "dashboard_show_in_sidebar": "Show this dashboard in the Home Assistant sidebar.",
+          "dashboard_require_admin": "Restrict dashboard access to admin users.",
+          "dashboard_icon": "Sidebar icon for this dashboard.",
+          "dashboard_include_prereleases": "Include prerelease dashboard tags in release discovery.",
+          "dashboard_release_selection": "Choose automatic latest compatible selection or explicitly select a compatible release tag."
         }
       },
       "dashboard_delete": {
         "title": "Delete Dashboard",
         "description": "Select KidsChores dashboards to delete.\n\n⚠️ This action cannot be undone.",
         "data": {
-          "dashboard_delete_selection": "Dashboards to Delete"
+          "dashboard_update_selection": "Dashboard"
         },
         "data_description": {
-          "dashboard_delete_selection": "Select one or more dashboards to permanently remove."
+          "dashboard_update_selection": "Select the dashboard to permanently remove."
         }
       },
       "dashboard_delete_confirm": {
         "title": "Confirm Deletion",
         "description": "⚠️ **Warning:** The following dashboards will be permanently deleted:\n\n**{dashboards}**\n\nThis will remove the dashboard from the sidebar and delete all configuration.\n\nClick Submit to confirm deletion.",
-        "data": {}
-      },
-      "dashboard_generator_confirm": {
-        "title": "Confirm Dashboard Generation",
-        "description": "The following dashboards will be created:\n\n**Style:** {style}\n\n**Dashboards:**\n{dashboards}\n\nClick Submit to generate the dashboards.",
-        "data": {}
-      },
-      "dashboard_generator_result": {
-        "title": "Dashboard Generation Results",
-        "description": "**Results:** {success_count} succeeded, {failure_count} failed\n\n{results}\n\nClick Submit to return to the main menu.",
         "data": {}
       },
       "manage_general_options": {
@@ -1758,9 +1814,14 @@
       "dashboard_template_error": "Failed to fetch dashboard template. Check network connection or try again later.",
       "dashboard_render_error": "Failed to render dashboard template. This may indicate a template bug.",
       "dashboard_save_error": "Failed to save dashboard to Home Assistant. Check system logs for details.",
+      "dashboard_release_incompatible": "Selected dashboard release is not compatible with your installed KidsChores version.",
       "dashboard_no_name": "Please enter a name for the dashboard.",
       "dashboard_no_kids": "Please select at least one kid or enable 'Include Admin Tab'.",
-      "dashboard_no_dashboards": "Please select at least one dashboard to delete."
+      "dashboard_no_dashboards": "Please select at least one dashboard to delete.",
+      "dashboard_no_kids_no_admin": "Select at least one kid, or choose an Admin Layout other than 'none'.",
+      "dashboard_admin_global_template_required": "Global admin template is required when Admin Layout includes Global.",
+      "dashboard_admin_per_kid_template_required": "Per-kid admin template is required when Admin Layout includes Per-Kid.",
+      "dashboard_admin_per_kid_needs_kids": "Per-Kid Admin Layout requires at least one selected kid."
     },
     "abort": {
       "invalid_action": "Invalid Action",
@@ -1810,21 +1871,11 @@
       "options": {
         "create": "Create New Dashboard",
         "update": "Update Existing Dashboard Views",
-        "delete": "Delete Dashboard"
-      }
-    },
-    "dashboard_style": {
-      "options": {
-        "full": "Full (All features)",
-        "minimal": "Minimal (Essentials only)",
-        "compact": "Compact (Dense layout)",
-        "admin": "Admin (Parent dashboard)"
+        "delete": "Delete Dashboard",
+        "exit": "Exit"
       }
     },
     "dashboard_kid_selection": {
-      "options": {}
-    },
-    "dashboard_delete_selection": {
       "options": {}
     },
     "dashboard_update_selection": {
@@ -1836,6 +1887,34 @@
         "minimal": "Minimal (Essentials only)",
         "compact": "Compact (Dense layout)"
       }
+    },
+    "dashboard_admin_mode": {
+      "options": {
+        "none": "None",
+        "global": "Global",
+        "per_kid": "Per Kid",
+        "both": "Both"
+      }
+    },
+    "dashboard_admin_view_visibility": {
+      "options": {
+        "all_users": "All users",
+        "linked_parents": "Linked parents only"
+      }
+    },
+    "dashboard_release_selection": {
+      "options": {
+        "latest_compatible": "Latest compatible (recommended)"
+      }
+    },
+    "dashboard_release_mode": {
+      "options": {
+        "latest_compatible": "Latest Compatible",
+        "pin_release": "Pin Release"
+      }
+    },
+    "dashboard_release_tag": {
+      "options": {}
     },
     "manage_actions": {
       "options": {
