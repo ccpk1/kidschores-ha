@@ -129,23 +129,6 @@ DASHBOARD_LOCAL_TEMPLATE_PATH: Final = "templates/dashboard_{style}.yaml"
 
 # Dashboard generation modes (Phase 2 scaffolding)
 DASHBOARD_GENERATION_MODE_SINGLE_MULTI_VIEW: Final = "single_multi_view"
-DASHBOARD_GENERATION_MODE_PER_KID_DASHBOARD: Final = "per_kid_dashboard"
-DASHBOARD_GENERATION_MODE_TARGETED_VIEW_UPDATE: Final = "targeted_view_update"
-DASHBOARD_GENERATION_MODES: Final = [
-    DASHBOARD_GENERATION_MODE_SINGLE_MULTI_VIEW,
-    DASHBOARD_GENERATION_MODE_PER_KID_DASHBOARD,
-    DASHBOARD_GENERATION_MODE_TARGETED_VIEW_UPDATE,
-]
-
-# Dashboard target scope model (Phase 2 scaffolding)
-DASHBOARD_TARGET_SCOPE_ALL_SELECTED_KIDS: Final = "all_selected_kids"
-DASHBOARD_TARGET_SCOPE_SINGLE_KID: Final = "single_kid"
-DASHBOARD_TARGET_SCOPE_ADMIN_ONLY: Final = "admin_only"
-DASHBOARD_TARGET_SCOPES: Final = [
-    DASHBOARD_TARGET_SCOPE_ALL_SELECTED_KIDS,
-    DASHBOARD_TARGET_SCOPE_SINGLE_KID,
-    DASHBOARD_TARGET_SCOPE_ADMIN_ONLY,
-]
 
 # ==============================================================================
 # Event Infrastructure (Phase 0: Layered Architecture Foundation)
@@ -203,7 +186,6 @@ SIGNAL_SUFFIX_CHORE_APPROVED: Final = "chore_approved"
 SIGNAL_SUFFIX_CHORE_COMPLETED: Final = "chore_completed"
 SIGNAL_SUFFIX_CHORE_DISAPPROVED: Final = "chore_disapproved"
 SIGNAL_SUFFIX_CHORE_UNDONE: Final = "chore_undone"
-SIGNAL_SUFFIX_CHORE_AUTO_APPROVED: Final = "chore_auto_approved"
 SIGNAL_SUFFIX_CHORE_OVERDUE: Final = "chore_overdue"
 SIGNAL_SUFFIX_CHORE_MISSED: Final = "chore_missed"  # Phase 5: Missed tracking
 SIGNAL_SUFFIX_CHORE_DUE_REMINDER: Final = "chore_due_reminder"
@@ -858,9 +840,6 @@ CFOF_DASHBOARD_INPUT_ACTION: Final = "dashboard_action"
 CFOF_DASHBOARD_INPUT_DELETE_SELECTION: Final = "dashboard_delete_selection"
 CFOF_DASHBOARD_INPUT_UPDATE_SELECTION: Final = "dashboard_update_selection"
 CFOF_DASHBOARD_INPUT_CHECK_CARDS: Final = "dashboard_check_cards"
-CFOF_DASHBOARD_INPUT_GENERATION_MODE: Final = "dashboard_generation_mode"
-CFOF_DASHBOARD_INPUT_TARGET_SCOPE: Final = "dashboard_target_scope"
-CFOF_DASHBOARD_INPUT_SINGLE_KID: Final = "dashboard_single_kid"
 CFOF_DASHBOARD_INPUT_TEMPLATE_PROFILE: Final = "dashboard_template_profile"
 
 # Dashboard Generator Defaults
@@ -1589,6 +1568,11 @@ APPROVAL_RESET_PENDING_CLAIM_ACTION_OPTIONS: Final = [
 DEFAULT_APPROVAL_RESET_PENDING_CLAIM_ACTION: Final = (
     APPROVAL_RESET_PENDING_CLAIM_AUTO_APPROVE
 )
+
+# Chore approval origin values (event payload metadata)
+CHORE_APPROVAL_ORIGIN_MANUAL: Final = "manual"
+CHORE_APPROVAL_ORIGIN_AUTO_APPROVE: Final = "auto_approve"
+CHORE_APPROVAL_ORIGIN_AUTO_RESET: Final = "auto_reset"
 
 DATA_CHORE_STATE: Final = "state"
 DATA_CHORE_TIMESTAMP: Final = "timestamp"
@@ -3702,15 +3686,11 @@ TRANS_KEY_CFOF_DASHBOARD_SAVE_ERROR: Final = "dashboard_save_error"
 TRANS_KEY_CFOF_DASHBOARD_SUCCESS: Final = "dashboard_success"
 TRANS_KEY_CFOF_DASHBOARD_NO_NAME: Final = "dashboard_no_name"
 TRANS_KEY_CFOF_DASHBOARD_NO_KIDS: Final = "dashboard_no_kids"
-TRANS_KEY_CFOF_DASHBOARD_SINGLE_KID_REQUIRED: Final = "dashboard_single_kid_required"
 TRANS_KEY_CFOF_DASHBOARD_ACTION: Final = "dashboard_action"
 TRANS_KEY_CFOF_DASHBOARD_ACTION_CREATE: Final = "dashboard_action_create"
 TRANS_KEY_CFOF_DASHBOARD_ACTION_UPDATE: Final = "dashboard_action_update"
 TRANS_KEY_CFOF_DASHBOARD_ACTION_DELETE: Final = "dashboard_action_delete"
-TRANS_KEY_CFOF_DASHBOARD_GENERATION_MODE: Final = "dashboard_generation_mode"
-TRANS_KEY_CFOF_DASHBOARD_TARGET_SCOPE: Final = "dashboard_target_scope"
 TRANS_KEY_CFOF_DASHBOARD_TEMPLATE_PROFILE: Final = "dashboard_template_profile"
-TRANS_KEY_CFOF_DASHBOARD_SINGLE_KID: Final = "dashboard_single_kid"
 TRANS_KEY_CFOF_DASHBOARD_DELETE_SELECTION: Final = "dashboard_delete_selection"
 TRANS_KEY_CFOF_DASHBOARD_UPDATE_SELECTION: Final = "dashboard_update_selection"
 TRANS_KEY_CFOF_DASHBOARD_NO_DASHBOARDS: Final = "dashboard_no_dashboards"

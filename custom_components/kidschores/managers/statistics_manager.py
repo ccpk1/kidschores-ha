@@ -123,7 +123,6 @@ class StatisticsManager(BaseManager):
 
         # Subscribe to chore events
         self.listen(const.SIGNAL_SUFFIX_CHORE_APPROVED, self._on_chore_approved)
-        self.listen(const.SIGNAL_SUFFIX_CHORE_AUTO_APPROVED, self._on_chore_approved)
         self.listen(const.SIGNAL_SUFFIX_CHORE_COMPLETED, self._on_chore_completed)
         self.listen(const.SIGNAL_SUFFIX_CHORE_CLAIMED, self._on_chore_claimed)
         self.listen(const.SIGNAL_SUFFIX_CHORE_DISAPPROVED, self._on_chore_disapproved)

@@ -240,6 +240,11 @@ check_untyped_defs = true
 strict_optional = true
 warn_return_any = false
 
+# Suppress all mypy errors from Home Assistant core modules (symlinked in dev)
+[[tool.mypy.overrides]]
+module = "homeassistant.*"
+ignore_errors = true
+
 [[tool.mypy.overrides]]
 module = "tests.*"
 disallow_untyped_defs = false

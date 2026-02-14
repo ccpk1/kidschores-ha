@@ -108,10 +108,6 @@ class EconomyManager(BaseManager):
             self._on_chore_approved,
         )
         self.listen(
-            const.SIGNAL_SUFFIX_CHORE_AUTO_APPROVED,
-            self._on_chore_auto_approved,
-        )
-        self.listen(
             const.SIGNAL_SUFFIX_CHORE_UNDONE,
             self._on_chore_undone,
         )
@@ -320,18 +316,6 @@ class EconomyManager(BaseManager):
                 item_name=chore_name,
                 apply_multiplier=apply_multiplier,
             )
-
-    async def _on_chore_auto_approved(self, payload: dict[str, Any]) -> None:
-        """Handle chore auto-approved event during reset.
-
-        Similar to _on_chore_approved but triggered by automatic approval
-        during chore reset (when pending_claim_action is AUTO_APPROVE).
-
-        Args:
-            payload: Event data containing kid_id, chore_id, base_points
-        """
-        # Delegate to standard approval handler - same point logic
-        await self._on_chore_approved(payload)
 
     async def _on_reward_approved(self, payload: dict[str, Any]) -> None:
         """Handle reward approved event - withdraw points from kid's balance.

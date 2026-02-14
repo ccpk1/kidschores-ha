@@ -2,7 +2,37 @@
 # Quick lint check - run after every change using ruff
 # Usage: ./utils/quick_lint.sh [--fix]
 
-cd "$(dirname "$0")/.." || exit 1
+# === LINT TARGET ROOT (change here if repo moves) ===
+LINT_TARGET_ROOT="/workspaces/kidschores-ha"
+# If you move the repo, update LINT_TARGET_ROOT above.
+
+cd "$LINT_TARGET_ROOT" || exit 1
+
+run_mypy_quick() {
+    echo ""
+    echo "🔍 Running mypy type checking..."
+
+    if [[ "${FULL_MYPY:-0}" == "1" ]]; then
+        echo "FULL_MYPY=1 set; running full mypy on integration + tests"
+        mypy --config-file mypy_quick.ini --explicit-package-bases custom_components/kidschores tests
+        return $?
+    fi
+
+    mapfile -t changed_py_files < <(
+        git status --porcelain \
+            | awk '{print $2}' \
+            | grep -E '^(custom_components/kidschores|tests)/.*\.py$' || true
+    )
+
+    if [ ${#changed_py_files[@]} -eq 0 ]; then
+        echo "No changed Python files under custom_components/kidschores or tests; skipping mypy"
+        return 0
+    fi
+
+    echo "Checking changed Python files only (${#changed_py_files[@]}):"
+    printf '  - %s\n' "${changed_py_files[@]}"
+    mypy --config-file mypy_quick.ini --explicit-package-bases "${changed_py_files[@]}"
+}
 
 echo "🔍 Running ruff linting..."
 echo ""
@@ -18,9 +48,7 @@ if [[ "$1" == "--fix" ]]; then
     ruff format custom_components/kidschores tests
     ruff_format_exit=$?
 
-    echo ""
-    echo "🔍 Running mypy type checking..."
-    mypy --explicit-package-bases custom_components/kidschores
+    run_mypy_quick
     mypy_exit=$?
 
     echo ""
@@ -48,9 +76,7 @@ else
     ruff format --check custom_components/kidschores tests
     ruff_format_exit=$?
 
-    echo ""
-    echo "🔍 Running mypy type checking..."
-    mypy --explicit-package-bases custom_components/kidschores
+    run_mypy_quick
     mypy_exit=$?
 
     echo ""

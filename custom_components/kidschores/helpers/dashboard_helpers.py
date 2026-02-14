@@ -50,13 +50,6 @@ class DashboardContext(TypedDict):
     kid: DashboardKidContext
 
 
-class DashboardKidTemplateProfiles(TypedDict, total=False):
-    """Optional per-kid template profile map.
-
-    Keys are kid display names, values are style/profile identifiers.
-    """
-
-
 # ==============================================================================
 # Context Builder Functions
 # ==============================================================================
@@ -158,57 +151,6 @@ def get_all_kid_names(coordinator: KidsChoresDataCoordinator) -> list[str]:
     return sorted(names)
 
 
-def get_dashboard_url_path(kid_name: str, style: str) -> str:
-    """Generate the URL path for a kid's dashboard.
-
-    Args:
-        kid_name: The kid's display name.
-        style: Dashboard style (full, minimal, compact, admin).
-
-    Returns:
-        URL path like "kcd-alice" or "kcd-alice-compact".
-
-    Examples:
-        >>> get_dashboard_url_path("Alice", "full")
-        'kcd-alice'
-        >>> get_dashboard_url_path("Alice", "compact")
-        'kcd-alice-compact'
-        >>> get_dashboard_url_path("", "admin")
-        'kcd-admin'
-    """
-    if style == const.DASHBOARD_STYLE_ADMIN:
-        return f"{const.DASHBOARD_URL_PATH_PREFIX}admin"
-
-    slug = slugify(kid_name)
-    base_path = f"{const.DASHBOARD_URL_PATH_PREFIX}{slug}"
-
-    # Full style uses base path, others get suffix
-    if style == const.DASHBOARD_STYLE_FULL:
-        return base_path
-    return f"{base_path}-{style}"
-
-
-def get_dashboard_title(kid_name: str, style: str) -> str:
-    """Generate the display title for a kid's dashboard.
-
-    Args:
-        kid_name: The kid's display name.
-        style: Dashboard style (full, minimal, compact, admin).
-
-    Returns:
-        Human-readable title like "Alice Chores" or "KidsChores Admin".
-    """
-    if style == const.DASHBOARD_STYLE_ADMIN:
-        return "KidsChores Admin"
-
-    base_title = f"{kid_name} Chores"
-    if style == const.DASHBOARD_STYLE_COMPACT:
-        return f"{base_title} (Compact)"
-    if style == const.DASHBOARD_STYLE_MINIMAL:
-        return f"{base_title} (Minimal)"
-    return base_title
-
-
 # ==============================================================================
 # Options Flow Schema Builders
 # ==============================================================================
@@ -235,42 +177,6 @@ def build_dashboard_style_options() -> list[selector.SelectOptionDict]:
         #    value=const.DASHBOARD_STYLE_COMPACT,
         #    label=const.TRANS_KEY_CFOF_DASHBOARD_STYLE_COMPACT,
         # ),
-    ]
-
-
-def build_dashboard_generation_mode_options() -> list[selector.SelectOptionDict]:
-    """Build generation mode selection options for granular dashboard flow."""
-    return [
-        selector.SelectOptionDict(
-            value=const.DASHBOARD_GENERATION_MODE_SINGLE_MULTI_VIEW,
-            label=const.DASHBOARD_GENERATION_MODE_SINGLE_MULTI_VIEW,
-        ),
-        selector.SelectOptionDict(
-            value=const.DASHBOARD_GENERATION_MODE_PER_KID_DASHBOARD,
-            label=const.DASHBOARD_GENERATION_MODE_PER_KID_DASHBOARD,
-        ),
-        selector.SelectOptionDict(
-            value=const.DASHBOARD_GENERATION_MODE_TARGETED_VIEW_UPDATE,
-            label=const.DASHBOARD_GENERATION_MODE_TARGETED_VIEW_UPDATE,
-        ),
-    ]
-
-
-def build_dashboard_target_scope_options() -> list[selector.SelectOptionDict]:
-    """Build target scope options for granular dashboard updates."""
-    return [
-        selector.SelectOptionDict(
-            value=const.DASHBOARD_TARGET_SCOPE_ALL_SELECTED_KIDS,
-            label=const.DASHBOARD_TARGET_SCOPE_ALL_SELECTED_KIDS,
-        ),
-        selector.SelectOptionDict(
-            value=const.DASHBOARD_TARGET_SCOPE_SINGLE_KID,
-            label=const.DASHBOARD_TARGET_SCOPE_SINGLE_KID,
-        ),
-        selector.SelectOptionDict(
-            value=const.DASHBOARD_TARGET_SCOPE_ADMIN_ONLY,
-            label=const.DASHBOARD_TARGET_SCOPE_ADMIN_ONLY,
-        ),
     ]
 
 
@@ -308,8 +214,6 @@ def build_dashboard_kid_options(
 
 def build_dashboard_generator_schema(
     coordinator: KidsChoresDataCoordinator,
-    *,
-    include_granular_controls: bool = False,
 ) -> vol.Schema:
     """Build the schema for dashboard generator options flow step.
 
@@ -334,54 +238,6 @@ def build_dashboard_generator_schema(
             selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT)
         ),
     }
-
-    if include_granular_controls:
-        schema_fields[
-            vol.Optional(
-                const.CFOF_DASHBOARD_INPUT_GENERATION_MODE,
-                default=const.DASHBOARD_GENERATION_MODE_SINGLE_MULTI_VIEW,
-            )
-        ] = selector.SelectSelector(
-            selector.SelectSelectorConfig(
-                options=build_dashboard_generation_mode_options(),
-                mode=selector.SelectSelectorMode.DROPDOWN,
-                translation_key=const.TRANS_KEY_CFOF_DASHBOARD_GENERATION_MODE,
-            )
-        )
-        schema_fields[
-            vol.Optional(
-                const.CFOF_DASHBOARD_INPUT_TARGET_SCOPE,
-                default=const.DASHBOARD_TARGET_SCOPE_ALL_SELECTED_KIDS,
-            )
-        ] = selector.SelectSelector(
-            selector.SelectSelectorConfig(
-                options=build_dashboard_target_scope_options(),
-                mode=selector.SelectSelectorMode.DROPDOWN,
-                translation_key=const.TRANS_KEY_CFOF_DASHBOARD_TARGET_SCOPE,
-            )
-        )
-        schema_fields[
-            vol.Optional(
-                const.CFOF_DASHBOARD_INPUT_TEMPLATE_PROFILE,
-                default=const.DASHBOARD_STYLE_FULL,
-            )
-        ] = selector.SelectSelector(
-            selector.SelectSelectorConfig(
-                options=build_dashboard_template_profile_options(),
-                mode=selector.SelectSelectorMode.DROPDOWN,
-                translation_key=const.TRANS_KEY_CFOF_DASHBOARD_TEMPLATE_PROFILE,
-            )
-        )
-        if kid_options:
-            schema_fields[vol.Optional(const.CFOF_DASHBOARD_INPUT_SINGLE_KID)] = (
-                selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=kid_options,
-                        mode=selector.SelectSelectorMode.DROPDOWN,
-                        translation_key=const.TRANS_KEY_CFOF_DASHBOARD_SINGLE_KID,
-                    )
-                )
-            )
 
     # Style selection
     schema_fields[
@@ -459,15 +315,6 @@ def format_dashboard_confirm_summary(
         lines.append("  • Admin")
 
     return "\n".join(lines)
-
-
-class DashboardGenerationResult(TypedDict):
-    """Result of a single dashboard generation attempt."""
-
-    name: str
-    success: bool
-    url_path: str | None
-    error: str | None
 
 
 def format_dashboard_results(results: list[dict[str, Any]]) -> str:

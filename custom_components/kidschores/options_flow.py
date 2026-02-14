@@ -62,13 +62,6 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         self._dashboard_include_admin: bool = True
         self._dashboard_force_rebuild: bool = False
         self._dashboard_selected_kids: list[str] = []
-        self._dashboard_generation_mode: str = (
-            const.DASHBOARD_GENERATION_MODE_SINGLE_MULTI_VIEW
-        )
-        self._dashboard_target_scope: str = (
-            const.DASHBOARD_TARGET_SCOPE_ALL_SELECTED_KIDS
-        )
-        self._dashboard_single_kid: str | None = None
         self._dashboard_template_profile: str = const.DASHBOARD_STYLE_FULL
         self._dashboard_update_url_path: str | None = None
         self._dashboard_results: list[dict[str, Any]] = []
@@ -4047,13 +4040,6 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     self._dashboard_include_admin = include_admin
                     self._dashboard_force_rebuild = False
                     self._dashboard_selected_kids = selected_kids
-                    self._dashboard_generation_mode = (
-                        const.DASHBOARD_GENERATION_MODE_SINGLE_MULTI_VIEW
-                    )
-                    self._dashboard_target_scope = (
-                        const.DASHBOARD_TARGET_SCOPE_ALL_SELECTED_KIDS
-                    )
-                    self._dashboard_single_kid = None
                     self._dashboard_template_profile = style
                     self._dashboard_update_url_path = None
                     return await self.async_step_dashboard_generator_confirm()
@@ -4129,7 +4115,6 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             selected_kids: list[str] = (
                 list(selected_kids_input) if selected_kids_input else []
             )
-            single_kid: str | None = None
 
             if not selected_kids and not include_admin:
                 errors[const.CFOP_ERROR_BASE] = const.TRANS_KEY_CFOF_DASHBOARD_NO_KIDS
@@ -4146,13 +4131,6 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                 self._dashboard_include_admin = include_admin
                 self._dashboard_force_rebuild = True
                 self._dashboard_selected_kids = selected_kids
-                self._dashboard_generation_mode = (
-                    const.DASHBOARD_GENERATION_MODE_SINGLE_MULTI_VIEW
-                )
-                self._dashboard_target_scope = (
-                    const.DASHBOARD_TARGET_SCOPE_ALL_SELECTED_KIDS
-                )
-                self._dashboard_single_kid = single_kid
                 self._dashboard_template_profile = template_profile
                 return await self.async_step_dashboard_generator_confirm()
 
@@ -4272,8 +4250,6 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         include_admin = self._dashboard_include_admin
         force_rebuild = self._dashboard_force_rebuild
         selected_kids = self._dashboard_selected_kids
-        generation_mode = self._dashboard_generation_mode
-        target_scope = self._dashboard_target_scope
         template_profile = self._dashboard_template_profile
 
         if user_input is not None:
@@ -4281,110 +4257,54 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             try:
                 results: list[dict[str, Any]] = []
 
-                if generation_mode == const.DASHBOARD_GENERATION_MODE_SINGLE_MULTI_VIEW:
-                    if self._dashboard_update_url_path:
-                        url_path = self._dashboard_update_url_path
-                        view_count = await builder.update_kidschores_dashboard_views(
-                            self.hass,
-                            url_path=url_path,
-                            kid_names=selected_kids,
-                            template_profile=template_profile,
-                            include_admin=include_admin,
-                        )
-                        results.append(
-                            {
-                                "name": url_path,
-                                "url_path": url_path,
-                                "success": True,
-                                "error": None,
-                                "view_count": view_count,
-                            }
-                        )
-                    else:
-                        dedupe_removed = (
-                            await builder.async_dedupe_kidschores_dashboards(
-                                self.hass,
-                                url_path=builder.get_multi_view_url_path(
-                                    dashboard_name
-                                ),
-                            )
-                        )
-                        self._dashboard_dedupe_removed = dedupe_removed
-
-                        url_path = await builder.create_kidschores_dashboard(
-                            self.hass,
-                            dashboard_name=dashboard_name,
-                            kid_names=selected_kids,
-                            style=style,
-                            kid_template_profiles=dict.fromkeys(
-                                selected_kids, template_profile
-                            )
-                            if selected_kids
-                            else None,
-                            include_admin=include_admin,
-                            force_rebuild=force_rebuild,
-                        )
-                        results.append(
-                            {
-                                "name": dashboard_name,
-                                "url_path": url_path,
-                                "success": True,
-                                "error": None,
-                                "view_count": len(selected_kids)
-                                + (1 if include_admin else 0),
-                            }
-                        )
+                if self._dashboard_update_url_path:
+                    url_path = self._dashboard_update_url_path
+                    view_count = await builder.update_kidschores_dashboard_views(
+                        self.hass,
+                        url_path=url_path,
+                        kid_names=selected_kids,
+                        template_profile=template_profile,
+                        include_admin=include_admin,
+                    )
+                    results.append(
+                        {
+                            "name": url_path,
+                            "url_path": url_path,
+                            "success": True,
+                            "error": None,
+                            "view_count": view_count,
+                        }
+                    )
                 else:
-                    # Granular modes (per_kid_dashboard and targeted_view_update):
-                    # update only selected kid dashboards and keep full rebuild mode
-                    # available via single_multi_view.
-                    granular_targets = selected_kids
-                    if target_scope == const.DASHBOARD_TARGET_SCOPE_ADMIN_ONLY:
-                        granular_targets = []
+                    dedupe_removed = await builder.async_dedupe_kidschores_dashboards(
+                        self.hass,
+                        url_path=builder.get_multi_view_url_path(dashboard_name),
+                    )
+                    self._dashboard_dedupe_removed = dedupe_removed
 
-                    if granular_targets:
-                        for kid_name in granular_targets:
-                            per_kid_dashboard_name = f"{dashboard_name} - {kid_name}"
-                            per_kid_url_path = (
-                                await builder.create_kidschores_dashboard(
-                                    self.hass,
-                                    dashboard_name=per_kid_dashboard_name,
-                                    kid_names=[kid_name],
-                                    style=style,
-                                    kid_template_profiles={kid_name: template_profile},
-                                    include_admin=False,
-                                    force_rebuild=force_rebuild,
-                                )
-                            )
-                            results.append(
-                                {
-                                    "name": per_kid_dashboard_name,
-                                    "url_path": per_kid_url_path,
-                                    "success": True,
-                                    "error": None,
-                                    "view_count": 1,
-                                }
-                            )
-
-                    if include_admin:
-                        admin_dashboard_name = f"{dashboard_name} - Admin"
-                        admin_url_path = await builder.create_kidschores_dashboard(
-                            self.hass,
-                            dashboard_name=admin_dashboard_name,
-                            kid_names=[],
-                            style=style,
-                            include_admin=True,
-                            force_rebuild=force_rebuild,
+                    url_path = await builder.create_kidschores_dashboard(
+                        self.hass,
+                        dashboard_name=dashboard_name,
+                        kid_names=selected_kids,
+                        style=style,
+                        kid_template_profiles=dict.fromkeys(
+                            selected_kids, template_profile
                         )
-                        results.append(
-                            {
-                                "name": admin_dashboard_name,
-                                "url_path": admin_url_path,
-                                "success": True,
-                                "error": None,
-                                "view_count": 1,
-                            }
-                        )
+                        if selected_kids
+                        else None,
+                        include_admin=include_admin,
+                        force_rebuild=force_rebuild,
+                    )
+                    results.append(
+                        {
+                            "name": dashboard_name,
+                            "url_path": url_path,
+                            "success": True,
+                            "error": None,
+                            "view_count": len(selected_kids)
+                            + (1 if include_admin else 0),
+                        }
+                    )
 
                 self._dashboard_results = results
                 return await self.async_step_dashboard_generator_result()
@@ -4440,8 +4360,6 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             description_placeholders={
                 "style": style,
                 "force_rebuild": str(force_rebuild),
-                "generation_mode": generation_mode,
-                "target_scope": target_scope,
                 "template_profile": template_profile,
                 "dashboards": summary_text,
             },

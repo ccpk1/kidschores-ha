@@ -109,7 +109,6 @@ class GamificationManager(BaseManager):
 
         # Chore events affect chore count, daily completion, streaks
         self.listen(const.SIGNAL_SUFFIX_CHORE_APPROVED, self._on_chore_approved)
-        self.listen(const.SIGNAL_SUFFIX_CHORE_AUTO_APPROVED, self._on_chore_approved)
         self.listen(const.SIGNAL_SUFFIX_CHORE_DISAPPROVED, self._on_chore_disapproved)
         self.listen(const.SIGNAL_SUFFIX_CHORE_STATUS_RESET, self._on_chore_status_reset)
         self.listen(const.SIGNAL_SUFFIX_CHORE_OVERDUE, self._on_chore_overdue)

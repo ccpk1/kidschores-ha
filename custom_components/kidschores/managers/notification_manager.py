@@ -2122,15 +2122,20 @@ class NotificationManager(BaseManager):
         points = payload.get(
             "points_awarded", 0
         )  # Use points_awarded from ChoreManager
+        notify_kid = bool(payload.get("notify_kid", True))
 
         if not kid_id or not chore_id:
             return
 
         # Check if approval notifications are enabled for this chore
         chore_info: ChoreData | None = self.coordinator.chores_data.get(chore_id)
-        if chore_info and chore_info.get(
-            const.DATA_CHORE_NOTIFY_ON_APPROVAL,
-            const.DEFAULT_NOTIFY_ON_APPROVAL,
+        if (
+            notify_kid
+            and chore_info
+            and chore_info.get(
+                const.DATA_CHORE_NOTIFY_ON_APPROVAL,
+                const.DEFAULT_NOTIFY_ON_APPROVAL,
+            )
         ):
             # Notify kid of approval
             await self.notify_kid_translated(

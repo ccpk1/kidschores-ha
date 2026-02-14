@@ -1760,7 +1760,6 @@
       "dashboard_save_error": "Failed to save dashboard to Home Assistant. Check system logs for details.",
       "dashboard_no_name": "Please enter a name for the dashboard.",
       "dashboard_no_kids": "Please select at least one kid or enable 'Include Admin Tab'.",
-      "dashboard_single_kid_required": "For 'Single kid' scope, select exactly one kid.",
       "dashboard_no_dashboards": "Please select at least one dashboard to delete."
     },
     "abort": {
@@ -1831,29 +1830,12 @@
     "dashboard_update_selection": {
       "options": {}
     },
-    "dashboard_generation_mode": {
-      "options": {
-        "single_multi_view": "Single dashboard (multi-view)",
-        "per_kid_dashboard": "Per-kid dashboards",
-        "targeted_view_update": "Targeted update"
-      }
-    },
-    "dashboard_target_scope": {
-      "options": {
-        "all_selected_kids": "All selected kids",
-        "single_kid": "Single kid",
-        "admin_only": "Admin only"
-      }
-    },
     "dashboard_template_profile": {
       "options": {
         "full": "Full (All features)",
         "minimal": "Minimal (Essentials only)",
         "compact": "Compact (Dense layout)"
       }
-    },
-    "dashboard_single_kid": {
-      "options": {}
     },
     "manage_actions": {
       "options": {

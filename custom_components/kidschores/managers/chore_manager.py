@@ -699,7 +699,12 @@ class ChoreManager(BaseManager):
         )
         if auto_approve:
             # Atomic: call locked impl directly (already inside lock)
-            await self._approve_chore_locked("auto_approve", kid_id, chore_id)
+            await self._approve_chore_locked(
+                "auto_approve",
+                kid_id,
+                chore_id,
+                approval_origin=const.CHORE_APPROVAL_ORIGIN_AUTO_APPROVE,
+            )
             # _approve_chore_locked already persisted; skip our persist
         else:
             # Persist → Emit (per DEVELOPMENT_STANDARDS.md § 5.3)
@@ -747,7 +752,11 @@ class ChoreManager(BaseManager):
         lock = self._get_lock(kid_id, chore_id)
         async with lock:
             await self._approve_chore_locked(
-                parent_name, kid_id, chore_id, points_override
+                parent_name,
+                kid_id,
+                chore_id,
+                points_override,
+                approval_origin=const.CHORE_APPROVAL_ORIGIN_MANUAL,
             )
 
     async def _approve_chore_locked(
@@ -756,6 +765,7 @@ class ChoreManager(BaseManager):
         kid_id: str,
         chore_id: str,
         points_override: float | None = None,
+        approval_origin: str = const.CHORE_APPROVAL_ORIGIN_MANUAL,
     ) -> None:
         """Approve chore implementation (called inside lock).
 
@@ -764,6 +774,7 @@ class ChoreManager(BaseManager):
             kid_id: The kid's internal ID
             chore_id: The chore's internal ID
             points_override: Optional point override
+            approval_origin: Source of approval (manual, auto_approve, auto_reset)
         """
         # Validate entities exist
         self._validate_kid_and_chore(kid_id, chore_id)
@@ -1056,6 +1067,8 @@ class ChoreManager(BaseManager):
             previous_state=previous_state,
             update_stats=True,
             effective_date=effective_date_iso,
+            approval_origin=approval_origin,
+            notify_kid=True,
         )
 
         # Emit completion event based on completion criteria
@@ -2158,15 +2171,54 @@ class ChoreManager(BaseManager):
                 kid_id,
                 chore_id,
             )
-            chore_points = chore_info.get(const.DATA_CHORE_DEFAULT_POINTS, 0.0)
-            # Emit signal - EconomyManager listens and handles point deposit
-            # (Platinum Architecture: signal-first, no cross-manager writes)
+            kid_info = self._coordinator.kids_data.get(kid_id, {})
+            kid_name = kid_info.get(const.DATA_KID_NAME, "Unknown")
+            base_points = float(
+                chore_info.get(const.DATA_CHORE_DEFAULT_POINTS, const.DEFAULT_POINTS)
+            )
+            multiplier = float(kid_info.get(const.DATA_KID_POINTS_MULTIPLIER, 1.0))
+            points_awarded = ChoreEngine.calculate_points(chore_info, multiplier)
+            completion_criteria = chore_info.get(
+                const.DATA_CHORE_COMPLETION_CRITERIA,
+                const.COMPLETION_CRITERIA_INDEPENDENT,
+            )
+            is_shared = completion_criteria in (
+                const.COMPLETION_CRITERIA_SHARED,
+                const.COMPLETION_CRITERIA_SHARED_FIRST,
+            )
+            is_multi_claim = ChoreEngine.chore_allows_multiple_claims(chore_info)
+            previous_state = kid_chore_data.get(
+                const.DATA_KID_CHORE_DATA_STATE,
+                const.CHORE_STATE_PENDING,
+            )
+            now_iso = dt_now_iso()
+            effective_date_iso = (
+                kid_chore_data.get(const.DATA_KID_CHORE_DATA_LAST_CLAIMED)
+                or kid_chore_data.get(const.DATA_KID_CHORE_DATA_LAST_APPROVED)
+                or now_iso
+            )
+
+            # Emit canonical approval signal - all approval origins follow the
+            # same manager choreography path to reduce drift.
             self.emit(
-                const.SIGNAL_SUFFIX_CHORE_AUTO_APPROVED,
+                const.SIGNAL_SUFFIX_CHORE_APPROVED,
                 kid_id=kid_id,
                 chore_id=chore_id,
-                base_points=chore_points,
+                kid_name=kid_name,
+                parent_name="auto_reset",
+                base_points=base_points,
                 apply_multiplier=True,
+                points_awarded=points_awarded,
+                is_shared=is_shared,
+                is_multi_claim=is_multi_claim,
+                chore_name=chore_info.get(const.DATA_CHORE_NAME, ""),
+                chore_labels=chore_info.get(const.DATA_CHORE_LABELS, []),
+                multiplier_applied=multiplier,
+                previous_state=previous_state,
+                update_stats=True,
+                effective_date=effective_date_iso,
+                approval_origin=const.CHORE_APPROVAL_ORIGIN_AUTO_RESET,
+                notify_kid=False,
             )
 
         # CLEAR (default) or after AUTO_APPROVE: Clear pending_claim_count

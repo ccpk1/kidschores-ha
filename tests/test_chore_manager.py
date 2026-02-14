@@ -293,6 +293,11 @@ class TestClaimWorkflow:
         )
         assert approved_call[1]["kid_id"] == "kid-1"
         assert approved_call[1]["parent_name"] == "auto_approve"
+        assert (
+            approved_call[1]["approval_origin"]
+            == const.CHORE_APPROVAL_ORIGIN_AUTO_APPROVE
+        )
+        assert approved_call[1]["notify_kid"] is True
 
 
 # ============================================================================
@@ -343,6 +348,8 @@ class TestApproveWorkflow:
         # Signal includes base_points for EconomyManager to apply multiplier
         assert "base_points" in approved_call[1]
         assert approved_call[1]["base_points"] == 10.0  # From sample_chore_data
+        assert approved_call[1]["approval_origin"] == const.CHORE_APPROVAL_ORIGIN_MANUAL
+        assert approved_call[1]["notify_kid"] is True
 
     @pytest.mark.asyncio
     async def test_approve_race_condition_protection(

@@ -50,6 +50,7 @@ from tests.helpers import (
     FREQUENCY_DAILY,
     FREQUENCY_DAILY_MULTI,
     FREQUENCY_NONE,
+    TIME_UNIT_DAYS,
     TIME_UNIT_HOURS,
 )
 from tests.helpers.setup import SetupResult, setup_from_yaml
@@ -2130,3 +2131,171 @@ class TestEnhancedFrequencyWorkflows:
         assert (
             get_chore_state_from_sensor(hass, "zoe", "Make bed") == CHORE_STATE_APPROVED
         )
+
+    @pytest.mark.asyncio
+    async def test_wf_05_daily_multi_upon_completion_advances_due_date_and_ui_consistency(
+        self,
+        hass: HomeAssistant,
+        scenario_enhanced_frequencies: SetupResult,
+        mock_hass_users: dict[str, Any],
+    ) -> None:
+        """WF-05: DAILY_MULTI + UPON_COMPLETION advances due date and keeps UI coherent.
+
+        Best-in-class checks:
+        - Due date advances after approval
+        - Sensor state is pending again (new slot/cycle availability)
+        - Dashboard helper and sensor agree on the same visible state
+        """
+        coordinator = scenario_enhanced_frequencies.coordinator
+        chore_name = "Daily Multi Single Kid"
+        chore_id = scenario_enhanced_frequencies.chore_ids[chore_name]
+        kid_id = scenario_enhanced_frequencies.kid_ids["Zoë"]
+
+        chore: ChoreData | dict[str, Any] = coordinator.chores_data.get(chore_id, {})
+        assert chore.get(DATA_CHORE_RECURRING_FREQUENCY) == FREQUENCY_DAILY_MULTI
+
+        initial_due_dt = coordinator.chore_manager.get_due_date(chore_id, kid_id)
+        assert initial_due_dt is not None
+
+        kid_ctx = Context(user_id=mock_hass_users["kid1"].id)
+        parent_ctx = Context(user_id=mock_hass_users["parent1"].id)
+
+        await claim_chore(hass, "zoe", chore_name, kid_ctx)
+        await approve_chore(hass, "zoe", chore_name, parent_ctx)
+        await hass.async_block_till_done()
+
+        updated_due_dt = coordinator.chore_manager.get_due_date(chore_id, kid_id)
+        assert updated_due_dt is not None
+        assert updated_due_dt > initial_due_dt, (
+            "Daily multi due date should advance after approval"
+        )
+
+        # UI-facing state consistency: dashboard helper and sensor must agree
+        sensor_state = get_chore_state_from_sensor(hass, "zoe", chore_name)
+        assert sensor_state == CHORE_STATE_PENDING
+        dashboard = get_dashboard_helper(hass, "zoe")
+        dashboard_chore = find_chore(dashboard, chore_name)
+        assert dashboard_chore is not None
+        assert dashboard_chore["status"] == CHORE_STATE_PENDING
+
+    @pytest.mark.asyncio
+    async def test_wf_06_custom_from_complete_due_date_anchored_to_completion_timestamp(
+        self,
+        hass: HomeAssistant,
+        scenario_enhanced_frequencies: SetupResult,
+        mock_hass_users: dict[str, Any],
+    ) -> None:
+        """WF-06: CUSTOM_FROM_COMPLETE reschedules from completion time (not old due date).
+
+        Best-in-class checks:
+        - Reads completion timestamp from kid chore data
+        - Verifies new due date is interval-anchored to completion
+        - Verifies UI returns to pending for immediate next-cycle visibility
+        """
+        from custom_components.kidschores import const
+
+        coordinator = scenario_enhanced_frequencies.coordinator
+        chore_name = "Custom From Complete Single"
+        chore_id = scenario_enhanced_frequencies.chore_ids[chore_name]
+        kid_id = scenario_enhanced_frequencies.kid_ids["Zoë"]
+
+        chore: ChoreData | dict[str, Any] = coordinator.chores_data.get(chore_id, {})
+        assert (
+            chore.get(DATA_CHORE_RECURRING_FREQUENCY) == FREQUENCY_CUSTOM_FROM_COMPLETE
+        )
+        assert chore.get(DATA_CHORE_CUSTOM_INTERVAL) == 5
+        assert chore.get(DATA_CHORE_CUSTOM_INTERVAL_UNIT) == TIME_UNIT_DAYS
+
+        kid_ctx = Context(user_id=mock_hass_users["kid1"].id)
+        parent_ctx = Context(user_id=mock_hass_users["parent1"].id)
+
+        await claim_chore(hass, "zoe", chore_name, kid_ctx)
+        await approve_chore(hass, "zoe", chore_name, parent_ctx)
+        await hass.async_block_till_done()
+
+        kid_chore_data: KidData | dict[str, Any] = coordinator.kids_data.get(
+            kid_id, {}
+        ).get(const.DATA_KID_CHORE_DATA, {})
+        chore_entry = kid_chore_data.get(chore_id, {})
+        completion_anchor_iso = chore_entry.get(const.DATA_KID_CHORE_DATA_LAST_CLAIMED)
+        new_due_dt = coordinator.chore_manager.get_due_date(chore_id, kid_id)
+
+        assert isinstance(completion_anchor_iso, str)
+        assert new_due_dt is not None
+
+        completion_anchor_dt = dt_now_utc().__class__.fromisoformat(
+            completion_anchor_iso
+        )
+        anchor_delta = new_due_dt - completion_anchor_dt
+
+        # Allow small scheduling jitter while requiring interval anchoring behavior
+        assert abs(anchor_delta - timedelta(days=5)) <= timedelta(minutes=2), (
+            f"Expected ~5 days from completion anchor, got {anchor_delta}"
+        )
+        assert (
+            get_chore_state_from_sensor(hass, "zoe", chore_name) == CHORE_STATE_PENDING
+        )
+
+    @pytest.mark.asyncio
+    async def test_wf_07_independent_per_kid_due_dates_produce_divergent_ui_states(
+        self,
+        hass: HomeAssistant,
+        scenario_shared: SetupResult,
+    ) -> None:
+        """WF-07: Same chore shows different UI states for primary/secondary kids.
+
+        Best-in-class checks:
+        - One kid in due window (DUE), another before window (WAITING)
+        - Claim lock + lock reason are asserted from UI sensor attributes
+        - Dashboard helper reflects the same divergent statuses for each kid
+        """
+        from custom_components.kidschores import const
+
+        coordinator = scenario_shared.coordinator
+        chore_name = "Shared All Pending Hold"
+        chore_id = scenario_shared.chore_ids[chore_name]
+        zoe_id = scenario_shared.kid_ids["Zoë"]
+        max_id = scenario_shared.kid_ids["Max!"]
+        lila_id = scenario_shared.kid_ids["Lila"]
+
+        now = dt_now_utc()
+        chore_info = coordinator.chores_data.get(chore_id, {})
+        chore_info[const.DATA_CHORE_COMPLETION_CRITERIA] = (
+            const.COMPLETION_CRITERIA_INDEPENDENT
+        )
+        chore_info[const.DATA_CHORE_CLAIM_LOCK_UNTIL_WINDOW] = True
+        chore_info[const.DATA_CHORE_DUE_WINDOW_OFFSET] = "1h"
+        chore_info[const.DATA_CHORE_PER_KID_DUE_DATES] = {
+            zoe_id: (now + timedelta(minutes=30)).isoformat(),
+            max_id: (now + timedelta(hours=3)).isoformat(),
+            lila_id: (now + timedelta(hours=3)).isoformat(),
+        }
+        chore_info[const.DATA_CHORE_DUE_DATE] = (now + timedelta(hours=3)).isoformat()
+
+        await coordinator.chore_manager._on_periodic_update(now_utc=now)
+        await hass.async_block_till_done()
+
+        assert (
+            get_chore_state_from_sensor(hass, "zoe", chore_name)
+            == const.CHORE_STATE_DUE
+        )
+        assert (
+            get_chore_state_from_sensor(hass, "max", chore_name)
+            == const.CHORE_STATE_WAITING
+        )
+
+        zoe_attrs = get_chore_attributes_from_sensor(hass, "zoe", chore_name)
+        max_attrs = get_chore_attributes_from_sensor(hass, "max", chore_name)
+        assert zoe_attrs.get(const.ATTR_CAN_CLAIM) is True
+        assert zoe_attrs.get(const.ATTR_CHORE_LOCK_REASON) is None
+        assert max_attrs.get(const.ATTR_CAN_CLAIM) is False
+        assert max_attrs.get(const.ATTR_CHORE_LOCK_REASON) == const.CHORE_STATE_WAITING
+
+        zoe_dashboard = get_dashboard_helper(hass, "zoe")
+        max_dashboard = get_dashboard_helper(hass, "max")
+        zoe_chore = find_chore(zoe_dashboard, chore_name)
+        max_chore = find_chore(max_dashboard, chore_name)
+        assert zoe_chore is not None
+        assert max_chore is not None
+        assert zoe_chore["status"] == const.CHORE_STATE_DUE
+        assert max_chore["status"] == const.CHORE_STATE_WAITING

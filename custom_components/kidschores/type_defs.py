@@ -970,6 +970,8 @@ class ChoreApprovedEvent(TypedDict, total=False):
     previous_state: str  # To detect re-approvals vs new approvals
     update_stats: bool  # Whether to update statistics (False for corrections)
     effective_date: str  # ISO timestamp when kid did work (last_claimed with fallbacks)
+    approval_origin: str  # Optional origin hint (manual, auto_approve, auto_reset)
+    notify_kid: bool  # Whether kid-facing approval notification should be sent
 
 
 class ChoreCompletedEvent(TypedDict, total=False):
