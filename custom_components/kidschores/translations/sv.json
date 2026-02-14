@@ -1502,33 +1502,55 @@
         "data": {}
       },
       "dashboard_generator": {
-        "title": "Hantera instrumentpanelen",
+        "title": "Instrumentpanelsåtgärder",
         "description": "Skapa, uppdatera eller ta bort KidsChores Lovelace-instrumentpaneler.\n\n**Obligatoriska anpassade kort** (installera via HACS Frontend):\n- Svampkort (custom:mushroom-template-card)\n- Auto-Entities (custom:auto-entities)\n- Minigrafkort (custom:mini-graph-card)\n\nUtan dessa kort kommer instrumentpaneler att visa fel. Installera dem först från HACS innan du genererar instrumentpaneler.",
         "data": {
           "dashboard_action": "Handling",
           "dashboard_check_cards": "Kontrollera kortinstallationen"
         },
         "data_description": {
-          "dashboard_action": "Välj om du vill skapa nya instrumentpaneler eller ta bort befintliga.",
+          "dashboard_action": "Välj en åtgärd: skapa en ny instrumentpanel, uppdatera vyer på en befintlig instrumentpanel eller ta bort instrumentpaneler.",
           "dashboard_check_cards": "Aktivera för att verifiera att nödvändiga anpassade kort är installerade innan du fortsätter."
         }
       },
       "dashboard_create": {
-        "title": "Skapa/uppdatera instrumentpanel",
+        "title": "Skapa instrumentpanel",
         "description": "Generera en KidsChores-instrumentpanel med flikar för varje barn.\n\nVälj ett namn för instrumentpanelen, välj vilka barn som ska inkluderas och lägg eventuellt till en administratörsflik för föräldrahantering.\n\n[📖 Guide till generering av instrumentpaneler]({documentation_url})",
         "data": {
           "dashboard_name": "Instrumentpanelens namn",
           "dashboard_style": "Instrumentpanelens stil",
           "dashboard_kid_selection": "Barn (en flik per barn)",
-          "dashboard_include_admin": "Inkludera administratörsfliken",
-          "dashboard_force_rebuild": "Tvinga ombyggnad (skriv över befintlig)"
+          "dashboard_include_admin": "Inkludera administratörsfliken"
         },
         "data_description": {
           "dashboard_name": "Namn på instrumentpanelen (visas i sidofältet). Förslag: Sysslor",
           "dashboard_style": "Välj layout för instrumentpanelen: Fullständig (alla funktioner), Minimal (endast det viktigaste) eller Kompakt (tät layout).",
           "dashboard_kid_selection": "Välj vilka barn som ska skapas flikar för. Varje barn får sin egen vy/flik.",
-          "dashboard_include_admin": "Lägg till en administratörsflik med överordnade kontroller för godkännanden och hantering.",
-          "dashboard_force_rebuild": "Om aktiverad kommer den befintliga instrumentpanelen att skrivas över. Annars misslyckas genereringen om instrumentpanelen finns."
+          "dashboard_include_admin": "Lägg till en administratörsflik med överordnade kontroller för godkännanden och hantering."
+        }
+      },
+      "dashboard_update_select": {
+        "title": "Uppdatera instrumentpanelen",
+        "description": "Välj en befintlig KidsChores-instrumentpanel att uppdatera.\n\nEndast ändringar av vyer per barn och administratörsvyer är tillgängliga i uppdateringsläge.",
+        "data": {
+          "dashboard_update_selection": "Instrumentpanel"
+        },
+        "data_description": {
+          "dashboard_update_selection": "Välj den befintliga instrumentpanelen som du vill uppdatera."
+        }
+      },
+      "dashboard_update": {
+        "title": "Uppdatera instrumentpanelvyer",
+        "description": "Uppdatera vyer för **{dashboard}**.\n\nJustera täckning och mallprofil för barn-/administratörsvyer.\n\n[📖 Guide till generering av instrumentpaneler]({documentation_url})",
+        "data": {
+          "dashboard_template_profile": "Mallprofil",
+          "dashboard_kid_selection": "Barn (en flik per barn)",
+          "dashboard_include_admin": "Inkludera administratörsfliken"
+        },
+        "data_description": {
+          "dashboard_template_profile": "Mallprofil tillämpad på valda vyer för barns instrumentpanel.",
+          "dashboard_kid_selection": "Välj vilka barn som ska inkluderas som vyer i den uppdaterade instrumentpanelen.",
+          "dashboard_include_admin": "Inkludera eller ta bort fliken Admin i den här instrumentpanelen."
         }
       },
       "dashboard_delete": {
@@ -1548,7 +1570,7 @@
       },
       "dashboard_generator_confirm": {
         "title": "Bekräfta generering av instrumentpanel",
-        "description": "Följande instrumentpaneler kommer att skapas:\n\n**Stil:** {style}\n**Tvingad ombyggnad:** {force_rebuild}\n\n**Instrumentpaneler:**\n{dashboards}\n\nKlicka på Skicka för att generera instrumentpanelerna.",
+        "description": "Följande instrumentpaneler kommer att skapas:\n\n**Stil:** {style}\n\n**Instrumentpaneler:**\n{dashboards}\n\nKlicka på Skicka för att generera instrumentpanelerna.",
         "data": {}
       },
       "dashboard_generator_result": {
@@ -1738,6 +1760,7 @@
       "dashboard_save_error": "Det gick inte att spara instrumentpanelen i Home Assistant. Kontrollera systemloggarna för mer information.",
       "dashboard_no_name": "Ange ett namn för instrumentpanelen.",
       "dashboard_no_kids": "Välj minst ett barn eller aktivera \"Inkludera administratörsflik\".",
+      "dashboard_single_kid_required": "För omfattningen 'Ett barn', välj exakt ett barn.",
       "dashboard_no_dashboards": "Välj minst en instrumentpanel att ta bort."
     },
     "abort": {
@@ -1786,22 +1809,50 @@
     },
     "dashboard_action": {
       "options": {
-        "create": "Skapa/uppdatera instrumentpanel",
+        "create": "Skapa ny instrumentpanel",
+        "update": "Uppdatera befintliga instrumentpanelvyer",
         "delete": "Ta bort instrumentpanelen"
       }
     },
     "dashboard_style": {
       "options": {
-        "dashboard_style_full": "Fullständig (alla funktioner)",
-        "dashboard_style_minimal": "Minimal (endast nödvändigheter)",
-        "dashboard_style_compact": "Kompakt (tät layout)",
-        "dashboard_style_admin": "Admin (föräldraöversikt)"
+        "full": "Fullständig (alla funktioner)",
+        "minimal": "Minimal (endast nödvändigheter)",
+        "compact": "Kompakt (tät layout)",
+        "admin": "Admin (föräldraöversikt)"
       }
     },
     "dashboard_kid_selection": {
       "options": {}
     },
     "dashboard_delete_selection": {
+      "options": {}
+    },
+    "dashboard_update_selection": {
+      "options": {}
+    },
+    "dashboard_generation_mode": {
+      "options": {
+        "single_multi_view": "En instrumentpanel (flera vyer)",
+        "per_kid_dashboard": "Instrumentpaneler per barn",
+        "targeted_view_update": "Riktad uppdatering"
+      }
+    },
+    "dashboard_target_scope": {
+      "options": {
+        "all_selected_kids": "Alla valda barn",
+        "single_kid": "Ensamstående barn",
+        "admin_only": "Endast administratör"
+      }
+    },
+    "dashboard_template_profile": {
+      "options": {
+        "full": "Fullständig (alla funktioner)",
+        "minimal": "Minimal (endast nödvändigheter)",
+        "compact": "Kompakt (tät layout)"
+      }
+    },
+    "dashboard_single_kid": {
       "options": {}
     },
     "manage_actions": {

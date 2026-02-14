@@ -1502,33 +1502,55 @@
         "data": {}
       },
       "dashboard_generator": {
-        "title": "Administrer dashbord",
+        "title": "Handlinger på dashbordet",
         "description": "Opprett, oppdater eller slett KidsChores Lovelace-dashbord.\n\n**Nødvendige tilpassede kort** (installer via HACS Frontend):\n- Soppkort (custom:mushroom-template-card)\n- Auto-Entities (custom:auto-entities)\n- Minigrafkort (custom:mini-graph-card)\n\nUten disse kortene vil dashbord vise feil. Installer dem først fra HACS før du genererer dashbord.",
         "data": {
           "dashboard_action": "Handling",
           "dashboard_check_cards": "Sjekk kortinstallasjonen"
         },
         "data_description": {
-          "dashboard_action": "Velg om du vil opprette nye dashbord eller slette eksisterende.",
+          "dashboard_action": "Velg én handling: opprett et nytt dashbord, oppdater visninger på et eksisterende dashbord eller slett dashbord.",
           "dashboard_check_cards": "Aktiver for å bekrefte at nødvendige tilpassede kort er installert før du fortsetter."
         }
       },
       "dashboard_create": {
-        "title": "Opprett/oppdater dashbord",
+        "title": "Opprett dashbord",
         "description": "Generer et KidsChores-dashbord med faner for hvert barn.\n\nVelg et navn for dashbordet, velg barna som skal inkluderes, og legg eventuelt til en administratorfane for foreldreadministrasjon.\n\n[📖 Veiledning for generering av dashbord]({documentation_url})",
         "data": {
           "dashboard_name": "Navn på dashbord",
           "dashboard_style": "Dashbordstil",
           "dashboard_kid_selection": "Barn (én fane per barn)",
-          "dashboard_include_admin": "Inkluder administratorfanen",
-          "dashboard_force_rebuild": "Tving gjenoppbygging (overskriv eksisterende)"
+          "dashboard_include_admin": "Inkluder administratorfanen"
         },
         "data_description": {
           "dashboard_name": "Navn på dashbordet (vises i sidefeltet). Foreslått: Gjøremål",
           "dashboard_style": "Velg dashbordoppsett: Full (alle funksjoner), Minimal (kun det viktigste) eller Kompakt (tett oppsett).",
           "dashboard_kid_selection": "Velg hvilke barn du vil opprette faner for. Hvert barn får sin egen visning/fane.",
-          "dashboard_include_admin": "Legg til en Admin-fane med foreldrekontroller for godkjenninger og administrasjon.",
-          "dashboard_force_rebuild": "Hvis aktivert, vil eksisterende dashbord bli overskrevet. Ellers mislykkes genereringen hvis dashbordet finnes."
+          "dashboard_include_admin": "Legg til en Admin-fane med foreldrekontroller for godkjenninger og administrasjon."
+        }
+      },
+      "dashboard_update_select": {
+        "title": "Oppdater dashbordet",
+        "description": "Velg et eksisterende KidsChores-dashbord som skal oppdateres.\n\nBare endringer i visninger per barn og administratorvisninger er tilgjengelige i oppdateringsmodus.",
+        "data": {
+          "dashboard_update_selection": "Dashbord"
+        },
+        "data_description": {
+          "dashboard_update_selection": "Velg det eksisterende dashbordet du vil oppdatere."
+        }
+      },
+      "dashboard_update": {
+        "title": "Oppdater dashbordvisninger",
+        "description": "Oppdater visninger for **{dashboard}**.\n\nJuster dekningen for barn/administrator-visninger og malprofil.\n\n[📖 Veiledning for generering av dashbord]({documentation_url})",
+        "data": {
+          "dashboard_template_profile": "Malprofil",
+          "dashboard_kid_selection": "Barn (én fane per barn)",
+          "dashboard_include_admin": "Inkluder administratorfanen"
+        },
+        "data_description": {
+          "dashboard_template_profile": "Malprofil brukt på valgte visninger av barnedashbord.",
+          "dashboard_kid_selection": "Velg hvilke barn som skal inkluderes som visninger i det oppdaterte dashbordet.",
+          "dashboard_include_admin": "Inkluder eller fjern Admin-fanen i dette dashbordet."
         }
       },
       "dashboard_delete": {
@@ -1548,7 +1570,7 @@
       },
       "dashboard_generator_confirm": {
         "title": "Bekreft generering av dashbord",
-        "description": "Følgende dashbord opprettes:\n\n**Stil:** {style}\n**Tving gjenoppbygging:** {force_rebuild}\n\n**Dashbord:**\n{dashboards}\n\nKlikk på Send for å generere dashbordene.",
+        "description": "Følgende dashbord opprettes:\n\n**Stil:** {style}\n\n**Dashbord:**\n{dashboards}\n\nKlikk på Send for å generere dashbordene.",
         "data": {}
       },
       "dashboard_generator_result": {
@@ -1738,6 +1760,7 @@
       "dashboard_save_error": "Kunne ikke lagre dashbordet i Home Assistant. Sjekk systemloggene for detaljer.",
       "dashboard_no_name": "Vennligst skriv inn et navn for dashbordet.",
       "dashboard_no_kids": "Velg minst ett barn eller aktiver «Inkluder administratorfane».",
+      "dashboard_single_kid_required": "For omfanget «Enkelt barn», velg nøyaktig ett barn.",
       "dashboard_no_dashboards": "Vennligst velg minst ett dashbord du vil slette."
     },
     "abort": {
@@ -1786,22 +1809,50 @@
     },
     "dashboard_action": {
       "options": {
-        "create": "Opprett/oppdater dashbord",
+        "create": "Opprett nytt dashbord",
+        "update": "Oppdater eksisterende dashbordvisninger",
         "delete": "Slett dashbord"
       }
     },
     "dashboard_style": {
       "options": {
-        "dashboard_style_full": "Full (alle funksjoner)",
-        "dashboard_style_minimal": "Minimal (kun det viktigste)",
-        "dashboard_style_compact": "Kompakt (tett layout)",
-        "dashboard_style_admin": "Admin (foreldreoversikt)"
+        "full": "Full (alle funksjoner)",
+        "minimal": "Minimal (kun det viktigste)",
+        "compact": "Kompakt (tett layout)",
+        "admin": "Admin (foreldreoversikt)"
       }
     },
     "dashboard_kid_selection": {
       "options": {}
     },
     "dashboard_delete_selection": {
+      "options": {}
+    },
+    "dashboard_update_selection": {
+      "options": {}
+    },
+    "dashboard_generation_mode": {
+      "options": {
+        "single_multi_view": "Enkelt dashbord (flervisning)",
+        "per_kid_dashboard": "Dashbord per barn",
+        "targeted_view_update": "Målrettet oppdatering"
+      }
+    },
+    "dashboard_target_scope": {
+      "options": {
+        "all_selected_kids": "Alle valgte barn",
+        "single_kid": "Enslig barn",
+        "admin_only": "Kun administratorer"
+      }
+    },
+    "dashboard_template_profile": {
+      "options": {
+        "full": "Full (alle funksjoner)",
+        "minimal": "Minimal (kun det viktigste)",
+        "compact": "Kompakt (tett layout)"
+      }
+    },
+    "dashboard_single_kid": {
       "options": {}
     },
     "manage_actions": {

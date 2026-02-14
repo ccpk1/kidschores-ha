@@ -1502,33 +1502,55 @@
         "data": {}
       },
       "dashboard_generator": {
-        "title": "Tableau de bord de gestion",
+        "title": "Actions du tableau de bord",
         "description": "Créez, mettez à jour ou supprimez des tableaux de bord KidsChores Lovelace.\n\n**Cartes personnalisées requises** (à installer via l'interface HACS) :\n- Cartes Champignon (custom:mushroom-template-card)\n- Entités automatiques (custom:auto-entities)\n- Carte Mini-Graphique (custom:mini-graph-card)\n\nSans ces cartes, des erreurs s'afficheront dans les tableaux de bord. Installez-les d'abord depuis HACS avant de générer les tableaux de bord.",
         "data": {
           "dashboard_action": "Action",
           "dashboard_check_cards": "Vérification de l'installation de la carte"
         },
         "data_description": {
-          "dashboard_action": "Choisissez si vous souhaitez créer de nouveaux tableaux de bord ou supprimer ceux existants.",
+          "dashboard_action": "Choisissez une action : créer un nouveau tableau de bord, mettre à jour les vues d’un tableau de bord existant ou supprimer des tableaux de bord.",
           "dashboard_check_cards": "Activez cette option pour vérifier que les cartes personnalisées requises sont installées avant de continuer."
         }
       },
       "dashboard_create": {
-        "title": "Créer/Mettre à jour le tableau de bord",
+        "title": "Créer un tableau de bord",
         "description": "Générez un tableau de bord KidsChores avec des onglets pour chaque enfant.\n\nChoisissez un nom pour le tableau de bord, sélectionnez les enfants à inclure et ajoutez éventuellement un onglet Admin pour la gestion parentale.\n\n[📖 Guide de création de tableau de bord]({documentation_url})",
         "data": {
           "dashboard_name": "Nom du tableau de bord",
           "dashboard_style": "Style de tableau de bord",
           "dashboard_kid_selection": "Enfants (un comprimé par enfant)",
-          "dashboard_include_admin": "Inclure l'onglet Admin",
-          "dashboard_force_rebuild": "Forcer la reconstruction (écraser l'existant)"
+          "dashboard_include_admin": "Inclure l'onglet Admin"
         },
         "data_description": {
           "dashboard_name": "Nom du tableau de bord (apparaît dans la barre latérale). Suggestion : Tâches ménagères",
           "dashboard_style": "Choisissez la disposition du tableau de bord : Complète (toutes les fonctionnalités), Minimale (fonctions essentielles uniquement) ou Compacte (disposition dense).",
           "dashboard_kid_selection": "Sélectionnez les enfants pour lesquels vous souhaitez créer des onglets. Chaque enfant aura son propre affichage/onglet.",
-          "dashboard_include_admin": "Ajoutez un onglet Admin avec des contrôles parents pour les approbations et la gestion.",
-          "dashboard_force_rebuild": "Si cette option est activée, le tableau de bord existant sera écrasé. Sinon, la génération échouera si un tableau de bord existe déjà."
+          "dashboard_include_admin": "Ajoutez un onglet Admin avec des contrôles parents pour les approbations et la gestion."
+        }
+      },
+      "dashboard_update_select": {
+        "title": "Mettre à jour le tableau de bord",
+        "description": "Sélectionnez un tableau de bord KidsChores existant à mettre à jour.\n\nSeules les modifications par enfant et par administrateur sont disponibles en mode mise à jour.",
+        "data": {
+          "dashboard_update_selection": "Tableau de bord"
+        },
+        "data_description": {
+          "dashboard_update_selection": "Choisissez le tableau de bord existant que vous souhaitez mettre à jour."
+        }
+      },
+      "dashboard_update": {
+        "title": "Mise à jour des vues du tableau de bord",
+        "description": "Mettre à jour les vues pour **{dashboard}**.\n\nAjuster la couverture des vues enfants/administrateur et le profil du modèle.\n\n[📖 Guide de génération du tableau de bord]({documentation_url})",
+        "data": {
+          "dashboard_template_profile": "Profil du modèle",
+          "dashboard_kid_selection": "Enfants (un comprimé par enfant)",
+          "dashboard_include_admin": "Inclure l'onglet Admin"
+        },
+        "data_description": {
+          "dashboard_template_profile": "Profil de modèle appliqué aux vues sélectionnées du tableau de bord enfant.",
+          "dashboard_kid_selection": "Sélectionnez les enfants à inclure dans le tableau de bord mis à jour.",
+          "dashboard_include_admin": "Ajouter ou supprimer l'onglet Admin dans ce tableau de bord."
         }
       },
       "dashboard_delete": {
@@ -1548,7 +1570,7 @@
       },
       "dashboard_generator_confirm": {
         "title": "Génération du tableau de bord de confirmation",
-        "description": "Les tableaux de bord suivants seront créés :\n\n**Style :** {style}\n**Forcer la reconstruction :** {force_rebuild}\n\n**Tableaux de bord :**\n{dashboards}\n\nCliquez sur Soumettre pour générer les tableaux de bord.",
+        "description": "Les tableaux de bord suivants seront créés :\n\n**Style :** {style}\n\n**Tableaux de bord :**\n{dashboards}\n\nCliquez sur Soumettre pour générer les tableaux de bord.",
         "data": {}
       },
       "dashboard_generator_result": {
@@ -1738,6 +1760,7 @@
       "dashboard_save_error": "Impossible d'enregistrer le tableau de bord dans Home Assistant. Consultez les journaux système pour plus de détails.",
       "dashboard_no_name": "Veuillez saisir un nom pour le tableau de bord.",
       "dashboard_no_kids": "Veuillez sélectionner au moins un enfant ou activer l'option « Inclure l'onglet Administrateur ».",
+      "dashboard_single_kid_required": "Pour le champ d'application « Enfant unique », sélectionnez un seul enfant.",
       "dashboard_no_dashboards": "Veuillez sélectionner au moins un tableau de bord à supprimer."
     },
     "abort": {
@@ -1786,22 +1809,50 @@
     },
     "dashboard_action": {
       "options": {
-        "create": "Créer/Mettre à jour le tableau de bord",
+        "create": "Créer un nouveau tableau de bord",
+        "update": "Mettre à jour les vues existantes du tableau de bord",
         "delete": "Supprimer le tableau de bord"
       }
     },
     "dashboard_style": {
       "options": {
-        "dashboard_style_full": "Complet (Toutes les fonctionnalités)",
-        "dashboard_style_minimal": "Minimal (essentiel seulement)",
-        "dashboard_style_compact": "Compact (Disposition dense)",
-        "dashboard_style_admin": "Administrateur (Tableau de bord parent)"
+        "full": "Complet (Toutes les fonctionnalités)",
+        "minimal": "Minimal (essentiel seulement)",
+        "compact": "Compact (Disposition dense)",
+        "admin": "Administrateur (Tableau de bord parent)"
       }
     },
     "dashboard_kid_selection": {
       "options": {}
     },
     "dashboard_delete_selection": {
+      "options": {}
+    },
+    "dashboard_update_selection": {
+      "options": {}
+    },
+    "dashboard_generation_mode": {
+      "options": {
+        "single_multi_view": "Tableau de bord unique (vues multiples)",
+        "per_kid_dashboard": "Tableaux de bord par enfant",
+        "targeted_view_update": "Mise à jour ciblée"
+      }
+    },
+    "dashboard_target_scope": {
+      "options": {
+        "all_selected_kids": "Tous les enfants sélectionnés",
+        "single_kid": "Enfant unique",
+        "admin_only": "Réservé aux administrateurs"
+      }
+    },
+    "dashboard_template_profile": {
+      "options": {
+        "full": "Complet (Toutes les fonctionnalités)",
+        "minimal": "Minimal (essentiel seulement)",
+        "compact": "Compact (Disposition dense)"
+      }
+    },
+    "dashboard_single_kid": {
       "options": {}
     },
     "manage_actions": {

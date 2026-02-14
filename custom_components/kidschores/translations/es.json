@@ -1502,33 +1502,55 @@
         "data": {}
       },
       "dashboard_generator": {
-        "title": "Administrar el panel de control",
+        "title": "Acciones del panel de control",
         "description": "Crear, actualizar o eliminar paneles de KidsChores Lovelace.\n\n**Tarjetas personalizadas necesarias** (instalar mediante la interfaz de HACS):\n- Tarjetas de hongo (custom:mushroom-template-card)\n- Entidades automáticas (custom:auto-entities)\n- Tarjeta de minigráfico (custom:mini-graph-card)\n\nSin estas tarjetas, los paneles mostrarán errores. Instálelas primero desde HACS antes de generar paneles.",
         "data": {
           "dashboard_action": "Acción",
           "dashboard_check_cards": "Instalación de la tarjeta de verificación"
         },
         "data_description": {
-          "dashboard_action": "Elija si desea crear nuevos paneles o eliminar los existentes.",
+          "dashboard_action": "Elija una acción: crear un nuevo panel, actualizar vistas en un panel existente o eliminar paneles.",
           "dashboard_check_cards": "Habilite esta opción para verificar que las tarjetas personalizadas necesarias estén instaladas antes de continuar."
         }
       },
       "dashboard_create": {
-        "title": "Crear/actualizar panel de control",
+        "title": "Crear panel de control",
         "description": "Genera un panel de KidsChores con pestañas para cada niño.\n\nElige un nombre para el panel, selecciona los niños que deseas incluir y, opcionalmente, agrega una pestaña de Administrador para la gestión de padres.\n\n[📖 Guía para generar paneles]({documentation_url})",
         "data": {
           "dashboard_name": "Nombre del tablero",
           "dashboard_style": "Estilo del tablero",
           "dashboard_kid_selection": "Niños (una pestaña por niño)",
-          "dashboard_include_admin": "Incluir pestaña de administración",
-          "dashboard_force_rebuild": "Forzar reconstrucción (sobrescribir existente)"
+          "dashboard_include_admin": "Incluir pestaña de administración"
         },
         "data_description": {
           "dashboard_name": "Nombre del panel (aparece en la barra lateral). Sugerencia: Tareas",
           "dashboard_style": "Elija el diseño del panel: Completo (todas las funciones), Mínimo (solo lo esencial) o Compacto (diseño denso).",
           "dashboard_kid_selection": "Selecciona para qué niños crear pestañas. Cada niño tiene su propia vista/pestaña.",
-          "dashboard_include_admin": "Agregue una pestaña de administración con controles principales para aprobaciones y gestión.",
-          "dashboard_force_rebuild": "Si se habilita, se sobrescribirá el panel existente. De lo contrario, la generación falla si el panel ya existe."
+          "dashboard_include_admin": "Agregue una pestaña de administración con controles principales para aprobaciones y gestión."
+        }
+      },
+      "dashboard_update_select": {
+        "title": "Actualizar el panel de control",
+        "description": "Seleccione un panel de KidsChores existente para actualizar.\n\nSolo los cambios en la vista por niño y por administrador están disponibles en el modo de actualización.",
+        "data": {
+          "dashboard_update_selection": "Panel"
+        },
+        "data_description": {
+          "dashboard_update_selection": "Seleccione el panel existente que desea actualizar."
+        }
+      },
+      "dashboard_update": {
+        "title": "Actualizar vistas del panel",
+        "description": "Actualizar vistas para **{dashboard}**.\n\nAjustar la cobertura de vistas de niños/administrador y el perfil de la plantilla.\n\n[📖 Guía para generar el panel]({documentation_url})",
+        "data": {
+          "dashboard_template_profile": "Perfil de plantilla",
+          "dashboard_kid_selection": "Niños (una pestaña por niño)",
+          "dashboard_include_admin": "Incluir pestaña de administración"
+        },
+        "data_description": {
+          "dashboard_template_profile": "Perfil de plantilla aplicado a vistas del panel de control de niños seleccionadas.",
+          "dashboard_kid_selection": "Seleccione qué niños desea incluir como vistas en el panel actualizado.",
+          "dashboard_include_admin": "Incluir o eliminar la pestaña Administrador en este panel."
         }
       },
       "dashboard_delete": {
@@ -1548,7 +1570,7 @@
       },
       "dashboard_generator_confirm": {
         "title": "Confirmar la generación del panel",
-        "description": "Se crearán los siguientes paneles:\n\n**Estilo:** {style}\n**Reconstrucción forzada:** {force_rebuild}\n\n**Paneles:**\n{dashboards}\n\nHaga clic en Enviar para generar los paneles.",
+        "description": "Se crearán los siguientes paneles:\n\n**Estilo:** {style}\n\n**Paneles:**\n{dashboards}\n\nHaga clic en Enviar para generar los paneles.",
         "data": {}
       },
       "dashboard_generator_result": {
@@ -1738,6 +1760,7 @@
       "dashboard_save_error": "No se pudo guardar el panel en Home Assistant. Consulta los registros del sistema para obtener más información.",
       "dashboard_no_name": "Ingrese un nombre para el panel de control.",
       "dashboard_no_kids": "Seleccione al menos un niño o habilite 'Incluir pestaña de administrador'.",
+      "dashboard_single_kid_required": "Para el ámbito \"Un solo niño\", seleccione exactamente un niño.",
       "dashboard_no_dashboards": "Seleccione al menos un panel para eliminar."
     },
     "abort": {
@@ -1786,22 +1809,50 @@
     },
     "dashboard_action": {
       "options": {
-        "create": "Crear/actualizar panel de control",
+        "create": "Crear un nuevo panel de control",
+        "update": "Actualizar las vistas del panel existentes",
         "delete": "Eliminar el panel de control"
       }
     },
     "dashboard_style": {
       "options": {
-        "dashboard_style_full": "Completo (Todas las funciones)",
-        "dashboard_style_minimal": "Mínimo (solo lo esencial)",
-        "dashboard_style_compact": "Compacto (diseño denso)",
-        "dashboard_style_admin": "Administrador (panel principal)"
+        "full": "Completo (Todas las funciones)",
+        "minimal": "Mínimo (solo lo esencial)",
+        "compact": "Compacto (diseño denso)",
+        "admin": "Administrador (panel principal)"
       }
     },
     "dashboard_kid_selection": {
       "options": {}
     },
     "dashboard_delete_selection": {
+      "options": {}
+    },
+    "dashboard_update_selection": {
+      "options": {}
+    },
+    "dashboard_generation_mode": {
+      "options": {
+        "single_multi_view": "Panel único (varias vistas)",
+        "per_kid_dashboard": "Paneles de control por niño",
+        "targeted_view_update": "Actualización dirigida"
+      }
+    },
+    "dashboard_target_scope": {
+      "options": {
+        "all_selected_kids": "Todos los niños seleccionados",
+        "single_kid": "Niño soltero",
+        "admin_only": "Solo administrador"
+      }
+    },
+    "dashboard_template_profile": {
+      "options": {
+        "full": "Completo (Todas las funciones)",
+        "minimal": "Mínimo (solo lo esencial)",
+        "compact": "Compacto (diseño denso)"
+      }
+    },
+    "dashboard_single_kid": {
       "options": {}
     },
     "manage_actions": {

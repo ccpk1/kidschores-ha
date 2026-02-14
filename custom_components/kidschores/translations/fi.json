@@ -1502,33 +1502,55 @@
         "data": {}
       },
       "dashboard_generator": {
-        "title": "Hallitse kojelautaa",
+        "title": "Kojelaudan toiminnot",
         "description": "Luo, päivitä tai poista KidsChores Lovelace -koontinäyttöjä.\n\n**Vaaditut mukautetut kortit** (asenna HACS-käyttöliittymän kautta):\n- Sienikortit (custom:mushroom-template-card)\n- Automaattiset entiteetit (custom:auto-entities)\n- Mini-graafikortti (custom:mini-graph-card)\n\nIlman näitä kortteja koontinäytöissä näkyy virheitä. Asenna ne ensin HACS:sta ennen koontinäyttöjen luomista.",
         "data": {
           "dashboard_action": "Toiminta",
           "dashboard_check_cards": "Tarkista kortin asennus"
         },
         "data_description": {
-          "dashboard_action": "Valitse, haluatko luoda uusia koontinäyttöjä vai poistaa olemassa olevia.",
+          "dashboard_action": "Valitse yksi toiminto: luo uusi koontinäyttö, päivitä näkymiä olemassa olevassa koontinäytössä tai poista koontinäyttöjä.",
           "dashboard_check_cards": "Ota käyttöön varmistaaksesi, että tarvittavat mukautetut kortit on asennettu ennen jatkamista."
         }
       },
       "dashboard_create": {
-        "title": "Luo/Päivitä kojelauta",
+        "title": "Luo kojelauta",
         "description": "Luo KidsChores-koontinäyttö, jossa on välilehdet jokaiselle lapselle.\n\nValitse koontinäytölle nimi, valitse sisällytettävät lapset ja lisää halutessasi Järjestelmänvalvoja-välilehti vanhempien hallintaa varten.\n\n[📖 Koontinäytön luontiopas]({documentation_url})",
         "data": {
           "dashboard_name": "Kojelaudan nimi",
           "dashboard_style": "Kojelaudan tyyli",
           "dashboard_kid_selection": "Lapset (yksi tabletti lasta kohden)",
-          "dashboard_include_admin": "Sisällytä Järjestelmänvalvoja-välilehti",
-          "dashboard_force_rebuild": "Pakota uudelleenrakennus (korvaa olemassa oleva)"
+          "dashboard_include_admin": "Sisällytä Järjestelmänvalvoja-välilehti"
         },
         "data_description": {
           "dashboard_name": "Kojelaudan nimi (näkyy sivupalkissa). Ehdotus: Askareita",
           "dashboard_style": "Valitse kojelaudan asettelu: Täysi (kaikki ominaisuudet), Minimalistinen (vain välttämättömät) tai Kompakti (tiivis asettelu).",
           "dashboard_kid_selection": "Valitse, mille lapsille haluat luoda välilehtiä. Jokainen lapsi saa oman näkymän/välilehden.",
-          "dashboard_include_admin": "Lisää Järjestelmänvalvoja-välilehti, jossa on vanhempien hallintatoiminnot hyväksyntöjä ja hallintaa varten.",
-          "dashboard_force_rebuild": "Jos tämä on käytössä, olemassa oleva kojelauta korvataan. Muussa tapauksessa kojelaudan luominen epäonnistuu, jos se on olemassa."
+          "dashboard_include_admin": "Lisää Järjestelmänvalvoja-välilehti, jossa on vanhempien hallintatoiminnot hyväksyntöjä ja hallintaa varten."
+        }
+      },
+      "dashboard_update_select": {
+        "title": "Päivitä kojelauta",
+        "description": "Valitse päivitettävä olemassa oleva KidsChores-hallintapaneeli.\n\nPäivitystilassa on käytettävissä vain lapsikohtaisia ja järjestelmänvalvojan näkymän muutoksia.",
+        "data": {
+          "dashboard_update_selection": "Kojelauta"
+        },
+        "data_description": {
+          "dashboard_update_selection": "Valitse päivitettävä olemassa oleva kojelauta."
+        }
+      },
+      "dashboard_update": {
+        "title": "Päivitä kojelaudan näkymät",
+        "description": "Päivitä näkymiä kohteelle **{dashboard}**.\n\nSäädä lasten/ylläpitäjän näkymän kattavuutta ja malliprofiilia.\n\n[📖 Kojelaudan luontiopas]({documentation_url})",
+        "data": {
+          "dashboard_template_profile": "Malliprofiili",
+          "dashboard_kid_selection": "Lapset (yksi tabletti lasta kohden)",
+          "dashboard_include_admin": "Sisällytä Järjestelmänvalvoja-välilehti"
+        },
+        "data_description": {
+          "dashboard_template_profile": "Malliprofiilia sovellettiin valittuihin lasten kojelaudan näkymiin.",
+          "dashboard_kid_selection": "Valitse, mitkä lapset sisällytetään näkyminä päivitettyyn koontinäyttöön.",
+          "dashboard_include_admin": "Sisällytä tai poista Järjestelmänvalvoja-välilehti tästä kojelaudasta."
         }
       },
       "dashboard_delete": {
@@ -1548,7 +1570,7 @@
       },
       "dashboard_generator_confirm": {
         "title": "Vahvista koontinäytön luominen",
-        "description": "Seuraavat kojelaudat luodaan:\n\n**Tyyli:** {style}\n**Pakota uudelleenrakennus:** {force_rebuild}\n\n**Kojelaudat:**\n{dashboards}\n\nNapsauta Lähetä luodaksesi kojelaudat.",
+        "description": "Seuraavat kojelaudat luodaan:\n\n**Tyyli:** {style}\n\n**Kojelaudat:**\n{dashboards}\n\nLuo kojelaudat napsauttamalla Lähetä.",
         "data": {}
       },
       "dashboard_generator_result": {
@@ -1738,6 +1760,7 @@
       "dashboard_save_error": "Kojelaudan tallentaminen Home Assistantiin epäonnistui. Tarkista lisätietoja järjestelmälokeista.",
       "dashboard_no_name": "Anna kojelaudalle nimi.",
       "dashboard_no_kids": "Valitse vähintään yksi lapsi tai ota käyttöön 'Sisällytä ylläpitäjävälilehti'.",
+      "dashboard_single_kid_required": "Valitse 'Yksi lapsi' -laajuuskohdaksi täsmälleen yksi lapsi.",
       "dashboard_no_dashboards": "Valitse poistettavaksi vähintään yksi kojelauta."
     },
     "abort": {
@@ -1786,22 +1809,50 @@
     },
     "dashboard_action": {
       "options": {
-        "create": "Luo/Päivitä kojelauta",
+        "create": "Luo uusi kojelauta",
+        "update": "Päivitä olemassa olevia kojelaudan näkymiä",
         "delete": "Poista kojelauta"
       }
     },
     "dashboard_style": {
       "options": {
-        "dashboard_style_full": "Täysi (kaikki ominaisuudet)",
-        "dashboard_style_minimal": "Minimalistinen (vain välttämättömät)",
-        "dashboard_style_compact": "Kompakti (tiheä asettelu)",
-        "dashboard_style_admin": "Ylläpitäjä (Vanhemman hallintapaneeli)"
+        "full": "Täysi (kaikki ominaisuudet)",
+        "minimal": "Minimalistinen (vain välttämättömät)",
+        "compact": "Kompakti (tiheä asettelu)",
+        "admin": "Ylläpitäjä (Vanhemman hallintapaneeli)"
       }
     },
     "dashboard_kid_selection": {
       "options": {}
     },
     "dashboard_delete_selection": {
+      "options": {}
+    },
+    "dashboard_update_selection": {
+      "options": {}
+    },
+    "dashboard_generation_mode": {
+      "options": {
+        "single_multi_view": "Yksi kojelauta (moninäkymä)",
+        "per_kid_dashboard": "Lapsikohtaiset kojelaudat",
+        "targeted_view_update": "Kohdennettu päivitys"
+      }
+    },
+    "dashboard_target_scope": {
+      "options": {
+        "all_selected_kids": "Kaikki valitut lapset",
+        "single_kid": "Yksinhuoltajalapsi",
+        "admin_only": "Vain ylläpitäjille"
+      }
+    },
+    "dashboard_template_profile": {
+      "options": {
+        "full": "Täysi (kaikki ominaisuudet)",
+        "minimal": "Minimalistinen (vain välttämättömät)",
+        "compact": "Kompakti (tiheä asettelu)"
+      }
+    },
+    "dashboard_single_kid": {
       "options": {}
     },
     "manage_actions": {
