@@ -317,7 +317,9 @@ class TestApprovalResetOverdueInteraction:
 
         # Verify reset and exact deterministic display based on due-window timing
         final_state = get_kid_state_for_chore(coordinator, kid_id, chore_id)
-        expected_display = get_expected_reset_display_state(coordinator, kid_id, chore_id)
+        expected_display = get_expected_reset_display_state(
+            coordinator, kid_id, chore_id
+        )
         assert final_state == expected_display, (
             f"Expected APPROVED chore post-reset display={expected_display}, got {final_state}"
         )
@@ -411,7 +413,9 @@ class TestApprovalResetOverdueInteraction:
             kid_id, chore_id
         ), "Expected pending claim to be cleared after reset"
         final_state = get_kid_state_for_chore(coordinator, kid_id, chore_id)
-        expected_display = get_expected_reset_display_state(coordinator, kid_id, chore_id)
+        expected_display = get_expected_reset_display_state(
+            coordinator, kid_id, chore_id
+        )
         assert final_state == expected_display
         assert not coordinator.chore_manager.chore_is_overdue(kid_id, chore_id)
 
@@ -469,7 +473,9 @@ class TestApprovalResetOverdueInteraction:
             "OVERDUE status should be cleared at reset with AT_DUE_DATE_THEN_RESET"
         )
         final_state = get_kid_state_for_chore(coordinator, kid_id, chore_id)
-        expected_display = get_expected_reset_display_state(coordinator, kid_id, chore_id)
+        expected_display = get_expected_reset_display_state(
+            coordinator, kid_id, chore_id
+        )
         assert final_state == expected_display
         assert not coordinator.chore_manager.chore_is_overdue(kid_id, chore_id)
 
@@ -973,3 +979,57 @@ class TestPerKidResetIsolation:
         assert kid2_state == const.CHORE_STATE_APPROVED, (
             f"Kid2 with future due date should stay APPROVED, got {kid2_state}"
         )
+
+    @pytest.mark.asyncio
+    async def test_reset_updates_only_past_due_kid_approval_period_start(
+        self,
+        hass: HomeAssistant,
+        setup_at_due_date_scenario: SetupResult,
+    ) -> None:
+        """Reset updates approval period start only for kids actually reset."""
+        coordinator = setup_at_due_date_scenario.coordinator
+        kid1_id = setup_at_due_date_scenario.kid_ids["Zoë"]
+        kid2_id = setup_at_due_date_scenario.kid_ids["Max!"]
+        chore_id = setup_at_due_date_scenario.chore_ids["Multi Kid Reset Test"]
+        fixed_now = datetime(2026, 2, 14, 0, 5, tzinfo=UTC)
+
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.claim_chore(kid1_id, chore_id, "Zoë")
+            await coordinator.chore_manager.approve_chore("Parent", kid1_id, chore_id)
+            await coordinator.chore_manager.claim_chore(kid2_id, chore_id, "Max!")
+            await coordinator.chore_manager.approve_chore("Parent", kid2_id, chore_id)
+
+        set_per_kid_due_dates_mixed(
+            coordinator,
+            chore_id,
+            kid1_id,
+            kid2_id,
+            kid1_days_ago=1,
+            kid2_days_ahead=2,
+            now_utc=fixed_now,
+        )
+
+        kid1_before = coordinator.kids_data[kid1_id][DATA_KID_CHORE_DATA][chore_id].get(
+            DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START
+        )
+        kid2_before = coordinator.kids_data[kid2_id][DATA_KID_CHORE_DATA][chore_id].get(
+            DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START
+        )
+
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager._on_midnight_rollover(now_utc=fixed_now)
+
+        kid1_after = coordinator.kids_data[kid1_id][DATA_KID_CHORE_DATA][chore_id].get(
+            DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START
+        )
+        kid2_after = coordinator.kids_data[kid2_id][DATA_KID_CHORE_DATA][chore_id].get(
+            DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START
+        )
+
+        assert kid1_after is not None and kid1_before is not None
+        assert datetime.fromisoformat(kid1_after) > datetime.fromisoformat(kid1_before)
+        assert kid2_after == kid2_before

@@ -602,6 +602,67 @@ class TestSharedAllPendingClaimAutoApprove:
             == CHORE_STATE_PENDING
         )
 
+    @pytest.mark.asyncio
+    async def test_shared_all_auto_approve_pending_second_midnight_is_stable(
+        self,
+        hass: HomeAssistant,
+        shared_scenario: SetupResult,
+        mock_hass_users: dict[str, Any],
+    ) -> None:
+        """Shared_all auto-approve reset is idempotent across consecutive midnights.
+
+        Regression intent: ensure first midnight performs auto-approve+reset exactly once,
+        and a second midnight with no new claims does not re-award points or alter state.
+        """
+        coordinator = shared_scenario.coordinator
+        chore_id = shared_scenario.chore_ids["Shared All Pending Auto Approve"]
+
+        chore_info: ChoreData | dict[str, Any] = coordinator.chores_data.get(
+            chore_id, {}
+        )
+        chore_points = chore_info.get(DATA_CHORE_DEFAULT_POINTS, 0)
+
+        kid1_ctx = Context(user_id=mock_hass_users["kid1"].id)
+        kid2_ctx = Context(user_id=mock_hass_users["kid2"].id)
+
+        zoe_before = get_points_from_sensor(hass, "zoe")
+        max_before = get_points_from_sensor(hass, "max")
+
+        await claim_chore(hass, "zoe", "Shared All Pending Auto Approve", kid1_ctx)
+        await claim_chore(hass, "max", "Shared All Pending Auto Approve", kid2_ctx)
+
+        set_chore_due_date_to_past(coordinator, chore_id, days_ago=1)
+        await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
+        await hass.async_block_till_done()
+
+        assert (
+            get_chore_state_from_sensor(hass, "zoe", "Shared All Pending Auto Approve")
+            == CHORE_STATE_PENDING
+        )
+        assert (
+            get_chore_state_from_sensor(hass, "max", "Shared All Pending Auto Approve")
+            == CHORE_STATE_PENDING
+        )
+
+        zoe_after_first = get_points_from_sensor(hass, "zoe")
+        max_after_first = get_points_from_sensor(hass, "max")
+        assert zoe_after_first == zoe_before + chore_points
+        assert max_after_first == max_before + chore_points
+
+        await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
+        await hass.async_block_till_done()
+
+        assert (
+            get_chore_state_from_sensor(hass, "zoe", "Shared All Pending Auto Approve")
+            == CHORE_STATE_PENDING
+        )
+        assert (
+            get_chore_state_from_sensor(hass, "max", "Shared All Pending Auto Approve")
+            == CHORE_STATE_PENDING
+        )
+        assert get_points_from_sensor(hass, "zoe") == zoe_after_first
+        assert get_points_from_sensor(hass, "max") == max_after_first
+
 
 # =============================================================================
 # SHARED_FIRST PENDING CLAIM ACTION TESTS
@@ -776,6 +837,73 @@ class TestSharedFirstPendingClaimAutoApprove:
             )
             == CHORE_STATE_PENDING
         )
+
+    @pytest.mark.asyncio
+    async def test_shared_first_auto_approve_pending_second_midnight_is_stable(
+        self,
+        hass: HomeAssistant,
+        shared_scenario: SetupResult,
+        mock_hass_users: dict[str, Any],
+    ) -> None:
+        """Shared_first auto-approve reset is idempotent across consecutive midnights.
+
+        Regression intent: ensure first midnight awards only winner and resets all,
+        and second midnight with no new claim does not re-award or regress state.
+        """
+        coordinator = shared_scenario.coordinator
+        chore_id: str = shared_scenario.chore_ids["Shared First Pending Auto Approve"]
+
+        chore_info: ChoreData | dict[str, Any] = coordinator.chores_data.get(
+            chore_id, {}
+        )
+        chore_points = chore_info.get(DATA_CHORE_DEFAULT_POINTS, 0)
+
+        kid_ctx = Context(user_id=mock_hass_users["kid1"].id)
+
+        zoe_before = get_points_from_sensor(hass, "zoe")
+        max_before = get_points_from_sensor(hass, "max")
+
+        await claim_chore(hass, "zoe", "Shared First Pending Auto Approve", kid_ctx)
+
+        set_chore_due_date_to_past(coordinator, chore_id, days_ago=1)
+        await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
+        await hass.async_block_till_done()
+
+        assert (
+            get_chore_state_from_sensor(
+                hass, "zoe", "Shared First Pending Auto Approve"
+            )
+            == CHORE_STATE_PENDING
+        )
+        assert (
+            get_chore_state_from_sensor(
+                hass, "max", "Shared First Pending Auto Approve"
+            )
+            == CHORE_STATE_PENDING
+        )
+
+        zoe_after_first = get_points_from_sensor(hass, "zoe")
+        max_after_first = get_points_from_sensor(hass, "max")
+        assert zoe_after_first == zoe_before + chore_points
+        assert max_after_first == max_before
+
+        await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
+        await hass.async_block_till_done()
+
+        assert (
+            get_chore_state_from_sensor(
+                hass, "zoe", "Shared First Pending Auto Approve"
+            )
+            == CHORE_STATE_PENDING
+        )
+        assert (
+            get_chore_state_from_sensor(
+                hass, "max", "Shared First Pending Auto Approve"
+            )
+            == CHORE_STATE_PENDING
+        )
+        assert get_points_from_sensor(hass, "zoe") == zoe_after_first
+        assert get_points_from_sensor(hass, "max") == max_after_first
 
 
 # =============================================================================

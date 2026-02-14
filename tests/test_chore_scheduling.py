@@ -77,6 +77,7 @@ from typing import Any
 from homeassistant.core import Context, HomeAssistant
 import pytest
 
+from custom_components.kidschores import const
 from custom_components.kidschores.utils.dt_utils import dt_now_utc, dt_to_utc
 from tests.helpers import (
     APPROVAL_RESET_AT_DUE_DATE_MULTI,
@@ -2351,6 +2352,134 @@ class TestTimeBoundaryCrossing:
         # Should be immediately claimable again
         can_claim, _ = coordinator.chore_manager.can_claim_chore(zoe_id, chore_id)
         assert can_claim, "UPON_COMPLETION should always allow re-claim"
+
+    @pytest.mark.asyncio
+    async def test_approval_period_boundary_exact_flip_reflects_in_sensor_state(
+        self,
+        hass: HomeAssistant,
+        scheduling_scenario: SetupResult,
+    ) -> None:
+        """Approval-in-period flips exactly when period_start moves past approval time."""
+        coordinator = scheduling_scenario.coordinator
+        zoe_id = scheduling_scenario.kid_ids["Zoë"]
+        chore_id = scheduling_scenario.chore_ids["Reset Midnight Once"]
+
+        now_utc = datetime.now(UTC)
+        approved_at = now_utc.isoformat()
+
+        kid_data = coordinator.kids_data.setdefault(zoe_id, {})
+        chore_data = kid_data.setdefault(DATA_KID_CHORE_DATA, {}).setdefault(
+            chore_id, {}
+        )
+        chore_data["last_approved"] = approved_at
+        chore_data[DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START] = approved_at
+        chore_data[DATA_KID_CHORE_DATA_STATE] = CHORE_STATE_PENDING
+        coordinator._persist()
+        coordinator.async_set_updated_data(coordinator._data)
+        await hass.async_block_till_done()
+
+        assert coordinator.chore_manager.chore_is_approved_in_period(zoe_id, chore_id)
+
+        dashboard = get_dashboard_helper(hass, "zoe")
+        chore = find_chore(dashboard, "Reset Midnight Once")
+        assert chore is not None
+        sensor = hass.states.get(chore["eid"])
+        assert sensor is not None
+        assert sensor.state == CHORE_STATE_APPROVED
+
+        period_after = (now_utc + timedelta(seconds=1)).isoformat()
+        chore_data[DATA_KID_CHORE_DATA_APPROVAL_PERIOD_START] = period_after
+        coordinator._persist()
+        coordinator.async_set_updated_data(coordinator._data)
+        await hass.async_block_till_done()
+
+        assert not coordinator.chore_manager.chore_is_approved_in_period(
+            zoe_id, chore_id
+        )
+
+        dashboard_after = get_dashboard_helper(hass, "zoe")
+        chore_after = find_chore(dashboard_after, "Reset Midnight Once")
+        assert chore_after is not None
+        sensor_after = hass.states.get(chore_after["eid"])
+        assert sensor_after is not None
+        assert sensor_after.state != CHORE_STATE_APPROVED
+
+    @pytest.mark.asyncio
+    async def test_waiting_window_transition_stays_stable_across_periodic_updates(
+        self,
+        hass: HomeAssistant,
+        scheduling_scenario: SetupResult,
+    ) -> None:
+        """Waiting lock transitions waiting -> claimable -> due without drift."""
+        coordinator = scheduling_scenario.coordinator
+        chore_id = scheduling_scenario.chore_ids["Reset Due Date Once"]
+        now = datetime.now(UTC)
+
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_UPDATE_CHORE,
+            {
+                "id": chore_id,
+                "chore_claim_lock_until_window": True,
+                "due_window_offset": "2h",
+                "due_date": now + timedelta(hours=5),
+            },
+            blocking=True,
+        )
+        await coordinator.chore_manager._on_periodic_update(now_utc=dt_now_utc())
+        await hass.async_block_till_done()
+
+        waiting_chore = find_chore(
+            get_dashboard_helper(hass, "zoe"), "Reset Due Date Once"
+        )
+        assert waiting_chore is not None
+        waiting_sensor = hass.states.get(waiting_chore["eid"])
+        assert waiting_sensor is not None
+        assert waiting_sensor.state == CHORE_STATE_WAITING
+        assert waiting_sensor.attributes.get(ATTR_CAN_CLAIM) is False
+
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_UPDATE_CHORE,
+            {
+                "id": chore_id,
+                "due_date": now + timedelta(minutes=90),
+            },
+            blocking=True,
+        )
+        await coordinator.chore_manager._on_periodic_update(now_utc=dt_now_utc())
+        await hass.async_block_till_done()
+
+        in_window_chore = find_chore(
+            get_dashboard_helper(hass, "zoe"), "Reset Due Date Once"
+        )
+        assert in_window_chore is not None
+        in_window_sensor = hass.states.get(in_window_chore["eid"])
+        assert in_window_sensor is not None
+        assert in_window_sensor.state == const.CHORE_STATE_DUE
+        assert in_window_sensor.attributes.get(ATTR_CAN_CLAIM) is True
+
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_UPDATE_CHORE,
+            {
+                "id": chore_id,
+                "due_date": now + timedelta(minutes=10),
+            },
+            blocking=True,
+        )
+        await coordinator.chore_manager._on_periodic_update(
+            now_utc=dt_to_utc(now + timedelta(minutes=11))
+        )
+        await hass.async_block_till_done()
+
+        past_due_chore = find_chore(
+            get_dashboard_helper(hass, "zoe"), "Reset Due Date Once"
+        )
+        assert past_due_chore is not None
+        past_due_sensor = hass.states.get(past_due_chore["eid"])
+        assert past_due_sensor is not None
+        assert past_due_sensor.state == const.CHORE_STATE_DUE
 
 
 # =============================================================================

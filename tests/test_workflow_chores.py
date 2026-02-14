@@ -45,14 +45,17 @@ from tests.helpers import (
     DATA_CHORE_DAILY_MULTI_TIMES,
     DATA_CHORE_DUE_DATE,
     DATA_CHORE_RECURRING_FREQUENCY,
+    DOMAIN,
     FREQUENCY_CUSTOM,
     FREQUENCY_CUSTOM_FROM_COMPLETE,
     FREQUENCY_DAILY,
     FREQUENCY_DAILY_MULTI,
     FREQUENCY_NONE,
+    SERVICE_RESET_CHORES_TO_PENDING_STATE,
     TIME_UNIT_DAYS,
     TIME_UNIT_HOURS,
 )
+from tests.helpers.constants import ATTR_CHORE_CURRENT_STREAK
 from tests.helpers.setup import SetupResult, setup_from_yaml
 from tests.helpers.workflows import (
     approve_chore,
@@ -1817,6 +1820,205 @@ class TestWorkflowIntegrationEdgeCases:
             f"Should award default points (5): "
             f"{initial_points} + 5 = {initial_points + 5.0}, got {final_points}"
         )
+
+    @pytest.mark.asyncio
+    async def test_streak_updates_only_on_approval_not_claim_or_reset(
+        self,
+        hass: HomeAssistant,
+        scenario_minimal: SetupResult,
+        mock_hass_users: dict[str, Any],
+    ) -> None:
+        """Current streak changes only on approval-completion events."""
+        coordinator = scenario_minimal.coordinator
+        kid_ctx = Context(user_id=mock_hass_users["kid1"].id)
+        parent_ctx = Context(user_id=mock_hass_users["parent1"].id)
+
+        attrs_before = get_chore_attributes_from_sensor(hass, "zoe", "Make bed")
+        streak_before = int(attrs_before.get(ATTR_CHORE_CURRENT_STREAK, 0) or 0)
+
+        await claim_chore(hass, "zoe", "Make bed", kid_ctx)
+        attrs_after_claim = get_chore_attributes_from_sensor(hass, "zoe", "Make bed")
+        streak_after_claim = int(
+            attrs_after_claim.get(ATTR_CHORE_CURRENT_STREAK, 0) or 0
+        )
+        assert streak_after_claim == streak_before
+
+        await approve_chore(hass, "zoe", "Make bed", parent_ctx)
+        attrs_after_approve = get_chore_attributes_from_sensor(hass, "zoe", "Make bed")
+        streak_after_approve = int(
+            attrs_after_approve.get(ATTR_CHORE_CURRENT_STREAK, 0) or 0
+        )
+        assert streak_after_approve == streak_before + 1
+
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager._on_midnight_rollover(now_utc=dt_now_utc())
+        await hass.async_block_till_done()
+
+        attrs_after_reset = get_chore_attributes_from_sensor(hass, "zoe", "Make bed")
+        streak_after_reset = int(
+            attrs_after_reset.get(ATTR_CHORE_CURRENT_STREAK, 0) or 0
+        )
+        assert streak_after_reset == streak_after_approve
+
+    @pytest.mark.asyncio
+    async def test_independent_kid_undo_claim_round_trip_sensor_consistency(
+        self,
+        hass: HomeAssistant,
+        scenario_minimal: SetupResult,
+        mock_hass_users: dict[str, Any],
+    ) -> None:
+        """Kid undo claim round-trip preserves points and allows clean re-completion.
+
+        Flow: pending -> claimed -> kid undo via disapprove button -> pending ->
+        re-claim -> parent approve -> approved, with points awarded exactly once.
+        """
+        initial_points = get_points_from_sensor(hass, "zoe")
+
+        kid_context = Context(user_id=mock_hass_users["kid1"].id)
+        parent_context = Context(user_id=mock_hass_users["parent1"].id)
+
+        claim_result = await claim_chore(hass, "zoe", "Make bed", kid_context)
+        assert claim_result.success, f"Claim failed: {claim_result.error}"
+        assert (
+            get_chore_state_from_sensor(hass, "zoe", "Make bed") == CHORE_STATE_CLAIMED
+        )
+
+        # Kid pressing disapprove acts as undo-claim path in button handler
+        undo_result = await disapprove_chore(hass, "zoe", "Make bed", kid_context)
+        assert undo_result.success, f"Undo claim failed: {undo_result.error}"
+        await hass.async_block_till_done()
+
+        assert (
+            get_chore_state_from_sensor(hass, "zoe", "Make bed") == CHORE_STATE_PENDING
+        )
+        assert get_points_from_sensor(hass, "zoe") == initial_points
+
+        reclaim_result = await claim_chore(hass, "zoe", "Make bed", kid_context)
+        assert reclaim_result.success, f"Re-claim failed: {reclaim_result.error}"
+        approve_result = await approve_chore(hass, "zoe", "Make bed", parent_context)
+        assert approve_result.success, f"Approve failed: {approve_result.error}"
+        await hass.async_block_till_done()
+
+        assert (
+            get_chore_state_from_sensor(hass, "zoe", "Make bed") == CHORE_STATE_APPROVED
+        )
+        assert get_points_from_sensor(hass, "zoe") == initial_points + 5.0
+
+    @pytest.mark.asyncio
+    async def test_reset_service_mixed_states_restores_sensor_baseline(
+        self,
+        hass: HomeAssistant,
+        scenario_shared: SetupResult,
+        mock_hass_users: dict[str, Any],
+    ) -> None:
+        """Reset service restores mixed chore states to baseline user-visible states.
+
+        Coverage target: shared_all approved, shared_first claimed/blocked, and
+        rotation_simple claimed lock all reset safely via public reset service.
+        """
+        kid_context_zoe = Context(user_id=mock_hass_users["kid1"].id)
+        parent_context = Context(user_id=mock_hass_users["parent1"].id)
+
+        # Shared all: move one kid to approved
+        claim_shared_all = await claim_chore(
+            hass, "zoe", "Family dinner cleanup", kid_context_zoe
+        )
+        assert claim_shared_all.success, (
+            f"Shared all claim failed: {claim_shared_all.error}"
+        )
+        approve_shared_all = await approve_chore(
+            hass, "zoe", "Family dinner cleanup", parent_context
+        )
+        assert approve_shared_all.success, (
+            f"Shared all approve failed: {approve_shared_all.error}"
+        )
+
+        # Shared first: claimer blocks other kids
+        claim_shared_first = await claim_chore(
+            hass, "zoe", "Take out trash", kid_context_zoe
+        )
+        assert claim_shared_first.success, (
+            f"Shared first claim failed: {claim_shared_first.error}"
+        )
+
+        # Rotation: current turn holder claims to create claimed/not_my_turn split
+        rotation_turn_slug: str | None = None
+        for slug in ("zoe", "max", "lila"):
+            rotation_chore = find_chore(
+                get_dashboard_helper(hass, slug), "Dishes Rotation"
+            )
+            assert rotation_chore is not None
+            if rotation_chore["status"] == CHORE_STATE_PENDING:
+                rotation_turn_slug = slug
+                break
+        assert rotation_turn_slug is not None
+
+        rotation_user_id = {
+            "zoe": mock_hass_users["kid1"].id,
+            "max": mock_hass_users["kid2"].id,
+            "lila": mock_hass_users["kid3"].id,
+        }[rotation_turn_slug]
+        claim_rotation = await claim_chore(
+            hass,
+            rotation_turn_slug,
+            "Dishes Rotation",
+            Context(user_id=rotation_user_id),
+        )
+        assert claim_rotation.success, f"Rotation claim failed: {claim_rotation.error}"
+        await hass.async_block_till_done()
+
+        points_before_reset = {
+            "zoe": get_points_from_sensor(hass, "zoe"),
+            "max": get_points_from_sensor(hass, "max"),
+            "lila": get_points_from_sensor(hass, "lila"),
+        }
+
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_RESET_CHORES_TO_PENDING_STATE,
+            {},
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+
+        # Shared chores baseline: all pending for all kids
+        for slug in ("zoe", "max", "lila"):
+            assert (
+                get_chore_state_from_sensor(hass, slug, "Family dinner cleanup")
+                == CHORE_STATE_PENDING
+            )
+            assert (
+                get_chore_state_from_sensor(hass, slug, "Take out trash")
+                == CHORE_STATE_PENDING
+            )
+
+        # Rotation baseline: exactly one claimable holder, others locked not_my_turn
+        rotation_pending_count = 0
+        rotation_locked_count = 0
+        for slug in ("zoe", "max", "lila"):
+            rotation_chore = find_chore(
+                get_dashboard_helper(hass, slug), "Dishes Rotation"
+            )
+            assert rotation_chore is not None
+            sensor_state = hass.states.get(rotation_chore["eid"])
+            assert sensor_state is not None
+            if sensor_state.state == CHORE_STATE_PENDING:
+                rotation_pending_count += 1
+                assert sensor_state.attributes.get("can_claim") is True
+            else:
+                rotation_locked_count += 1
+                assert sensor_state.state == CHORE_STATE_NOT_MY_TURN
+                assert sensor_state.attributes.get("can_claim") is False
+
+        assert rotation_pending_count == 1
+        assert rotation_locked_count == 2
+
+        # Reset should not alter already-awarded point balances
+        assert get_points_from_sensor(hass, "zoe") == points_before_reset["zoe"]
+        assert get_points_from_sensor(hass, "max") == points_before_reset["max"]
+        assert get_points_from_sensor(hass, "lila") == points_before_reset["lila"]
 
 
 class TestWorkflowResetIntegration:

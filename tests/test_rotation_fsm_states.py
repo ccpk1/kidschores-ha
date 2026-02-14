@@ -12,6 +12,8 @@ from typing import Any
 from homeassistant.core import HomeAssistant
 import pytest
 
+from custom_components.kidschores.utils.dt_utils import dt_now_utc
+
 # Import test constants from helpers (not from const.py - Rule 0)
 from tests.helpers.constants import (
     CHORE_STATE_APPROVED,
@@ -414,6 +416,124 @@ async def test_rotation_non_turn_holder_cannot_claim(
     assert non_sensor.state == CHORE_STATE_NOT_MY_TURN
     assert non_sensor.attributes.get("can_claim") is False
     assert non_sensor.attributes.get("lock_reason") == "not_my_turn"
+
+
+@pytest.mark.asyncio
+async def test_rotation_midnight_advances_once_and_keeps_single_claimable_holder(
+    hass: HomeAssistant,
+    scenario_shared: SetupResult,
+    mock_hass_users: dict[str, Any],
+) -> None:
+    """Rotation advances once at midnight reset and remains stable on next tick.
+
+    This validates end-to-end user-visible behavior through chore status sensors:
+    - Turn holder can complete and be approved.
+    - Midnight reset advances turn exactly once.
+    - A second midnight tick without new completion does not double-advance.
+    - Exactly one kid remains claimable (pending), others remain not_my_turn.
+    """
+    from homeassistant.core import Context
+
+    from tests.helpers.workflows import approve_chore, claim_chore
+
+    await hass.async_block_till_done()
+
+    kid_profiles = [
+        ("zoe", "Zoë", mock_hass_users["kid1"].id),
+        ("max", "Max!", mock_hass_users["kid2"].id),
+        ("lila", "Lila", mock_hass_users["kid3"].id),
+    ]
+
+    initial_turn_slug: str | None = None
+    for kid_slug, _, _ in kid_profiles:
+        rotation_chore = find_chore(
+            get_dashboard_helper(hass, kid_slug), "Dishes Rotation"
+        )
+        assert rotation_chore is not None
+        if rotation_chore["status"] == CHORE_STATE_PENDING:
+            initial_turn_slug = kid_slug
+            break
+
+    assert initial_turn_slug is not None, "Expected one initial turn holder"
+
+    initial_turn_user_id = next(
+        user_id for slug, _, user_id in kid_profiles if slug == initial_turn_slug
+    )
+
+    kid_context = Context(user_id=initial_turn_user_id)
+    parent_context = Context(user_id=mock_hass_users["parent1"].id)
+
+    claim_result = await claim_chore(
+        hass,
+        initial_turn_slug,
+        "Dishes Rotation",
+        context=kid_context,
+    )
+    assert claim_result.success, f"Claim failed: {claim_result.error}"
+
+    approve_result = await approve_chore(
+        hass,
+        initial_turn_slug,
+        "Dishes Rotation",
+        context=parent_context,
+    )
+    assert approve_result.success, f"Approve failed: {approve_result.error}"
+    await hass.async_block_till_done()
+
+    await scenario_shared.coordinator.chore_manager._on_midnight_rollover(
+        now_utc=dt_now_utc()
+    )
+    await hass.async_block_till_done()
+
+    first_midnight_pending: list[str] = []
+    first_midnight_not_my_turn: list[str] = []
+    first_turn_name: str | None = None
+
+    for kid_slug, kid_name, _ in kid_profiles:
+        rotation_chore = find_chore(
+            get_dashboard_helper(hass, kid_slug), "Dishes Rotation"
+        )
+        assert rotation_chore is not None
+        sensor_state = hass.states.get(rotation_chore["eid"])
+        assert sensor_state is not None
+
+        if sensor_state.state == CHORE_STATE_PENDING:
+            first_midnight_pending.append(kid_slug)
+            first_turn_name = kid_name
+            assert sensor_state.attributes.get("can_claim") is True
+        else:
+            first_midnight_not_my_turn.append(kid_slug)
+            assert sensor_state.state == CHORE_STATE_NOT_MY_TURN
+            assert sensor_state.attributes.get("can_claim") is False
+            assert sensor_state.attributes.get("lock_reason") == "not_my_turn"
+
+    assert len(first_midnight_pending) == 1, "Exactly one kid should be claimable"
+    assert len(first_midnight_not_my_turn) == 2
+    assert first_midnight_pending[0] != initial_turn_slug, (
+        "Turn holder should advance after midnight approval reset"
+    )
+
+    # Second midnight tick should not advance again without a new completed cycle
+    await scenario_shared.coordinator.chore_manager._on_midnight_rollover(
+        now_utc=dt_now_utc()
+    )
+    await hass.async_block_till_done()
+
+    second_midnight_pending: list[str] = []
+    for kid_slug, _, _ in kid_profiles:
+        rotation_chore = find_chore(
+            get_dashboard_helper(hass, kid_slug), "Dishes Rotation"
+        )
+        assert rotation_chore is not None
+        sensor_state = hass.states.get(rotation_chore["eid"])
+        assert sensor_state is not None
+        if sensor_state.state == CHORE_STATE_PENDING:
+            second_midnight_pending.append(kid_slug)
+        assert sensor_state.attributes.get("turn_kid_name") == first_turn_name
+
+    assert second_midnight_pending == first_midnight_pending, (
+        "Turn holder should remain stable on subsequent midnight without new approval"
+    )
 
 
 # =============================================================================

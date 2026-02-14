@@ -1353,3 +1353,154 @@ class TestGetBoundaryCategory:
         # APPROVED → reset_only (no due_date = reset_only)
         # approval_reset_type determines WHEN, not frequency
         assert result == "reset_only"
+
+
+# =============================================================================
+# TEST: DUE WINDOW START CALCULATION
+# =============================================================================
+
+
+class TestGetDueWindowStart:
+    """Test due-window start calculation and invalid-input handling."""
+
+    def test_valid_due_window_start(self) -> None:
+        """Returns due_date - offset for valid inputs."""
+        result = ChoreEngine.get_due_window_start(
+            "2026-01-15T12:00:00+00:00",
+            "2h",
+        )
+        assert result == datetime(2026, 1, 15, 10, 0, tzinfo=UTC)
+
+    def test_missing_due_date_returns_none(self) -> None:
+        """Returns None when no due date is provided."""
+        result = ChoreEngine.get_due_window_start(None, "2h")
+        assert result is None
+
+    def test_zero_or_invalid_offset_returns_none(self) -> None:
+        """Returns None for zero/invalid due window offsets."""
+        assert (
+            ChoreEngine.get_due_window_start(
+                "2026-01-15T12:00:00+00:00",
+                "0m",
+            )
+            is None
+        )
+        assert (
+            ChoreEngine.get_due_window_start(
+                "2026-01-15T12:00:00+00:00",
+                "not-a-duration",
+            )
+            is None
+        )
+
+    def test_invalid_due_date_returns_none(self) -> None:
+        """Returns None when due_date cannot be parsed."""
+        result = ChoreEngine.get_due_window_start("invalid-date", "2h")
+        assert result is None
+
+
+# =============================================================================
+# TEST: CRITERIA TRANSITION ACTIONS
+# =============================================================================
+
+
+class TestCriteriaTransitionActions:
+    """Test field-change planning for mutable completion criteria."""
+
+    def test_non_rotation_to_rotation_with_kids_initializes_turn(self) -> None:
+        """Transition to rotation initializes current turn and override flag."""
+        chore_data = {const.DATA_CHORE_ASSIGNED_KIDS: ["kid-1", "kid-2"]}
+
+        changes = ChoreEngine.get_criteria_transition_actions(
+            const.COMPLETION_CRITERIA_INDEPENDENT,
+            const.COMPLETION_CRITERIA_ROTATION_SIMPLE,
+            chore_data,
+        )
+
+        assert changes == {
+            const.DATA_CHORE_ROTATION_CURRENT_KID_ID: "kid-1",
+            const.DATA_CHORE_ROTATION_CYCLE_OVERRIDE: False,
+        }
+
+    def test_non_rotation_to_rotation_without_kids_sets_override_only(self) -> None:
+        """No assigned kids means no current turn id is set."""
+        chore_data: dict[str, object] = {const.DATA_CHORE_ASSIGNED_KIDS: []}
+
+        changes = ChoreEngine.get_criteria_transition_actions(
+            const.COMPLETION_CRITERIA_SHARED,
+            const.COMPLETION_CRITERIA_ROTATION_SMART,
+            chore_data,
+        )
+
+        assert changes == {const.DATA_CHORE_ROTATION_CYCLE_OVERRIDE: False}
+
+    def test_rotation_to_non_rotation_clears_rotation_fields(self) -> None:
+        """Transition away from rotation clears turn and override."""
+        changes = ChoreEngine.get_criteria_transition_actions(
+            const.COMPLETION_CRITERIA_ROTATION_SIMPLE,
+            const.COMPLETION_CRITERIA_SHARED,
+            {const.DATA_CHORE_ASSIGNED_KIDS: ["kid-1", "kid-2"]},
+        )
+
+        assert changes == {
+            const.DATA_CHORE_ROTATION_CURRENT_KID_ID: None,
+            const.DATA_CHORE_ROTATION_CYCLE_OVERRIDE: False,
+        }
+
+    def test_rotation_to_rotation_keeps_existing_turn(self) -> None:
+        """Switching between rotation modes leaves turn fields unchanged."""
+        changes = ChoreEngine.get_criteria_transition_actions(
+            const.COMPLETION_CRITERIA_ROTATION_SIMPLE,
+            const.COMPLETION_CRITERIA_ROTATION_SMART,
+            {const.DATA_CHORE_ASSIGNED_KIDS: ["kid-1", "kid-2"]},
+        )
+
+        assert changes == {}
+
+
+# =============================================================================
+# TEST: GLOBAL STATE EDGE CASES
+# =============================================================================
+
+
+class TestComputeGlobalChoreStateEdges:
+    """Cover mixed-state edge cases for global state aggregation."""
+
+    def test_single_claimer_not_my_turn_with_pending_shows_pending(self) -> None:
+        """If any kid can claim, single-claimer mode remains globally pending."""
+        chore_data = {
+            const.DATA_CHORE_COMPLETION_CRITERIA: const.COMPLETION_CRITERIA_ROTATION_SIMPLE,
+        }
+        kid_states = {
+            "kid-1": const.CHORE_STATE_NOT_MY_TURN,
+            "kid-2": const.CHORE_STATE_PENDING,
+        }
+
+        result = ChoreEngine.compute_global_chore_state(chore_data, kid_states)
+        assert result == const.CHORE_STATE_PENDING
+
+    def test_single_claimer_all_not_my_turn_shows_not_my_turn(self) -> None:
+        """All blocked by rotation yields not_my_turn global state."""
+        chore_data = {
+            const.DATA_CHORE_COMPLETION_CRITERIA: const.COMPLETION_CRITERIA_ROTATION_SIMPLE,
+        }
+        kid_states = {
+            "kid-1": const.CHORE_STATE_NOT_MY_TURN,
+            "kid-2": const.CHORE_STATE_NOT_MY_TURN,
+        }
+
+        result = ChoreEngine.compute_global_chore_state(chore_data, kid_states)
+        assert result == const.CHORE_STATE_NOT_MY_TURN
+
+    def test_shared_due_and_pending_returns_unknown(self) -> None:
+        """Mixed DUE/PENDING in shared mode currently resolves to UNKNOWN."""
+        chore_data = {
+            const.DATA_CHORE_COMPLETION_CRITERIA: const.COMPLETION_CRITERIA_SHARED,
+        }
+        kid_states = {
+            "kid-1": const.CHORE_STATE_DUE,
+            "kid-2": const.CHORE_STATE_PENDING,
+        }
+
+        result = ChoreEngine.compute_global_chore_state(chore_data, kid_states)
+        assert result == const.CHORE_STATE_UNKNOWN

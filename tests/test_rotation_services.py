@@ -417,6 +417,64 @@ async def test_rotation_advancement_with_skipped_kids(
     assert pending_count == 1, "Exactly one assigned kid should see pending"
 
 
+@pytest.mark.asyncio
+async def test_set_turn_then_reset_preserves_single_pending_holder_invariant(
+    hass: HomeAssistant,
+    scenario_shared: SetupResult,
+    mock_hass_users: dict[str, Any],
+) -> None:
+    """set_rotation_turn + reset_rotation preserves one-and-only-one pending holder."""
+    await hass.async_block_till_done(wait_background_tasks=True)
+
+    config_entry = hass.config_entries.async_entries("kidschores")[0]
+    coordinator = config_entry.runtime_data
+    chore_id = get_chore_by_name(coordinator, "Dishes Rotation")
+
+    # Move turn to Max first (if not already there)
+    max_id = get_kid_by_name(coordinator, "Max!")
+    await hass.services.async_call(
+        "kidschores",
+        "set_rotation_turn",
+        {SERVICE_FIELD_CHORE_ID: chore_id, SERVICE_FIELD_KID_ID: max_id},
+        blocking=True,
+    )
+    await hass.async_block_till_done(wait_background_tasks=True)
+
+    # Reset back to first assigned kid
+    await hass.services.async_call(
+        "kidschores",
+        "reset_rotation",
+        {SERVICE_FIELD_CHORE_ID: chore_id},
+        blocking=True,
+    )
+    await hass.async_block_till_done(wait_background_tasks=True)
+
+    pending_count = 0
+    locked_count = 0
+    turn_names: set[str] = set()
+
+    for slug in ("zoe", "max", "lila"):
+        chore = find_chore(get_dashboard_helper(hass, slug), "Dishes Rotation")
+        assert chore is not None
+        sensor = hass.states.get(chore["eid"])
+        assert sensor is not None
+        turn_name = sensor.attributes.get("turn_kid_name")
+        if isinstance(turn_name, str):
+            turn_names.add(turn_name)
+
+        if sensor.state == CHORE_STATE_PENDING:
+            pending_count += 1
+            assert sensor.attributes.get("can_claim") is True
+        else:
+            locked_count += 1
+            assert sensor.state == CHORE_STATE_NOT_MY_TURN
+            assert sensor.attributes.get("can_claim") is False
+
+    assert pending_count == 1
+    assert locked_count == 2
+    assert len(turn_names) == 1
+
+
 # =============================================================================
 # Run linting and tests
 # =============================================================================

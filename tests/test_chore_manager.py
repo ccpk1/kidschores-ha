@@ -10,15 +10,19 @@ Tests verify:
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock, MagicMock
 
+from homeassistant.exceptions import ServiceValidationError
 import pytest
 
-from custom_components.kidschores import const
+from custom_components.kidschores import const, data_builders as db
 from custom_components.kidschores.engines.chore_engine import TransitionEffect
 from custom_components.kidschores.managers.chore_manager import ChoreManager
 from custom_components.kidschores.utils.dt_utils import dt_now_utc
+
+if TYPE_CHECKING:
+    from custom_components.kidschores.type_defs import ResetContext, ResetDecision
 
 # ============================================================================
 # Test Fixtures
@@ -212,6 +216,639 @@ class TestTimeScanCache:
 
         assert chore_manager._parsed_due_datetime_cache == {}
         assert chore_manager._offset_cache == {}
+
+
+class TestResetPolicyDecision:
+    """Table-driven tests for reset policy decision helper."""
+
+    @pytest.mark.parametrize(
+        ("context", "expected"),
+        [
+            pytest.param(
+                {
+                    "trigger": const.CHORE_RESET_TRIGGER_APPROVAL,
+                    "approval_reset_type": const.APPROVAL_RESET_UPON_COMPLETION,
+                    "overdue_handling_type": const.DEFAULT_OVERDUE_HANDLING_TYPE,
+                    "completion_criteria": const.COMPLETION_CRITERIA_INDEPENDENT,
+                },
+                const.CHORE_RESET_DECISION_RESET_AND_RESCHEDULE,
+                id="approval-upon-completion-independent",
+            ),
+            pytest.param(
+                {
+                    "trigger": const.CHORE_RESET_TRIGGER_APPROVAL,
+                    "approval_reset_type": const.APPROVAL_RESET_AT_DUE_DATE_ONCE,
+                    "overdue_handling_type": const.OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_IMMEDIATE_ON_LATE,
+                    "approval_after_reset": True,
+                    "completion_criteria": const.COMPLETION_CRITERIA_SHARED,
+                    "all_kids_approved": True,
+                },
+                const.CHORE_RESET_DECISION_RESET_AND_RESCHEDULE,
+                id="approval-immediate-on-late-shared-all-approved",
+            ),
+            pytest.param(
+                {
+                    "trigger": const.CHORE_RESET_TRIGGER_APPROVAL,
+                    "approval_reset_type": const.APPROVAL_RESET_AT_DUE_DATE_ONCE,
+                    "overdue_handling_type": const.OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_IMMEDIATE_ON_LATE,
+                    "approval_after_reset": False,
+                    "completion_criteria": const.COMPLETION_CRITERIA_INDEPENDENT,
+                },
+                const.CHORE_RESET_DECISION_HOLD,
+                id="approval-immediate-on-late-not-late",
+            ),
+            pytest.param(
+                {
+                    "trigger": const.CHORE_RESET_TRIGGER_APPROVAL,
+                    "approval_reset_type": const.APPROVAL_RESET_UPON_COMPLETION,
+                    "overdue_handling_type": const.DEFAULT_OVERDUE_HANDLING_TYPE,
+                    "completion_criteria": const.COMPLETION_CRITERIA_SHARED,
+                    "all_kids_approved": False,
+                },
+                const.CHORE_RESET_DECISION_HOLD,
+                id="approval-upon-completion-shared-not-all-approved",
+            ),
+            pytest.param(
+                {
+                    "trigger": const.CHORE_SCAN_TRIGGER_DUE_DATE,
+                    "boundary_category": const.CHORE_RESET_BOUNDARY_CATEGORY_HOLD,
+                    "has_pending_claim": True,
+                    "pending_claim_action": const.APPROVAL_RESET_PENDING_CLAIM_AUTO_APPROVE,
+                },
+                const.CHORE_RESET_DECISION_HOLD,
+                id="timer-hold-category-wins",
+            ),
+            pytest.param(
+                {
+                    "trigger": const.CHORE_SCAN_TRIGGER_DUE_DATE,
+                    "boundary_category": const.CHORE_RESET_BOUNDARY_CATEGORY_CLEAR_ONLY,
+                    "has_pending_claim": False,
+                },
+                const.CHORE_RESET_DECISION_RESET_ONLY,
+                id="timer-clear-only-no-pending",
+            ),
+            pytest.param(
+                {
+                    "trigger": const.CHORE_SCAN_TRIGGER_DUE_DATE,
+                    "boundary_category": const.CHORE_RESET_BOUNDARY_CATEGORY_RESET_AND_RESCHEDULE,
+                    "has_pending_claim": True,
+                    "pending_claim_action": const.APPROVAL_RESET_PENDING_CLAIM_HOLD,
+                },
+                const.CHORE_RESET_DECISION_HOLD,
+                id="timer-pending-hold",
+            ),
+            pytest.param(
+                {
+                    "trigger": const.CHORE_SCAN_TRIGGER_DUE_DATE,
+                    "boundary_category": const.CHORE_RESET_BOUNDARY_CATEGORY_RESET_AND_RESCHEDULE,
+                    "has_pending_claim": True,
+                    "pending_claim_action": const.APPROVAL_RESET_PENDING_CLAIM_AUTO_APPROVE,
+                },
+                const.CHORE_RESET_DECISION_AUTO_APPROVE_PENDING,
+                id="timer-pending-auto-approve",
+            ),
+            pytest.param(
+                {
+                    "trigger": const.CHORE_SCAN_TRIGGER_DUE_DATE,
+                    "boundary_category": const.CHORE_RESET_BOUNDARY_CATEGORY_RESET_AND_RESCHEDULE,
+                    "has_pending_claim": True,
+                    "pending_claim_action": const.APPROVAL_RESET_PENDING_CLAIM_CLEAR,
+                },
+                const.CHORE_RESET_DECISION_RESET_AND_RESCHEDULE,
+                id="timer-pending-clear",
+            ),
+        ],
+    )
+    def test_decide_reset_action_table(
+        self,
+        context: ResetContext,
+        expected: ResetDecision,
+    ) -> None:
+        """Decision helper returns expected policy action for each context."""
+        decision = ChoreManager._decide_reset_action(context)
+        assert decision == expected
+
+
+class TestResetExecutor:
+    """Focused tests for Phase 2 reset executor helpers."""
+
+    def test_apply_reset_action_reschedules_for_reschedule_decision(
+        self,
+        chore_manager: ChoreManager,
+    ) -> None:
+        """Executor applies state transition and reschedules when required."""
+        chore_manager._transition_chore_state = MagicMock()
+        chore_manager._reschedule_chore_due = MagicMock()
+
+        chore_manager._apply_reset_action(
+            {
+                "kid_id": "kid-1",
+                "chore_id": "chore-1",
+                "decision": const.CHORE_RESET_DECISION_RESET_AND_RESCHEDULE,
+                "reschedule_kid_id": "kid-1",
+            }
+        )
+
+        chore_manager._transition_chore_state.assert_called_once_with(
+            "kid-1",
+            "chore-1",
+            const.CHORE_STATE_PENDING,
+            reset_approval_period=True,
+            clear_ownership=True,
+        )
+        chore_manager._reschedule_chore_due.assert_called_once_with("chore-1", "kid-1")
+
+    def test_apply_reset_action_skips_reschedule_for_reset_only(
+        self,
+        chore_manager: ChoreManager,
+    ) -> None:
+        """Executor does not reschedule for reset-only decisions."""
+        chore_manager._transition_chore_state = MagicMock()
+        chore_manager._reschedule_chore_due = MagicMock()
+
+        chore_manager._apply_reset_action(
+            {
+                "kid_id": "kid-1",
+                "chore_id": "chore-1",
+                "decision": const.CHORE_RESET_DECISION_RESET_ONLY,
+                "reschedule_kid_id": None,
+            }
+        )
+
+        chore_manager._transition_chore_state.assert_called_once()
+        chore_manager._reschedule_chore_due.assert_not_called()
+
+    def test_finalize_reset_batch_persist_then_emit(
+        self,
+        chore_manager: ChoreManager,
+    ) -> None:
+        """Batch finalizer persists before emitting rotation signals."""
+        calls: list[str] = []
+
+        def _persist() -> None:
+            calls.append("persist")
+
+        def _emit(_signal: str, **_kwargs: Any) -> None:
+            calls.append("emit")
+
+        chore_manager._coordinator._persist = MagicMock(side_effect=_persist)
+        chore_manager.emit = MagicMock(side_effect=_emit)
+
+        chore_manager._finalize_reset_batch(
+            persist=True,
+            reset_count=1,
+            rotation_payloads=[{"chore_id": "chore-1", "kid_id": "kid-1"}],
+        )
+
+        assert calls == ["persist", "emit"]
+
+    @pytest.mark.asyncio
+    async def test_process_approval_reset_entries_uses_executor(
+        self,
+        chore_manager: ChoreManager,
+    ) -> None:
+        """Approval reset processing routes through shared reset executor."""
+        chore_manager._apply_reset_action = MagicMock()
+        chore_manager._get_kid_chore_data = MagicMock(
+            return_value={const.DATA_KID_CHORE_DATA_STATE: const.CHORE_STATE_PENDING}
+        )
+        chore_manager._coordinator._persist = MagicMock()
+        chore_manager._coordinator.async_set_updated_data = MagicMock()
+
+        scan: dict[str, list[dict[str, Any]]] = {
+            const.CHORE_SCAN_RESULT_APPROVAL_RESET_SHARED: [
+                {
+                    const.CHORE_SCAN_ENTRY_CHORE_ID: "chore-1",
+                    const.CHORE_SCAN_ENTRY_CHORE_INFO: {
+                        const.DATA_CHORE_ASSIGNED_KIDS: ["kid-1"],
+                        const.DATA_CHORE_STATE: const.CHORE_STATE_PENDING,
+                        const.DATA_CHORE_APPROVAL_RESET_PENDING_CLAIM_ACTION: (
+                            const.APPROVAL_RESET_PENDING_CLAIM_CLEAR
+                        ),
+                        const.DATA_CHORE_APPROVAL_RESET_TYPE: (
+                            const.APPROVAL_RESET_AT_DUE_DATE_ONCE
+                        ),
+                        const.DATA_CHORE_OVERDUE_HANDLING_TYPE: (
+                            const.DEFAULT_OVERDUE_HANDLING_TYPE
+                        ),
+                        const.DATA_CHORE_COMPLETION_CRITERIA: (
+                            const.COMPLETION_CRITERIA_SHARED
+                        ),
+                    },
+                }
+            ],
+            const.CHORE_SCAN_RESULT_APPROVAL_RESET_INDEPENDENT: [],
+        }
+
+        with pytest.MonkeyPatch.context() as monkeypatch:
+            monkeypatch.setattr(
+                "custom_components.kidschores.managers.chore_manager.ChoreEngine.get_boundary_category",
+                lambda **_kwargs: (
+                    const.CHORE_RESET_BOUNDARY_CATEGORY_RESET_AND_RESCHEDULE
+                ),
+            )
+
+            (
+                reset_count,
+                reset_pairs,
+            ) = await chore_manager._process_approval_reset_entries(
+                scan,
+                dt_now_utc(),
+                trigger=const.CHORE_SCAN_TRIGGER_DUE_DATE,
+                persist=True,
+            )
+
+        assert reset_count == 1
+        assert ("kid-1", "chore-1") in reset_pairs
+        chore_manager._apply_reset_action.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_process_approval_reset_entries_shared_uses_chore_reschedule(
+        self,
+        chore_manager: ChoreManager,
+    ) -> None:
+        """Periodic shared reset routes through executor with chore-level reschedule."""
+        chore_manager._apply_reset_action = MagicMock()
+        chore_manager._get_kid_chore_data = MagicMock(
+            return_value={const.DATA_KID_CHORE_DATA_STATE: const.CHORE_STATE_PENDING}
+        )
+        chore_manager._coordinator._persist = MagicMock()
+        chore_manager._coordinator.async_set_updated_data = MagicMock()
+
+        scan: dict[str, list[dict[str, Any]]] = {
+            const.CHORE_SCAN_RESULT_APPROVAL_RESET_SHARED: [
+                {
+                    const.CHORE_SCAN_ENTRY_CHORE_ID: "chore-1",
+                    const.CHORE_SCAN_ENTRY_CHORE_INFO: {
+                        const.DATA_CHORE_ASSIGNED_KIDS: ["kid-1", "kid-2"],
+                        const.DATA_CHORE_STATE: const.CHORE_STATE_PENDING,
+                        const.DATA_CHORE_APPROVAL_RESET_PENDING_CLAIM_ACTION: (
+                            const.APPROVAL_RESET_PENDING_CLAIM_CLEAR
+                        ),
+                        const.DATA_CHORE_APPROVAL_RESET_TYPE: (
+                            const.APPROVAL_RESET_AT_DUE_DATE_ONCE
+                        ),
+                        const.DATA_CHORE_OVERDUE_HANDLING_TYPE: (
+                            const.DEFAULT_OVERDUE_HANDLING_TYPE
+                        ),
+                        const.DATA_CHORE_COMPLETION_CRITERIA: (
+                            const.COMPLETION_CRITERIA_SHARED
+                        ),
+                    },
+                }
+            ],
+            const.CHORE_SCAN_RESULT_APPROVAL_RESET_INDEPENDENT: [],
+        }
+
+        with pytest.MonkeyPatch.context() as monkeypatch:
+            monkeypatch.setattr(
+                "custom_components.kidschores.managers.chore_manager.ChoreEngine.get_boundary_category",
+                lambda **_kwargs: (
+                    const.CHORE_RESET_BOUNDARY_CATEGORY_RESET_AND_RESCHEDULE
+                ),
+            )
+
+            await chore_manager._process_approval_reset_entries(
+                scan,
+                dt_now_utc(),
+                trigger=const.CHORE_SCAN_TRIGGER_DUE_DATE,
+                persist=True,
+            )
+
+        assert chore_manager._apply_reset_action.call_count == 2
+        first_call = chore_manager._apply_reset_action.call_args_list[0].args[0]
+        second_call = chore_manager._apply_reset_action.call_args_list[1].args[0]
+        assert first_call["reschedule_kid_id"] is None
+        assert second_call["reschedule_kid_id"] is None
+
+    @pytest.mark.asyncio
+    async def test_process_approval_reset_entries_independent_uses_kid_reschedule(
+        self,
+        chore_manager: ChoreManager,
+    ) -> None:
+        """Periodic independent reset routes through executor with per-kid reschedule."""
+        chore_manager._apply_reset_action = MagicMock()
+        chore_manager._get_kid_chore_data = MagicMock(
+            return_value={const.DATA_KID_CHORE_DATA_STATE: const.CHORE_STATE_PENDING}
+        )
+        chore_manager._coordinator._persist = MagicMock()
+        chore_manager._coordinator.async_set_updated_data = MagicMock()
+
+        scan: dict[str, list[dict[str, Any]]] = {
+            const.CHORE_SCAN_RESULT_APPROVAL_RESET_SHARED: [],
+            const.CHORE_SCAN_RESULT_APPROVAL_RESET_INDEPENDENT: [
+                {
+                    const.CHORE_SCAN_ENTRY_CHORE_ID: "chore-1",
+                    const.CHORE_SCAN_ENTRY_CHORE_INFO: {
+                        const.DATA_CHORE_APPROVAL_RESET_PENDING_CLAIM_ACTION: (
+                            const.APPROVAL_RESET_PENDING_CLAIM_CLEAR
+                        ),
+                        const.DATA_CHORE_APPROVAL_RESET_TYPE: (
+                            const.APPROVAL_RESET_AT_DUE_DATE_ONCE
+                        ),
+                        const.DATA_CHORE_OVERDUE_HANDLING_TYPE: (
+                            const.DEFAULT_OVERDUE_HANDLING_TYPE
+                        ),
+                        const.DATA_CHORE_COMPLETION_CRITERIA: (
+                            const.COMPLETION_CRITERIA_INDEPENDENT
+                        ),
+                    },
+                    "kids": [{const.CHORE_SCAN_ENTRY_KID_ID: "kid-1"}],
+                }
+            ],
+        }
+
+        with pytest.MonkeyPatch.context() as monkeypatch:
+            monkeypatch.setattr(
+                "custom_components.kidschores.managers.chore_manager.ChoreEngine.get_boundary_category",
+                lambda **_kwargs: (
+                    const.CHORE_RESET_BOUNDARY_CATEGORY_RESET_AND_RESCHEDULE
+                ),
+            )
+
+            await chore_manager._process_approval_reset_entries(
+                scan,
+                dt_now_utc(),
+                trigger=const.CHORE_SCAN_TRIGGER_DUE_DATE,
+                persist=True,
+            )
+
+        chore_manager._apply_reset_action.assert_called_once_with(
+            {
+                "kid_id": "kid-1",
+                "chore_id": "chore-1",
+                "decision": const.CHORE_RESET_DECISION_RESET_AND_RESCHEDULE,
+                "reschedule_kid_id": "kid-1",
+            }
+        )
+
+    @pytest.mark.asyncio
+    async def test_rotation_boundary_advances_once_for_missed_turn_holder(
+        self,
+        chore_manager: ChoreManager,
+    ) -> None:
+        """Midnight missed boundary advances rotation once and emits once."""
+        chore_manager._get_kid_chore_data = MagicMock(
+            return_value={const.DATA_KID_CHORE_DATA_STATE: const.CHORE_STATE_MISSED}
+        )
+        chore_manager._coordinator._persist = MagicMock()
+        chore_manager._coordinator.async_set_updated_data = MagicMock()
+        chore_manager._advance_rotation = MagicMock(
+            return_value={"chore_id": "chore-1", "kid_id": "kid-2"}
+        )
+        chore_manager.emit = MagicMock()
+
+        scan: dict[str, list[dict[str, Any]]] = {
+            const.CHORE_SCAN_RESULT_APPROVAL_RESET_SHARED: [
+                {
+                    const.CHORE_SCAN_ENTRY_CHORE_ID: "chore-1",
+                    const.CHORE_SCAN_ENTRY_CHORE_INFO: {
+                        const.DATA_CHORE_ASSIGNED_KIDS: ["kid-1", "kid-2"],
+                        const.DATA_CHORE_STATE: const.CHORE_STATE_MISSED,
+                        const.DATA_CHORE_ROTATION_CURRENT_KID_ID: "kid-1",
+                        const.DATA_CHORE_APPROVAL_RESET_PENDING_CLAIM_ACTION: (
+                            const.APPROVAL_RESET_PENDING_CLAIM_CLEAR
+                        ),
+                        const.DATA_CHORE_APPROVAL_RESET_TYPE: (
+                            const.APPROVAL_RESET_AT_MIDNIGHT_ONCE
+                        ),
+                        const.DATA_CHORE_OVERDUE_HANDLING_TYPE: (
+                            const.OVERDUE_HANDLING_AT_DUE_DATE_MARK_MISSED_AND_LOCK
+                        ),
+                        const.DATA_CHORE_COMPLETION_CRITERIA: (
+                            const.COMPLETION_CRITERIA_SHARED
+                        ),
+                    },
+                }
+            ],
+            const.CHORE_SCAN_RESULT_APPROVAL_RESET_INDEPENDENT: [],
+        }
+
+        with pytest.MonkeyPatch.context() as monkeypatch:
+            monkeypatch.setattr(
+                "custom_components.kidschores.managers.chore_manager.ChoreEngine.get_boundary_category",
+                lambda **_kwargs: (
+                    const.CHORE_RESET_BOUNDARY_CATEGORY_RESET_AND_RESCHEDULE
+                ),
+            )
+            monkeypatch.setattr(
+                "custom_components.kidschores.managers.chore_manager.ChoreEngine.is_rotation_mode",
+                lambda _chore_info: True,
+            )
+
+            await chore_manager._process_approval_reset_entries(
+                scan,
+                dt_now_utc(),
+                trigger=const.CHORE_SCAN_TRIGGER_MIDNIGHT,
+                persist=True,
+            )
+
+        chore_manager._advance_rotation.assert_called_once_with(
+            "chore-1", "kid-1", method="auto"
+        )
+        rotation_calls = [
+            call
+            for call in chore_manager.emit.call_args_list
+            if call.args and call.args[0] == const.SIGNAL_SUFFIX_CHORE_ROTATION_ADVANCED
+        ]
+        assert len(rotation_calls) == 1
+        assert rotation_calls[0].kwargs == {"chore_id": "chore-1", "kid_id": "kid-2"}
+
+
+class TestApprovalResetExecutorLane:
+    """Tests for approval-trigger reset execution path."""
+
+    @pytest.mark.asyncio
+    async def test_approval_independent_routes_through_executor(
+        self,
+        chore_manager: ChoreManager,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Independent UPON_COMPLETION approval uses executor with kid reschedule."""
+        mock_coordinator.chores_data["chore-1"][
+            const.DATA_CHORE_COMPLETION_CRITERIA
+        ] = const.COMPLETION_CRITERIA_INDEPENDENT
+        mock_coordinator.chores_data["chore-1"][
+            const.DATA_CHORE_APPROVAL_RESET_TYPE
+        ] = const.APPROVAL_RESET_UPON_COMPLETION
+
+        await chore_manager.claim_chore("kid-1", "chore-1", "Alice")
+
+        chore_manager._apply_reset_action = MagicMock()
+
+        await chore_manager.approve_chore("Parent", "kid-1", "chore-1")
+
+        chore_manager._apply_reset_action.assert_called_once_with(
+            {
+                "kid_id": "kid-1",
+                "chore_id": "chore-1",
+                "decision": const.CHORE_RESET_DECISION_RESET_AND_RESCHEDULE,
+                "reschedule_kid_id": "kid-1",
+            }
+        )
+
+    @pytest.mark.asyncio
+    async def test_approval_shared_resets_all_kids_and_reschedules_once(
+        self,
+        chore_manager: ChoreManager,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Shared UPON_COMPLETION reset applies per-kid reset then one reschedule."""
+        mock_coordinator.chores_data["chore-1"][
+            const.DATA_CHORE_COMPLETION_CRITERIA
+        ] = const.COMPLETION_CRITERIA_SHARED
+        mock_coordinator.chores_data["chore-1"][
+            const.DATA_CHORE_APPROVAL_RESET_TYPE
+        ] = const.APPROVAL_RESET_UPON_COMPLETION
+
+        await chore_manager.claim_chore("kid-1", "chore-1", "Alice")
+
+        chore_manager._all_kids_approved = MagicMock(return_value=True)
+        chore_manager._apply_reset_action = MagicMock()
+        chore_manager._reschedule_chore_due = MagicMock()
+
+        await chore_manager.approve_chore("Parent", "kid-1", "chore-1")
+
+        assert chore_manager._apply_reset_action.call_count == 2
+        chore_manager._reschedule_chore_due.assert_called_once_with("chore-1")
+
+    @pytest.mark.asyncio
+    async def test_executor_payload_parity_independent_approval_vs_periodic(
+        self,
+        chore_manager: ChoreManager,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Independent approval and periodic lanes produce the same reset payload."""
+        mock_coordinator.chores_data["chore-1"][
+            const.DATA_CHORE_COMPLETION_CRITERIA
+        ] = const.COMPLETION_CRITERIA_INDEPENDENT
+        mock_coordinator.chores_data["chore-1"][
+            const.DATA_CHORE_APPROVAL_RESET_TYPE
+        ] = const.APPROVAL_RESET_UPON_COMPLETION
+
+        await chore_manager.claim_chore("kid-1", "chore-1", "Alice")
+
+        chore_manager._apply_reset_action = MagicMock()
+        await chore_manager.approve_chore("Parent", "kid-1", "chore-1")
+        approval_payload = chore_manager._apply_reset_action.call_args.args[0]
+
+        chore_manager._apply_reset_action.reset_mock()
+        chore_manager._get_kid_chore_data = MagicMock(
+            return_value={const.DATA_KID_CHORE_DATA_STATE: const.CHORE_STATE_PENDING}
+        )
+
+        scan: dict[str, list[dict[str, Any]]] = {
+            const.CHORE_SCAN_RESULT_APPROVAL_RESET_SHARED: [],
+            const.CHORE_SCAN_RESULT_APPROVAL_RESET_INDEPENDENT: [
+                {
+                    const.CHORE_SCAN_ENTRY_CHORE_ID: "chore-1",
+                    const.CHORE_SCAN_ENTRY_CHORE_INFO: {
+                        const.DATA_CHORE_APPROVAL_RESET_PENDING_CLAIM_ACTION: (
+                            const.APPROVAL_RESET_PENDING_CLAIM_CLEAR
+                        ),
+                        const.DATA_CHORE_APPROVAL_RESET_TYPE: (
+                            const.APPROVAL_RESET_AT_DUE_DATE_ONCE
+                        ),
+                        const.DATA_CHORE_OVERDUE_HANDLING_TYPE: (
+                            const.DEFAULT_OVERDUE_HANDLING_TYPE
+                        ),
+                        const.DATA_CHORE_COMPLETION_CRITERIA: (
+                            const.COMPLETION_CRITERIA_INDEPENDENT
+                        ),
+                    },
+                    "kids": [{const.CHORE_SCAN_ENTRY_KID_ID: "kid-1"}],
+                }
+            ],
+        }
+
+        with pytest.MonkeyPatch.context() as monkeypatch:
+            monkeypatch.setattr(
+                "custom_components.kidschores.managers.chore_manager.ChoreEngine.get_boundary_category",
+                lambda **_kwargs: (
+                    const.CHORE_RESET_BOUNDARY_CATEGORY_RESET_AND_RESCHEDULE
+                ),
+            )
+            await chore_manager._process_approval_reset_entries(
+                scan,
+                dt_now_utc(),
+                trigger=const.CHORE_SCAN_TRIGGER_DUE_DATE,
+                persist=False,
+            )
+
+        periodic_payload = chore_manager._apply_reset_action.call_args.args[0]
+        assert periodic_payload == approval_payload
+
+    @pytest.mark.asyncio
+    async def test_executor_payload_parity_shared_approval_vs_periodic(
+        self,
+        chore_manager: ChoreManager,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Shared approval and periodic lanes produce equivalent per-kid reset payloads."""
+        mock_coordinator.chores_data["chore-1"][
+            const.DATA_CHORE_COMPLETION_CRITERIA
+        ] = const.COMPLETION_CRITERIA_SHARED
+        mock_coordinator.chores_data["chore-1"][
+            const.DATA_CHORE_APPROVAL_RESET_TYPE
+        ] = const.APPROVAL_RESET_UPON_COMPLETION
+
+        await chore_manager.claim_chore("kid-1", "chore-1", "Alice")
+
+        chore_manager._all_kids_approved = MagicMock(return_value=True)
+        chore_manager._apply_reset_action = MagicMock()
+        await chore_manager.approve_chore("Parent", "kid-1", "chore-1")
+        approval_payloads = [
+            call.args[0] for call in chore_manager._apply_reset_action.call_args_list
+        ]
+
+        chore_manager._apply_reset_action.reset_mock()
+        chore_manager._get_kid_chore_data = MagicMock(
+            return_value={const.DATA_KID_CHORE_DATA_STATE: const.CHORE_STATE_PENDING}
+        )
+
+        scan: dict[str, list[dict[str, Any]]] = {
+            const.CHORE_SCAN_RESULT_APPROVAL_RESET_SHARED: [
+                {
+                    const.CHORE_SCAN_ENTRY_CHORE_ID: "chore-1",
+                    const.CHORE_SCAN_ENTRY_CHORE_INFO: {
+                        const.DATA_CHORE_ASSIGNED_KIDS: ["kid-1", "kid-2"],
+                        const.DATA_CHORE_STATE: const.CHORE_STATE_PENDING,
+                        const.DATA_CHORE_APPROVAL_RESET_PENDING_CLAIM_ACTION: (
+                            const.APPROVAL_RESET_PENDING_CLAIM_CLEAR
+                        ),
+                        const.DATA_CHORE_APPROVAL_RESET_TYPE: (
+                            const.APPROVAL_RESET_AT_DUE_DATE_ONCE
+                        ),
+                        const.DATA_CHORE_OVERDUE_HANDLING_TYPE: (
+                            const.DEFAULT_OVERDUE_HANDLING_TYPE
+                        ),
+                        const.DATA_CHORE_COMPLETION_CRITERIA: (
+                            const.COMPLETION_CRITERIA_SHARED
+                        ),
+                    },
+                }
+            ],
+            const.CHORE_SCAN_RESULT_APPROVAL_RESET_INDEPENDENT: [],
+        }
+
+        with pytest.MonkeyPatch.context() as monkeypatch:
+            monkeypatch.setattr(
+                "custom_components.kidschores.managers.chore_manager.ChoreEngine.get_boundary_category",
+                lambda **_kwargs: (
+                    const.CHORE_RESET_BOUNDARY_CATEGORY_RESET_AND_RESCHEDULE
+                ),
+            )
+            await chore_manager._process_approval_reset_entries(
+                scan,
+                dt_now_utc(),
+                trigger=const.CHORE_SCAN_TRIGGER_DUE_DATE,
+                persist=False,
+            )
+
+        periodic_payloads = [
+            call.args[0] for call in chore_manager._apply_reset_action.call_args_list
+        ]
+        assert periodic_payloads == approval_payloads
 
 
 # ============================================================================
@@ -486,6 +1123,148 @@ class TestResetAndOverdue:
         assert len(call_args[0]) == 1  # One overdue entry
 
 
+class TestDataResetChores:
+    """Tests for data_reset_chores scope behavior and side effects."""
+
+    @pytest.mark.asyncio
+    async def test_data_reset_chores_global_clears_runtime_and_emits(
+        self,
+        chore_manager: ChoreManager,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Global reset clears runtime structures across chores and kids."""
+        chore_info = mock_coordinator.chores_data["chore-1"]
+        chore_info[const.DATA_CHORE_PER_KID_DUE_DATES] = {
+            "kid-1": "2026-01-01T00:00:00+00:00",
+            "kid-2": "2026-01-02T00:00:00+00:00",
+        }
+        chore_info[const.DATA_CHORE_PER_KID_APPLICABLE_DAYS] = {
+            "kid-1": [1, 2],
+            "kid-2": [3, 4],
+        }
+        chore_info[const.DATA_CHORE_PER_KID_DAILY_MULTI_TIMES] = {
+            "kid-1": ["09:00"],
+            "kid-2": ["18:00"],
+        }
+        chore_info[const.DATA_CHORE_LAST_CLAIMED] = "2026-01-01T00:00:00+00:00"
+        chore_info[const.DATA_CHORE_LAST_COMPLETED] = "2026-01-01T01:00:00+00:00"
+
+        for field in db._CHORE_PER_KID_RUNTIME_LISTS:
+            chore_info[field] = ["kid-1", "kid-2"]
+
+        for kid_id in ("kid-1", "kid-2"):
+            kid_dict = mock_coordinator.kids_data[kid_id]
+            kid_dict[const.DATA_KID_CHORE_DATA] = {"chore-1": {"state": "claimed"}}
+            for field in db._CHORE_KID_RUNTIME_FIELDS:
+                if field == const.DATA_KID_CHORE_DATA:
+                    continue
+                kid_dict[field] = {"marker": 1}
+
+        chore_manager.set_due_date = AsyncMock()
+
+        await chore_manager.data_reset_chores(scope="global")
+
+        chore_manager.set_due_date.assert_awaited_once_with(
+            "chore-1", None, kid_id=None
+        )
+
+        for field in db._CHORE_PER_KID_RUNTIME_LISTS:
+            assert chore_info[field] == []
+
+        assert chore_info[const.DATA_CHORE_LAST_CLAIMED] is None
+        assert chore_info[const.DATA_CHORE_LAST_COMPLETED] is None
+
+        for kid_id in ("kid-1", "kid-2"):
+            kid_dict = mock_coordinator.kids_data[kid_id]
+            assert kid_dict.get(const.DATA_KID_CHORE_DATA) == {}
+
+        mock_coordinator._persist_and_update.assert_called_once()
+        chore_manager.emit.assert_any_call(
+            const.SIGNAL_SUFFIX_CHORE_DATA_RESET_COMPLETE,
+            scope="global",
+            kid_id=None,
+            item_id=None,
+        )
+
+    @pytest.mark.asyncio
+    async def test_data_reset_chores_kid_scope_removes_only_target_kid(
+        self,
+        chore_manager: ChoreManager,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Kid scope reset only touches chores assigned to that kid and kid-scoped config."""
+        chore_two = {
+            const.DATA_CHORE_NAME: "Second chore",
+            const.DATA_CHORE_ASSIGNED_KIDS: ["kid-2"],
+            const.DATA_CHORE_COMPLETION_CRITERIA: const.COMPLETION_CRITERIA_INDEPENDENT,
+        }
+        mock_coordinator.chores_data["chore-2"] = chore_two
+
+        chore_one = mock_coordinator.chores_data["chore-1"]
+        chore_one[const.DATA_CHORE_PER_KID_DUE_DATES] = {
+            "kid-1": "2026-01-01T00:00:00+00:00",
+            "kid-2": "2026-01-02T00:00:00+00:00",
+        }
+        chore_one[const.DATA_CHORE_PER_KID_APPLICABLE_DAYS] = {
+            "kid-1": [1],
+            "kid-2": [2],
+        }
+        chore_one[const.DATA_CHORE_PER_KID_DAILY_MULTI_TIMES] = {
+            "kid-1": ["10:00"],
+            "kid-2": ["16:00"],
+        }
+
+        for field in db._CHORE_PER_KID_RUNTIME_LISTS:
+            chore_one[field] = ["kid-1", "kid-2"]
+
+        chore_manager.set_due_date = AsyncMock()
+
+        await chore_manager.data_reset_chores(scope="kid", kid_id="kid-1")
+
+        chore_manager.set_due_date.assert_awaited_once_with(
+            "chore-1", None, kid_id="kid-1"
+        )
+
+        for field in db._CHORE_PER_KID_RUNTIME_LISTS:
+            assert "kid-1" not in chore_one[field]
+            assert "kid-2" in chore_one[field]
+
+        assert "kid-1" not in chore_one[const.DATA_CHORE_PER_KID_DUE_DATES]
+        assert "kid-2" in chore_one[const.DATA_CHORE_PER_KID_DUE_DATES]
+        assert "kid-1" not in chore_one[const.DATA_CHORE_PER_KID_APPLICABLE_DAYS]
+        assert "kid-2" in chore_one[const.DATA_CHORE_PER_KID_APPLICABLE_DAYS]
+        assert "kid-1" not in chore_one[const.DATA_CHORE_PER_KID_DAILY_MULTI_TIMES]
+        assert "kid-2" in chore_one[const.DATA_CHORE_PER_KID_DAILY_MULTI_TIMES]
+
+    @pytest.mark.asyncio
+    async def test_data_reset_chores_item_scope_clears_single_item(
+        self,
+        chore_manager: ChoreManager,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Item scope only removes the targeted chore record from kid chore data."""
+        for kid_id in ("kid-1", "kid-2"):
+            mock_coordinator.kids_data[kid_id][const.DATA_KID_CHORE_DATA] = {
+                "chore-1": {"state": "approved"},
+                "chore-2": {"state": "pending"},
+            }
+
+        chore_manager.set_due_date = AsyncMock()
+
+        await chore_manager.data_reset_chores(scope="item", item_id="chore-1")
+
+        chore_manager.set_due_date.assert_awaited_once_with(
+            "chore-1", None, kid_id=None
+        )
+
+        for kid_id in ("kid-1", "kid-2"):
+            kid_chore_data = mock_coordinator.kids_data[kid_id][
+                const.DATA_KID_CHORE_DATA
+            ]
+            assert "chore-1" not in kid_chore_data
+            assert "chore-2" in kid_chore_data
+
+
 # ============================================================================
 # Test Class: Undo Workflow
 # ============================================================================
@@ -604,6 +1383,144 @@ class TestCompletionCriteria:
         # Both should now have both names
         assert "Alice" in kid1_data.get(const.DATA_CHORE_COMPLETED_BY, [])
         assert "Bob" in kid1_data.get(const.DATA_CHORE_COMPLETED_BY, [])
+
+
+class TestCriteriaTransitions:
+    """Tests for manager-side completion criteria transition handling."""
+
+    def test_handle_criteria_transition_applies_changes_and_emits(
+        self,
+        chore_manager: ChoreManager,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Transition applies engine changes, persists, and emits update signal."""
+        mock_coordinator.chores_data["chore-1"][const.DATA_CHORE_ASSIGNED_KIDS] = [
+            "kid-1",
+            "kid-2",
+        ]
+
+        chore_manager._handle_criteria_transition(
+            chore_id="chore-1",
+            old_criteria=const.COMPLETION_CRITERIA_INDEPENDENT,
+            new_criteria=const.COMPLETION_CRITERIA_ROTATION_SIMPLE,
+        )
+
+        chore = mock_coordinator.chores_data["chore-1"]
+        assert (
+            chore[const.DATA_CHORE_COMPLETION_CRITERIA]
+            == const.COMPLETION_CRITERIA_ROTATION_SIMPLE
+        )
+        assert chore[const.DATA_CHORE_ROTATION_CURRENT_KID_ID] == "kid-1"
+        assert chore[const.DATA_CHORE_ROTATION_CYCLE_OVERRIDE] is False
+        mock_coordinator._persist_and_update.assert_called_once()
+        chore_manager.emit.assert_any_call(
+            const.SIGNAL_SUFFIX_CHORE_UPDATED,
+            chore_id="chore-1",
+            updated_fields=[
+                const.DATA_CHORE_ROTATION_CURRENT_KID_ID,
+                const.DATA_CHORE_ROTATION_CYCLE_OVERRIDE,
+                const.DATA_CHORE_COMPLETION_CRITERIA,
+            ],
+        )
+
+    def test_handle_criteria_transition_rejects_rotation_with_one_kid(
+        self,
+        chore_manager: ChoreManager,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Rotation criteria requires at least two assigned kids."""
+        mock_coordinator.chores_data["chore-1"][const.DATA_CHORE_ASSIGNED_KIDS] = [
+            "kid-1"
+        ]
+
+        with pytest.raises(ServiceValidationError) as exc:
+            chore_manager._handle_criteria_transition(
+                chore_id="chore-1",
+                old_criteria=const.COMPLETION_CRITERIA_INDEPENDENT,
+                new_criteria=const.COMPLETION_CRITERIA_ROTATION_SIMPLE,
+            )
+
+        assert exc.value.translation_key == const.TRANS_KEY_ERROR_ROTATION_MIN_KIDS
+
+
+class TestRotationManagementValidation:
+    """Validation/error-path tests for rotation management methods."""
+
+    @pytest.mark.asyncio
+    async def test_set_rotation_turn_rejects_missing_chore(
+        self,
+        chore_manager: ChoreManager,
+    ) -> None:
+        """set_rotation_turn rejects unknown chore id."""
+        with pytest.raises(ServiceValidationError) as exc:
+            await chore_manager.set_rotation_turn("missing", "kid-1")
+        assert exc.value.translation_key == const.TRANS_KEY_ERROR_CHORE_NOT_FOUND
+
+    @pytest.mark.asyncio
+    async def test_set_rotation_turn_rejects_non_rotation(
+        self,
+        chore_manager: ChoreManager,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """set_rotation_turn rejects chores that are not rotation mode."""
+        mock_coordinator._data[const.DATA_CHORES]["chore-1"][
+            const.DATA_CHORE_COMPLETION_CRITERIA
+        ] = const.COMPLETION_CRITERIA_INDEPENDENT
+
+        with pytest.raises(ServiceValidationError) as exc:
+            await chore_manager.set_rotation_turn("chore-1", "kid-1")
+        assert exc.value.translation_key == const.TRANS_KEY_ERROR_NOT_ROTATION
+
+    @pytest.mark.asyncio
+    async def test_set_rotation_turn_rejects_unassigned_kid(
+        self,
+        chore_manager: ChoreManager,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """set_rotation_turn rejects kids not assigned to chore."""
+        mock_coordinator._data[const.DATA_CHORES]["chore-1"][
+            const.DATA_CHORE_COMPLETION_CRITERIA
+        ] = const.COMPLETION_CRITERIA_ROTATION_SIMPLE
+        mock_coordinator._data[const.DATA_CHORES]["chore-1"][
+            const.DATA_CHORE_ASSIGNED_KIDS
+        ] = ["kid-1", "kid-2"]
+
+        with pytest.raises(ServiceValidationError) as exc:
+            await chore_manager.set_rotation_turn("chore-1", "kid-3")
+        assert exc.value.translation_key == const.TRANS_KEY_ERROR_KID_NOT_ASSIGNED
+
+    @pytest.mark.asyncio
+    async def test_reset_rotation_rejects_no_assigned_kids(
+        self,
+        chore_manager: ChoreManager,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """reset_rotation rejects rotation chores with no assigned kids."""
+        mock_coordinator._data[const.DATA_CHORES]["chore-1"][
+            const.DATA_CHORE_COMPLETION_CRITERIA
+        ] = const.COMPLETION_CRITERIA_ROTATION_SIMPLE
+        mock_coordinator._data[const.DATA_CHORES]["chore-1"][
+            const.DATA_CHORE_ASSIGNED_KIDS
+        ] = []
+
+        with pytest.raises(ServiceValidationError) as exc:
+            await chore_manager.reset_rotation("chore-1")
+        assert exc.value.translation_key == const.TRANS_KEY_ERROR_NO_ASSIGNED_KIDS
+
+    @pytest.mark.asyncio
+    async def test_open_rotation_cycle_rejects_non_rotation(
+        self,
+        chore_manager: ChoreManager,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """open_rotation_cycle rejects non-rotation chores."""
+        mock_coordinator._data[const.DATA_CHORES]["chore-1"][
+            const.DATA_CHORE_COMPLETION_CRITERIA
+        ] = const.COMPLETION_CRITERIA_SHARED
+
+        with pytest.raises(ServiceValidationError) as exc:
+            await chore_manager.open_rotation_cycle("chore-1")
+        assert exc.value.translation_key == const.TRANS_KEY_ERROR_NOT_ROTATION
 
 
 # ============================================================================

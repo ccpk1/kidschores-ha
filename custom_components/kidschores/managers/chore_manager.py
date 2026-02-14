@@ -55,7 +55,16 @@ if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
     from ..coordinator import KidsChoresDataCoordinator
-    from ..type_defs import ChoreData, KidChoreDataEntry, KidData
+    from ..type_defs import (
+        ChoreData,
+        KidChoreDataEntry,
+        KidData,
+        ResetApplyContext,
+        ResetBoundaryCategory,
+        ResetContext,
+        ResetDecision,
+        ResetTrigger,
+    )
 
 
 # Type alias for scan results - uses dict for simplicity
@@ -950,54 +959,58 @@ class ChoreManager(BaseManager):
             const.DEFAULT_OVERDUE_HANDLING_TYPE,
         )
 
-        # Determine if we should reset immediately
-        should_reset_immediately = False
+        completion_criteria = chore_data.get(
+            const.DATA_CHORE_COMPLETION_CRITERIA,
+            const.COMPLETION_CRITERIA_INDEPENDENT,
+        )
+        all_kids_approved = completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT
+        if completion_criteria != const.COMPLETION_CRITERIA_INDEPENDENT:
+            all_kids_approved = self._all_kids_approved(chore_id, kids_assigned)
 
-        if approval_reset == const.APPROVAL_RESET_UPON_COMPLETION:
-            should_reset_immediately = True
-        elif (
-            overdue_handling
-            == const.OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_IMMEDIATE_ON_LATE
-            and self._is_chore_approval_after_reset(chore_data, kid_id)
-        ):
-            # immediate_on_late: Reset to PENDING if approval is after reset boundary
-            should_reset_immediately = True
+        approval_context = self._build_reset_context(
+            trigger=const.CHORE_RESET_TRIGGER_APPROVAL,
+            approval_reset_type=approval_reset,
+            overdue_handling_type=overdue_handling,
+            completion_criteria=completion_criteria,
+            all_kids_approved=all_kids_approved,
+            approval_after_reset=self._is_chore_approval_after_reset(
+                chore_data, kid_id
+            ),
+        )
+        reset_decision = self._decide_reset_action(approval_context)
+        should_reset_immediately = reset_decision != const.CHORE_RESET_DECISION_HOLD
 
         if should_reset_immediately:
-            # Get completion criteria to determine reset strategy
-            completion_criteria = chore_data.get(
-                const.DATA_CHORE_COMPLETION_CRITERIA,
-                const.COMPLETION_CRITERIA_INDEPENDENT,
-            )
-
-            # INDEPENDENT: Reset only the current kid, reschedule only their due date
             if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
-                self._transition_chore_state(
-                    kid_id,
-                    chore_id,
-                    const.CHORE_STATE_PENDING,
-                    reset_approval_period=True,
-                    clear_ownership=True,
+                self._apply_reset_action(
+                    {
+                        "kid_id": kid_id,
+                        "chore_id": chore_id,
+                        "decision": reset_decision,
+                        "reschedule_kid_id": kid_id,
+                    }
                 )
                 self._update_global_state(chore_id)
-                self._reschedule_chore_due(chore_id, kid_id)
 
-            # SHARED/SHARED_FIRST: Only reset when ALL assigned kids have approved
-            elif self._all_kids_approved(chore_id, kids_assigned):
+            elif all_kids_approved:
                 # Set chore-level approval_period_start ONCE for SHARED/SHARED_FIRST
                 # Use FRESH timestamp to ensure it's AFTER last_approved
                 reset_period_start = dt_now_iso()
                 chore_data[const.DATA_CHORE_APPROVAL_PERIOD_START] = reset_period_start
                 for assigned_kid_id in kids_assigned:
                     if assigned_kid_id:
-                        self._transition_chore_state(
-                            assigned_kid_id,
-                            chore_id,
-                            const.CHORE_STATE_PENDING,
-                            clear_ownership=True,
+                        self._apply_reset_action(
+                            {
+                                "kid_id": assigned_kid_id,
+                                "chore_id": chore_id,
+                                "decision": reset_decision,
+                                "reschedule_kid_id": None,
+                                "allow_reschedule": False,
+                            }
                         )
                 self._update_global_state(chore_id)
-                self._reschedule_chore_due(chore_id)
+                if reset_decision == const.CHORE_RESET_DECISION_RESET_AND_RESCHEDULE:
+                    self._reschedule_chore_due(chore_id)
 
         # === NON-RECURRING PAST-DUE GUARD (Phase 1) ===
         # For FREQUENCY_NONE chores that just reset via UPON_COMPLETION:
@@ -1449,6 +1462,124 @@ class ChoreManager(BaseManager):
     # §2 TIME TRIGGER ACTIONS FOR DUE DATE AND APPROVAL RESET HANDLING
     # =========================================================================
 
+    def _build_reset_context(
+        self,
+        *,
+        trigger: ResetTrigger,
+        approval_reset_type: str,
+        overdue_handling_type: str,
+        completion_criteria: str,
+        all_kids_approved: bool = False,
+        approval_after_reset: bool = False,
+        boundary_category: ResetBoundaryCategory | None = None,
+        has_pending_claim: bool = False,
+        pending_claim_action: str = const.APPROVAL_RESET_PENDING_CLAIM_CLEAR,
+    ) -> ResetContext:
+        """Build reset policy context from lane-specific inputs."""
+        return {
+            "trigger": trigger,
+            "approval_reset_type": approval_reset_type,
+            "overdue_handling_type": overdue_handling_type,
+            "completion_criteria": completion_criteria,
+            "all_kids_approved": all_kids_approved,
+            "approval_after_reset": approval_after_reset,
+            "boundary_category": boundary_category,
+            "has_pending_claim": has_pending_claim,
+            "pending_claim_action": pending_claim_action,
+        }
+
+    def _apply_reset_action(self, context: ResetApplyContext) -> None:
+        """Apply reset side effects for a single kid/chore pair."""
+        kid_id = context["kid_id"]
+        chore_id = context["chore_id"]
+        decision = context["decision"]
+        reschedule_kid_id = context["reschedule_kid_id"]
+        allow_reschedule = context.get("allow_reschedule", True)
+
+        self._transition_chore_state(
+            kid_id,
+            chore_id,
+            const.CHORE_STATE_PENDING,
+            reset_approval_period=True,
+            clear_ownership=True,
+        )
+
+        if (
+            allow_reschedule
+            and decision == const.CHORE_RESET_DECISION_RESET_AND_RESCHEDULE
+        ):
+            self._reschedule_chore_due(chore_id, reschedule_kid_id)
+
+    def _finalize_reset_batch(
+        self,
+        *,
+        persist: bool,
+        reset_count: int,
+        rotation_payloads: list[dict[str, Any]] | None,
+    ) -> None:
+        """Finalize reset batch with persist/update and deferred signal emit."""
+        if not persist or reset_count <= 0:
+            return
+
+        self._coordinator._persist()
+        self._coordinator.async_set_updated_data(self._coordinator._data)
+
+        if rotation_payloads:
+            for payload in rotation_payloads:
+                self.emit(const.SIGNAL_SUFFIX_CHORE_ROTATION_ADVANCED, **payload)
+
+    @staticmethod
+    def _decide_reset_action(context: ResetContext) -> ResetDecision:
+        """Decide reset action from shared policy context."""
+        trigger = context.get("trigger")
+
+        if trigger == const.CHORE_RESET_TRIGGER_APPROVAL:
+            approval_reset_type = context.get("approval_reset_type")
+            overdue_handling_type = context.get("overdue_handling_type")
+            approval_after_reset = context.get("approval_after_reset", False)
+            completion_criteria = context.get(
+                "completion_criteria",
+                const.COMPLETION_CRITERIA_INDEPENDENT,
+            )
+
+            should_reset_immediately = False
+            if approval_reset_type == const.APPROVAL_RESET_UPON_COMPLETION or (
+                overdue_handling_type
+                == const.OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_IMMEDIATE_ON_LATE
+                and approval_after_reset
+            ):
+                should_reset_immediately = True
+
+            if not should_reset_immediately:
+                return const.CHORE_RESET_DECISION_HOLD
+
+            if completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT:
+                return const.CHORE_RESET_DECISION_RESET_AND_RESCHEDULE
+
+            if context.get("all_kids_approved", False):
+                return const.CHORE_RESET_DECISION_RESET_AND_RESCHEDULE
+            return const.CHORE_RESET_DECISION_HOLD
+
+        boundary_category = context.get("boundary_category")
+        if boundary_category is None or (
+            boundary_category == const.CHORE_RESET_BOUNDARY_CATEGORY_HOLD
+        ):
+            return const.CHORE_RESET_DECISION_HOLD
+
+        if context.get("has_pending_claim", False):
+            pending_claim_action = context.get(
+                "pending_claim_action",
+                const.APPROVAL_RESET_PENDING_CLAIM_CLEAR,
+            )
+            if pending_claim_action == const.APPROVAL_RESET_PENDING_CLAIM_HOLD:
+                return const.CHORE_RESET_DECISION_HOLD
+            if pending_claim_action == const.APPROVAL_RESET_PENDING_CLAIM_AUTO_APPROVE:
+                return const.CHORE_RESET_DECISION_AUTO_APPROVE_PENDING
+
+        if boundary_category == const.CHORE_RESET_BOUNDARY_CATEGORY_CLEAR_ONLY:
+            return const.CHORE_RESET_DECISION_RESET_ONLY
+        return const.CHORE_RESET_DECISION_RESET_AND_RESCHEDULE
+
     def process_time_checks(
         self, now_utc: datetime, trigger: str = const.CHORE_SCAN_TRIGGER_DUE_DATE
     ) -> dict[str, list[ChoreTimeEntry]]:
@@ -1616,9 +1747,10 @@ class ChoreManager(BaseManager):
                 # ─── INDEPENDENT RESET CHECK (per-kid due_date) ───
                 # For AT_MIDNIGHT_*: Include if no due date OR past due date
                 # For AT_DUE_DATE_*: Only process if past due date
-                if (
-                    should_process_reset
-                    and completion_criteria == const.COMPLETION_CRITERIA_INDEPENDENT
+                if should_process_reset and completion_criteria in (
+                    const.COMPLETION_CRITERIA_INDEPENDENT,
+                    const.COMPLETION_CRITERIA_ROTATION_SIMPLE,
+                    const.COMPLETION_CRITERIA_ROTATION_SMART,
                 ):
                     # Determine if this kid should be included in reset scan
                     include_kid_in_reset = False
@@ -1919,11 +2051,13 @@ class ChoreManager(BaseManager):
         """
         reset_count = 0
         reset_pairs: set[tuple[str, str]] = set()
+        rotation_payloads: list[dict[str, Any]] = []
 
         # Process SHARED/SHARED_FIRST chores
-        for entry in scan.get("approval_reset_shared", []):
+        for entry in scan.get(const.CHORE_SCAN_RESULT_APPROVAL_RESET_SHARED, []):
             chore_id = entry["chore_id"]
             chore_info = entry["chore_info"]
+            should_reschedule_shared = False
 
             # Get chore-level state
             current_state = chore_info.get(
@@ -1937,22 +2071,65 @@ class ChoreManager(BaseManager):
                 trigger=trigger,
             )
 
-            if category is None or category == "hold":
-                continue
-
             # Reset all assigned kids
             assigned_kids = chore_info.get(const.DATA_CHORE_ASSIGNED_KIDS, [])
             for kid_id in assigned_kids:
                 if not kid_id:
                     continue
 
+                has_pending_claim = self.chore_has_pending_claim(kid_id, chore_id)
+                pending_claim_action = chore_info.get(
+                    const.DATA_CHORE_APPROVAL_RESET_PENDING_CLAIM_ACTION,
+                    const.APPROVAL_RESET_PENDING_CLAIM_CLEAR,
+                )
+                decision = self._decide_reset_action(
+                    self._build_reset_context(
+                        trigger=cast("ResetTrigger", trigger),
+                        approval_reset_type=chore_info.get(
+                            const.DATA_CHORE_APPROVAL_RESET_TYPE,
+                            const.DEFAULT_APPROVAL_RESET_TYPE,
+                        ),
+                        overdue_handling_type=chore_info.get(
+                            const.DATA_CHORE_OVERDUE_HANDLING_TYPE,
+                            const.DEFAULT_OVERDUE_HANDLING_TYPE,
+                        ),
+                        completion_criteria=chore_info.get(
+                            const.DATA_CHORE_COMPLETION_CRITERIA,
+                            const.COMPLETION_CRITERIA_INDEPENDENT,
+                        ),
+                        boundary_category=cast(
+                            "ResetBoundaryCategory | None",
+                            category,
+                        ),
+                        has_pending_claim=has_pending_claim,
+                        pending_claim_action=pending_claim_action,
+                    )
+                )
+
+                if decision == const.CHORE_RESET_DECISION_HOLD:
+                    continue
+
                 kid_chore_data = self._get_kid_chore_data(kid_id, chore_id)
 
                 # Handle pending claims (HOLD/CLEAR/AUTO_APPROVE)
-                if await self._handle_pending_chore_claim_at_reset(
-                    kid_id, chore_id, chore_info, kid_chore_data
+                if has_pending_claim and decision in (
+                    const.CHORE_RESET_DECISION_AUTO_APPROVE_PENDING,
+                    const.CHORE_RESET_DECISION_RESET_ONLY,
+                    const.CHORE_RESET_DECISION_RESET_AND_RESCHEDULE,
                 ):
-                    continue  # HOLD action - skip reset for this kid
+                    if await self._handle_pending_chore_claim_at_reset(
+                        kid_id, chore_id, chore_info, kid_chore_data
+                    ):
+                        continue  # HOLD action - skip reset for this kid
+
+                effective_decision = decision
+                if decision == const.CHORE_RESET_DECISION_AUTO_APPROVE_PENDING:
+                    if category == const.CHORE_RESET_BOUNDARY_CATEGORY_CLEAR_ONLY:
+                        effective_decision = const.CHORE_RESET_DECISION_RESET_ONLY
+                    else:
+                        effective_decision = (
+                            const.CHORE_RESET_DECISION_RESET_AND_RESCHEDULE
+                        )
 
                 # Record miss if chore was overdue and mark-missed is enabled
                 if current_state == const.CHORE_STATE_OVERDUE:
@@ -1989,27 +2166,32 @@ class ChoreManager(BaseManager):
                                 )
                                 # Collect payloads for batch emission after persist
                                 if rotation_payload:
-                                    if "rotation_payloads" not in locals():
-                                        rotation_payloads = []
                                     rotation_payloads.append(rotation_payload)
 
-                self._transition_chore_state(
-                    kid_id,
-                    chore_id,
-                    const.CHORE_STATE_PENDING,
-                    reset_approval_period=True,
-                    clear_ownership=True,
+                self._apply_reset_action(
+                    {
+                        "kid_id": kid_id,
+                        "chore_id": chore_id,
+                        "decision": effective_decision,
+                        "reschedule_kid_id": None,
+                        "allow_reschedule": False,
+                    }
                 )
 
-                # Reschedule if category indicates rescheduling is needed
-                if category == "reset_and_reschedule":
-                    self._reschedule_chore_due(chore_id)
+                if (
+                    effective_decision
+                    == const.CHORE_RESET_DECISION_RESET_AND_RESCHEDULE
+                ):
+                    should_reschedule_shared = True
 
                 reset_count += 1
                 reset_pairs.add((kid_id, chore_id))
 
+            if should_reschedule_shared:
+                self._reschedule_chore_due(chore_id)
+
         # Process INDEPENDENT chores
-        for entry in scan.get("approval_reset_independent", []):
+        for entry in scan.get(const.CHORE_SCAN_RESULT_APPROVAL_RESET_INDEPENDENT, []):
             chore_id = entry["chore_id"]
             chore_info = entry["chore_info"]
             kid_entries = entry.get("kids", [])
@@ -2034,16 +2216,59 @@ class ChoreManager(BaseManager):
                     trigger=trigger,
                 )
 
-                if category is None or category == "hold":
+                has_pending_claim = self.chore_has_pending_claim(kid_id, chore_id)
+                pending_claim_action = chore_info.get(
+                    const.DATA_CHORE_APPROVAL_RESET_PENDING_CLAIM_ACTION,
+                    const.APPROVAL_RESET_PENDING_CLAIM_CLEAR,
+                )
+                decision = self._decide_reset_action(
+                    self._build_reset_context(
+                        trigger=cast("ResetTrigger", trigger),
+                        approval_reset_type=chore_info.get(
+                            const.DATA_CHORE_APPROVAL_RESET_TYPE,
+                            const.DEFAULT_APPROVAL_RESET_TYPE,
+                        ),
+                        overdue_handling_type=chore_info.get(
+                            const.DATA_CHORE_OVERDUE_HANDLING_TYPE,
+                            const.DEFAULT_OVERDUE_HANDLING_TYPE,
+                        ),
+                        completion_criteria=chore_info.get(
+                            const.DATA_CHORE_COMPLETION_CRITERIA,
+                            const.COMPLETION_CRITERIA_INDEPENDENT,
+                        ),
+                        boundary_category=cast(
+                            "ResetBoundaryCategory | None",
+                            category,
+                        ),
+                        has_pending_claim=has_pending_claim,
+                        pending_claim_action=pending_claim_action,
+                    )
+                )
+
+                if decision == const.CHORE_RESET_DECISION_HOLD:
                     continue
 
                 kid_chore_data = self._get_kid_chore_data(kid_id, chore_id)
 
                 # Handle pending claims (HOLD/CLEAR/AUTO_APPROVE)
-                if await self._handle_pending_chore_claim_at_reset(
-                    kid_id, chore_id, chore_info, kid_chore_data
+                if has_pending_claim and decision in (
+                    const.CHORE_RESET_DECISION_AUTO_APPROVE_PENDING,
+                    const.CHORE_RESET_DECISION_RESET_ONLY,
+                    const.CHORE_RESET_DECISION_RESET_AND_RESCHEDULE,
                 ):
-                    continue  # HOLD action - skip reset for this kid
+                    if await self._handle_pending_chore_claim_at_reset(
+                        kid_id, chore_id, chore_info, kid_chore_data
+                    ):
+                        continue  # HOLD action - skip reset for this kid
+
+                effective_decision = decision
+                if decision == const.CHORE_RESET_DECISION_AUTO_APPROVE_PENDING:
+                    if category == const.CHORE_RESET_BOUNDARY_CATEGORY_CLEAR_ONLY:
+                        effective_decision = const.CHORE_RESET_DECISION_RESET_ONLY
+                    else:
+                        effective_decision = (
+                            const.CHORE_RESET_DECISION_RESET_AND_RESCHEDULE
+                        )
 
                 # Record miss if chore was overdue and mark-missed is enabled
                 if kid_state == const.CHORE_STATE_OVERDUE:
@@ -2056,6 +2281,22 @@ class ChoreManager(BaseManager):
                         == const.OVERDUE_HANDLING_AT_DUE_DATE_CLEAR_AND_MARK_MISSED
                     ):
                         self._record_chore_missed(kid_id, chore_id)
+
+                # Rotation chores: on boundary reset of an approved turn holder,
+                # advance to the next turn once per completed cycle.
+                if (
+                    kid_state == const.CHORE_STATE_APPROVED
+                    and ChoreEngine.is_rotation_mode(chore_info)
+                ):
+                    current_turn_holder = chore_info.get(
+                        const.DATA_CHORE_ROTATION_CURRENT_KID_ID
+                    )
+                    if current_turn_holder == kid_id:
+                        rotation_payload = self._advance_rotation(
+                            chore_id, kid_id, method="auto"
+                        )
+                        if rotation_payload:
+                            rotation_payloads.append(rotation_payload)
 
                 # Phase 3 Step 3: Clear MISSED lock at midnight for mark_missed_and_lock strategy
                 if kid_state == const.CHORE_STATE_MISSED:
@@ -2079,25 +2320,17 @@ class ChoreManager(BaseManager):
                                     chore_id, kid_id, method="auto"
                                 )
                                 # Collect payloads for batch emission after persist
-                                if (
-                                    rotation_payload
-                                    and "rotation_payloads" not in locals()
-                                ):
-                                    rotation_payloads = []
                                 if rotation_payload:
                                     rotation_payloads.append(rotation_payload)
 
-                self._transition_chore_state(
-                    kid_id,
-                    chore_id,
-                    const.CHORE_STATE_PENDING,
-                    reset_approval_period=True,
-                    clear_ownership=True,
+                self._apply_reset_action(
+                    {
+                        "kid_id": kid_id,
+                        "chore_id": chore_id,
+                        "decision": effective_decision,
+                        "reschedule_kid_id": kid_id,
+                    }
                 )
-
-                # Reschedule if category indicates rescheduling is needed
-                if category == "reset_and_reschedule":
-                    self._reschedule_chore_due(chore_id, kid_id)
 
                 reset_count += 1
                 reset_pairs.add((kid_id, chore_id))
@@ -2109,15 +2342,11 @@ class ChoreManager(BaseManager):
                 reset_count,
             )
 
-        # Conditional persist (batching pattern)
-        if persist and reset_count > 0:
-            self._coordinator._persist()
-            self._coordinator.async_set_updated_data(self._coordinator._data)
-
-            # Emit rotation signals after successful persist
-            if "rotation_payloads" in locals():
-                for payload in rotation_payloads:
-                    self.emit(const.SIGNAL_SUFFIX_CHORE_ROTATION_ADVANCED, **payload)
+        self._finalize_reset_batch(
+            persist=persist,
+            reset_count=reset_count,
+            rotation_payloads=rotation_payloads,
+        )
 
         return reset_count, reset_pairs
 
@@ -3551,6 +3780,16 @@ class ChoreManager(BaseManager):
         # SHARED_FIRST blocking is now computed dynamically in can_claim_chore()
         # instead of being stored as completed_by_other state
 
+        # Capture completed_by before optional ownership clear.
+        # Rotation advancement on reset needs this value even when
+        # clear_ownership=True for fresh-cycle transitions.
+        completed_by_kid_id = None
+        completed_by = chore_info.get(const.DATA_CHORE_COMPLETED_BY)
+        if isinstance(completed_by, str):
+            completed_by_kid_id = completed_by
+        elif isinstance(completed_by, list) and completed_by:
+            completed_by_kid_id = completed_by[0]
+
         # Clear ownership tracking for fresh cycle
         if clear_ownership:
             kid_chore_data.pop(const.DATA_CHORE_CLAIMED_BY, None)
@@ -3579,17 +3818,6 @@ class ChoreManager(BaseManager):
         # (Rotation advances at approval reset boundary, NOT on approval)
         rotation_signal_payload = None
         if new_state == const.CHORE_STATE_PENDING and reset_approval_period:
-            # Find the kid who completed this cycle (for rotation advancement)
-            # Use completed_by from chore_info before clear_ownership wipes it
-            completed_by_kid_id = None
-            if not clear_ownership:
-                # If ownership not cleared yet, get from current data
-                completed_by = chore_info.get(const.DATA_CHORE_COMPLETED_BY)
-                if isinstance(completed_by, str):
-                    completed_by_kid_id = completed_by
-                elif isinstance(completed_by, list) and completed_by:
-                    completed_by_kid_id = completed_by[0]
-
             # Advance rotation (returns payload for signal emission after persist)
             if completed_by_kid_id:
                 rotation_signal_payload = self._advance_rotation(

@@ -29,6 +29,7 @@ from tests.helpers import (
     CHORE_STATE_APPROVED_IN_PART,
     CHORE_STATE_CLAIMED,
     CHORE_STATE_CLAIMED_IN_PART,
+    CHORE_STATE_INDEPENDENT,
     CHORE_STATE_PENDING,
     CHORE_STATE_UNKNOWN,
     # Phase 2: DATA_KID_COMPLETED_BY_OTHER_CHORES removed (was line 38)
@@ -745,3 +746,77 @@ class TestGlobalStateConsistency:
             get_global_chore_state(coordinator, chore_id)
             == CHORE_STATE_APPROVED_IN_PART
         )
+
+    @pytest.mark.asyncio
+    async def test_shared_all_three_kid_transition_matrix_sequence(
+        self,
+        hass: HomeAssistant,
+        scenario_shared: SetupResult,
+    ) -> None:
+        """Shared_all 3-kid sequence follows expected claimed/approved transitions."""
+        coordinator = scenario_shared.coordinator
+        zoe_id = scenario_shared.kid_ids["Zoë"]
+        max_id = scenario_shared.kid_ids["Max!"]
+        lila_id = scenario_shared.kid_ids["Lila"]
+        chore_id = scenario_shared.chore_ids["Family dinner cleanup"]
+
+        observed: list[str] = [get_global_chore_state(coordinator, chore_id)]
+
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.claim_chore(zoe_id, chore_id, "Zoë")
+            observed.append(get_global_chore_state(coordinator, chore_id))
+
+            await coordinator.chore_manager.claim_chore(max_id, chore_id, "Max!")
+            observed.append(get_global_chore_state(coordinator, chore_id))
+
+            await coordinator.chore_manager.claim_chore(lila_id, chore_id, "Lila")
+            observed.append(get_global_chore_state(coordinator, chore_id))
+
+            await coordinator.chore_manager.approve_chore("Mom", zoe_id, chore_id)
+            observed.append(get_global_chore_state(coordinator, chore_id))
+
+            await coordinator.chore_manager.approve_chore("Mom", max_id, chore_id)
+            observed.append(get_global_chore_state(coordinator, chore_id))
+
+            await coordinator.chore_manager.approve_chore("Mom", lila_id, chore_id)
+            observed.append(get_global_chore_state(coordinator, chore_id))
+
+        assert observed[0] == CHORE_STATE_PENDING
+        assert observed[1] == CHORE_STATE_CLAIMED_IN_PART
+        assert observed[2] == CHORE_STATE_CLAIMED_IN_PART
+        assert observed[3] == CHORE_STATE_CLAIMED
+        assert observed[4] == CHORE_STATE_APPROVED_IN_PART
+        assert observed[5] == CHORE_STATE_APPROVED_IN_PART
+        assert observed[6] == CHORE_STATE_APPROVED
+
+    @pytest.mark.asyncio
+    async def test_rotation_global_state_tracks_claim_without_losing_single_turn_pending(
+        self,
+        hass: HomeAssistant,
+        scenario_shared: SetupResult,
+    ) -> None:
+        """Rotation chore keeps one pending turn holder and global independent on claim."""
+        coordinator = scenario_shared.coordinator
+        chore_id = scenario_shared.chore_ids["Dishes Rotation"]
+        assigned_kids = coordinator.chores_data[chore_id][DATA_CHORE_ASSIGNED_KIDS]
+
+        turn_holder = None
+        for kid_id in assigned_kids:
+            can_claim, _ = coordinator.chore_manager.can_claim_chore(kid_id, chore_id)
+            if can_claim:
+                turn_holder = kid_id
+                break
+
+        assert turn_holder is not None
+        assert get_global_chore_state(coordinator, chore_id) == CHORE_STATE_PENDING
+
+        with patch.object(
+            coordinator.notification_manager, "notify_kid", new=AsyncMock()
+        ):
+            await coordinator.chore_manager.claim_chore(
+                turn_holder, chore_id, "Turn Kid"
+            )
+
+        assert get_global_chore_state(coordinator, chore_id) == CHORE_STATE_INDEPENDENT
