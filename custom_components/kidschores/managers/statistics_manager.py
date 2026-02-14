@@ -38,7 +38,7 @@ from typing import TYPE_CHECKING, Any, cast
 from homeassistant.core import callback
 
 from .. import const
-from ..utils.dt_utils import dt_now_local, dt_parse
+from ..utils.dt_utils import dt_add_interval, dt_now_local, dt_parse
 from .base_manager import BaseManager
 
 if TYPE_CHECKING:
@@ -1567,6 +1567,189 @@ class StatisticsManager(BaseManager):
             Kid data dict or None if not found
         """
         return self._coordinator.kids_data.get(kid_id)  # type: ignore[return-value]
+
+    def get_badge_scoped_today_stats(
+        self,
+        kid_id: str,
+        tracked_chores: list[str],
+        *,
+        today_iso: str,
+        current_badge_progress: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Get badge-scoped daily stats for gamification evaluation.
+
+        Tenant-owned period read helper for GamificationManager.
+        Reads chore period buckets and returns normalized stats required by
+        GamificationEngine runtime context.
+
+        Args:
+            kid_id: Kid internal ID.
+            tracked_chores: Chore IDs in scope for current badge.
+            today_iso: Today date key (YYYY-MM-DD).
+            current_badge_progress: Current per-badge progress for streak gate.
+
+        Returns:
+            Dict with keys: today_points, today_approved, total_earned,
+            streak_yesterday.
+        """
+        kid_info = self._get_kid(kid_id)
+        if not kid_info:
+            return {
+                "today_points": 0.0,
+                "today_approved": 0,
+                "total_earned": 0.0,
+                "streak_yesterday": False,
+            }
+
+        chore_data = cast("dict[str, Any]", kid_info.get(const.DATA_KID_CHORE_DATA, {}))
+
+        total_earned = 0.0
+        today_points = 0.0
+        today_approved = 0
+
+        for chore_id in tracked_chores:
+            chore_entry = cast("dict[str, Any]", chore_data.get(chore_id, {}))
+            periods = cast(
+                "dict[str, Any]",
+                chore_entry.get(const.DATA_KID_CHORE_DATA_PERIODS, {}),
+            )
+
+            total_earned += float(
+                self._stats_engine.get_period_total(
+                    periods,
+                    const.PERIOD_ALL_TIME,
+                    const.DATA_KID_CHORE_DATA_PERIOD_POINTS,
+                )
+            )
+            today_points += float(
+                self._stats_engine.get_period_total(
+                    periods,
+                    const.PERIOD_DAILY,
+                    const.DATA_KID_CHORE_DATA_PERIOD_POINTS,
+                    period_key=today_iso,
+                )
+            )
+            today_approved += int(
+                self._stats_engine.get_period_total(
+                    periods,
+                    const.PERIOD_DAILY,
+                    const.DATA_KID_CHORE_DATA_PERIOD_APPROVED,
+                    period_key=today_iso,
+                )
+            )
+
+        progress = current_badge_progress or {}
+        yesterday_iso = dt_add_interval(
+            today_iso,
+            interval_unit=const.TIME_UNIT_DAYS,
+            delta=-1,
+            return_type=const.HELPER_RETURN_ISO_DATE,
+        )
+        streak_yesterday = (
+            str(progress.get(const.DATA_KID_BADGE_PROGRESS_LAST_UPDATE_DAY, ""))
+            == str(yesterday_iso)
+            and int(progress.get(const.DATA_KID_BADGE_PROGRESS_DAYS_CYCLE_COUNT, 0)) > 0
+        )
+
+        return {
+            "today_points": today_points,
+            "today_approved": today_approved,
+            "total_earned": total_earned,
+            "streak_yesterday": streak_yesterday,
+        }
+
+    def get_badge_scoped_today_completion(
+        self,
+        kid_id: str,
+        tracked_chores: list[str],
+        *,
+        today_iso: str,
+        only_due_today: bool,
+    ) -> dict[str, Any]:
+        """Get badge-scoped completion snapshot for today.
+
+        Tenant-owned period read helper for GamificationManager.
+
+        Args:
+            kid_id: Kid internal ID.
+            tracked_chores: Chore IDs in scope for current badge.
+            today_iso: Today date key (YYYY-MM-DD).
+            only_due_today: If True, include only chores due today.
+
+        Returns:
+            Dict with keys: approved_count, total_count, has_overdue.
+        """
+        kid_info = self._get_kid(kid_id)
+        if not kid_info:
+            return {
+                "approved_count": 0,
+                "total_count": 0,
+                "has_overdue": False,
+            }
+
+        chore_data = cast("dict[str, Any]", kid_info.get(const.DATA_KID_CHORE_DATA, {}))
+
+        approved_count = 0
+        total_count = 0
+        has_overdue = False
+
+        for chore_id in tracked_chores:
+            chore_info = cast(
+                "dict[str, Any]", self.coordinator.chores_data.get(chore_id, {})
+            )
+            if only_due_today and not self._is_chore_due_today_for_kid(
+                chore_info, kid_id, today_iso
+            ):
+                continue
+
+            chore_entry = cast("dict[str, Any]", chore_data.get(chore_id, {}))
+            periods = cast(
+                "dict[str, Any]",
+                chore_entry.get(const.DATA_KID_CHORE_DATA_PERIODS, {}),
+            )
+
+            total_count += 1
+
+            approved_today = int(
+                self._stats_engine.get_period_total(
+                    periods,
+                    const.PERIOD_DAILY,
+                    const.DATA_KID_CHORE_DATA_PERIOD_APPROVED,
+                    period_key=today_iso,
+                )
+            )
+            if approved_today > 0:
+                approved_count += 1
+
+            if (
+                chore_entry.get(const.DATA_KID_CHORE_DATA_STATE)
+                == const.CHORE_STATE_OVERDUE
+            ):
+                has_overdue = True
+
+        return {
+            "approved_count": approved_count,
+            "total_count": total_count,
+            "has_overdue": has_overdue,
+        }
+
+    def _is_chore_due_today_for_kid(
+        self,
+        chore_info: dict[str, Any],
+        kid_id: str,
+        today_iso: str,
+    ) -> bool:
+        """Return True if chore due date for this kid matches today."""
+        per_kid_due_dates = cast(
+            "dict[str, str | None]",
+            chore_info.get(const.DATA_CHORE_PER_KID_DUE_DATES, {}),
+        )
+        due_date = per_kid_due_dates.get(kid_id) or chore_info.get(
+            const.DATA_CHORE_DUE_DATE
+        )
+        if not isinstance(due_date, str):
+            return False
+        return due_date[:10] == today_iso
 
     # =========================================================================
     # Presentation Cache Methods

@@ -991,6 +991,42 @@ class PreV50Migrator:
             converted_per_kid,
         )
 
+    def _cleanup_legacy_kid_chore_badge_refs(self) -> None:
+        """Remove legacy badge_refs from kid chore records.
+
+        SCHEMA 44 MIGRATION (v0.5.0-beta4):
+        - Legacy field: kid_chore_data.<chore_id>.badge_refs
+        - Current architecture: badge scope is resolved dynamically from badge
+          definitions and assignment, so this denormalized cache is redundant.
+
+        This migration removes `badge_refs` from all kid chore records to reduce
+        storage churn and prevent stale reference data.
+        """
+        const.LOGGER.info(
+            "PreV50Migrator: Removing legacy badge_refs from kid chore records"
+        )
+
+        kids = self.coordinator._data.get(const.DATA_KIDS, {})
+        removed_count = 0
+
+        for kid_data in kids.values():
+            kid_chore_data = kid_data.get(const.DATA_KID_CHORE_DATA, {})
+            if not isinstance(kid_chore_data, dict):
+                continue
+
+            for chore_data in kid_chore_data.values():
+                if not isinstance(chore_data, dict):
+                    continue
+
+                if const.DATA_KID_CHORE_DATA_BADGE_REFS in chore_data:
+                    del chore_data[const.DATA_KID_CHORE_DATA_BADGE_REFS]
+                    removed_count += 1
+
+        const.LOGGER.info(
+            "PreV50Migrator: Removed badge_refs from %d kid chore records",
+            removed_count,
+        )
+
     def _migrate_to_schema_44(self) -> None:
         """Apply schema 44 (beta 4) tweaks.
 
@@ -1014,6 +1050,9 @@ class PreV50Migrator:
 
         # Convert string day names to integers in applicable_days (RecurrenceEngine fix)
         self._convert_applicable_days_to_integers()
+
+        # Remove legacy chore badge_refs from kid chore records
+        self._cleanup_legacy_kid_chore_badge_refs()
 
         # v0.5.0 Chore Logic: Backfill rotation fields for all chores
         self._backfill_rotation_fields()

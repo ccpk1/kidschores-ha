@@ -25,8 +25,22 @@
   "python.linting.pylintArgs": ["--rcfile=.pylintrc"],
 
   // Python language server settings
-  "python.analysis.diagnosticMode": "workspace",
+  "python.analysis.diagnosticMode": "openFilesOnly",
   "python.analysis.autoImportCompletions": true,
+  "python.analysis.exclude": [
+    "**/.venv/**",
+    "**/venv/**",
+    "**/.tox/**",
+    "**/__pycache__/**",
+    "**/.mypy_cache/**",
+    "**/.ruff_cache/**"
+  ],
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}",
+    "${workspaceFolder}/custom_components",
+    "${workspaceFolder}/tests",
+    "/workspaces/core"
+  ],
 
   // Test configuration
   "python.testing.pytestEnabled": true,

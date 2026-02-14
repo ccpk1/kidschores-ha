@@ -44,6 +44,7 @@ def make_context(
     has_overdue: bool = False,
     approved_all_time: int = 0,
     streak_yesterday: bool = False,
+    last_update_day: str | None = None,
     today_iso: str | None = None,
     cumulative_baseline: float = 0.0,
     cumulative_cycle_points: float = 0.0,
@@ -62,6 +63,7 @@ def make_context(
                 const.DATA_KID_BADGE_PROGRESS_POINTS_CYCLE_COUNT: points_cycle_count,
                 const.DATA_KID_BADGE_PROGRESS_CHORES_CYCLE_COUNT: chores_cycle_count,
                 const.DATA_KID_BADGE_PROGRESS_DAYS_CYCLE_COUNT: days_cycle_count,
+                const.DATA_KID_BADGE_PROGRESS_LAST_UPDATE_DAY: last_update_day,
             },
             "today_stats": {
                 "today_points": today_points,
@@ -394,6 +396,72 @@ class TestEvaluateDailyCompletion:
 
         assert result["met"] is False
 
+    def test_same_day_re_evaluation_is_idempotent(self) -> None:
+        """Same-day re-evaluation does not increment daily cycle twice."""
+        context = make_context(
+            days_cycle_count=6,
+            approved_count=10,
+            total_count=10,
+            today_iso="2026-02-13",
+            last_update_day="2026-02-13",
+        )
+        target = make_badge_target(threshold=7)
+
+        result = GamificationEngine._evaluate_daily_completion(
+            context,
+            target,
+            percent_required=1.0,
+            only_due_today=False,
+        )
+
+        assert result["current_value"] == 6
+        assert result["met"] is False
+
+    def test_due_only_path_uses_due_snapshot(self) -> None:
+        """Due-only evaluation reads today_completion_due values."""
+        context = make_context(
+            days_cycle_count=1,
+            approved_count=0,
+            total_count=0,
+        )
+        context["today_completion_due"] = {
+            "approved_count": 2,
+            "total_count": 2,
+            "has_overdue": False,
+        }
+        target = make_badge_target(threshold=2)
+
+        result = GamificationEngine._evaluate_daily_completion(
+            context,
+            target,
+            percent_required=1.0,
+            only_due_today=True,
+        )
+
+        assert result["current_value"] == 2
+        assert result["met"] is True
+
+    def test_no_overdue_variant_passes_when_none_overdue(self) -> None:
+        """No-overdue variant can pass when completion is met and overdue is false."""
+        context = make_context(
+            days_cycle_count=4,
+            approved_count=5,
+            total_count=5,
+            has_overdue=False,
+        )
+        target = make_badge_target(threshold=5)
+
+        result = GamificationEngine._evaluate_daily_completion(
+            context,
+            target,
+            percent_required=1.0,
+            only_due_today=False,
+            require_no_overdue=True,
+        )
+
+        assert result["current_value"] == 5
+        assert result["met"] is True
+
 
 # =============================================================================
 # TEST: _evaluate_streak
@@ -473,6 +541,84 @@ class TestEvaluateStreak:
 
         assert result["met"] is True
         assert result["current_value"] == 7
+
+    def test_streak_same_day_re_evaluation_is_idempotent(self) -> None:
+        """Same-day streak re-evaluation does not double increment."""
+        context = make_context(
+            days_cycle_count=6,
+            approved_count=10,
+            total_count=10,
+            streak_yesterday=True,
+            today_iso="2026-02-13",
+            last_update_day="2026-02-13",
+        )
+        target = make_badge_target(
+            target_type=const.BADGE_TARGET_THRESHOLD_TYPE_STREAK_SELECTED_CHORES,
+            threshold=7,
+        )
+
+        result = GamificationEngine._evaluate_streak(
+            context,
+            target,
+            percent_required=1.0,
+            only_due_today=False,
+        )
+
+        assert result["current_value"] == 6
+        assert result["met"] is False
+
+    def test_streak_due_only_path_uses_due_snapshot(self) -> None:
+        """Due-only streak evaluation reads today_completion_due values."""
+        context = make_context(
+            days_cycle_count=4,
+            approved_count=0,
+            total_count=0,
+            streak_yesterday=True,
+        )
+        context["today_completion_due"] = {
+            "approved_count": 3,
+            "total_count": 3,
+            "has_overdue": False,
+        }
+        target = make_badge_target(
+            target_type=const.BADGE_TARGET_THRESHOLD_TYPE_STREAK_80PCT_DUE_CHORES,
+            threshold=5,
+        )
+
+        result = GamificationEngine._evaluate_streak(
+            context,
+            target,
+            percent_required=1.0,
+            only_due_today=True,
+        )
+
+        assert result["current_value"] == 5
+        assert result["met"] is True
+
+    def test_streak_no_overdue_variant_fails_when_overdue(self) -> None:
+        """No-overdue streak variant fails when overdue chores exist."""
+        context = make_context(
+            days_cycle_count=6,
+            approved_count=10,
+            total_count=10,
+            has_overdue=True,
+            streak_yesterday=True,
+        )
+        target = make_badge_target(
+            target_type=const.BADGE_TARGET_THRESHOLD_TYPE_STREAK_SELECTED_CHORES_NO_OVERDUE,
+            threshold=7,
+        )
+
+        result = GamificationEngine._evaluate_streak(
+            context,
+            target,
+            percent_required=1.0,
+            only_due_today=False,
+            require_no_overdue=True,
+        )
+
+        assert result["current_value"] == 0
+        assert result["met"] is False
 
 
 # =============================================================================

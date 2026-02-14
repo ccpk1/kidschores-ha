@@ -676,22 +676,15 @@ class GamificationEngine:
         """
         threshold = target.get(const.DATA_BADGE_TARGET_THRESHOLD_VALUE, 0)
 
-        # Get cycle count from badge progress
-        # Using Any for flexibility with TypedDict vs dict access patterns
-        badge_progress: Any = context.get("current_badge_progress") or {}
-        cycle_count: int = badge_progress.get(
-            const.DATA_KID_BADGE_PROGRESS_DAYS_CYCLE_COUNT, 0
+        daily_status = GamificationEngine._resolve_daily_status(
+            context,
+            only_due_today=only_due_today,
         )
-
-        # Get pre-computed completion stats from context
-        # Key varies based on variant (due_today vs all_tracked)
-        completion_key = (
-            "today_completion_due" if only_due_today else "today_completion"
-        )
-        today_completion: Any = context.get(completion_key) or {}
-        approved_count = today_completion.get("approved_count", 0)
-        total_count = today_completion.get("total_count", 0)
-        has_overdue = today_completion.get("has_overdue", False)
+        cycle_count = int(daily_status.get("cycle_count", 0))
+        approved_count = int(daily_status.get("approved_count", 0))
+        total_count = int(daily_status.get("total_count", 0))
+        has_overdue = bool(daily_status.get("has_overdue", False))
+        already_counted_today = bool(daily_status.get("already_counted_today", False))
 
         # Determine if today meets criteria
         today_met = False
@@ -709,7 +702,7 @@ class GamificationEngine:
         # If today meets criteria, increment cycle (conceptually)
         # Actual cycle update happens in Manager
         if today_met:
-            current_value = cycle_count + 1
+            current_value = cycle_count if already_counted_today else cycle_count + 1
         else:
             current_value = cycle_count
 
@@ -868,25 +861,16 @@ class GamificationEngine:
         """
         threshold = target.get(const.DATA_BADGE_TARGET_THRESHOLD_VALUE, 0)
 
-        # Get cycle count from badge progress (for streaks, this is current streak)
-        # Using Any for flexibility with TypedDict vs dict access patterns
-        badge_progress: Any = context.get("current_badge_progress") or {}
-        cycle_count = badge_progress.get(
-            const.DATA_KID_BADGE_PROGRESS_DAYS_CYCLE_COUNT, 0
+        daily_status = GamificationEngine._resolve_daily_status(
+            context,
+            only_due_today=only_due_today,
         )
-
-        # Get pre-computed streak info from context
-        today_stats: Any = context.get("today_stats") or {}
-        streak_yesterday = today_stats.get("streak_yesterday", False)
-
-        # Get completion stats
-        completion_key = (
-            "today_completion_due" if only_due_today else "today_completion"
-        )
-        today_completion: Any = context.get(completion_key) or {}
-        approved_count = today_completion.get("approved_count", 0)
-        total_count = today_completion.get("total_count", 0)
-        has_overdue = today_completion.get("has_overdue", False)
+        cycle_count = int(daily_status.get("cycle_count", 0))
+        approved_count = int(daily_status.get("approved_count", 0))
+        total_count = int(daily_status.get("total_count", 0))
+        has_overdue = bool(daily_status.get("has_overdue", False))
+        streak_yesterday = bool(daily_status.get("streak_yesterday", False))
+        already_counted_today = bool(daily_status.get("already_counted_today", False))
 
         # Determine if today meets criteria
         today_met = False
@@ -903,7 +887,9 @@ class GamificationEngine:
         # - If today meets criteria but no yesterday streak: start new streak (1)
         # - If today doesn't meet criteria: streak breaks (0)
         if today_met:
-            if streak_yesterday:
+            if already_counted_today:
+                current_value = cycle_count
+            elif streak_yesterday:
                 current_value = cycle_count + 1
             else:
                 # Starting fresh streak today
@@ -1025,6 +1011,45 @@ class GamificationEngine:
             "criterion_results": criterion_results,
             "reason": reason,
             "evaluated_at": _today_iso(),
+        }
+
+    @staticmethod
+    def _resolve_daily_status(
+        context: EvaluationContext,
+        *,
+        only_due_today: bool,
+    ) -> dict[str, Any]:
+        """Resolve normalized daily state for day-count and streak evaluators."""
+        badge_progress: Any = context.get("current_badge_progress") or {}
+        cycle_count = int(
+            badge_progress.get(const.DATA_KID_BADGE_PROGRESS_DAYS_CYCLE_COUNT, 0)
+        )
+        last_update_day = str(
+            badge_progress.get(const.DATA_KID_BADGE_PROGRESS_LAST_UPDATE_DAY, "")
+        )
+        today_iso = str(context.get("today_iso") or _today_iso())
+        already_counted_today = last_update_day == today_iso
+
+        completion_key = (
+            "today_completion_due" if only_due_today else "today_completion"
+        )
+        today_completion: Any = context.get(completion_key) or {}
+        approved_count = int(today_completion.get("approved_count", 0))
+        total_count = int(today_completion.get("total_count", 0))
+        has_overdue = bool(today_completion.get("has_overdue", False))
+
+        today_stats: Any = context.get("today_stats") or {}
+        streak_yesterday = bool(today_stats.get("streak_yesterday", False))
+
+        return {
+            "cycle_count": cycle_count,
+            "last_update_day": last_update_day,
+            "today_iso": today_iso,
+            "already_counted_today": already_counted_today,
+            "approved_count": approved_count,
+            "total_count": total_count,
+            "has_overdue": has_overdue,
+            "streak_yesterday": streak_yesterday,
         }
 
     @staticmethod

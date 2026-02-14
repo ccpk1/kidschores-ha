@@ -1,6 +1,6 @@
 {
   "include": ["custom_components", "tests"],
-  "extraPaths": [".", "./custom_components", "./tests"],
+  "extraPaths": [".", "./custom_components", "./tests", "../core"],
   "exclude": [
     ".venv",
     "**/.venv/**",
@@ -9,7 +9,6 @@
     "**/node_modules",
     "**/__pycache__",
     ".git",
-    "**/core/**",
     "utils/**"
   ],
   "reportMissingImports": "warning",

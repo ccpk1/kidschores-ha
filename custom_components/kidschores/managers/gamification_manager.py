@@ -141,10 +141,68 @@ class GamificationManager(BaseManager):
             self._pending_evaluations.update(pending)
             self._schedule_evaluation()
 
+        normalized_count = self._normalize_all_scope_tracked_chores_storage()
+        if normalized_count > 0:
+            const.LOGGER.info(
+                "GamificationManager: Normalized %d legacy all-scope tracked_chores entries",
+                normalized_count,
+            )
+            self.coordinator._persist_and_update()
+
         const.LOGGER.debug(
             "GamificationManager initialized with %s second debounce",
             self._debounce_seconds,
         )
+
+    def _normalize_all_scope_tracked_chores_storage(self) -> int:
+        """Normalize legacy all-scope tracked_chores storage to empty selection lists.
+
+        For tracked-chores badge types, an empty selected_chores configuration
+        means "all chores". Older data may have materialized all chore UUIDs into
+        kid badge progress, which becomes stale as chores are added/removed.
+
+        Returns:
+            Number of kid badge_progress records normalized.
+        """
+        normalized = 0
+
+        for kid_info in self.coordinator.kids_data.values():
+            badge_progress = kid_info.get(const.DATA_KID_BADGE_PROGRESS)
+            if not isinstance(badge_progress, dict):
+                continue
+
+            for badge_id, progress in badge_progress.items():
+                if not isinstance(progress, dict):
+                    continue
+
+                badge_info = self.coordinator.badges_data.get(badge_id)
+                if not badge_info:
+                    continue
+
+                badge_type = badge_info.get(const.DATA_BADGE_TYPE)
+                if badge_type not in const.INCLUDE_TRACKED_CHORES_BADGE_TYPES:
+                    continue
+                if badge_type in const.INCLUDE_SPECIAL_OCCASION_BADGE_TYPES:
+                    continue
+
+                tracked_chores_cfg = badge_info.get(const.DATA_BADGE_TRACKED_CHORES, {})
+                selected_chores = tracked_chores_cfg.get(
+                    const.DATA_BADGE_TRACKED_CHORES_SELECTED_CHORES, []
+                )
+                tracked_chores = progress.get(
+                    const.DATA_KID_BADGE_PROGRESS_TRACKED_CHORES
+                )
+
+                if (
+                    isinstance(selected_chores, list)
+                    and len(selected_chores) == 0
+                    and isinstance(tracked_chores, list)
+                    and len(tracked_chores) > 0
+                ):
+                    progress[const.DATA_KID_BADGE_PROGRESS_TRACKED_CHORES] = []
+                    normalized += 1
+
+        return normalized
 
     def _on_stats_ready(self, payload: dict[str, Any]) -> None:
         """Handle startup cascade - initialize badge references after stats ready.
@@ -983,14 +1041,42 @@ class GamificationManager(BaseManager):
         if not kid_data:
             return
 
+        # Ensure periodic badge progress structure exists before evaluation.
+        self._ensure_kid_periodic_badge_structures(kid_id, badge_id, badge_data)
+
+        schedule_changed = self._advance_non_cumulative_badge_cycle_if_needed(
+            kid_id,
+            badge_id,
+            badge_data,
+            today_iso=context["today_iso"],
+        )
+        if schedule_changed:
+            self.coordinator._persist_and_update()
+
         badges_earned = kid_data.get(const.DATA_KID_BADGES_EARNED, {})
         already_earned = badge_id in badges_earned
 
         # Cast TypedDict to dict for engine
         badge_dict = cast("dict[str, Any]", badge_data)
 
+        runtime_context = self._build_badge_runtime_context(
+            context,
+            badge_id,
+            badge_data,
+        )
+
         # Periodic badges use same criteria for first award and re-awards
-        result = GamificationEngine.evaluate_badge(context, badge_dict)
+        result = GamificationEngine.evaluate_badge(runtime_context, badge_dict)
+
+        if self._persist_periodic_badge_progress(
+            kid_id,
+            badge_id,
+            badge_data,
+            result,
+            already_earned=already_earned,
+            today_iso=context["today_iso"],
+        ):
+            self.coordinator._persist_and_update()
 
         if result.get("criteria_met", False):
             if not already_earned:
@@ -998,10 +1084,437 @@ class GamificationManager(BaseManager):
                 await self._apply_periodic_first_award(
                     kid_id, badge_id, badge_data, result
                 )
+            # Re-award (increment award_count) once per cycle window
+            elif self._is_periodic_award_recorded_for_current_cycle(kid_id, badge_id):
+                const.LOGGER.debug(
+                    "Skipping periodic re-award for kid %s badge %s "
+                    "(already awarded in current cycle)",
+                    kid_id,
+                    badge_id,
+                )
             else:
-                # Re-award (increment award_count)
                 await self._apply_periodic_reaward(kid_id, badge_id, badge_data)
         # If criteria not met: do nothing (badge stays earned, no re-award)
+
+    def _is_periodic_award_recorded_for_current_cycle(
+        self,
+        kid_id: str,
+        badge_id: str,
+    ) -> bool:
+        """Return True if periodic badge already has an award recorded this cycle."""
+        kid_data = self.coordinator.kids_data.get(kid_id, {})
+
+        badges_earned = cast(
+            "dict[str, Any]", kid_data.get(const.DATA_KID_BADGES_EARNED, {})
+        )
+        badge_entry = cast("dict[str, Any]", badges_earned.get(badge_id, {}))
+        last_awarded_raw = badge_entry.get(
+            const.DATA_KID_BADGES_EARNED_LAST_AWARDED, ""
+        )
+        last_awarded_day = str(last_awarded_raw)[:10]
+        if not last_awarded_day:
+            return False
+
+        badge_progress_all = cast(
+            "dict[str, Any]", kid_data.get(const.DATA_KID_BADGE_PROGRESS, {})
+        )
+        progress = cast("dict[str, Any]", badge_progress_all.get(badge_id, {}))
+        start_date = str(progress.get(const.DATA_KID_BADGE_PROGRESS_START_DATE, ""))
+        end_date = str(progress.get(const.DATA_KID_BADGE_PROGRESS_END_DATE, ""))
+
+        if start_date and end_date:
+            return start_date <= last_awarded_day <= end_date
+
+        return last_awarded_day == dt_today_iso()
+
+    def _build_badge_runtime_context(
+        self,
+        base_context: EvaluationContext,
+        badge_id: str,
+        badge_data: BadgeData,
+    ) -> EvaluationContext:
+        """Build periodic badge runtime context using stats-owned period reads.
+
+        Args:
+            base_context: Base evaluation context for the kid.
+            badge_id: Badge internal ID.
+            badge_data: Badge definition.
+
+        Returns:
+            EvaluationContext augmented with per-badge runtime keys consumed
+            by GamificationEngine.
+        """
+        kid_id = base_context["kid_id"]
+        today_iso = base_context["today_iso"]
+
+        kid_data = self.coordinator.kids_data.get(kid_id, {})
+        badge_progress = cast(
+            "dict[str, Any]",
+            kid_data.get(const.DATA_KID_BADGE_PROGRESS, {}),
+        )
+        current_badge_progress = cast(
+            "dict[str, Any]", badge_progress.get(badge_id, {})
+        )
+
+        tracked_chores = self.get_badge_in_scope_chores_list(badge_data, kid_id)
+
+        today_stats = self.coordinator.statistics_manager.get_badge_scoped_today_stats(
+            kid_id,
+            tracked_chores,
+            today_iso=today_iso,
+            current_badge_progress=current_badge_progress,
+        )
+        today_completion = (
+            self.coordinator.statistics_manager.get_badge_scoped_today_completion(
+                kid_id,
+                tracked_chores,
+                today_iso=today_iso,
+                only_due_today=False,
+            )
+        )
+        today_completion_due = (
+            self.coordinator.statistics_manager.get_badge_scoped_today_completion(
+                kid_id,
+                tracked_chores,
+                today_iso=today_iso,
+                only_due_today=True,
+            )
+        )
+
+        runtime_context = cast("EvaluationContext", dict(base_context))
+        runtime_context["current_badge_progress"] = cast(
+            "KidBadgeProgress", current_badge_progress
+        )
+        runtime_context["today_stats"] = today_stats
+        runtime_context["today_completion"] = today_completion
+        runtime_context["today_completion_due"] = today_completion_due
+        return runtime_context
+
+    def _ensure_kid_periodic_badge_structures(
+        self,
+        kid_id: str,
+        badge_id: str,
+        badge_data: BadgeData,
+    ) -> None:
+        """Ensure non-cumulative badge progress structure exists for evaluation.
+
+        Mirrors landlord ensure patterns used by chore/reward/badge tracking by
+        creating missing containers before tenant/stat/evaluation logic reads them.
+
+        Args:
+            kid_id: Kid internal ID.
+            badge_id: Badge internal ID.
+            badge_data: Badge definition.
+        """
+        kid_info = self.coordinator.kids_data.get(kid_id)
+        if not kid_info:
+            return
+
+        if const.DATA_KID_BADGE_PROGRESS not in kid_info:
+            kid_info[const.DATA_KID_BADGE_PROGRESS] = {}
+
+        badge_progress = cast(
+            "dict[str, Any]", kid_info.get(const.DATA_KID_BADGE_PROGRESS, {})
+        )
+        entry = cast("dict[str, Any]", badge_progress.setdefault(badge_id, {}))
+
+        badge_type = badge_data.get(const.DATA_BADGE_TYPE)
+        target = cast("dict[str, Any]", badge_data.get(const.DATA_BADGE_TARGET, {}))
+
+        entry.setdefault(
+            const.DATA_KID_BADGE_PROGRESS_NAME,
+            badge_data.get(const.DATA_BADGE_NAME),
+        )
+        entry.setdefault(const.DATA_KID_BADGE_PROGRESS_TYPE, badge_type)
+        entry.setdefault(
+            const.DATA_KID_BADGE_PROGRESS_STATUS,
+            const.BADGE_STATE_IN_PROGRESS,
+        )
+        entry.setdefault(
+            const.DATA_KID_BADGE_PROGRESS_TARGET_TYPE,
+            target.get(const.DATA_BADGE_TARGET_TYPE),
+        )
+        entry.setdefault(
+            const.DATA_KID_BADGE_PROGRESS_TARGET_THRESHOLD_VALUE,
+            float(target.get(const.DATA_BADGE_TARGET_THRESHOLD_VALUE, 0.0)),
+        )
+
+        entry.setdefault(const.DATA_KID_BADGE_PROGRESS_POINTS_CYCLE_COUNT, 0.0)
+        entry.setdefault(const.DATA_KID_BADGE_PROGRESS_CHORES_CYCLE_COUNT, 0)
+        entry.setdefault(const.DATA_KID_BADGE_PROGRESS_DAYS_CYCLE_COUNT, 0)
+        entry.setdefault(const.DATA_KID_BADGE_PROGRESS_CHORES_COMPLETED, {})
+        entry.setdefault(const.DATA_KID_BADGE_PROGRESS_DAYS_COMPLETED, {})
+        entry.setdefault(const.DATA_KID_BADGE_PROGRESS_OVERALL_PROGRESS, 0.0)
+        entry.setdefault(const.DATA_KID_BADGE_PROGRESS_CRITERIA_MET, False)
+        entry.setdefault(const.DATA_KID_BADGE_PROGRESS_LAST_UPDATE_DAY, "")
+
+    def _advance_non_cumulative_badge_cycle_if_needed(
+        self,
+        kid_id: str,
+        badge_id: str,
+        badge_data: BadgeData,
+        *,
+        today_iso: str,
+    ) -> bool:
+        """Advance expired daily/periodic cycle windows and reset cycle counters.
+
+        Args:
+            kid_id: Kid internal ID.
+            badge_id: Badge internal ID.
+            badge_data: Badge definition.
+            today_iso: Local date key for current evaluation cycle.
+
+        Returns:
+            True if schedule/progress fields were updated.
+        """
+        kid_info = self.coordinator.kids_data.get(kid_id)
+        if not kid_info:
+            return False
+
+        badge_progress = cast(
+            "dict[str, Any]", kid_info.get(const.DATA_KID_BADGE_PROGRESS, {})
+        )
+        progress = cast("dict[str, Any]", badge_progress.get(badge_id, {}))
+        if not progress:
+            return False
+
+        recurring_frequency = str(
+            progress.get(
+                const.DATA_KID_BADGE_PROGRESS_RECURRING_FREQUENCY,
+                const.FREQUENCY_NONE,
+            )
+        )
+        if recurring_frequency == const.FREQUENCY_NONE:
+            return False
+
+        end_date_iso = str(progress.get(const.DATA_KID_BADGE_PROGRESS_END_DATE, ""))
+        if not end_date_iso:
+            return False
+
+        if end_date_iso >= today_iso:
+            return False
+
+        rolled_cycles = 0
+        current_end = end_date_iso
+        previous_end = end_date_iso
+        while current_end < today_iso:
+            next_end = self._get_next_non_cumulative_cycle_end(
+                badge_data,
+                current_end,
+            )
+            if not next_end or next_end <= current_end:
+                break
+            previous_end = current_end
+            current_end = next_end
+            rolled_cycles += 1
+
+        if rolled_cycles == 0:
+            return False
+
+        progress[const.DATA_KID_BADGE_PROGRESS_END_DATE] = current_end
+        progress[const.DATA_KID_BADGE_PROGRESS_START_DATE] = previous_end
+        progress[const.DATA_KID_BADGE_PROGRESS_CYCLE_COUNT] = (
+            int(progress.get(const.DATA_KID_BADGE_PROGRESS_CYCLE_COUNT, 0))
+            + rolled_cycles
+        )
+        progress[const.DATA_KID_BADGE_PROGRESS_PENALTY_APPLIED] = False
+
+        progress[const.DATA_KID_BADGE_PROGRESS_POINTS_CYCLE_COUNT] = 0.0
+        progress[const.DATA_KID_BADGE_PROGRESS_CHORES_CYCLE_COUNT] = 0
+        progress[const.DATA_KID_BADGE_PROGRESS_DAYS_CYCLE_COUNT] = 0
+        progress[const.DATA_KID_BADGE_PROGRESS_CHORES_COMPLETED] = {}
+        progress[const.DATA_KID_BADGE_PROGRESS_DAYS_COMPLETED] = {}
+        progress[const.DATA_KID_BADGE_PROGRESS_OVERALL_PROGRESS] = 0.0
+        progress[const.DATA_KID_BADGE_PROGRESS_CRITERIA_MET] = False
+        progress[const.DATA_KID_BADGE_PROGRESS_LAST_UPDATE_DAY] = ""
+
+        return True
+
+    def _get_next_non_cumulative_cycle_end(
+        self,
+        badge_data: BadgeData,
+        current_end_iso: str,
+    ) -> str | None:
+        """Get the next cycle end date for a non-cumulative badge."""
+        reset_schedule = badge_data.get(const.DATA_BADGE_RESET_SCHEDULE, {})
+        recurring_frequency = reset_schedule.get(
+            const.DATA_BADGE_RESET_SCHEDULE_RECURRING_FREQUENCY,
+            const.FREQUENCY_NONE,
+        )
+
+        if recurring_frequency == const.FREQUENCY_CUSTOM:
+            custom_interval = reset_schedule.get(
+                const.DATA_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL
+            )
+            custom_interval_unit = reset_schedule.get(
+                const.DATA_BADGE_RESET_SCHEDULE_CUSTOM_INTERVAL_UNIT
+            )
+            if custom_interval and custom_interval_unit:
+                custom_result = dt_add_interval(
+                    current_end_iso,
+                    interval_unit=custom_interval_unit,
+                    delta=int(custom_interval),
+                    require_future=False,
+                    return_type=const.HELPER_RETURN_ISO_DATE,
+                )
+                return str(custom_result) if custom_result else None
+            return None
+
+        next_result = dt_next_schedule(
+            current_end_iso,
+            interval_type=recurring_frequency,
+            require_future=False,
+            return_type=const.HELPER_RETURN_ISO_DATE,
+        )
+        return str(next_result) if next_result else None
+
+    def _persist_periodic_badge_progress(
+        self,
+        kid_id: str,
+        badge_id: str,
+        badge_data: BadgeData,
+        result: EvaluationResult,
+        *,
+        already_earned: bool,
+        today_iso: str,
+    ) -> bool:
+        """Persist runtime periodic evaluation fields into kid badge progress.
+
+        Args:
+            kid_id: Kid internal ID.
+            badge_id: Badge internal ID.
+            badge_data: Badge definition.
+            result: Evaluation result from engine.
+            already_earned: Whether kid already has this badge in badges_earned.
+            today_iso: Current local day ISO key.
+
+        Returns:
+            True when any persisted field changed.
+        """
+        kid_info = self.coordinator.kids_data.get(kid_id)
+        if not kid_info:
+            return False
+
+        badge_progress_all = cast(
+            "dict[str, Any]", kid_info.get(const.DATA_KID_BADGE_PROGRESS, {})
+        )
+        progress = cast("dict[str, Any]", badge_progress_all.get(badge_id, {}))
+        if not progress:
+            return False
+
+        changed = False
+
+        overall_progress = round(
+            float(result.get("overall_progress", 0.0)),
+            const.DATA_FLOAT_PRECISION,
+        )
+        criteria_met = bool(result.get("criteria_met", False))
+        if (
+            progress.get(const.DATA_KID_BADGE_PROGRESS_OVERALL_PROGRESS)
+            != overall_progress
+        ):
+            progress[const.DATA_KID_BADGE_PROGRESS_OVERALL_PROGRESS] = overall_progress
+            changed = True
+        if progress.get(const.DATA_KID_BADGE_PROGRESS_CRITERIA_MET) != criteria_met:
+            progress[const.DATA_KID_BADGE_PROGRESS_CRITERIA_MET] = criteria_met
+            changed = True
+
+        expected_status = (
+            const.BADGE_STATE_EARNED
+            if criteria_met
+            else (
+                const.BADGE_STATE_ACTIVE_CYCLE
+                if already_earned
+                else const.BADGE_STATE_IN_PROGRESS
+            )
+        )
+        if progress.get(const.DATA_KID_BADGE_PROGRESS_STATUS) != expected_status:
+            progress[const.DATA_KID_BADGE_PROGRESS_STATUS] = expected_status
+            changed = True
+
+        target = cast("dict[str, Any]", badge_data.get(const.DATA_BADGE_TARGET, {}))
+        target_type = target.get(const.DATA_BADGE_TARGET_TYPE)
+
+        criterion_results = result.get("criterion_results", [])
+        criterion_current_value = 0.0
+        if criterion_results:
+            criterion_current_value = float(
+                criterion_results[0].get("current_value", 0.0)
+            )
+
+        if target_type in (
+            const.BADGE_TARGET_THRESHOLD_TYPE_POINTS,
+            const.BADGE_TARGET_THRESHOLD_TYPE_POINTS_CHORES,
+        ):
+            if (
+                float(
+                    progress.get(const.DATA_KID_BADGE_PROGRESS_POINTS_CYCLE_COUNT, 0.0)
+                )
+                != criterion_current_value
+            ):
+                progress[const.DATA_KID_BADGE_PROGRESS_POINTS_CYCLE_COUNT] = (
+                    criterion_current_value
+                )
+                changed = True
+                if (
+                    progress.get(const.DATA_KID_BADGE_PROGRESS_LAST_UPDATE_DAY)
+                    != today_iso
+                ):
+                    progress[const.DATA_KID_BADGE_PROGRESS_LAST_UPDATE_DAY] = today_iso
+                    changed = True
+
+        elif target_type == const.BADGE_TARGET_THRESHOLD_TYPE_CHORE_COUNT:
+            chores_count = int(criterion_current_value)
+            if (
+                int(progress.get(const.DATA_KID_BADGE_PROGRESS_CHORES_CYCLE_COUNT, 0))
+                != chores_count
+            ):
+                progress[const.DATA_KID_BADGE_PROGRESS_CHORES_CYCLE_COUNT] = (
+                    chores_count
+                )
+                changed = True
+                if (
+                    progress.get(const.DATA_KID_BADGE_PROGRESS_LAST_UPDATE_DAY)
+                    != today_iso
+                ):
+                    progress[const.DATA_KID_BADGE_PROGRESS_LAST_UPDATE_DAY] = today_iso
+                    changed = True
+
+        elif target_type in (
+            const.BADGE_TARGET_THRESHOLD_TYPE_DAYS_ALL_CHORES,
+            const.BADGE_TARGET_THRESHOLD_TYPE_DAYS_80_PERCENT,
+            const.BADGE_TARGET_THRESHOLD_TYPE_DAYS_NO_OVERDUE,
+            const.BADGE_TARGET_THRESHOLD_TYPE_DAYS_DUE_ALL,
+            const.BADGE_TARGET_THRESHOLD_TYPE_DAYS_DUE_80_PERCENT,
+            const.BADGE_TARGET_THRESHOLD_TYPE_DAYS_DUE_NO_OVERDUE,
+            const.BADGE_TARGET_THRESHOLD_TYPE_DAYS_MIN_3,
+            const.BADGE_TARGET_THRESHOLD_TYPE_DAYS_MIN_5,
+            const.BADGE_TARGET_THRESHOLD_TYPE_DAYS_MIN_7,
+            const.BADGE_TARGET_THRESHOLD_TYPE_STREAK_ALL_CHORES,
+            const.BADGE_TARGET_THRESHOLD_TYPE_STREAK_80_PERCENT,
+            const.BADGE_TARGET_THRESHOLD_TYPE_STREAK_NO_OVERDUE,
+            const.BADGE_TARGET_THRESHOLD_TYPE_STREAK_SELECTED_CHORES,
+            const.BADGE_TARGET_THRESHOLD_TYPE_STREAK_SELECTED_CHORES_NO_OVERDUE,
+        ):
+            previous_days = int(
+                progress.get(const.DATA_KID_BADGE_PROGRESS_DAYS_CYCLE_COUNT, 0)
+            )
+            days_count = int(criterion_current_value)
+            if previous_days != days_count:
+                progress[const.DATA_KID_BADGE_PROGRESS_DAYS_CYCLE_COUNT] = days_count
+                changed = True
+
+            previous_update_day = str(
+                progress.get(const.DATA_KID_BADGE_PROGRESS_LAST_UPDATE_DAY, "")
+            )
+            if days_count > 0 and (
+                days_count != previous_days or previous_update_day == today_iso
+            ):
+                if previous_update_day != today_iso:
+                    progress[const.DATA_KID_BADGE_PROGRESS_LAST_UPDATE_DAY] = today_iso
+                    changed = True
+
+        return changed
 
     # =========================================================================
     # CUMULATIVE BADGE OPERATIONS
@@ -3026,8 +3539,14 @@ class GamificationManager(BaseManager):
 
                 # --- Tracked Chores fields ---
                 if has_tracked_chores and not has_special_occasion:
-                    progress[const.DATA_KID_BADGE_PROGRESS_TRACKED_CHORES] = (
-                        self.get_badge_in_scope_chores_list(badge_info, kid_id)
+                    tracked_chores_cfg = badge_info.get(
+                        const.DATA_BADGE_TRACKED_CHORES, {}
+                    )
+                    selected_chores = tracked_chores_cfg.get(
+                        const.DATA_BADGE_TRACKED_CHORES_SELECTED_CHORES, []
+                    )
+                    progress[const.DATA_KID_BADGE_PROGRESS_TRACKED_CHORES] = list(
+                        selected_chores
                     )
 
                 # --- Assigned To fields ---
@@ -3215,8 +3734,14 @@ class GamificationManager(BaseManager):
 
                 # --- Tracked Chores fields ---
                 if has_tracked_chores and not has_special_occasion:
-                    progress_sync[const.DATA_KID_BADGE_PROGRESS_TRACKED_CHORES] = (
-                        self.get_badge_in_scope_chores_list(badge_info, kid_id)
+                    tracked_chores_cfg = badge_info.get(
+                        const.DATA_BADGE_TRACKED_CHORES, {}
+                    )
+                    selected_chores = tracked_chores_cfg.get(
+                        const.DATA_BADGE_TRACKED_CHORES_SELECTED_CHORES, []
+                    )
+                    progress_sync[const.DATA_KID_BADGE_PROGRESS_TRACKED_CHORES] = list(
+                        selected_chores
                     )
 
                 # --- Assigned To fields ---
