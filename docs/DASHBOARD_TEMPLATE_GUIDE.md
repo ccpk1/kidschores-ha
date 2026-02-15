@@ -1,6 +1,6 @@
 # Dashboard Template Guide
 
-**Version**: v0.5.0-beta3 | **Last Updated**: 2026-02-05
+**Version**: v0.5.0-beta4 | **Last Updated**: 2026-02-15
 
 This guide documents the rules and patterns for creating, modifying, and managing KidsChores dashboard templates.
 
@@ -14,9 +14,10 @@ KidsChores generates a **single dashboard** with **multiple views (tabs)**:
 
 ```
 kcd-chores (Dashboard)
-├── Kid1 (View/Tab) ← kid template rendered with kid context
-├── Kid2 (View/Tab)  ← kid template rendered with kid context
-└── Admin (View/Tab) ← admin template rendered with empty context
+├── Kid1 (View/Tab)         ← kid template rendered with kid context
+├── Kid2 (View/Tab)         ← kid template rendered with kid context
+├── Admin (Shared, optional)← path: admin
+└── Admin-<kid> (optional)  ← path: admin-<kid-slug>
 ```
 
 **Key Points**:
@@ -24,8 +25,15 @@ kcd-chores (Dashboard)
 - One dashboard per installation (user names it, e.g., "Chores")
 - URL path: `kcd-{slugified-name}` (e.g., `kcd-chores`)
 - Each kid gets their own view/tab
-- Optional Admin tab for parent controls
+- Optional admin views based on admin layout mode (`none`, `global`, `per_kid`, `both`)
 - Style (full/minimal/compact) applies to all kid views
+
+### Admin layout modes
+
+- `none`: no admin views
+- `global`: one shared admin view (`path: admin`)
+- `per_kid`: one admin view per selected kid (`path: admin-<kid-slug>`)
+- `both`: includes shared plus per-kid admin views
 
 ---
 
@@ -46,9 +54,52 @@ installing incompatible dashboard templates for a given integration version.
 
 A dashboard release is selectable only if:
 
-- release tag matches supported parser contract (`KCD_vX.Y.Z` or `KCD_vX.Y.Z_betaN`)
+- release tag matches supported parser contract (see accepted formats below)
 - release is not below minimum compatibility floor
 - installed integration version satisfies release minimum requirement
+
+### Accepted release tag formats (current)
+
+The integration now accepts these release tag patterns:
+
+- `KCD_vX.Y.Z`
+- `KCD_vX.Y.Z_betaN`
+- `KCD_vX.Y.Z-betaN`
+- `vX.Y.Z`
+- `vX.Y.Z-betaN`
+- `X.Y.Z`
+
+This allows currently published dashboard releases that use `v...` naming to be discovered without renaming historical tags.
+
+### What is required for remote dashboard download
+
+For a remote release template to be downloaded and used, all of the following must be true:
+
+1. GitHub Releases API is reachable for `ccpk1/kidschores-ha-dashboard`.
+2. The selected release tag matches one of the accepted tag formats above.
+3. The tag passes compatibility filtering:
+
+- not below `DASHBOARD_RELEASE_MIN_COMPAT_TAG`
+- satisfies `DASHBOARD_RELEASE_MIN_INTEGRATION_BY_TAG` (if mapped)
+
+4. Template files exist in that tagged commit at:
+
+- `templates/dashboard_full.yaml`
+- `templates/dashboard_minimal.yaml`
+- `templates/dashboard_admin.yaml` (when admin views are enabled)
+
+If any requirement fails, generator behavior falls back to bundled local templates.
+
+### Where metadata can be added
+
+Current implementation supports compatibility metadata in integration constants:
+
+- File: `custom_components/kidschores/const.py`
+- Keys:
+  - `DASHBOARD_RELEASE_MIN_COMPAT_TAG`
+  - `DASHBOARD_RELEASE_MIN_INTEGRATION_BY_TAG`
+
+Template-file metadata can be placed in template header comments for human documentation, but release selection/compatibility logic currently reads from release tags + integration constants (not template headers).
 
 ### Example
 
@@ -468,10 +519,11 @@ Standard colors for chore states and lock reasons:
 
 Templates are fetched in this order:
 
-1. **Remote** (GitHub raw): `https://raw.githubusercontent.com/ad-ha/kidschores-ha/main/templates/dashboard_[style].yaml`
-2. **Local fallback**: `custom_components/kidschores/templates/dashboard_[style].yaml`
+1. **Selected compatible release tag** (or newest compatible when not explicitly selected)
+2. **Fallback compatible release** (when selected release is unavailable)
+3. **Local bundled template**: `custom_components/kidschores/templates/dashboard_[style].yaml`
 
-Remote fetch allows template updates without integration updates. Local ensures offline functionality.
+Release-based fetch keeps template selection deterministic; local fallback preserves offline/recovery safety.
 
 ---
 

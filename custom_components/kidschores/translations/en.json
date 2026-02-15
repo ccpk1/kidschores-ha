@@ -1525,9 +1525,9 @@
       },
       "dashboard_update_select": {
         "title": "Update Dashboard",
-        "description": "Select an existing KidsChores dashboard to update.\n\nOnly per-kid and admin view changes are available in update mode.",
+        "description": "Select an existing KidsChores dashboard to update and reconfigure.",
         "data": {
-          "dashboard_update_selection": "Dashboard"
+          "dashboard_update_selection": "Dashboard to Update"
         },
         "data_description": {
           "dashboard_update_selection": "Choose the existing dashboard you want to update."
@@ -1535,7 +1535,7 @@
       },
       "dashboard_configure": {
         "title": "Configure Dashboard",
-        "description": "Configure dashboard sections for **{dashboard}** (mode: {mode}).\n\nSection A: Kid views\nSection B: Admin views\nSection C: Display and visibility\n\n[📖 Dashboard Generation Guide]({documentation_url})",
+        "description": "Configure dashboard sections for **{dashboard}** (mode: {mode}).\n\n[📖 Dashboard Generation Guide]({documentation_url})",
         "sections": {
           "section_kid_views": {
             "name": "Kid views",
@@ -1554,29 +1554,29 @@
             "description": "Choose which admin layout to generate and who can see it.",
             "data": {
               "dashboard_admin_mode": "Admin Layout",
-              "dashboard_admin_template_global": "Global Admin Template",
+              "dashboard_admin_template_global": "Shared Admin Template",
               "dashboard_admin_template_per_kid": "Per-Kid Admin Template",
               "dashboard_admin_view_visibility": "Admin View Visibility"
             },
             "data_description": {
-              "dashboard_admin_mode": "Choose the admin layout: none, global, per-kid, or both.",
-              "dashboard_admin_template_global": "Template used when Admin Layout includes Global.",
-              "dashboard_admin_template_per_kid": "Template used when Admin Layout includes Per-Kid.",
+              "dashboard_admin_mode": "Choose the admin layout: none, shared, per kid, or both.",
+              "dashboard_admin_template_global": "Template used when Admin Layout includes Shared.",
+              "dashboard_admin_template_per_kid": "Template used when Admin Layout includes Per Kid.",
               "dashboard_admin_view_visibility": "Control who can see admin views. Parent-linked visibility uses linked parent HA users."
             }
           },
           "section_access_sidebar": {
-            "name": "Access & Sidebar",
-            "description": "Control sidebar visibility and access restrictions.",
+            "name": "Dashboard Configuration",
+            "description": "Control icon, admin-only access, and sidebar visibility.",
             "data": {
-              "dashboard_show_in_sidebar": "Show in Sidebar",
-              "dashboard_require_admin": "Require Admin",
-              "dashboard_icon": "Dashboard Icon"
+              "dashboard_icon": "Dashboard Icon",
+              "dashboard_require_admin": "Admin Only",
+              "dashboard_show_in_sidebar": "Add to Sidebar"
             },
             "data_description": {
-              "dashboard_show_in_sidebar": "Show this dashboard in the Home Assistant sidebar.",
+              "dashboard_icon": "Sidebar icon for this dashboard.",
               "dashboard_require_admin": "Restrict dashboard access to admin users.",
-              "dashboard_icon": "Sidebar icon for this dashboard."
+              "dashboard_show_in_sidebar": "Show this dashboard in the Home Assistant sidebar."
             }
           },
           "section_template_version": {
@@ -1596,25 +1596,25 @@
           "dashboard_template_profile": "Kid Template Profile",
           "dashboard_kid_selection": "Kids",
           "dashboard_admin_mode": "Admin Layout",
-          "dashboard_admin_template_global": "Global Admin Template",
+          "dashboard_admin_template_global": "Shared Admin Template",
           "dashboard_admin_template_per_kid": "Per-Kid Admin Template",
           "dashboard_admin_view_visibility": "Admin View Visibility",
-          "dashboard_show_in_sidebar": "Show in Sidebar",
-          "dashboard_require_admin": "Require Admin",
           "dashboard_icon": "Dashboard Icon",
+          "dashboard_require_admin": "Admin Only",
+          "dashboard_show_in_sidebar": "Add to Sidebar",
           "dashboard_include_prereleases": "Include Prereleases",
           "dashboard_release_selection": "Dashboard Template Version"
         },
         "data_description": {
           "dashboard_template_profile": "Template profile applied to selected kid views.",
           "dashboard_kid_selection": "Select kids to include in this dashboard.",
-          "dashboard_admin_mode": "Choose the admin layout: none, global, per-kid, or both.",
-          "dashboard_admin_template_global": "Template used when Admin Layout includes Global.",
-          "dashboard_admin_template_per_kid": "Template used when Admin Layout includes Per-Kid.",
+          "dashboard_admin_mode": "Choose the admin layout: none, shared, per kid, or both.",
+          "dashboard_admin_template_global": "Template used when Admin Layout includes Shared.",
+          "dashboard_admin_template_per_kid": "Template used when Admin Layout includes Per Kid.",
           "dashboard_admin_view_visibility": "Control who can see admin views. Parent-linked visibility uses linked parent HA users.",
-          "dashboard_show_in_sidebar": "Show this dashboard in the Home Assistant sidebar.",
-          "dashboard_require_admin": "Restrict dashboard access to admin users.",
           "dashboard_icon": "Sidebar icon for this dashboard.",
+          "dashboard_require_admin": "Restrict dashboard access to admin users.",
+          "dashboard_show_in_sidebar": "Show this dashboard in the Home Assistant sidebar.",
           "dashboard_include_prereleases": "Include prerelease dashboard tags in release discovery.",
           "dashboard_release_selection": "Choose automatic latest compatible selection or explicitly select a compatible release tag."
         }
@@ -1819,9 +1819,9 @@
       "dashboard_no_kids": "Please select at least one kid or enable 'Include Admin Tab'.",
       "dashboard_no_dashboards": "Please select at least one dashboard to delete.",
       "dashboard_no_kids_no_admin": "Select at least one kid, or choose an Admin Layout other than 'none'.",
-      "dashboard_admin_global_template_required": "Global admin template is required when Admin Layout includes Global.",
-      "dashboard_admin_per_kid_template_required": "Per-kid admin template is required when Admin Layout includes Per-Kid.",
-      "dashboard_admin_per_kid_needs_kids": "Per-Kid Admin Layout requires at least one selected kid."
+      "dashboard_admin_global_template_required": "Shared admin template is required when Admin Layout includes Shared.",
+      "dashboard_admin_per_kid_template_required": "Per-kid admin template is required when Admin Layout includes Per Kid.",
+      "dashboard_admin_per_kid_needs_kids": "Per Kid Admin Layout requires at least one selected kid."
     },
     "abort": {
       "invalid_action": "Invalid Action",
@@ -1891,7 +1891,7 @@
     "dashboard_admin_mode": {
       "options": {
         "none": "None",
-        "global": "Global",
+        "global": "Shared",
         "per_kid": "Per Kid",
         "both": "Both"
       }
@@ -1906,15 +1906,6 @@
       "options": {
         "latest_compatible": "Latest compatible (recommended)"
       }
-    },
-    "dashboard_release_mode": {
-      "options": {
-        "latest_compatible": "Latest Compatible",
-        "pin_release": "Pin Release"
-      }
-    },
-    "dashboard_release_tag": {
-      "options": {}
     },
     "manage_actions": {
       "options": {
@@ -2637,6 +2628,82 @@
           "name": "Chore Name",
           "description": "Name of the rotation chore to open. Optional if chore_id is provided.",
           "example": "Clean Bedroom"
+        }
+      }
+    },
+    "generate_activity_report": {
+      "name": "Generate Activity Report",
+      "description": "Generate a markdown activity report from ledger history. Supports preset or custom date ranges, optional kid filtering, and optional notify delivery while still returning a structured response payload.",
+      "fields": {
+        "range_mode": {
+          "name": "Range Mode",
+          "description": "Select last_7_days, last_30_days, or custom."
+        },
+        "start_date": {
+          "name": "Start Date",
+          "description": "Required when range_mode is custom."
+        },
+        "end_date": {
+          "name": "End Date",
+          "description": "Required when range_mode is custom."
+        },
+        "kid_name": {
+          "name": "Kid Name",
+          "description": "Optional filter to generate the report for one kid only."
+        },
+        "report_style": {
+          "name": "Report Style",
+          "description": "Markdown style: kid (friendly), automation (compact), or both."
+        },
+        "report_language": {
+          "name": "Report Language",
+          "description": "Optional language code for report text. Falls back to selected kid language (when kid_name is set) and then English."
+        },
+        "report_title": {
+          "name": "Report Title",
+          "description": "Optional title override for the markdown output."
+        },
+        "notify_service": {
+          "name": "Notify Service",
+          "description": "Optional notify target (for example notify.family) to deliver the markdown report."
+        }
+      }
+    },
+    "export_normalized_data": {
+      "name": "Export Normalized Data",
+      "description": "Export a normalized response payload with UUID-to-name mapping, optional kid/date filters, and section toggles for ledger, period summaries, items, and id_map.",
+      "fields": {
+        "range_mode": {
+          "name": "Range Mode",
+          "description": "Select last_7_days, last_30_days, or custom."
+        },
+        "start_date": {
+          "name": "Start Date",
+          "description": "Required when range_mode is custom."
+        },
+        "end_date": {
+          "name": "End Date",
+          "description": "Required when range_mode is custom."
+        },
+        "kid_name": {
+          "name": "Kid Name",
+          "description": "Optional filter to export a single kid scope."
+        },
+        "include_ledger": {
+          "name": "Include Ledger",
+          "description": "Include normalized ledger_entries in response."
+        },
+        "include_period_summaries": {
+          "name": "Include Period Summaries",
+          "description": "Include point/chore/reward period summary sections in response."
+        },
+        "include_items": {
+          "name": "Include Items",
+          "description": "Include normalized kid item records in response."
+        },
+        "include_id_map": {
+          "name": "Include ID Map",
+          "description": "Include UUID-to-name mapping dictionary in response."
         }
       }
     },

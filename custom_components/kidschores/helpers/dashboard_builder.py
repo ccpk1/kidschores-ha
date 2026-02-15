@@ -68,8 +68,8 @@ class DashboardReleaseTag:
     """Normalized representation of a supported dashboard release tag.
 
     Supported formats:
-      - `KCD_vX.Y.Z`
-      - `KCD_vX.Y.Z_betaN`
+            - `KCD_vX.Y.Z` / `vX.Y.Z` / `X.Y.Z`
+            - `KCD_vX.Y.Z_betaN` / `KCD_vX.Y.Z-betaN` / `vX.Y.Z-betaN`
     """
 
     raw_tag: str
@@ -742,6 +742,7 @@ async def create_kidschores_dashboard(
     style: str = const.DASHBOARD_STYLE_FULL,
     kid_template_profiles: dict[str, str] | None = None,
     include_admin: bool = True,
+    admin_mode: str = const.DASHBOARD_ADMIN_MODE_GLOBAL,
     force_rebuild: bool = False,
     show_in_sidebar: bool = True,
     require_admin: bool = False,
@@ -764,6 +765,7 @@ async def create_kidschores_dashboard(
         style: Dashboard style (full, minimal, compact).
         kid_template_profiles: Optional per-kid template profile map.
         include_admin: Whether to include an admin view tab.
+        admin_mode: Admin layout mode (none, global, per_kid, both).
         force_rebuild: If True, delete existing dashboard first.
         show_in_sidebar: Whether to show in sidebar.
         require_admin: Whether dashboard requires admin access.
@@ -831,6 +833,8 @@ async def create_kidschores_dashboard(
             kid_style,
         )
 
+    normalized_admin_mode = _normalize_admin_mode(admin_mode)
+
     # Add admin view if requested
     if include_admin:
         admin_template_str = await fetch_dashboard_template(
@@ -843,13 +847,41 @@ async def create_kidschores_dashboard(
         # Pass empty context since admin doesn't need kid injection
         admin_view = render_dashboard_template(admin_template_str, {})
         if isinstance(admin_view, dict):
-            if visible_entries := _build_admin_visible_users(
-                admin_view_visibility,
-                admin_visible_user_ids,
-            ):
-                admin_view["visible"] = visible_entries
-            views.append(admin_view)
-            const.LOGGER.debug("Added admin view")
+            include_global_admin = normalized_admin_mode in (
+                const.DASHBOARD_ADMIN_MODE_GLOBAL,
+                const.DASHBOARD_ADMIN_MODE_BOTH,
+            )
+            include_per_kid_admin = normalized_admin_mode in (
+                const.DASHBOARD_ADMIN_MODE_PER_KID,
+                const.DASHBOARD_ADMIN_MODE_BOTH,
+            )
+
+            if include_global_admin:
+                global_admin_view = dict(admin_view)
+                global_admin_view.setdefault("title", "KidsChores Admin")
+                global_admin_view["path"] = "admin"
+                if visible_entries := _build_admin_visible_users(
+                    admin_view_visibility,
+                    admin_visible_user_ids,
+                ):
+                    global_admin_view["visible"] = visible_entries
+                views.append(global_admin_view)
+
+            if include_per_kid_admin:
+                for kid_name in kid_names:
+                    per_kid_admin_view = dict(admin_view)
+                    per_kid_admin_view["title"] = f"Admin - {kid_name}"
+                    per_kid_admin_view["path"] = f"admin-{slugify(kid_name)}"
+                    if visible_entries := _build_admin_visible_users(
+                        admin_view_visibility,
+                        admin_visible_user_ids,
+                    ):
+                        per_kid_admin_view["visible"] = visible_entries
+                    views.append(per_kid_admin_view)
+            const.LOGGER.debug(
+                "Added admin view(s) for mode: %s",
+                normalized_admin_mode,
+            )
 
     # Combine all views into dashboard config
     dashboard_config = build_multi_view_dashboard(views)
@@ -919,14 +951,34 @@ def _build_admin_visible_users(
     return visible or None
 
 
+def _normalize_admin_mode(admin_mode: str) -> str:
+    """Normalize admin mode labels/aliases to canonical constants."""
+    normalized = admin_mode.strip().lower().replace("-", "_").replace(" ", "_")
+    alias_map: dict[str, str] = {
+        const.DASHBOARD_ADMIN_MODE_NONE: const.DASHBOARD_ADMIN_MODE_NONE,
+        const.DASHBOARD_ADMIN_MODE_GLOBAL: const.DASHBOARD_ADMIN_MODE_GLOBAL,
+        const.DASHBOARD_ADMIN_MODE_PER_KID: const.DASHBOARD_ADMIN_MODE_PER_KID,
+        const.DASHBOARD_ADMIN_MODE_BOTH: const.DASHBOARD_ADMIN_MODE_BOTH,
+        "shared": const.DASHBOARD_ADMIN_MODE_GLOBAL,
+        "per_kid": const.DASHBOARD_ADMIN_MODE_PER_KID,
+        "both": const.DASHBOARD_ADMIN_MODE_BOTH,
+        "none": const.DASHBOARD_ADMIN_MODE_NONE,
+    }
+    return alias_map.get(normalized, const.DASHBOARD_ADMIN_MODE_GLOBAL)
+
+
 async def update_kidschores_dashboard_views(
     hass: HomeAssistant,
     url_path: str,
     kid_names: list[str],
     template_profile: str,
     include_admin: bool,
+    admin_mode: str = const.DASHBOARD_ADMIN_MODE_GLOBAL,
     admin_view_visibility: str = const.DASHBOARD_ADMIN_VIEW_VISIBILITY_ALL,
     admin_visible_user_ids: list[str] | None = None,
+    icon: str | None = None,
+    show_in_sidebar: bool | None = None,
+    require_admin: bool | None = None,
     pinned_release_tag: str | None = None,
     include_prereleases: bool = const.DASHBOARD_RELEASE_INCLUDE_PRERELEASES_DEFAULT,
 ) -> int:
@@ -949,6 +1001,8 @@ async def update_kidschores_dashboard_views(
         DashboardTemplateError: If required templates cannot be fetched.
         DashboardRenderError: If template rendering fails.
     """
+    normalized_admin_mode = _normalize_admin_mode(admin_mode)
+
     if LOVELACE_DATA not in hass.data:
         raise DashboardSaveError("Lovelace not initialized")
 
@@ -1027,15 +1081,40 @@ async def update_kidschores_dashboard_views(
             include_prereleases=include_prereleases,
         )
         admin_view = render_dashboard_template(admin_template, {})
-        if isinstance(admin_view, dict):
+        if not isinstance(admin_view, dict):
+            admin_view = {}
+
+        include_global_admin = normalized_admin_mode in (
+            const.DASHBOARD_ADMIN_MODE_GLOBAL,
+            const.DASHBOARD_ADMIN_MODE_BOTH,
+        )
+        include_per_kid_admin = normalized_admin_mode in (
+            const.DASHBOARD_ADMIN_MODE_PER_KID,
+            const.DASHBOARD_ADMIN_MODE_BOTH,
+        )
+
+        if include_global_admin:
+            global_admin_view = dict(admin_view)
+            global_admin_view.setdefault("title", "KidsChores Admin")
+            global_admin_view["path"] = "admin"
             if visible_entries := _build_admin_visible_users(
                 admin_view_visibility,
                 admin_visible_user_ids,
             ):
-                admin_view["visible"] = visible_entries
-            merged_views.append(admin_view)
-        else:
-            merged_views.append({})
+                global_admin_view["visible"] = visible_entries
+            merged_views.append(global_admin_view)
+
+        if include_per_kid_admin:
+            for kid_name in kid_names:
+                per_kid_admin_view = dict(admin_view)
+                per_kid_admin_view["title"] = f"Admin - {kid_name}"
+                per_kid_admin_view["path"] = f"admin-{slugify(kid_name)}"
+                if visible_entries := _build_admin_visible_users(
+                    admin_view_visibility,
+                    admin_visible_user_ids,
+                ):
+                    per_kid_admin_view["visible"] = visible_entries
+                merged_views.append(per_kid_admin_view)
     elif existing_admin_view is not None:
         const.LOGGER.debug("Removed admin view from dashboard: %s", url_path)
 
@@ -1047,6 +1126,14 @@ async def update_kidschores_dashboard_views(
     except HomeAssistantError as err:
         raise DashboardSaveError(f"Failed to save dashboard config: {err}") from err
 
+    await _update_dashboard_metadata(
+        hass,
+        url_path=url_path,
+        icon=icon,
+        show_in_sidebar=show_in_sidebar,
+        require_admin=require_admin,
+    )
+
     const.LOGGER.info(
         "Updated dashboard views in-place: %s (kids_updated=%d, include_admin=%s, views=%d)",
         url_path,
@@ -1055,6 +1142,72 @@ async def update_kidschores_dashboard_views(
         len(merged_views),
     )
     return len(merged_views)
+
+
+async def _update_dashboard_metadata(
+    hass: HomeAssistant,
+    url_path: str,
+    icon: str | None,
+    show_in_sidebar: bool | None,
+    require_admin: bool | None,
+) -> None:
+    """Update dashboard metadata and panel settings for an existing dashboard."""
+    dashboards_collection = DashboardsCollection(hass)
+    await dashboards_collection.async_load()
+
+    dashboard_item: dict[str, Any] | None = None
+    for item in _get_collection_items(dashboards_collection):
+        if item.get(CONF_URL_PATH) == url_path:
+            dashboard_item = item
+
+    if dashboard_item is None:
+        return
+
+    item_id = dashboard_item.get("id")
+    if not isinstance(item_id, str):
+        return
+
+    update_data: dict[str, Any] = {}
+    if icon is not None:
+        update_data[CONF_ICON] = icon
+    if show_in_sidebar is not None:
+        update_data[CONF_SHOW_IN_SIDEBAR] = show_in_sidebar
+    if require_admin is not None:
+        update_data[CONF_REQUIRE_ADMIN] = require_admin
+
+    if update_data:
+        await dashboards_collection.async_update_item(item_id, update_data)
+
+    panel_exists = DATA_PANELS in hass.data and url_path in hass.data[DATA_PANELS]
+    panel_kwargs: dict[str, Any] = {
+        "frontend_url_path": url_path,
+        "require_admin": bool(
+            update_data.get(
+                CONF_REQUIRE_ADMIN,
+                dashboard_item.get(CONF_REQUIRE_ADMIN, False),
+            )
+        ),
+        "config": {"mode": MODE_STORAGE},
+        "update": panel_exists,
+    }
+
+    current_show_in_sidebar = bool(
+        update_data.get(
+            CONF_SHOW_IN_SIDEBAR,
+            dashboard_item.get(CONF_SHOW_IN_SIDEBAR, True),
+        )
+    )
+    if current_show_in_sidebar:
+        panel_kwargs["sidebar_title"] = str(dashboard_item.get(CONF_TITLE, url_path))
+        panel_kwargs["sidebar_icon"] = str(
+            update_data.get(
+                CONF_ICON,
+                dashboard_item.get(CONF_ICON, DEFAULT_ICON),
+            )
+            or DEFAULT_ICON
+        )
+
+    async_register_built_in_panel(hass, LOVELACE_DOMAIN, **panel_kwargs)
 
 
 async def _delete_dashboard(hass: HomeAssistant, url_path: str) -> None:

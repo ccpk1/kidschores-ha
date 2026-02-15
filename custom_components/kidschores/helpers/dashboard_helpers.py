@@ -9,9 +9,6 @@ All functions here require a `hass` object or interact with HA APIs.
 
 from __future__ import annotations
 
-from itertools import islice
-from pathlib import Path
-import re
 from typing import TYPE_CHECKING, Any, TypedDict
 
 from homeassistant.data_entry_flow import section
@@ -33,9 +30,12 @@ DASHBOARD_CONFIGURE_SECTION_KEYS = (
     const.CFOF_DASHBOARD_SECTION_TEMPLATE_VERSION,
 )
 
-_TEMPLATE_HEADER_TITLE_PATTERN = re.compile(
-    r"KidsChores Dashboard Template\s*-\s*(?P<title>.*?)\s*--#>"
-)
+_TEMPLATE_DISPLAY_LABELS: dict[str, str] = {
+    const.DASHBOARD_STYLE_FULL: "Full",
+    const.DASHBOARD_STYLE_MINIMAL: "Minimal",
+    const.DASHBOARD_STYLE_COMPACT: "Compact",
+    const.DASHBOARD_STYLE_ADMIN: "Admin",
+}
 
 
 def _humanize_template_key(style_key: str) -> str:
@@ -45,24 +45,11 @@ def _humanize_template_key(style_key: str) -> str:
 
 
 def _extract_template_metadata_title(style_key: str) -> str | None:
-    """Extract display title from template header metadata if present."""
-    template_path = (
-        Path(__file__).resolve().parent.parent
-        / "templates"
-        / f"dashboard_{style_key}.yaml"
-    )
-    if not template_path.exists():
-        return None
+    """Return static display title for known template keys.
 
-    with template_path.open(encoding="utf-8") as template_file:
-        for line in islice(template_file, 30):
-            match = _TEMPLATE_HEADER_TITLE_PATTERN.search(line)
-            if match is None:
-                continue
-            title = match.group("title").strip()
-            if title:
-                return title.title()
-    return None
+    This intentionally avoids runtime file I/O in the options flow path.
+    """
+    return _TEMPLATE_DISPLAY_LABELS.get(style_key)
 
 
 def resolve_template_display_label(style_key: str) -> str:
@@ -440,17 +427,17 @@ def build_dashboard_configure_schema(
 
     access_sidebar_fields: dict[vol.Marker, Any] = {
         vol.Optional(
-            const.CFOF_DASHBOARD_INPUT_SHOW_IN_SIDEBAR,
-            default=show_in_sidebar_default,
-        ): selector.BooleanSelector(),
+            const.CFOF_DASHBOARD_INPUT_ICON,
+            default=icon_default,
+        ): selector.IconSelector(),
         vol.Optional(
             const.CFOF_DASHBOARD_INPUT_REQUIRE_ADMIN,
             default=require_admin_default,
         ): selector.BooleanSelector(),
         vol.Optional(
-            const.CFOF_DASHBOARD_INPUT_ICON,
-            default=icon_default,
-        ): selector.IconSelector(),
+            const.CFOF_DASHBOARD_INPUT_SHOW_IN_SIDEBAR,
+            default=show_in_sidebar_default,
+        ): selector.BooleanSelector(),
     }
 
     template_version_fields: dict[vol.Marker, Any] = {}
@@ -475,35 +462,32 @@ def build_dashboard_configure_schema(
             )
         )
 
-    if include_release_controls:
-        sectioned_schema_fields: dict[vol.Marker, Any] = {
-            vol.Optional(const.CFOF_DASHBOARD_SECTION_KID_VIEWS): section(
-                vol.Schema(kid_view_fields)
-            ),
-            vol.Optional(const.CFOF_DASHBOARD_SECTION_ADMIN_VIEWS): section(
-                vol.Schema(admin_view_fields)
-            ),
-            vol.Optional(const.CFOF_DASHBOARD_SECTION_ACCESS_SIDEBAR): section(
-                vol.Schema(access_sidebar_fields),
-                {"collapsed": True},
-            ),
-            vol.Optional(const.CFOF_DASHBOARD_SECTION_TEMPLATE_VERSION): section(
-                vol.Schema(template_version_fields),
-                {"collapsed": True},
-            ),
-        }
-        return vol.Schema(sectioned_schema_fields, extra=vol.ALLOW_EXTRA)
-
-    flat_schema_fields: dict[vol.Marker, Any] = {
-        **kid_view_fields,
-        **admin_view_fields,
-        **access_sidebar_fields,
+    sectioned_schema_fields: dict[vol.Marker, Any] = {
+        vol.Optional(const.CFOF_DASHBOARD_SECTION_KID_VIEWS): section(
+            vol.Schema(kid_view_fields)
+        ),
+        vol.Optional(const.CFOF_DASHBOARD_SECTION_ADMIN_VIEWS): section(
+            vol.Schema(admin_view_fields)
+        ),
+        vol.Optional(const.CFOF_DASHBOARD_SECTION_ACCESS_SIDEBAR): section(
+            vol.Schema(access_sidebar_fields),
+            {"collapsed": True},
+        ),
     }
-    return vol.Schema(flat_schema_fields)
+
+    if include_release_controls:
+        sectioned_schema_fields[
+            vol.Optional(const.CFOF_DASHBOARD_SECTION_TEMPLATE_VERSION)
+        ] = section(
+            vol.Schema(template_version_fields),
+            {"collapsed": True},
+        )
+
+    return vol.Schema(sectioned_schema_fields, extra=vol.ALLOW_EXTRA)
 
 
 def normalize_dashboard_configure_input(user_input: dict[str, Any]) -> dict[str, Any]:
-    """Normalize dashboard configure payload for sectioned and flat forms."""
+    """Normalize dashboard configure payload from sectioned form fields."""
     normalized: dict[str, Any] = dict(user_input)
     for section_key in DASHBOARD_CONFIGURE_SECTION_KEYS:
         section_data = normalized.pop(section_key, None)
@@ -559,7 +543,9 @@ def get_existing_kidschores_dashboards(
             dashboards.append(
                 {
                     "value": url_path,
-                    "label": f"{title} ({url_path})",
+                    "label": (
+                        f"{title} ({url_path})" if title != url_path else url_path
+                    ),
                 }
             )
 

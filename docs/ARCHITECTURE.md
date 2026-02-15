@@ -698,10 +698,13 @@ The Options Flow provides automated dashboard generation, creating fully-functio
 
 **Generation Flow** (`options_flow.py` → `dashboard_helpers.py`):
 
-- User selects dashboard style, kids to include, and optional admin tab
+- User selects a dashboard action (`create`, `update`, `delete`, `exit`) in a CRUD hub step
+- Create and update use a shared sectioned configure step (kid views, admin views, access/sidebar, template version)
+- Admin layout supports `none`, `global` (shared), `per_kid`, and `both`
+- Update path applies changes in place to the selected dashboard URL path
 - Build-time rendering: Python Jinja2 populates kid names/slugs with `<< >>` delimiters
 - Runtime rendering: Home Assistant Jinja2 fetches live data with `{{ }}` delimiters
-- Output: HA lovelace YAML structure written via `websocket_api.async_create_dashboard()`
+- Output: Lovelace storage dashboard config persisted through the dashboard builder helpers
 
 **System Dashboard Selector** (`SystemDashboardAdminKidSelect`):
 

@@ -5,17 +5,17 @@
 - **Name / Code**: Dashboard Template Release Selection (DASH-REL-SELECT-01)
 - **Target release / milestone**: v0.5.0-beta5 (or next patch after beta4)
 - **Owner / driver(s)**: KidsChores Team (Integration + Dashboard coordination)
-- **Status**: In progress (Phase 4 complete; Phase 4 Part B UX refinements queued)
+- **Status**: Complete (all planned phases and follow-up hotfix/docs updates finished)
 
 ## Summary & immediate steps
 
-| Phase / Step                            | Description                                                                            | % complete | Quick notes                                                                                                                |
-| --------------------------------------- | -------------------------------------------------------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------- |
-| Phase 1 – Release policy                | Define release-source rules, minimum supported tag, and fallback behavior              | 100%       | Parser contract, compatibility floor constants, prerelease policy, docs complete                                           |
-| Phase 2 – Core resolver                 | Add GitHub release discovery + tag resolution + template URL construction              | 100%       | Discovery + compatibility filtering + release URL resolver wired; local fallback preserved                                 |
-| Phase 3 – Options flow UX               | Show selectable release list, default to newest compatible, allow override             | 100%       | CRUD hub + shared configure step + locked validation + delete-confirm return flow implemented                              |
-| Phase 4 – Validation                    | Add focused tests and failure-mode checks                                              | 100%       | Added resolver, fetch-fallback, and options-flow release tests; all passing                                                |
-| Phase 4 (Part B) – Update UX refinement | Reorganize update form sections, clarify language, simplify template version selection | 90%        | Update flow now uses a single "Dashboard template version" selector; remaining item is finalizing Part B test completeness |
+| Phase / Step                            | Description                                                                            | % complete | Quick notes                                                                                                       |
+| --------------------------------------- | -------------------------------------------------------------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------- |
+| Phase 1 – Release policy                | Define release-source rules, minimum supported tag, and fallback behavior              | 100%       | Parser contract, compatibility floor constants, prerelease policy, docs complete                                  |
+| Phase 2 – Core resolver                 | Add GitHub release discovery + tag resolution + template URL construction              | 100%       | Discovery + compatibility filtering + release URL resolver wired; local fallback preserved                        |
+| Phase 3 – Options flow UX               | Show selectable release list, default to newest compatible, allow override             | 100%       | CRUD hub + shared configure step + locked validation + delete-confirm return flow implemented                     |
+| Phase 4 – Validation                    | Add focused tests and failure-mode checks                                              | 100%       | Added resolver, fetch-fallback, and options-flow release tests; all passing                                       |
+| Phase 4 (Part B) – Update UX refinement | Reorganize update form sections, clarify language, simplify template version selection | 100%       | Update selector/copy polished, dashboard configuration field order updated, and focused section-order tests added |
 
 1. **Key objective** – Allow users to select dashboard template releases from the dashboard repo, default to the newest compatible release, and optionally enforce a minimum release floor.
 2. **Summary of recent work**
@@ -35,12 +35,26 @@
    - Dashboard create/update UX already supports explicit action routing in `custom_components/kidschores/options_flow.py` (~lines 3990-4170).
    - Existing translation blocks for dashboard forms are centralized in `custom_components/kidschores/translations/en.json` (~lines 1504-1555).
    - New user-approved direction: fold update-screen usability cleanup into current phase as Phase 4 Part B.
+
+- Hotfix: removed legacy create configure schema path so create/update now share the same sectioned dashboard configure form (single maintained schema path in `dashboard_helpers.py`).
+- Added create-path regression coverage verifying sectioned schema use and no release controls on create (`test_dashboard_create_uses_sectioned_configure_schema`).
+- Updated admin layout user-facing terminology to `None / Shared / Per Kid / Both` while preserving internal storage values.
+- Expanded release-tag parser support to include currently published `v...` and hyphen beta formats (for example `v0.5.6-beta1`) so existing releases are discoverable.
+- Clarified dashboard download prerequisites and metadata locations in `docs/DASHBOARD_TEMPLATE_GUIDE.md`.
+- Fixed update-flow admin layout application by passing `admin_mode` through to dashboard builder and generating per-kid admin views when `Per Kid`/`Both` is selected.
+- Fixed create-flow admin layout application by passing `admin_mode` through to dashboard builder and generating admin views based on `Shared`/`Per Kid`/`Both` selections.
+- Fixed update-flow dashboard metadata application so icon, sidebar visibility, and require-admin changes persist on existing dashboards.
+- Added admin-mode normalization (`shared`, `per kid`, `both`) in options flow and dashboard builder so label-like values reliably map to internal constants and create per-kid admin views as expected.
+- Refreshed dashboard docs/wiki to match current CRUD flow, admin layout modes (`None/Shared/Per Kid/Both`), and release-based template fetch behavior.
+
 3. **Next steps (short term)**
    - [x] Finalize release tag compatibility contract with dashboard repo owner (tag grammar + prerelease handling).
    - [x] Implement resolver abstraction and wire into template fetch path.
    - [x] Add release selector fields in create/update dashboard forms.
    - [x] Add tests for newest-default, pinned selection, and minimum-version rejection.
-   - [ ] Execute Phase 4 Part B update-screen UX refinements (section layout, language, selector simplification, admin view visibility controls).
+
+- [x] Execute Phase 4 Part B update-screen UX refinements (section layout, language, selector simplification, admin view visibility controls).
+
 4. **Risks / blockers**
    - GitHub API availability/rate limits may prevent release list fetch; graceful fallback behavior is mandatory.
    - Release tags may not strictly follow SemVer; parser must support current observed format (`KCD_v0.5.0_beta3`).
@@ -65,7 +79,8 @@
      - Default behavior should auto-select newest compatible release to keep UX simple.
      - Users should have an explicit override to pin a release when needed.
      - A minimum compatible release floor should be enforced to prevent known-broken template generations.
-   - **Completion confirmation**: `[ ]` All follow-up items completed (architecture updates, cleanup, documentation, etc.) before requesting owner approval to mark initiative done.
+
+- **Completion confirmation**: `[x]` All follow-up items completed (architecture updates, cleanup, documentation, etc.) and ready for archive.
 
 > **Important:** Keep the entire Summary section (table + bullets) current with every meaningful update (after commits, tickets, or blockers change). Records should stay concise, fact-based, and readable so anyone can instantly absorb where each phase stands. This summary is the only place readers should look for the high-level snapshot.
 
@@ -330,7 +345,7 @@ MVP implementation note:
        - When policy is parent-linked, write HA `visible` user UUID list only on admin views.
        - Kid views remain unaffected.
        - If no parent HA users are linked, admin view stays unrestricted (no invalid empty user list).
-  7. [ ] Add/update focused options-flow tests for Part B behavior
+  7. [x] Add/update focused options-flow tests for Part B behavior
      - File: `tests/test_options_flow_dashboard_release_selection.py`
      - Cases:
        - section presence and default collapsed/expanded state
@@ -344,6 +359,7 @@ MVP implementation note:
        - ✅ Existing admin visibility passthrough coverage remains in place
        - ✅ Translation copy updated to intent-first wording (Admin Layout) across dashboard configure + related validation errors
        - ✅ Added single-selector explicit release selection regression (`test_dashboard_update_non_default_release_selection_passes_pinned_tag`)
+     - ✅ Added section + dashboard-configuration field order regression (`test_dashboard_update_schema_uses_expected_section_and_access_field_order`)
 - **Key issues**
   - Form framework has limited dynamic controls; use simplest consistent conditional rendering supported by HA section forms.
   - Dynamic template labels must remain deterministic when metadata is missing.
@@ -380,7 +396,7 @@ MVP implementation note:
   - `runTests` on dashboard release test set ✅ 8/8 passed after focused cleanup
 - Additional gate note:
   - `mypy custom_components/kidschores/` ❌ blocked by unrelated external syntax issue in `/workspaces/core/homeassistant/helpers/device_registry.py:407`
-- Outstanding tests (not run and why): Phase 4 release-specific tests are pending implementation in later phases.
+- Outstanding tests (not run and why): None for this initiative scope; focused release/options-flow coverage and quality gates were executed.
 
 ## Notes & follow-up
 

@@ -138,6 +138,7 @@ class NormalizedExportResponse(TypedDict):
     kids: list[dict[str, Any]]
     ledger_entries: list[dict[str, Any]]
     period_summaries: dict[str, Any]
+    gamification: dict[str, Any]
     raw_refs: dict[str, Any]
 
 

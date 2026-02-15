@@ -81,6 +81,22 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         self._dashboard_delete_selection: list[str] = []
         self._dashboard_dedupe_removed: dict[str, int] = {}
 
+    @staticmethod
+    def _normalize_dashboard_admin_mode(admin_mode: str) -> str:
+        """Normalize admin layout values from UI labels or stored constants."""
+        normalized = admin_mode.strip().lower().replace("-", "_").replace(" ", "_")
+        alias_map: dict[str, str] = {
+            const.DASHBOARD_ADMIN_MODE_NONE: const.DASHBOARD_ADMIN_MODE_NONE,
+            const.DASHBOARD_ADMIN_MODE_GLOBAL: const.DASHBOARD_ADMIN_MODE_GLOBAL,
+            const.DASHBOARD_ADMIN_MODE_PER_KID: const.DASHBOARD_ADMIN_MODE_PER_KID,
+            const.DASHBOARD_ADMIN_MODE_BOTH: const.DASHBOARD_ADMIN_MODE_BOTH,
+            "shared": const.DASHBOARD_ADMIN_MODE_GLOBAL,
+            "per_kid": const.DASHBOARD_ADMIN_MODE_PER_KID,
+            "both": const.DASHBOARD_ADMIN_MODE_BOTH,
+            "none": const.DASHBOARD_ADMIN_MODE_NONE,
+        }
+        return alias_map.get(normalized, const.DASHBOARD_ADMIN_MODE_GLOBAL)
+
     # ----------------------------------------------------------------------------------
     # MAIN MENU
     # ----------------------------------------------------------------------------------
@@ -4012,7 +4028,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
 
         Step 1 create path: capture dashboard name only, then route to Step 2.
         """
-        from .helpers import dashboard_helpers as dh
+        from .helpers import dashboard_builder as builder, dashboard_helpers as dh
 
         errors: dict[str, str] = {}
 
@@ -4027,10 +4043,16 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
             if not dashboard_name:
                 errors[const.CFOP_ERROR_BASE] = const.TRANS_KEY_CFOF_DASHBOARD_NO_NAME
             else:
-                self._dashboard_name = dashboard_name
-                self._dashboard_update_url_path = None
-                self._dashboard_flow_mode = const.DASHBOARD_ACTION_CREATE
-                return await self.async_step_dashboard_configure()
+                url_path = builder.get_multi_view_url_path(dashboard_name)
+                if await builder.async_check_dashboard_exists(self.hass, url_path):
+                    errors[const.CFOP_ERROR_BASE] = (
+                        const.TRANS_KEY_CFOF_DASHBOARD_EXISTS
+                    )
+                else:
+                    self._dashboard_name = dashboard_name
+                    self._dashboard_update_url_path = None
+                    self._dashboard_flow_mode = const.DASHBOARD_ACTION_CREATE
+                    return await self.async_step_dashboard_configure()
 
         schema = dh.build_dashboard_create_name_schema()
 
@@ -4123,6 +4145,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     self._dashboard_admin_mode,
                 )
             )
+            admin_mode = self._normalize_dashboard_admin_mode(admin_mode)
             has_admin_template_global_input = (
                 const.CFOF_DASHBOARD_INPUT_ADMIN_TEMPLATE_GLOBAL in user_input
             )
@@ -4169,26 +4192,6 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     self._dashboard_release_selection,
                 )
             ).strip()
-            legacy_release_mode = str(
-                user_input.get(
-                    const.CFOF_DASHBOARD_INPUT_RELEASE_MODE,
-                    const.DASHBOARD_RELEASE_MODE_LATEST_COMPATIBLE,
-                )
-            )
-            legacy_release_tag_value = user_input.get(
-                const.CFOF_DASHBOARD_INPUT_RELEASE_TAG
-            )
-            legacy_release_tag = (
-                str(legacy_release_tag_value).strip()
-                if legacy_release_tag_value
-                else const.SENTINEL_EMPTY
-            )
-            if (
-                const.CFOF_DASHBOARD_INPUT_RELEASE_SELECTION not in user_input
-                and legacy_release_mode == const.DASHBOARD_RELEASE_MODE_PIN_RELEASE
-                and legacy_release_tag
-            ):
-                release_selection = legacy_release_tag
             include_prereleases = bool(
                 user_input.get(
                     const.CFOF_DASHBOARD_INPUT_INCLUDE_PRERELEASES,
@@ -4207,8 +4210,19 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     const.DASHBOARD_ADMIN_MODE_PER_KID,
                     const.DASHBOARD_ADMIN_MODE_BOTH,
                 )
-                if (needs_global_template and not has_admin_template_global_input) or (
-                    needs_per_kid_template and not has_admin_template_per_kid_input
+                missing_global_template_selection = (
+                    needs_global_template
+                    and not has_admin_template_global_input
+                    and not admin_template_global
+                )
+                missing_per_kid_template_selection = (
+                    needs_per_kid_template
+                    and not has_admin_template_per_kid_input
+                    and not admin_template_per_kid
+                )
+                if (
+                    missing_global_template_selection
+                    or missing_per_kid_template_selection
                 ):
                     self._dashboard_selected_kids = selected_kids
                     self._dashboard_template_profile = template_profile
@@ -4310,8 +4324,12 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                             kid_names=selected_kids,
                             template_profile=template_profile,
                             include_admin=include_admin,
+                            admin_mode=admin_mode,
                             admin_view_visibility=admin_view_visibility,
                             admin_visible_user_ids=admin_visible_user_ids,
+                            icon=self._dashboard_icon,
+                            show_in_sidebar=show_in_sidebar,
+                            require_admin=require_admin,
                             pinned_release_tag=pinned_release_tag,
                             include_prereleases=include_prereleases,
                         )
@@ -4338,6 +4356,7 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                             if selected_kids
                             else None,
                             include_admin=include_admin,
+                            admin_mode=admin_mode,
                             force_rebuild=False,
                             show_in_sidebar=show_in_sidebar,
                             require_admin=require_admin,
@@ -4358,6 +4377,15 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
                     )
                 except builder.DashboardSaveError as err:
                     const.LOGGER.error("Dashboard save failed: %s", err)
+                    errors[const.CFOP_ERROR_BASE] = (
+                        const.TRANS_KEY_CFOF_DASHBOARD_SAVE_ERROR
+                    )
+                except Exception as err:
+                    const.LOGGER.error(
+                        "Unexpected dashboard configure failure: %s",
+                        err,
+                        exc_info=True,
+                    )
                     errors[const.CFOP_ERROR_BASE] = (
                         const.TRANS_KEY_CFOF_DASHBOARD_SAVE_ERROR
                     )
@@ -5375,6 +5403,8 @@ class KidsChoresOptionsFlowHandler(config_entries.OptionsFlow):
         user_ids: list[str] = []
         seen: set[str] = set()
         for parent_data in parents_data.values():
+            if not isinstance(parent_data, dict):
+                continue
             user_id = parent_data.get(const.DATA_PARENT_HA_USER_ID)
             if not isinstance(user_id, str):
                 continue

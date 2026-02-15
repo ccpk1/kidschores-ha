@@ -136,10 +136,13 @@ DASHBOARD_RELEASES_API_URL: Final = (
 # Supported release-tag grammar (parser contract)
 # Accepted examples:
 #   - KCD_v0.5.0_beta3
-#   - KCD_v0.5.4
+#   - KCD_v0.5.0-beta3
+#   - v0.5.0-beta3
+#   - v0.5.4
+#   - 0.5.4
 DASHBOARD_RELEASE_TAG_PATTERN: Final = (
-    r"^KCD_v(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)"
-    r"(?:_(?P<pre_label>beta)(?P<pre_num>\d+))?$"
+    r"^(?:(?:KCD_)?v)?(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)"
+    r"(?:(?:_|-)?(?P<pre_label>beta|b)(?P<pre_num>\d+))?$"
 )
 
 # Default prerelease policy while integration is in beta cycle
@@ -871,8 +874,6 @@ CFOF_DASHBOARD_INPUT_SHOW_IN_SIDEBAR: Final = "dashboard_show_in_sidebar"
 CFOF_DASHBOARD_INPUT_REQUIRE_ADMIN: Final = "dashboard_require_admin"
 CFOF_DASHBOARD_INPUT_ICON: Final = "dashboard_icon"
 CFOF_DASHBOARD_INPUT_RELEASE_SELECTION: Final = "dashboard_release_selection"
-CFOF_DASHBOARD_INPUT_RELEASE_MODE: Final = "dashboard_release_mode"
-CFOF_DASHBOARD_INPUT_RELEASE_TAG: Final = "dashboard_release_tag"
 CFOF_DASHBOARD_INPUT_INCLUDE_PRERELEASES: Final = "dashboard_include_prereleases"
 CFOF_DASHBOARD_SECTION_KID_VIEWS: Final = "section_kid_views"
 CFOF_DASHBOARD_SECTION_ADMIN_VIEWS: Final = "section_admin_views"
@@ -898,7 +899,6 @@ DASHBOARD_ADMIN_VIEW_VISIBILITY_LINKED_PARENTS: Final = "linked_parents"
 
 # Dashboard release-mode options (Phase 3)
 DASHBOARD_RELEASE_MODE_LATEST_COMPATIBLE: Final = "latest_compatible"
-DASHBOARD_RELEASE_MODE_PIN_RELEASE: Final = "pin_release"
 
 # Chore Custom Interval Reset Periods
 CUSTOM_INTERVAL_UNIT_OPTIONS: Final = [
@@ -1238,10 +1238,12 @@ DATA_KID_DASHBOARD_LANGUAGE: Final = "dashboard_language"
 # ——————————————————————————————————————————————
 CUSTOM_TRANSLATIONS_DIR: Final = "translations_custom"
 DEFAULT_DASHBOARD_LANGUAGE: Final = "en"
+DEFAULT_REPORT_LANGUAGE: Final = "en"
 DASHBOARD_TRANSLATIONS_SUFFIX: Final = "_dashboard"  # File naming: en_dashboard.json
 NOTIFICATION_TRANSLATIONS_SUFFIX: Final = (
     "_notifications"  # File naming: en_notifications.json
 )
+REPORT_TRANSLATIONS_SUFFIX: Final = "_report"  # File naming: en_report.json
 
 # Legacy alias for backward compatibility
 DASHBOARD_TRANSLATIONS_DIR: Final = CUSTOM_TRANSLATIONS_DIR
@@ -3049,6 +3051,8 @@ SERVICE_FIELD_REPORT_START_DATE: Final = "start_date"
 SERVICE_FIELD_REPORT_END_DATE: Final = "end_date"
 SERVICE_FIELD_REPORT_NOTIFY_SERVICE: Final = "notify_service"
 SERVICE_FIELD_REPORT_TITLE: Final = "report_title"
+SERVICE_FIELD_REPORT_STYLE: Final = "report_style"
+SERVICE_FIELD_REPORT_LANGUAGE: Final = "report_language"
 
 # Export service fields
 SERVICE_FIELD_EXPORT_INCLUDE_LEDGER: Final = "include_ledger"
@@ -3060,6 +3064,11 @@ SERVICE_FIELD_EXPORT_INCLUDE_ID_MAP: Final = "include_id_map"
 REPORT_RANGE_MODE_LAST_7_DAYS: Final = "last_7_days"
 REPORT_RANGE_MODE_LAST_30_DAYS: Final = "last_30_days"
 REPORT_RANGE_MODE_CUSTOM: Final = "custom"
+
+# Reporting style modes
+REPORT_STYLE_KID: Final = "kid"
+REPORT_STYLE_AUTOMATION: Final = "automation"
+REPORT_STYLE_BOTH: Final = "both"
 
 # Legacy aliases (for backwards compatibility with existing automations)
 # TODO: Deprecate in v0.6.0 after migration period
@@ -3786,8 +3795,6 @@ TRANS_KEY_CFOF_DASHBOARD_SHOW_IN_SIDEBAR: Final = "dashboard_show_in_sidebar"
 TRANS_KEY_CFOF_DASHBOARD_REQUIRE_ADMIN: Final = "dashboard_require_admin"
 TRANS_KEY_CFOF_DASHBOARD_ICON: Final = "dashboard_icon"
 TRANS_KEY_CFOF_DASHBOARD_RELEASE_SELECTION: Final = "dashboard_release_selection"
-TRANS_KEY_CFOF_DASHBOARD_RELEASE_MODE: Final = "dashboard_release_mode"
-TRANS_KEY_CFOF_DASHBOARD_RELEASE_TAG: Final = "dashboard_release_tag"
 TRANS_KEY_CFOF_DASHBOARD_INCLUDE_PRERELEASES: Final = "dashboard_include_prereleases"
 TRANS_KEY_CFOF_DASHBOARD_NO_KIDS_WITHOUT_ADMIN: Final = "dashboard_no_kids_no_admin"
 TRANS_KEY_CFOF_DASHBOARD_ADMIN_GLOBAL_TEMPLATE_REQUIRED: Final = (
