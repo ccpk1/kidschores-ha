@@ -1502,58 +1502,136 @@
         "data": {}
       },
       "dashboard_generator": {
-        "title": "Gestiona el tauler de control",
-        "description": "Creeu, actualitzeu o suprimiu els quadres de comandament de KidsChores Lovelace.\n\n**Targetes personalitzades necessàries** (instal·lades mitjançant el frontend de HACS):\n- Targetes de bolets (custom:mushroom-template-card)\n- Auto-Entities (custom:auto-entities)\n- Mini Graph Card (custom:mini-graph-card)\n\nSense aquestes targetes, els quadres de comandament mostraran errors. Instal·leu-los primer des de HACS abans de generar els quadres de comandament.",
+        "title": "Accions del tauler de control",
+        "description": "Creeu, actualitzeu o suprimiu els quadres de comandament de KidsChores Lovelace.\n\nEstat: {status}\n\n**Targetes personalitzades necessàries** (instal·lació mitjançant el frontend de HACS):\n- Targetes de bolets (custom:mushroom-template-card)\n- Auto-Entities (custom:auto-entities)\n- Mini Graph Card (custom:mini-graph-card)\n\nSense aquestes targetes, els quadres de comandament mostraran errors. Instal·leu-los primer des de HACS abans de generar els quadres de comandament.",
         "data": {
           "dashboard_action": "Acció",
           "dashboard_check_cards": "Comprovar la instal·lació de la targeta"
         },
         "data_description": {
-          "dashboard_action": "Trieu si voleu crear nous quadres de comandament o suprimir els existents.",
+          "dashboard_action": "Trieu una acció: creeu un tauler de control nou, actualitzeu les vistes d'un tauler de control existent o suprimiu els taulers de control.",
           "dashboard_check_cards": "Habilita aquesta opció per verificar que les targetes personalitzades necessàries estiguin instal·lades abans de continuar."
         }
       },
       "dashboard_create": {
-        "title": "Crear/Actualitzar el tauler de control",
-        "description": "Genera un tauler de control de KidsChores amb pestanyes per a cada nen.\n\nTria un nom per al tauler de control, selecciona els nens que vulguis incloure i, opcionalment, afegeix una pestanya d'administració per a la gestió dels pares.\n\n[📖 Guia de generació de taulers de control]({documentation_url})",
+        "title": "Crea un tauler de control",
+        "description": "Introduïu un nom per al tauler de control i continueu amb la configuració.\n\n[📖 Guia de generació de taulers de control]({documentation_url})",
         "data": {
-          "dashboard_name": "Nom del tauler de control",
-          "dashboard_style": "Estil del tauler de control",
-          "dashboard_kid_selection": "Nens (una pestanya per nen)",
-          "dashboard_include_admin": "Inclou la pestanya Administrador",
-          "dashboard_force_rebuild": "Reconstrucció forçada (sobreescriure l'existent)"
+          "dashboard_name": "Nom del tauler de control"
         },
         "data_description": {
-          "dashboard_name": "Nom del tauler de control (apareix a la barra lateral). Suggerit: Tasques",
-          "dashboard_style": "Trieu el disseny del tauler de control: Complet (totes les funcions), Minimal (només les essencials) o Compacte (disseny dens).",
-          "dashboard_kid_selection": "Seleccioneu per a quins nens voleu crear pestanyes. Cada nen té la seva pròpia vista/pestanya.",
-          "dashboard_include_admin": "Afegeix una pestanya d'administració amb controls parentals per a aprovacions i gestió.",
-          "dashboard_force_rebuild": "Si està habilitat, el tauler de control existent se sobreescriurà. En cas contrari, la generació fallarà si el tauler de control existeix."
+          "dashboard_name": "Nom del tauler de control (apareix a la barra lateral). Suggerit: Tasques"
+        }
+      },
+      "dashboard_update_select": {
+        "title": "Actualitza el tauler de control",
+        "description": "Seleccioneu un tauler de control de KidsChores existent per actualitzar-lo i reconfigurar-lo.",
+        "data": {
+          "dashboard_update_selection": "Tauler de control per actualitzar"
+        },
+        "data_description": {
+          "dashboard_update_selection": "Trieu el tauler de control existent que voleu actualitzar."
+        }
+      },
+      "dashboard_configure": {
+        "title": "Configura el tauler de control",
+        "description": "Configura les seccions del tauler de control per a **{dashboard}** (mode: {mode}).\n\n[📖 Guia de generació de taulers de control]({documentation_url})",
+        "sections": {
+          "section_kid_views": {
+            "name": "Vistes infantils",
+            "description": "Trieu l'estil de plantilla infantil i quins nens voleu incloure.",
+            "data": {
+              "dashboard_template_profile": "Perfil de plantilla infantil",
+              "dashboard_kid_selection": "Nens"
+            },
+            "data_description": {
+              "dashboard_template_profile": "Perfil de plantilla aplicat a les vistes infantils seleccionades.",
+              "dashboard_kid_selection": "Seleccioneu els nens que voleu incloure en aquest tauler de control."
+            }
+          },
+          "section_admin_views": {
+            "name": "Vistes d'administrador",
+            "description": "Trieu quin disseny d'administració voleu generar i qui el pot veure.",
+            "data": {
+              "dashboard_admin_mode": "Disseny d'administració",
+              "dashboard_admin_template_global": "Plantilla d'administració compartida",
+              "dashboard_admin_template_per_kid": "Plantilla d'administració per nen",
+              "dashboard_admin_view_visibility": "Visibilitat de la vista d'administrador"
+            },
+            "data_description": {
+              "dashboard_admin_mode": "Trieu el disseny d'administració: cap, compartit, per nen o tots dos.",
+              "dashboard_admin_template_global": "Plantilla utilitzada quan Admin Layout inclou Shared.",
+              "dashboard_admin_template_per_kid": "Plantilla utilitzada quan Admin Layout inclou Per nen.",
+              "dashboard_admin_view_visibility": "Controla qui pot veure les vistes d'administrador. La visibilitat vinculada als pares utilitza usuaris d'alta disponibilitat (HA) principals vinculats."
+            }
+          },
+          "section_access_sidebar": {
+            "name": "Configuració del tauler de control",
+            "description": "Icona de control, accés només per a administradors i visibilitat a la barra lateral.",
+            "data": {
+              "dashboard_icon": "Icona del tauler de control",
+              "dashboard_require_admin": "Només administrador",
+              "dashboard_show_in_sidebar": "Afegeix a la barra lateral"
+            },
+            "data_description": {
+              "dashboard_icon": "Icona de la barra lateral per a aquest tauler de control.",
+              "dashboard_require_admin": "Restringeix l'accés al tauler de control als usuaris administradors.",
+              "dashboard_show_in_sidebar": "Mostra aquest tauler de control a la barra lateral de l'Assistent de casa."
+            }
+          },
+          "section_template_version": {
+            "name": "Versió de plantilla",
+            "description": "Seleccioneu com el mode d'actualització tria les plantilles de tauler de control compatibles.",
+            "data": {
+              "dashboard_include_prereleases": "Inclou les preestrenes",
+              "dashboard_release_selection": "Versió de la plantilla del tauler de control"
+            },
+            "data_description": {
+              "dashboard_include_prereleases": "Inclou etiquetes del tauler de control de prellançament al descobriment de versions.",
+              "dashboard_release_selection": "Trieu la selecció automàtica de la darrera versió compatible o seleccioneu explícitament una etiqueta de versió compatible."
+            }
+          }
+        },
+        "data": {
+          "dashboard_template_profile": "Perfil de plantilla infantil",
+          "dashboard_kid_selection": "Nens",
+          "dashboard_admin_mode": "Disseny d'administració",
+          "dashboard_admin_template_global": "Plantilla d'administració compartida",
+          "dashboard_admin_template_per_kid": "Plantilla d'administració per nen",
+          "dashboard_admin_view_visibility": "Visibilitat de la vista d'administrador",
+          "dashboard_icon": "Icona del tauler de control",
+          "dashboard_require_admin": "Només administrador",
+          "dashboard_show_in_sidebar": "Afegeix a la barra lateral",
+          "dashboard_include_prereleases": "Inclou les preestrenes",
+          "dashboard_release_selection": "Versió de la plantilla del tauler de control"
+        },
+        "data_description": {
+          "dashboard_template_profile": "Perfil de plantilla aplicat a les vistes infantils seleccionades.",
+          "dashboard_kid_selection": "Seleccioneu els nens que voleu incloure en aquest tauler de control.",
+          "dashboard_admin_mode": "Trieu el disseny d'administració: cap, compartit, per nen o tots dos.",
+          "dashboard_admin_template_global": "Plantilla utilitzada quan Admin Layout inclou Shared.",
+          "dashboard_admin_template_per_kid": "Plantilla utilitzada quan Admin Layout inclou Per nen.",
+          "dashboard_admin_view_visibility": "Controla qui pot veure les vistes d'administrador. La visibilitat vinculada als pares utilitza usuaris d'alta disponibilitat (HA) principals vinculats.",
+          "dashboard_icon": "Icona de la barra lateral per a aquest tauler de control.",
+          "dashboard_require_admin": "Restringeix l'accés al tauler de control als usuaris administradors.",
+          "dashboard_show_in_sidebar": "Mostra aquest tauler de control a la barra lateral de l'Assistent de casa.",
+          "dashboard_include_prereleases": "Inclou etiquetes del tauler de control de prellançament al descobriment de versions.",
+          "dashboard_release_selection": "Trieu la selecció automàtica de la darrera versió compatible o seleccioneu explícitament una etiqueta de versió compatible."
         }
       },
       "dashboard_delete": {
         "title": "Suprimeix el tauler de control",
         "description": "Seleccioneu els taulers de control de KidsChores per suprimir-los.\n\n⚠️ Aquesta acció no es pot desfer.",
         "data": {
-          "dashboard_delete_selection": "Taulers de control per suprimir"
+          "dashboard_update_selection": "Tauler de control"
         },
         "data_description": {
-          "dashboard_delete_selection": "Seleccioneu un o més taulers de control per eliminar-los permanentment."
+          "dashboard_update_selection": "Seleccioneu el tauler de control que voleu suprimir permanentment."
         }
       },
       "dashboard_delete_confirm": {
         "title": "Confirma l'eliminació",
         "description": "⚠️ **Avís:** Els següents quadres de comandament s'eliminaran permanentment:\n\n**{dashboards}**\n\nAixò eliminarà el quadre de comandament de la barra lateral i eliminarà tota la configuració.\n\nFeu clic a Envia per confirmar l'eliminació.",
-        "data": {}
-      },
-      "dashboard_generator_confirm": {
-        "title": "Confirma la generació del tauler de control",
-        "description": "Es crearan els quadres de comandament següents:\n\n**Estil:** {style}\n**Força la reconstrucció:** {force_rebuild}\n\n**Taulers de comandament:**\n{dashboards}\n\nFeu clic a Envia per generar els quadres de comandament.",
-        "data": {}
-      },
-      "dashboard_generator_result": {
-        "title": "Resultats de la generació del tauler de control",
-        "description": "**Resultats:** {success_count} correctament, {failure_count} fallit\n\n{results}\n\nFeu clic a Envia per tornar al menú principal.",
         "data": {}
       },
       "manage_general_options": {
@@ -1736,9 +1814,14 @@
       "dashboard_template_error": "No s'ha pogut obtenir la plantilla del tauler de control. Comproveu la connexió de xarxa o torneu-ho a provar més tard.",
       "dashboard_render_error": "No s'ha pogut renderitzar la plantilla del tauler de control. Això pot indicar un error de plantilla.",
       "dashboard_save_error": "No s'ha pogut desar el tauler de control a Home Assistant. Consulta els registres del sistema per obtenir més informació.",
+      "dashboard_release_incompatible": "La versió seleccionada del tauler de control no és compatible amb la versió de KidsChores instal·lada.",
       "dashboard_no_name": "Si us plau, introduïu un nom per al tauler de control.",
       "dashboard_no_kids": "Seleccioneu com a mínim un nen o activeu \"Inclou la pestanya d'administració\".",
-      "dashboard_no_dashboards": "Seleccioneu com a mínim un tauler de control per suprimir."
+      "dashboard_no_dashboards": "Seleccioneu com a mínim un tauler de control per suprimir.",
+      "dashboard_no_kids_no_admin": "Seleccioneu com a mínim un fill o trieu un disseny d'administració diferent de \"cap\".",
+      "dashboard_admin_global_template_required": "Cal una plantilla d'administrador compartida quan Admin Layout inclou Shared.",
+      "dashboard_admin_per_kid_template_required": "Cal una plantilla d'administració per nen quan el disseny d'administració inclou Per nen.",
+      "dashboard_admin_per_kid_needs_kids": "El disseny d'administrador per nen requereix com a mínim un nen seleccionat."
     },
     "abort": {
       "invalid_action": "Acció no vàlida",
@@ -1786,23 +1869,43 @@
     },
     "dashboard_action": {
       "options": {
-        "create": "Crear/Actualitzar el tauler de control",
-        "delete": "Suprimeix el tauler de control"
-      }
-    },
-    "dashboard_style": {
-      "options": {
-        "dashboard_style_full": "Complet (totes les funcions)",
-        "dashboard_style_minimal": "Mínim (només essencials)",
-        "dashboard_style_compact": "Compacte (disseny dens)",
-        "dashboard_style_admin": "Administrador (tauler de control principal)"
+        "create": "Crea un nou tauler de control",
+        "update": "Actualitzar les vistes de tauler de control existents",
+        "delete": "Suprimeix el tauler de control",
+        "exit": "Sortida"
       }
     },
     "dashboard_kid_selection": {
       "options": {}
     },
-    "dashboard_delete_selection": {
+    "dashboard_update_selection": {
       "options": {}
+    },
+    "dashboard_template_profile": {
+      "options": {
+        "full": "Complet (totes les funcions)",
+        "minimal": "Mínim (només essencials)",
+        "compact": "Compacte (disseny dens)"
+      }
+    },
+    "dashboard_admin_mode": {
+      "options": {
+        "none": "Cap",
+        "global": "Compartit",
+        "per_kid": "Per nen",
+        "both": "Tots dos"
+      }
+    },
+    "dashboard_admin_view_visibility": {
+      "options": {
+        "all_users": "Tots els usuaris",
+        "linked_parents": "Només pares vinculats"
+      }
+    },
+    "dashboard_release_selection": {
+      "options": {
+        "latest_compatible": "Compatible més recent (recomanat)"
+      }
     },
     "manage_actions": {
       "options": {
@@ -2525,6 +2628,32 @@
           "name": "Nom de la tasca",
           "description": "Nom de la tasca de rotació que s'obrirà. Opcional si es proporciona chore_id.",
           "example": "Dormitori net"
+        }
+      }
+    },
+    "generate_activity_report": {
+      "name": "Generar informe d'activitat",
+      "description": "Genera un informe d'activitat de 7 dies a partir de l'historial del llibre major. Admet el filtratge opcional de fills, el lliurament opcional de notificacions i la conversió HTML opcional, alhora que retorna una càrrega útil de resposta estructurada.",
+      "fields": {
+        "kid_name": {
+          "name": "Nom del nen/a",
+          "description": "Filtre opcional per generar l'informe només per a un nen."
+        },
+        "report_language": {
+          "name": "Idioma de l'informe",
+          "description": "Codi d'idioma opcional per al text de l'informe. Es basa en l'idioma infantil seleccionat (quan kid_name està definit) i després en l'anglès."
+        },
+        "report_title": {
+          "name": "Títol de l'informe",
+          "description": "Substitució opcional del títol per a la sortida de markdown."
+        },
+        "notify_service": {
+          "name": "Notificar al servei",
+          "description": "Destinació de notificació opcional (per exemple, notify.family) per lliurar l'informe."
+        },
+        "output_format": {
+          "name": "Format de sortida",
+          "description": "Retorna només markdown, només html o tots dos a la càrrega útil de la resposta."
         }
       }
     },

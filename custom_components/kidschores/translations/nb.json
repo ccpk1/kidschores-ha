@@ -1502,58 +1502,136 @@
         "data": {}
       },
       "dashboard_generator": {
-        "title": "Administrer dashbord",
-        "description": "Opprett, oppdater eller slett KidsChores Lovelace-dashbord.\n\n**Nødvendige tilpassede kort** (installer via HACS Frontend):\n- Soppkort (custom:mushroom-template-card)\n- Auto-Entities (custom:auto-entities)\n- Minigrafkort (custom:mini-graph-card)\n\nUten disse kortene vil dashbord vise feil. Installer dem først fra HACS før du genererer dashbord.",
+        "title": "Handlinger på dashbordet",
+        "description": "Opprett, oppdater eller slett KidsChores Lovelace-dashbord.\n\nStatus: {status}\n\n**Obligatoriske tilpassede kort** (installer via HACS Frontend):\n- Soppkort (custom:mushroom-template-card)\n- Auto-Entities (custom:auto-entities)\n- Mini Graph Card (custom:mini-graph-card)\n\nUten disse kortene vil dashbord vise feil. Installer dem først fra HACS før du genererer dashbord.",
         "data": {
           "dashboard_action": "Handling",
           "dashboard_check_cards": "Sjekk kortinstallasjonen"
         },
         "data_description": {
-          "dashboard_action": "Velg om du vil opprette nye dashbord eller slette eksisterende.",
+          "dashboard_action": "Velg én handling: opprett et nytt dashbord, oppdater visninger på et eksisterende dashbord eller slett dashbord.",
           "dashboard_check_cards": "Aktiver for å bekrefte at nødvendige tilpassede kort er installert før du fortsetter."
         }
       },
       "dashboard_create": {
-        "title": "Opprett/oppdater dashbord",
-        "description": "Generer et KidsChores-dashbord med faner for hvert barn.\n\nVelg et navn for dashbordet, velg barna som skal inkluderes, og legg eventuelt til en administratorfane for foreldreadministrasjon.\n\n[📖 Veiledning for generering av dashbord]({documentation_url})",
+        "title": "Opprett dashbord",
+        "description": "Skriv inn et navn på dashbordet, og fortsett deretter til konfigurasjonen.\n\n[📖 Veiledning for generering av dashbord]({documentation_url})",
         "data": {
-          "dashboard_name": "Navn på dashbord",
-          "dashboard_style": "Dashbordstil",
-          "dashboard_kid_selection": "Barn (én fane per barn)",
-          "dashboard_include_admin": "Inkluder administratorfanen",
-          "dashboard_force_rebuild": "Tving gjenoppbygging (overskriv eksisterende)"
+          "dashboard_name": "Navn på dashbord"
         },
         "data_description": {
-          "dashboard_name": "Navn på dashbordet (vises i sidefeltet). Foreslått: Gjøremål",
-          "dashboard_style": "Velg dashbordoppsett: Full (alle funksjoner), Minimal (kun det viktigste) eller Kompakt (tett oppsett).",
-          "dashboard_kid_selection": "Velg hvilke barn du vil opprette faner for. Hvert barn får sin egen visning/fane.",
-          "dashboard_include_admin": "Legg til en Admin-fane med foreldrekontroller for godkjenninger og administrasjon.",
-          "dashboard_force_rebuild": "Hvis aktivert, vil eksisterende dashbord bli overskrevet. Ellers mislykkes genereringen hvis dashbordet finnes."
+          "dashboard_name": "Navn på dashbordet (vises i sidefeltet). Foreslått: Gjøremål"
+        }
+      },
+      "dashboard_update_select": {
+        "title": "Oppdater dashbordet",
+        "description": "Velg et eksisterende KidsChores-dashbord for å oppdatere og konfigurere på nytt.",
+        "data": {
+          "dashboard_update_selection": "Dashbord som skal oppdateres"
+        },
+        "data_description": {
+          "dashboard_update_selection": "Velg det eksisterende dashbordet du vil oppdatere."
+        }
+      },
+      "dashboard_configure": {
+        "title": "Konfigurer dashbord",
+        "description": "Konfigurer dashbordseksjoner for **{dashboard}** (modus: {mode}).\n\n[📖 Veiledning for generering av dashbord]({documentation_url})",
+        "sections": {
+          "section_kid_views": {
+            "name": "Barnevisninger",
+            "description": "Velg malstilen for barnet og hvilke barn som skal inkluderes.",
+            "data": {
+              "dashboard_template_profile": "Malprofil for barn",
+              "dashboard_kid_selection": "Barn"
+            },
+            "data_description": {
+              "dashboard_template_profile": "Malprofil brukt på valgte barnevisninger.",
+              "dashboard_kid_selection": "Velg barn som skal inkluderes i dette dashbordet."
+            }
+          },
+          "section_admin_views": {
+            "name": "Administratorvisninger",
+            "description": "Velg hvilket administratoroppsett som skal genereres og hvem som kan se det.",
+            "data": {
+              "dashboard_admin_mode": "Admin-oppsett",
+              "dashboard_admin_template_global": "Delt administratormal",
+              "dashboard_admin_template_per_kid": "Mal for administrator per barn",
+              "dashboard_admin_view_visibility": "Synlighet for administratorvisning"
+            },
+            "data_description": {
+              "dashboard_admin_mode": "Velg administratoroppsett: ingen, delt, per barn eller begge deler.",
+              "dashboard_admin_template_global": "Malen brukes når administratoroppsettet inkluderer delt.",
+              "dashboard_admin_template_per_kid": "Malen brukes når administratoroppsettet inkluderer per barn.",
+              "dashboard_admin_view_visibility": "Kontroller hvem som kan se administratorvisninger. Overordnet tilknyttet synlighet bruker tilknyttede overordnede HA-brukere."
+            }
+          },
+          "section_access_sidebar": {
+            "name": "Konfigurasjon av dashbord",
+            "description": "Kontrollikon, kun administratortilgang og synlighet i sidefeltet.",
+            "data": {
+              "dashboard_icon": "Dashbordikon",
+              "dashboard_require_admin": "Kun administrator",
+              "dashboard_show_in_sidebar": "Legg til i sidefeltet"
+            },
+            "data_description": {
+              "dashboard_icon": "Sidefeltikon for dette dashbordet.",
+              "dashboard_require_admin": "Begrens tilgang til dashbordet til administratorbrukere.",
+              "dashboard_show_in_sidebar": "Vis dette dashbordet i Home Assistant-sidefeltet."
+            }
+          },
+          "section_template_version": {
+            "name": "Malversjon",
+            "description": "Velg hvordan oppdateringsmodus velger kompatible dashbordmaler.",
+            "data": {
+              "dashboard_include_prereleases": "Inkluder forhåndsutgivelser",
+              "dashboard_release_selection": "Versjon av dashbordmal"
+            },
+            "data_description": {
+              "dashboard_include_prereleases": "Inkluder tagger for forhåndsversjonsdashbord i utgivelsesoppdagelse.",
+              "dashboard_release_selection": "Velg automatisk siste kompatible valg eller velg eksplisitt en kompatibel utgivelsestag."
+            }
+          }
+        },
+        "data": {
+          "dashboard_template_profile": "Malprofil for barn",
+          "dashboard_kid_selection": "Barn",
+          "dashboard_admin_mode": "Admin-oppsett",
+          "dashboard_admin_template_global": "Delt administratormal",
+          "dashboard_admin_template_per_kid": "Mal for administrator per barn",
+          "dashboard_admin_view_visibility": "Synlighet for administratorvisning",
+          "dashboard_icon": "Dashbordikon",
+          "dashboard_require_admin": "Kun administrator",
+          "dashboard_show_in_sidebar": "Legg til i sidefeltet",
+          "dashboard_include_prereleases": "Inkluder forhåndsutgivelser",
+          "dashboard_release_selection": "Versjon av dashbordmal"
+        },
+        "data_description": {
+          "dashboard_template_profile": "Malprofil brukt på valgte barnevisninger.",
+          "dashboard_kid_selection": "Velg barn som skal inkluderes i dette dashbordet.",
+          "dashboard_admin_mode": "Velg administratoroppsett: ingen, delt, per barn eller begge deler.",
+          "dashboard_admin_template_global": "Malen brukes når administratoroppsettet inkluderer delt.",
+          "dashboard_admin_template_per_kid": "Malen brukes når administratoroppsettet inkluderer per barn.",
+          "dashboard_admin_view_visibility": "Kontroller hvem som kan se administratorvisninger. Overordnet tilknyttet synlighet bruker tilknyttede overordnede HA-brukere.",
+          "dashboard_icon": "Sidefeltikon for dette dashbordet.",
+          "dashboard_require_admin": "Begrens tilgang til dashbordet til administratorbrukere.",
+          "dashboard_show_in_sidebar": "Vis dette dashbordet i Home Assistant-sidefeltet.",
+          "dashboard_include_prereleases": "Inkluder tagger for forhåndsversjonsdashbord i utgivelsesoppdagelse.",
+          "dashboard_release_selection": "Velg automatisk siste kompatible valg eller velg eksplisitt en kompatibel utgivelsestag."
         }
       },
       "dashboard_delete": {
         "title": "Slett dashbord",
         "description": "Velg KidsChores-dashbordene du vil slette.\n\n⚠️ Denne handlingen kan ikke angres.",
         "data": {
-          "dashboard_delete_selection": "Dashbord som skal slettes"
+          "dashboard_update_selection": "Dashbord"
         },
         "data_description": {
-          "dashboard_delete_selection": "Velg ett eller flere dashbord som skal fjernes permanent."
+          "dashboard_update_selection": "Velg dashbordet du vil fjerne permanent."
         }
       },
       "dashboard_delete_confirm": {
         "title": "Bekreft sletting",
         "description": "⚠️ **Advarsel:** Følgende dashbord vil bli permanent slettet:\n\n**{dashboards}**\n\nDette vil fjerne dashbordet fra sidefeltet og slette all konfigurasjon.\n\nKlikk på Send for å bekrefte slettingen.",
-        "data": {}
-      },
-      "dashboard_generator_confirm": {
-        "title": "Bekreft generering av dashbord",
-        "description": "Følgende dashbord opprettes:\n\n**Stil:** {style}\n**Tving gjenoppbygging:** {force_rebuild}\n\n**Dashbord:**\n{dashboards}\n\nKlikk på Send for å generere dashbordene.",
-        "data": {}
-      },
-      "dashboard_generator_result": {
-        "title": "Resultater av generering av dashbord",
-        "description": "**Resultater:** {success_count} lyktes, {failure_count} mislyktes\n\n{results}\n\nKlikk på Send for å gå tilbake til hovedmenyen.",
         "data": {}
       },
       "manage_general_options": {
@@ -1736,9 +1814,14 @@
       "dashboard_template_error": "Kunne ikke hente dashbordmalen. Sjekk nettverkstilkoblingen eller prøv på nytt senere.",
       "dashboard_render_error": "Kunne ikke gjengi dashbordmalen. Dette kan tyde på en malfeil.",
       "dashboard_save_error": "Kunne ikke lagre dashbordet i Home Assistant. Sjekk systemloggene for detaljer.",
+      "dashboard_release_incompatible": "Den valgte dashbordversjonen er ikke kompatibel med den installerte KidsChores-versjonen din.",
       "dashboard_no_name": "Vennligst skriv inn et navn for dashbordet.",
       "dashboard_no_kids": "Velg minst ett barn eller aktiver «Inkluder administratorfane».",
-      "dashboard_no_dashboards": "Vennligst velg minst ett dashbord du vil slette."
+      "dashboard_no_dashboards": "Vennligst velg minst ett dashbord du vil slette.",
+      "dashboard_no_kids_no_admin": "Velg minst ett barn, eller velg et annet administratoroppsett enn «ingen».",
+      "dashboard_admin_global_template_required": "Delt administratormal er nødvendig når administratoroppsettet inkluderer delt.",
+      "dashboard_admin_per_kid_template_required": "Adminmal per barn er nødvendig når administratoroppsettet inkluderer per barn.",
+      "dashboard_admin_per_kid_needs_kids": "Adminoppsett per barn krever minst ett valgt barn."
     },
     "abort": {
       "invalid_action": "Ugyldig handling",
@@ -1786,23 +1869,43 @@
     },
     "dashboard_action": {
       "options": {
-        "create": "Opprett/oppdater dashbord",
-        "delete": "Slett dashbord"
-      }
-    },
-    "dashboard_style": {
-      "options": {
-        "dashboard_style_full": "Full (alle funksjoner)",
-        "dashboard_style_minimal": "Minimal (kun det viktigste)",
-        "dashboard_style_compact": "Kompakt (tett layout)",
-        "dashboard_style_admin": "Admin (foreldreoversikt)"
+        "create": "Opprett nytt dashbord",
+        "update": "Oppdater eksisterende dashbordvisninger",
+        "delete": "Slett dashbord",
+        "exit": "Gå"
       }
     },
     "dashboard_kid_selection": {
       "options": {}
     },
-    "dashboard_delete_selection": {
+    "dashboard_update_selection": {
       "options": {}
+    },
+    "dashboard_template_profile": {
+      "options": {
+        "full": "Full (alle funksjoner)",
+        "minimal": "Minimal (kun det viktigste)",
+        "compact": "Kompakt (tett layout)"
+      }
+    },
+    "dashboard_admin_mode": {
+      "options": {
+        "none": "Ingen",
+        "global": "Delt",
+        "per_kid": "Per barn",
+        "both": "Både"
+      }
+    },
+    "dashboard_admin_view_visibility": {
+      "options": {
+        "all_users": "Alle brukere",
+        "linked_parents": "Kun tilknyttede foreldre"
+      }
+    },
+    "dashboard_release_selection": {
+      "options": {
+        "latest_compatible": "Siste kompatible (anbefales)"
+      }
     },
     "manage_actions": {
       "options": {
@@ -2525,6 +2628,32 @@
           "name": "Navn på gjøremål",
           "description": "Navn på rotasjonsoppgaven som skal åpnes. Valgfritt hvis chore_id er oppgitt.",
           "example": "Rent soverom"
+        }
+      }
+    },
+    "generate_activity_report": {
+      "name": "Generer aktivitetsrapport",
+      "description": "Generer en 7-dagers aktivitetsrapport fra historikken til hovedboken. Støtter valgfri filtrering av barn, valgfri varslingslevering og valgfri HTML-konvertering, samtidig som den returnerer en strukturert responsnyttelast.",
+      "fields": {
+        "kid_name": {
+          "name": "Barnenavn",
+          "description": "Valgfritt filter for å generere rapporten for kun ett barn."
+        },
+        "report_language": {
+          "name": "Rapportspråk",
+          "description": "Valgfri språkkode for rapporttekst. Går tilbake til valgt barnespråk (når barnenavn er angitt) og deretter engelsk."
+        },
+        "report_title": {
+          "name": "Rapporttittel",
+          "description": "Valgfri titteloverstyring for nedgraderingsutdata."
+        },
+        "notify_service": {
+          "name": "Varsle tjenesten",
+          "description": "Valgfritt varslingsmål (for eksempel varsling.family) for å levere rapporten."
+        },
+        "output_format": {
+          "name": "Utdataformat",
+          "description": "Returner kun markdown, kun html, eller både markdown og html i responsnyttelasten."
         }
       }
     },

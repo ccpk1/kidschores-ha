@@ -1502,58 +1502,136 @@
         "data": {}
       },
       "dashboard_generator": {
-        "title": "Tableau de bord de gestion",
-        "description": "Créez, mettez à jour ou supprimez des tableaux de bord KidsChores Lovelace.\n\n**Cartes personnalisées requises** (à installer via l'interface HACS) :\n- Cartes Champignon (custom:mushroom-template-card)\n- Entités automatiques (custom:auto-entities)\n- Carte Mini-Graphique (custom:mini-graph-card)\n\nSans ces cartes, des erreurs s'afficheront dans les tableaux de bord. Installez-les d'abord depuis HACS avant de générer les tableaux de bord.",
+        "title": "Actions du tableau de bord",
+        "description": "Créez, mettez à jour ou supprimez les tableaux de bord KidsChores Lovelace.\n\nStatut : {status}\n\n**Cartes personnalisées requises** (installation via l’interface HACS) :\n- Cartes Champignon (custom:mushroom-template-card)\n- Entités automatiques (custom:auto-entities)\n- Carte Mini-Graphique (custom:mini-graph-card)\n\nSans ces cartes, les tableaux de bord afficheront des erreurs. Installez-les d’abord depuis HACS avant de générer les tableaux de bord.",
         "data": {
           "dashboard_action": "Action",
           "dashboard_check_cards": "Vérification de l'installation de la carte"
         },
         "data_description": {
-          "dashboard_action": "Choisissez si vous souhaitez créer de nouveaux tableaux de bord ou supprimer ceux existants.",
+          "dashboard_action": "Choisissez une action : créer un nouveau tableau de bord, mettre à jour les vues d’un tableau de bord existant ou supprimer des tableaux de bord.",
           "dashboard_check_cards": "Activez cette option pour vérifier que les cartes personnalisées requises sont installées avant de continuer."
         }
       },
       "dashboard_create": {
-        "title": "Créer/Mettre à jour le tableau de bord",
-        "description": "Générez un tableau de bord KidsChores avec des onglets pour chaque enfant.\n\nChoisissez un nom pour le tableau de bord, sélectionnez les enfants à inclure et ajoutez éventuellement un onglet Admin pour la gestion parentale.\n\n[📖 Guide de création de tableau de bord]({documentation_url})",
+        "title": "Créer un tableau de bord",
+        "description": "Saisissez un nom pour le tableau de bord, puis poursuivez la configuration.\n\n[📖 Guide de génération de tableaux de bord]({documentation_url})",
         "data": {
-          "dashboard_name": "Nom du tableau de bord",
-          "dashboard_style": "Style de tableau de bord",
-          "dashboard_kid_selection": "Enfants (un comprimé par enfant)",
-          "dashboard_include_admin": "Inclure l'onglet Admin",
-          "dashboard_force_rebuild": "Forcer la reconstruction (écraser l'existant)"
+          "dashboard_name": "Nom du tableau de bord"
         },
         "data_description": {
-          "dashboard_name": "Nom du tableau de bord (apparaît dans la barre latérale). Suggestion : Tâches ménagères",
-          "dashboard_style": "Choisissez la disposition du tableau de bord : Complète (toutes les fonctionnalités), Minimale (fonctions essentielles uniquement) ou Compacte (disposition dense).",
-          "dashboard_kid_selection": "Sélectionnez les enfants pour lesquels vous souhaitez créer des onglets. Chaque enfant aura son propre affichage/onglet.",
-          "dashboard_include_admin": "Ajoutez un onglet Admin avec des contrôles parents pour les approbations et la gestion.",
-          "dashboard_force_rebuild": "Si cette option est activée, le tableau de bord existant sera écrasé. Sinon, la génération échouera si un tableau de bord existe déjà."
+          "dashboard_name": "Nom du tableau de bord (apparaît dans la barre latérale). Suggestion : Tâches ménagères"
+        }
+      },
+      "dashboard_update_select": {
+        "title": "Mettre à jour le tableau de bord",
+        "description": "Sélectionnez un tableau de bord KidsChores existant à mettre à jour et à reconfigurer.",
+        "data": {
+          "dashboard_update_selection": "Tableau de bord à mettre à jour"
+        },
+        "data_description": {
+          "dashboard_update_selection": "Choisissez le tableau de bord existant que vous souhaitez mettre à jour."
+        }
+      },
+      "dashboard_configure": {
+        "title": "Configurer le tableau de bord",
+        "description": "Configurer les sections du tableau de bord pour **{dashboard}** (mode : {mode}).\n\n[📖 Guide de génération du tableau de bord]({documentation_url})",
+        "sections": {
+          "section_kid_views": {
+            "name": "Vues des enfants",
+            "description": "Choisissez le style du modèle enfant et les enfants à inclure.",
+            "data": {
+              "dashboard_template_profile": "Profil type enfant",
+              "dashboard_kid_selection": "Enfants"
+            },
+            "data_description": {
+              "dashboard_template_profile": "Profil de modèle appliqué aux vues enfant sélectionnées.",
+              "dashboard_kid_selection": "Sélectionnez les enfants à inclure dans ce tableau de bord."
+            }
+          },
+          "section_admin_views": {
+            "name": "Vues d'administration",
+            "description": "Choisissez la mise en page d'administration à générer et qui peut la voir.",
+            "data": {
+              "dashboard_admin_mode": "Mise en page de l'administration",
+              "dashboard_admin_template_global": "Modèle d'administration partagée",
+              "dashboard_admin_template_per_kid": "Modèle d'administration par enfant",
+              "dashboard_admin_view_visibility": "Visibilité de l'interface d'administration"
+            },
+            "data_description": {
+              "dashboard_admin_mode": "Choisissez la configuration d'administration : aucune, partagée, par enfant ou les deux.",
+              "dashboard_admin_template_global": "Modèle utilisé lorsque la mise en page d'administration inclut des éléments partagés.",
+              "dashboard_admin_template_per_kid": "Modèle utilisé lorsque la mise en page d'administration inclut « Par enfant ».",
+              "dashboard_admin_view_visibility": "Contrôlez qui peut consulter les vues d'administration. La visibilité liée au parent utilise les utilisateurs HA parents liés."
+            }
+          },
+          "section_access_sidebar": {
+            "name": "Configuration du tableau de bord",
+            "description": "Icône de contrôle, accès réservé aux administrateurs et visibilité de la barre latérale.",
+            "data": {
+              "dashboard_icon": "Icône du tableau de bord",
+              "dashboard_require_admin": "Réservé aux administrateurs",
+              "dashboard_show_in_sidebar": "Ajouter à la barre latérale"
+            },
+            "data_description": {
+              "dashboard_icon": "Icône de barre latérale pour ce tableau de bord.",
+              "dashboard_require_admin": "Limiter l'accès au tableau de bord aux utilisateurs administrateurs.",
+              "dashboard_show_in_sidebar": "Afficher ce tableau de bord dans la barre latérale de Home Assistant."
+            }
+          },
+          "section_template_version": {
+            "name": "Version du modèle",
+            "description": "Sélectionnez comment le mode de mise à jour choisit les modèles de tableau de bord compatibles.",
+            "data": {
+              "dashboard_include_prereleases": "Inclure les préversions",
+              "dashboard_release_selection": "Version du modèle de tableau de bord"
+            },
+            "data_description": {
+              "dashboard_include_prereleases": "Inclure les balises du tableau de bord de préversion dans la découverte des versions.",
+              "dashboard_release_selection": "Choisissez la sélection automatique de la dernière version compatible ou sélectionnez explicitement une étiquette de version compatible."
+            }
+          }
+        },
+        "data": {
+          "dashboard_template_profile": "Profil type enfant",
+          "dashboard_kid_selection": "Enfants",
+          "dashboard_admin_mode": "Mise en page de l'administration",
+          "dashboard_admin_template_global": "Modèle d'administration partagée",
+          "dashboard_admin_template_per_kid": "Modèle d'administration par enfant",
+          "dashboard_admin_view_visibility": "Visibilité de l'interface d'administration",
+          "dashboard_icon": "Icône du tableau de bord",
+          "dashboard_require_admin": "Réservé aux administrateurs",
+          "dashboard_show_in_sidebar": "Ajouter à la barre latérale",
+          "dashboard_include_prereleases": "Inclure les préversions",
+          "dashboard_release_selection": "Version du modèle de tableau de bord"
+        },
+        "data_description": {
+          "dashboard_template_profile": "Profil de modèle appliqué aux vues enfant sélectionnées.",
+          "dashboard_kid_selection": "Sélectionnez les enfants à inclure dans ce tableau de bord.",
+          "dashboard_admin_mode": "Choisissez la configuration d'administration : aucune, partagée, par enfant ou les deux.",
+          "dashboard_admin_template_global": "Modèle utilisé lorsque la mise en page d'administration inclut des éléments partagés.",
+          "dashboard_admin_template_per_kid": "Modèle utilisé lorsque la mise en page d'administration inclut « Par enfant ».",
+          "dashboard_admin_view_visibility": "Contrôlez qui peut consulter les vues d'administration. La visibilité liée au parent utilise les utilisateurs HA parents liés.",
+          "dashboard_icon": "Icône de barre latérale pour ce tableau de bord.",
+          "dashboard_require_admin": "Limiter l'accès au tableau de bord aux utilisateurs administrateurs.",
+          "dashboard_show_in_sidebar": "Afficher ce tableau de bord dans la barre latérale de Home Assistant.",
+          "dashboard_include_prereleases": "Inclure les balises du tableau de bord de préversion dans la découverte des versions.",
+          "dashboard_release_selection": "Choisissez la sélection automatique de la dernière version compatible ou sélectionnez explicitement une étiquette de version compatible."
         }
       },
       "dashboard_delete": {
         "title": "Supprimer le tableau de bord",
         "description": "Sélectionnez les tableaux de bord KidsChores à supprimer.\n\n⚠️ Cette action est irréversible.",
         "data": {
-          "dashboard_delete_selection": "Tableaux de bord à supprimer"
+          "dashboard_update_selection": "Tableau de bord"
         },
         "data_description": {
-          "dashboard_delete_selection": "Sélectionnez un ou plusieurs tableaux de bord à supprimer définitivement."
+          "dashboard_update_selection": "Sélectionnez le tableau de bord à supprimer définitivement."
         }
       },
       "dashboard_delete_confirm": {
         "title": "Confirmer la suppression",
         "description": "⚠️ **Avertissement :** Les tableaux de bord suivants seront définitivement supprimés :\n\n**{dashboards}**\n\nCette action supprimera le tableau de bord de la barre latérale et toute sa configuration.\n\nCliquez sur « Envoyer » pour confirmer la suppression.",
-        "data": {}
-      },
-      "dashboard_generator_confirm": {
-        "title": "Génération du tableau de bord de confirmation",
-        "description": "Les tableaux de bord suivants seront créés :\n\n**Style :** {style}\n**Forcer la reconstruction :** {force_rebuild}\n\n**Tableaux de bord :**\n{dashboards}\n\nCliquez sur Soumettre pour générer les tableaux de bord.",
-        "data": {}
-      },
-      "dashboard_generator_result": {
-        "title": "Résultats de génération du tableau de bord",
-        "description": "**Résultats :** {success_count} réussi, {failure_count} échec\n\n{results}\n\nCliquez sur Soumettre pour revenir au menu principal.",
         "data": {}
       },
       "manage_general_options": {
@@ -1736,9 +1814,14 @@
       "dashboard_template_error": "Impossible de récupérer le modèle de tableau de bord. Vérifiez votre connexion réseau ou réessayez plus tard.",
       "dashboard_render_error": "Impossible d'afficher le modèle de tableau de bord. Cela peut indiquer un bug du modèle.",
       "dashboard_save_error": "Impossible d'enregistrer le tableau de bord dans Home Assistant. Consultez les journaux système pour plus de détails.",
+      "dashboard_release_incompatible": "La version du tableau de bord sélectionnée n'est pas compatible avec votre version de KidsChores installée.",
       "dashboard_no_name": "Veuillez saisir un nom pour le tableau de bord.",
       "dashboard_no_kids": "Veuillez sélectionner au moins un enfant ou activer l'option « Inclure l'onglet Administrateur ».",
-      "dashboard_no_dashboards": "Veuillez sélectionner au moins un tableau de bord à supprimer."
+      "dashboard_no_dashboards": "Veuillez sélectionner au moins un tableau de bord à supprimer.",
+      "dashboard_no_kids_no_admin": "Sélectionnez au moins un enfant, ou choisissez une disposition d'administration autre que « aucune ».",
+      "dashboard_admin_global_template_required": "Un modèle d'administration partagé est requis lorsque la mise en page d'administration inclut des éléments partagés.",
+      "dashboard_admin_per_kid_template_required": "Un modèle d'administration par enfant est requis lorsque la mise en page d'administration inclut l'option « Par enfant ».",
+      "dashboard_admin_per_kid_needs_kids": "La configuration d'administration par enfant nécessite au moins un enfant sélectionné."
     },
     "abort": {
       "invalid_action": "Action invalide",
@@ -1786,23 +1869,43 @@
     },
     "dashboard_action": {
       "options": {
-        "create": "Créer/Mettre à jour le tableau de bord",
-        "delete": "Supprimer le tableau de bord"
-      }
-    },
-    "dashboard_style": {
-      "options": {
-        "dashboard_style_full": "Complet (Toutes les fonctionnalités)",
-        "dashboard_style_minimal": "Minimal (essentiel seulement)",
-        "dashboard_style_compact": "Compact (Disposition dense)",
-        "dashboard_style_admin": "Administrateur (Tableau de bord parent)"
+        "create": "Créer un nouveau tableau de bord",
+        "update": "Mettre à jour les vues existantes du tableau de bord",
+        "delete": "Supprimer le tableau de bord",
+        "exit": "Sortie"
       }
     },
     "dashboard_kid_selection": {
       "options": {}
     },
-    "dashboard_delete_selection": {
+    "dashboard_update_selection": {
       "options": {}
+    },
+    "dashboard_template_profile": {
+      "options": {
+        "full": "Complet (Toutes les fonctionnalités)",
+        "minimal": "Minimal (essentiel seulement)",
+        "compact": "Compact (Disposition dense)"
+      }
+    },
+    "dashboard_admin_mode": {
+      "options": {
+        "none": "Aucun",
+        "global": "Commun",
+        "per_kid": "Par enfant",
+        "both": "Les deux"
+      }
+    },
+    "dashboard_admin_view_visibility": {
+      "options": {
+        "all_users": "Tous les utilisateurs",
+        "linked_parents": "Parents liés uniquement"
+      }
+    },
+    "dashboard_release_selection": {
+      "options": {
+        "latest_compatible": "Dernière version compatible (recommandée)"
+      }
     },
     "manage_actions": {
       "options": {
@@ -2525,6 +2628,32 @@
           "name": "Nom de la tâche",
           "description": "Nom de la tâche de rotation à ouvrir. Facultatif si chore_id est fourni.",
           "example": "Chambre propre"
+        }
+      }
+    },
+    "generate_activity_report": {
+      "name": "Générer un rapport d'activité",
+      "description": "Génère un rapport d'activité sur 7 jours à partir de l'historique du registre. Prend en charge le filtrage par enfant (optionnel), l'envoi de notifications (optionnel) et la conversion HTML (optionnelle), tout en renvoyant une réponse structurée.",
+      "fields": {
+        "kid_name": {
+          "name": "Nom de l'enfant",
+          "description": "Filtre optionnel permettant de générer le rapport pour un seul enfant."
+        },
+        "report_language": {
+          "name": "Langue du rapport",
+          "description": "Code de langue optionnel pour le texte du rapport. Par défaut, la langue sélectionnée par l'enfant (lorsque kid_name est défini) sera utilisée, puis l'anglais."
+        },
+        "report_title": {
+          "name": "Titre du rapport",
+          "description": "Personnalisation optionnelle du titre pour la sortie Markdown."
+        },
+        "notify_service": {
+          "name": "Service de notification",
+          "description": "Cible de notification facultative (par exemple notify.family) pour diffuser le rapport."
+        },
+        "output_format": {
+          "name": "Format de sortie",
+          "description": "Renvoyer uniquement du Markdown, uniquement du HTML, ou les deux (Markdown et HTML) dans la charge utile de la réponse."
         }
       }
     },

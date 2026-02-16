@@ -1502,58 +1502,136 @@
         "data": {}
       },
       "dashboard_generator": {
-        "title": "Dashboard beheren",
-        "description": "KidsChores Lovelace-dashboards maken, bijwerken of verwijderen.\n\n**Vereiste aangepaste kaarten** (installeren via HACS Frontend):\n- Mushroom Cards (custom:mushroom-template-card)\n- Auto-Entities (custom:auto-entities)\n- Mini Graph Card (custom:mini-graph-card)\n\nZonder deze kaarten zullen dashboards fouten weergeven. Installeer ze eerst via HACS voordat u dashboards genereert.",
+        "title": "Dashboardacties",
+        "description": "KidsChores Lovelace-dashboards maken, bijwerken of verwijderen.\n\nStatus: {status}\n\n**Vereiste aangepaste kaarten** (installeren via HACS Frontend):\n- Mushroom Cards (custom:mushroom-template-card)\n- Auto-Entities (custom:auto-entities)\n- Mini Graph Card (custom:mini-graph-card)\n\nZonder deze kaarten zullen dashboards fouten weergeven. Installeer ze eerst via HACS voordat u dashboards genereert.",
         "data": {
           "dashboard_action": "Actie",
           "dashboard_check_cards": "Controlekaartinstallatie"
         },
         "data_description": {
-          "dashboard_action": "Kies of je nieuwe dashboards wilt aanmaken of bestaande dashboards wilt verwijderen.",
+          "dashboard_action": "Kies één actie: een nieuw dashboard maken, weergaven op een bestaand dashboard bijwerken of dashboards verwijderen.",
           "dashboard_check_cards": "Schakel deze optie in om te controleren of de vereiste aangepaste kaarten zijn geïnstalleerd voordat u verdergaat."
         }
       },
       "dashboard_create": {
-        "title": "Dashboard aanmaken/bijwerken",
-        "description": "Genereer een KidsChores-dashboard met tabbladen voor elk kind.\n\nKies een naam voor het dashboard, selecteer de kinderen die u wilt opnemen en voeg optioneel een beheerderstabblad toe voor ouderbeheer.\n\n[📖 Handleiding voor het genereren van dashboards]({documentation_url})",
+        "title": "Dashboard maken",
+        "description": "Voer een dashboardnaam in en ga vervolgens verder met de configuratie.\n\n[📖 Handleiding voor het genereren van dashboards]({documentation_url})",
         "data": {
-          "dashboard_name": "Dashboardnaam",
-          "dashboard_style": "Dashboardstijl",
-          "dashboard_kid_selection": "Kinderen (één tablet per kind)",
-          "dashboard_include_admin": "Voeg het beheerderstabblad toe",
-          "dashboard_force_rebuild": "Geforceerde heropbouw (bestaande versie overschrijven)"
+          "dashboard_name": "Dashboardnaam"
         },
         "data_description": {
-          "dashboard_name": "Naam voor het dashboard (verschijnt in de zijbalk). Voorgesteld: Taken",
-          "dashboard_style": "Kies de lay-out van het dashboard: Volledig (alle functies), Minimaal (alleen de essentie) of Compact (overzichtelijke lay-out).",
-          "dashboard_kid_selection": "Selecteer voor welke kinderen je tabbladen wilt aanmaken. Elk kind krijgt zijn of haar eigen weergave/tabblad.",
-          "dashboard_include_admin": "Voeg een beheerderstabblad toe met bovenliggende beheeropties voor goedkeuringen en beheer.",
-          "dashboard_force_rebuild": "Indien ingeschakeld, wordt het bestaande dashboard overschreven. Anders mislukt de generatie als het dashboard al bestaat."
+          "dashboard_name": "Naam voor het dashboard (verschijnt in de zijbalk). Voorgesteld: Taken"
+        }
+      },
+      "dashboard_update_select": {
+        "title": "Dashboard bijwerken",
+        "description": "Selecteer een bestaand KidsChores-dashboard om bij te werken en opnieuw te configureren.",
+        "data": {
+          "dashboard_update_selection": "Dashboard bijwerken"
+        },
+        "data_description": {
+          "dashboard_update_selection": "Kies het bestaande dashboard dat u wilt bijwerken."
+        }
+      },
+      "dashboard_configure": {
+        "title": "Dashboard configureren",
+        "description": "Configureer dashboardsecties voor **{dashboard}** (modus: {mode}).\n\n[📖 Handleiding voor het genereren van dashboards]({documentation_url})",
+        "sections": {
+          "section_kid_views": {
+            "name": "Kindermeningen",
+            "description": "Kies de stijl van het sjabloon voor kinderen en welke kinderen je wilt opnemen.",
+            "data": {
+              "dashboard_template_profile": "Profielsjabloon voor kinderen",
+              "dashboard_kid_selection": "Kinderen"
+            },
+            "data_description": {
+              "dashboard_template_profile": "Sjabloonprofiel toegepast op geselecteerde kindweergaven.",
+              "dashboard_kid_selection": "Selecteer de kinderen die u in dit dashboard wilt opnemen."
+            }
+          },
+          "section_admin_views": {
+            "name": "Adminweergaven",
+            "description": "Kies welke beheerderslay-out u wilt genereren en wie deze kan zien.",
+            "data": {
+              "dashboard_admin_mode": "Beheerderslay-out",
+              "dashboard_admin_template_global": "Gedeelde beheerdersjabloon",
+              "dashboard_admin_template_per_kid": "Beheersjabloon per kind",
+              "dashboard_admin_view_visibility": "Zichtbaarheid beheerdersweergave"
+            },
+            "data_description": {
+              "dashboard_admin_mode": "Kies de beheerdersindeling: geen, gedeeld, per kind of beide.",
+              "dashboard_admin_template_global": "Sjabloon dat wordt gebruikt wanneer de beheerderslay-out 'Gedeeld' bevat.",
+              "dashboard_admin_template_per_kid": "Sjabloon dat wordt gebruikt wanneer de beheerdersindeling 'Per kind' bevat.",
+              "dashboard_admin_view_visibility": "Bepaal wie beheerdersweergaven kan zien. Zichtbaarheid gekoppeld aan bovenliggende gebruikers maakt gebruik van gekoppelde HA-gebruikers."
+            }
+          },
+          "section_access_sidebar": {
+            "name": "Dashboardconfiguratie",
+            "description": "Bedieningspictogram, toegang alleen voor beheerders en zichtbaarheid van de zijbalk.",
+            "data": {
+              "dashboard_icon": "Dashboard-pictogram",
+              "dashboard_require_admin": "Alleen voor beheerders",
+              "dashboard_show_in_sidebar": "Toevoegen aan zijbalk"
+            },
+            "data_description": {
+              "dashboard_icon": "Zijbalkpictogram voor dit dashboard.",
+              "dashboard_require_admin": "Beperk de toegang tot het dashboard tot beheerders.",
+              "dashboard_show_in_sidebar": "Toon dit dashboard in de zijbalk van Home Assistant."
+            }
+          },
+          "section_template_version": {
+            "name": "Sjabloonversie",
+            "description": "Selecteer hoe de updatemodus compatibele dashboardtemplates kiest.",
+            "data": {
+              "dashboard_include_prereleases": "Inclusief pre-releases",
+              "dashboard_release_selection": "Dashboard-sjabloonversie"
+            },
+            "data_description": {
+              "dashboard_include_prereleases": "Neem dashboardtags van prereleases op in de release-ontdekking.",
+              "dashboard_release_selection": "Kies voor automatische selectie van de meest recente compatibele versie of selecteer expliciet een compatibele releasetag."
+            }
+          }
+        },
+        "data": {
+          "dashboard_template_profile": "Profielsjabloon voor kinderen",
+          "dashboard_kid_selection": "Kinderen",
+          "dashboard_admin_mode": "Beheerderslay-out",
+          "dashboard_admin_template_global": "Gedeelde beheerdersjabloon",
+          "dashboard_admin_template_per_kid": "Beheersjabloon per kind",
+          "dashboard_admin_view_visibility": "Zichtbaarheid beheerdersweergave",
+          "dashboard_icon": "Dashboard-pictogram",
+          "dashboard_require_admin": "Alleen voor beheerders",
+          "dashboard_show_in_sidebar": "Toevoegen aan zijbalk",
+          "dashboard_include_prereleases": "Inclusief pre-releases",
+          "dashboard_release_selection": "Dashboard-sjabloonversie"
+        },
+        "data_description": {
+          "dashboard_template_profile": "Sjabloonprofiel toegepast op geselecteerde kindweergaven.",
+          "dashboard_kid_selection": "Selecteer de kinderen die u in dit dashboard wilt opnemen.",
+          "dashboard_admin_mode": "Kies de beheerdersindeling: geen, gedeeld, per kind of beide.",
+          "dashboard_admin_template_global": "Sjabloon dat wordt gebruikt wanneer de beheerderslay-out 'Gedeeld' bevat.",
+          "dashboard_admin_template_per_kid": "Sjabloon dat wordt gebruikt wanneer de beheerdersindeling 'Per kind' bevat.",
+          "dashboard_admin_view_visibility": "Bepaal wie beheerdersweergaven kan zien. Zichtbaarheid gekoppeld aan bovenliggende gebruikers maakt gebruik van gekoppelde HA-gebruikers.",
+          "dashboard_icon": "Zijbalkpictogram voor dit dashboard.",
+          "dashboard_require_admin": "Beperk de toegang tot het dashboard tot beheerders.",
+          "dashboard_show_in_sidebar": "Toon dit dashboard in de zijbalk van Home Assistant.",
+          "dashboard_include_prereleases": "Neem dashboardtags van prereleases op in de release-ontdekking.",
+          "dashboard_release_selection": "Kies voor automatische selectie van de meest recente compatibele versie of selecteer expliciet een compatibele releasetag."
         }
       },
       "dashboard_delete": {
         "title": "Dashboard verwijderen",
         "description": "Selecteer de KidsChores-dashboards die u wilt verwijderen.\n\n⚠️ Deze actie kan niet ongedaan worden gemaakt.",
         "data": {
-          "dashboard_delete_selection": "Dashboards die verwijderd moeten worden"
+          "dashboard_update_selection": "Dashboard"
         },
         "data_description": {
-          "dashboard_delete_selection": "Selecteer een of meer dashboards die u permanent wilt verwijderen."
+          "dashboard_update_selection": "Selecteer het dashboard dat u permanent wilt verwijderen."
         }
       },
       "dashboard_delete_confirm": {
         "title": "Verwijdering bevestigen",
         "description": "⚠️ **Waarschuwing:** De volgende dashboards worden permanent verwijderd:\n\n**{dashboards}**\n\nHiermee wordt het dashboard uit de zijbalk verwijderd en alle configuratie gewist.\n\nKlik op Verzenden om de verwijdering te bevestigen.",
-        "data": {}
-      },
-      "dashboard_generator_confirm": {
-        "title": "Bevestig het genereren van het dashboard",
-        "description": "De volgende dashboards worden aangemaakt:\n\n**Stijl:** {style}\n**Geforceerd opnieuw opbouwen:** {force_rebuild}\n\n**Dashboards:**\n{dashboards}\n\nKlik op Verzenden om de dashboards te genereren.",
-        "data": {}
-      },
-      "dashboard_generator_result": {
-        "title": "Resultaten van dashboardgeneratie",
-        "description": "**Resultaten:** {success_count} geslaagd, {failure_count} mislukt\n\n{results}\n\nKlik op Verzenden om terug te keren naar het hoofdmenu.",
         "data": {}
       },
       "manage_general_options": {
@@ -1736,9 +1814,14 @@
       "dashboard_template_error": "Het ophalen van de dashboardtemplate is mislukt. Controleer uw netwerkverbinding of probeer het later opnieuw.",
       "dashboard_render_error": "Het is niet gelukt om de dashboardtemplate weer te geven. Dit kan duiden op een bug in de template.",
       "dashboard_save_error": "Het opslaan van het dashboard in Home Assistant is mislukt. Raadpleeg de systeemlogboeken voor meer informatie.",
+      "dashboard_release_incompatible": "De geselecteerde dashboardversie is niet compatibel met uw geïnstalleerde KidsChores-versie.",
       "dashboard_no_name": "Geef het dashboard een naam.",
       "dashboard_no_kids": "Selecteer ten minste één kind of schakel 'Beheertabblad toevoegen' in.",
-      "dashboard_no_dashboards": "Selecteer ten minste één dashboard om te verwijderen."
+      "dashboard_no_dashboards": "Selecteer ten minste één dashboard om te verwijderen.",
+      "dashboard_no_kids_no_admin": "Selecteer ten minste één kind, of kies een beheerdersindeling anders dan 'geen'.",
+      "dashboard_admin_global_template_required": "Een gedeelde beheerdersjabloon is vereist wanneer de beheerdersindeling 'Gedeeld' bevat.",
+      "dashboard_admin_per_kid_template_required": "Een beheerdersjabloon per kind is vereist wanneer de beheerdersindeling 'Per kind' bevat.",
+      "dashboard_admin_per_kid_needs_kids": "Voor de beheerderslay-out per kind is minimaal één geselecteerd kind vereist."
     },
     "abort": {
       "invalid_action": "Ongeldige actie",
@@ -1786,23 +1869,43 @@
     },
     "dashboard_action": {
       "options": {
-        "create": "Dashboard aanmaken/bijwerken",
-        "delete": "Dashboard verwijderen"
-      }
-    },
-    "dashboard_style": {
-      "options": {
-        "dashboard_style_full": "Volledig (alle functies)",
-        "dashboard_style_minimal": "Minimaal (alleen de essentie)",
-        "dashboard_style_compact": "Compact (Dichte lay-out)",
-        "dashboard_style_admin": "Beheerder (dashboard voor ouders)"
+        "create": "Een nieuw dashboard maken",
+        "update": "Bestaande dashboardweergaven bijwerken",
+        "delete": "Dashboard verwijderen",
+        "exit": "Uitgang"
       }
     },
     "dashboard_kid_selection": {
       "options": {}
     },
-    "dashboard_delete_selection": {
+    "dashboard_update_selection": {
       "options": {}
+    },
+    "dashboard_template_profile": {
+      "options": {
+        "full": "Volledig (alle functies)",
+        "minimal": "Minimaal (alleen de essentie)",
+        "compact": "Compact (Dichte lay-out)"
+      }
+    },
+    "dashboard_admin_mode": {
+      "options": {
+        "none": "Geen",
+        "global": "Gedeeld",
+        "per_kid": "Per kind",
+        "both": "Beide"
+      }
+    },
+    "dashboard_admin_view_visibility": {
+      "options": {
+        "all_users": "Alle gebruikers",
+        "linked_parents": "Alleen gekoppelde ouders"
+      }
+    },
+    "dashboard_release_selection": {
+      "options": {
+        "latest_compatible": "Meest recente compatibele versie (aanbevolen)"
+      }
     },
     "manage_actions": {
       "options": {
@@ -2525,6 +2628,32 @@
           "name": "Naam van de klus",
           "description": "Naam van de rotatietaak die geopend moet worden. Optioneel indien chore_id is opgegeven.",
           "example": "Schone slaapkamer"
+        }
+      }
+    },
+    "generate_activity_report": {
+      "name": "Activiteitenrapport genereren",
+      "description": "Genereer een activiteitenrapport van 7 dagen op basis van de grootboekgeschiedenis. Ondersteunt optionele kindfiltering, optionele notificatielevering en optionele HTML-conversie, terwijl er toch een gestructureerde respons wordt geretourneerd.",
+      "fields": {
+        "kid_name": {
+          "name": "Naam van het kind",
+          "description": "Optioneel filter om het rapport alleen voor één kind te genereren."
+        },
+        "report_language": {
+          "name": "Rapporttaal",
+          "description": "Optionele taalcode voor de rapporttekst. Valt terug op de geselecteerde taal van het kind (indien kid_name is ingesteld) en vervolgens op Engels."
+        },
+        "report_title": {
+          "name": "Rapporttitel",
+          "description": "Optionele titeloverride voor de Markdown-uitvoer."
+        },
+        "notify_service": {
+          "name": "Meld de service",
+          "description": "Optioneel kunt u een doel opgeven (bijvoorbeeld notify.family) om het rapport te verzenden."
+        },
+        "output_format": {
+          "name": "Uitvoerformaat",
+          "description": "Geef in het antwoord alleen markdown, alleen html of zowel markdown als html terug."
         }
       }
     },

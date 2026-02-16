@@ -1502,58 +1502,136 @@
         "data": {}
       },
       "dashboard_generator": {
-        "title": "Dashboard verwalten",
-        "description": "KidsChores Lovelace-Dashboards erstellen, aktualisieren oder löschen.\n\n**Erforderliche benutzerdefinierte Karten** (Installation über das HACS-Frontend):\n- Pilzkarten (custom:mushroom-template-card)\n- Automatische Entitäten (custom:auto-entities)\n- Mini-Graphkarte (custom:mini-graph-card)\n\nOhne diese Karten werden Dashboards Fehler anzeigen. Installieren Sie sie zuerst über HACS, bevor Sie Dashboards generieren.",
+        "title": "Dashboard-Aktionen",
+        "description": "KidsChores Lovelace-Dashboards erstellen, aktualisieren oder löschen.\n\nStatus: {status}\n\n**Erforderliche benutzerdefinierte Karten** (Installation über das HACS-Frontend):\n- Pilzkarten (custom:mushroom-template-card)\n- Automatische Entitäten (custom:auto-entities)\n- Mini-Graphkarte (custom:mini-graph-card)\n\nOhne diese Karten werden Dashboards Fehler anzeigen. Installieren Sie sie zuerst über HACS, bevor Sie Dashboards generieren.",
         "data": {
           "dashboard_action": "Aktion",
           "dashboard_check_cards": "Installation der Scheckkarte"
         },
         "data_description": {
-          "dashboard_action": "Wählen Sie aus, ob Sie neue Dashboards erstellen oder bestehende löschen möchten.",
+          "dashboard_action": "Wählen Sie eine Aktion aus: ein neues Dashboard erstellen, Ansichten in einem bestehenden Dashboard aktualisieren oder Dashboards löschen.",
           "dashboard_check_cards": "Aktivieren Sie diese Option, um vor dem Fortfahren zu überprüfen, ob die erforderlichen benutzerdefinierten Karten installiert sind."
         }
       },
       "dashboard_create": {
-        "title": "Dashboard erstellen/aktualisieren",
-        "description": "Erstelle ein KidsChores-Dashboard mit Registerkarten für jedes Kind.\n\nWähle einen Namen für das Dashboard, die Kinder aus, die einbezogen werden sollen, und füge optional eine Admin-Registerkarte für die Elternverwaltung hinzu.\n\n[📖 Anleitung zur Dashboard-Erstellung]({documentation_url})",
+        "title": "Dashboard erstellen",
+        "description": "Geben Sie einen Dashboard-Namen ein und fahren Sie dann mit der Konfiguration fort.\n\n[📖 Leitfaden zur Dashboard-Erstellung]({documentation_url})",
         "data": {
-          "dashboard_name": "Dashboard-Name",
-          "dashboard_style": "Dashboard-Stil",
-          "dashboard_kid_selection": "Kinder (eine Tablette pro Kind)",
-          "dashboard_include_admin": "Admin-Registerkarte einbinden",
-          "dashboard_force_rebuild": "Neuerstellung erzwingen (vorhandene Daten überschreiben)"
+          "dashboard_name": "Dashboard-Name"
         },
         "data_description": {
-          "dashboard_name": "Name für das Dashboard (erscheint in der Seitenleiste). Vorschlag: Aufgaben",
-          "dashboard_style": "Wählen Sie das Dashboard-Layout: Vollständig (alle Funktionen), Minimal (nur das Wesentliche) oder Kompakt (dichtes Layout).",
-          "dashboard_kid_selection": "Wählen Sie aus, für welche Kinder Registerkarten erstellt werden sollen. Jedes Kind erhält seine eigene Ansicht/Registerkarte.",
-          "dashboard_include_admin": "Fügen Sie eine Registerkarte „Admin“ mit übergeordneten Steuerelementen für Genehmigungen und Verwaltung hinzu.",
-          "dashboard_force_rebuild": "Ist diese Option aktiviert, wird das bestehende Dashboard überschrieben. Andernfalls schlägt die Generierung fehl, falls bereits ein Dashboard existiert."
+          "dashboard_name": "Name für das Dashboard (erscheint in der Seitenleiste). Vorschlag: Aufgaben"
+        }
+      },
+      "dashboard_update_select": {
+        "title": "Dashboard aktualisieren",
+        "description": "Wählen Sie ein vorhandenes KidsChore-Dashboard aus, um es zu aktualisieren und neu zu konfigurieren.",
+        "data": {
+          "dashboard_update_selection": "Dashboard aktualisieren"
+        },
+        "data_description": {
+          "dashboard_update_selection": "Wählen Sie das vorhandene Dashboard aus, das Sie aktualisieren möchten."
+        }
+      },
+      "dashboard_configure": {
+        "title": "Dashboard konfigurieren",
+        "description": "Konfigurieren Sie Dashboard-Abschnitte für **{dashboard}** (Modus: {mode}).\n\n[📖 Leitfaden zur Dashboard-Generierung]({documentation_url})",
+        "sections": {
+          "section_kid_views": {
+            "name": "Kinderperspektive",
+            "description": "Wählen Sie den gewünschten Kindervorlagenstil und die einzuschließenden Kinder aus.",
+            "data": {
+              "dashboard_template_profile": "Kinder-Vorlagenprofil",
+              "dashboard_kid_selection": "Kinder"
+            },
+            "data_description": {
+              "dashboard_template_profile": "Vorlagenprofil auf ausgewählte Kinderansichten angewendet.",
+              "dashboard_kid_selection": "Wählen Sie die Kinder aus, die in diesem Dashboard angezeigt werden sollen."
+            }
+          },
+          "section_admin_views": {
+            "name": "Administratoransichten",
+            "description": "Wählen Sie das zu generierende Admin-Layout und legen Sie fest, wer es sehen kann.",
+            "data": {
+              "dashboard_admin_mode": "Admin-Layout",
+              "dashboard_admin_template_global": "Gemeinsame Admin-Vorlage",
+              "dashboard_admin_template_per_kid": "Admin-Vorlage pro Kind",
+              "dashboard_admin_view_visibility": "Administratoransicht Sichtbarkeit"
+            },
+            "data_description": {
+              "dashboard_admin_mode": "Wählen Sie das Admin-Layout: keins, gemeinsam genutzt, pro Kind oder beides.",
+              "dashboard_admin_template_global": "Vorlage, die verwendet wird, wenn das Admin-Layout die Option „Gemeinsam“ enthält.",
+              "dashboard_admin_template_per_kid": "Vorlage, die verwendet wird, wenn das Admin-Layout die Option „Pro Kind“ enthält.",
+              "dashboard_admin_view_visibility": "Steuern Sie, wer Administratoransichten sehen kann. Die Sichtbarkeit verknüpfter übergeordneter Benutzer verwendet die verknüpften HA-Benutzer."
+            }
+          },
+          "section_access_sidebar": {
+            "name": "Dashboard-Konfiguration",
+            "description": "Steuerungssymbol, Zugriff nur für Administratoren und Sichtbarkeit der Seitenleiste.",
+            "data": {
+              "dashboard_icon": "Dashboard-Symbol",
+              "dashboard_require_admin": "Nur für Administratoren",
+              "dashboard_show_in_sidebar": "Zur Seitenleiste hinzufügen"
+            },
+            "data_description": {
+              "dashboard_icon": "Seitenleistensymbol für dieses Dashboard.",
+              "dashboard_require_admin": "Beschränken Sie den Zugriff auf das Dashboard auf Administratoren.",
+              "dashboard_show_in_sidebar": "Dieses Dashboard in der Home Assistant-Seitenleiste anzeigen."
+            }
+          },
+          "section_template_version": {
+            "name": "Vorlagenversion",
+            "description": "Wählen Sie aus, wie der Aktualisierungsmodus kompatible Dashboard-Vorlagen auswählt.",
+            "data": {
+              "dashboard_include_prereleases": "Vorabversionen einschließen",
+              "dashboard_release_selection": "Dashboard-Vorlagenversion"
+            },
+            "data_description": {
+              "dashboard_include_prereleases": "Integrieren Sie Vorabversions-Dashboard-Tags in die Release-Erkennung.",
+              "dashboard_release_selection": "Wählen Sie entweder die automatische Auswahl der neuesten kompatiblen Version oder wählen Sie explizit ein kompatibles Release-Tag aus."
+            }
+          }
+        },
+        "data": {
+          "dashboard_template_profile": "Kinder-Vorlagenprofil",
+          "dashboard_kid_selection": "Kinder",
+          "dashboard_admin_mode": "Admin-Layout",
+          "dashboard_admin_template_global": "Gemeinsame Admin-Vorlage",
+          "dashboard_admin_template_per_kid": "Admin-Vorlage pro Kind",
+          "dashboard_admin_view_visibility": "Administratoransicht Sichtbarkeit",
+          "dashboard_icon": "Dashboard-Symbol",
+          "dashboard_require_admin": "Nur für Administratoren",
+          "dashboard_show_in_sidebar": "Zur Seitenleiste hinzufügen",
+          "dashboard_include_prereleases": "Vorabversionen einschließen",
+          "dashboard_release_selection": "Dashboard-Vorlagenversion"
+        },
+        "data_description": {
+          "dashboard_template_profile": "Vorlagenprofil auf ausgewählte Kinderansichten angewendet.",
+          "dashboard_kid_selection": "Wählen Sie die Kinder aus, die in diesem Dashboard angezeigt werden sollen.",
+          "dashboard_admin_mode": "Wählen Sie das Admin-Layout: keins, gemeinsam genutzt, pro Kind oder beides.",
+          "dashboard_admin_template_global": "Vorlage, die verwendet wird, wenn das Admin-Layout die Option „Gemeinsam“ enthält.",
+          "dashboard_admin_template_per_kid": "Vorlage, die verwendet wird, wenn das Admin-Layout die Option „Pro Kind“ enthält.",
+          "dashboard_admin_view_visibility": "Steuern Sie, wer Administratoransichten sehen kann. Die Sichtbarkeit verknüpfter übergeordneter Benutzer verwendet die verknüpften HA-Benutzer.",
+          "dashboard_icon": "Seitenleistensymbol für dieses Dashboard.",
+          "dashboard_require_admin": "Beschränken Sie den Zugriff auf das Dashboard auf Administratoren.",
+          "dashboard_show_in_sidebar": "Dieses Dashboard in der Home Assistant-Seitenleiste anzeigen.",
+          "dashboard_include_prereleases": "Integrieren Sie Vorabversions-Dashboard-Tags in die Release-Erkennung.",
+          "dashboard_release_selection": "Wählen Sie entweder die automatische Auswahl der neuesten kompatiblen Version oder wählen Sie explizit ein kompatibles Release-Tag aus."
         }
       },
       "dashboard_delete": {
         "title": "Dashboard löschen",
         "description": "Wählen Sie die zu löschenden KidsChores-Dashboards aus.\n\n⚠️ Diese Aktion kann nicht rückgängig gemacht werden.",
         "data": {
-          "dashboard_delete_selection": "Zu löschende Dashboards"
+          "dashboard_update_selection": "Armaturenbrett"
         },
         "data_description": {
-          "dashboard_delete_selection": "Wählen Sie ein oder mehrere Dashboards aus, die dauerhaft entfernt werden sollen."
+          "dashboard_update_selection": "Wählen Sie das Dashboard aus, das Sie endgültig entfernen möchten."
         }
       },
       "dashboard_delete_confirm": {
         "title": "Löschung bestätigen",
         "description": "⚠️ **Warnung:** Die folgenden Dashboards werden dauerhaft gelöscht:\n\n**{dashboards}**\n\nDadurch wird das Dashboard aus der Seitenleiste entfernt und alle Einstellungen werden gelöscht.\n\nKlicken Sie auf „Senden“, um die Löschung zu bestätigen.",
-        "data": {}
-      },
-      "dashboard_generator_confirm": {
-        "title": "Dashboard-Generierung bestätigen",
-        "description": "Folgende Dashboards werden erstellt:\n\n**Stil:** {style}\n**Neuaufbau erzwingen:** {force_rebuild}\n\n**Dashboards:**\n{dashboards}\n\nKlicken Sie auf „Senden“, um die Dashboards zu generieren.",
-        "data": {}
-      },
-      "dashboard_generator_result": {
-        "title": "Ergebnisse der Dashboard-Generierung",
-        "description": "**Ergebnisse:** {success_count} erfolgreich, {failure_count} fehlgeschlagen\n\n{results}\n\nKlicken Sie auf Absenden, um zum Hauptmenü zurückzukehren.",
         "data": {}
       },
       "manage_general_options": {
@@ -1736,9 +1814,14 @@
       "dashboard_template_error": "Das Dashboard-Template konnte nicht abgerufen werden. Überprüfen Sie Ihre Netzwerkverbindung oder versuchen Sie es später erneut.",
       "dashboard_render_error": "Das Dashboard-Template konnte nicht gerendert werden. Dies deutet möglicherweise auf einen Template-Fehler hin.",
       "dashboard_save_error": "Das Dashboard konnte nicht in Home Assistant gespeichert werden. Weitere Informationen finden Sie in den Systemprotokollen.",
+      "dashboard_release_incompatible": "Die ausgewählte Dashboard-Version ist nicht mit Ihrer installierten KidsChores-Version kompatibel.",
       "dashboard_no_name": "Bitte geben Sie einen Namen für das Dashboard ein.",
       "dashboard_no_kids": "Bitte wählen Sie mindestens ein Kind aus oder aktivieren Sie die Option „Admin-Registerkarte einbeziehen“.",
-      "dashboard_no_dashboards": "Bitte wählen Sie mindestens ein Dashboard zum Löschen aus."
+      "dashboard_no_dashboards": "Bitte wählen Sie mindestens ein Dashboard zum Löschen aus.",
+      "dashboard_no_kids_no_admin": "Wählen Sie mindestens ein Kind aus oder wählen Sie ein anderes Admin-Layout als „Keine“.",
+      "dashboard_admin_global_template_required": "Die Vorlage „Gemeinsam genutzt“ ist erforderlich, wenn das Admin-Layout die Option „Gemeinsam genutzt“ enthält.",
+      "dashboard_admin_per_kid_template_required": "Die Admin-Vorlage „Pro Kind“ ist erforderlich, wenn das Admin-Layout die Option „Pro Kind“ enthält.",
+      "dashboard_admin_per_kid_needs_kids": "Für das Admin-Layout „Per Kid“ ist mindestens ein ausgewähltes Kind erforderlich."
     },
     "abort": {
       "invalid_action": "Ungültige Aktion",
@@ -1786,23 +1869,43 @@
     },
     "dashboard_action": {
       "options": {
-        "create": "Dashboard erstellen/aktualisieren",
-        "delete": "Dashboard löschen"
-      }
-    },
-    "dashboard_style": {
-      "options": {
-        "dashboard_style_full": "Vollversion (Alle Funktionen)",
-        "dashboard_style_minimal": "Minimal (nur das Nötigste)",
-        "dashboard_style_compact": "Kompakt (dichte Anordnung)",
-        "dashboard_style_admin": "Admin (Übergeordnetes Dashboard)"
+        "create": "Neues Dashboard erstellen",
+        "update": "Bestehende Dashboard-Ansichten aktualisieren",
+        "delete": "Dashboard löschen",
+        "exit": "Ausfahrt"
       }
     },
     "dashboard_kid_selection": {
       "options": {}
     },
-    "dashboard_delete_selection": {
+    "dashboard_update_selection": {
       "options": {}
+    },
+    "dashboard_template_profile": {
+      "options": {
+        "full": "Vollversion (Alle Funktionen)",
+        "minimal": "Minimal (nur das Nötigste)",
+        "compact": "Kompakt (dichte Anordnung)"
+      }
+    },
+    "dashboard_admin_mode": {
+      "options": {
+        "none": "Keiner",
+        "global": "Gemeinsam",
+        "per_kid": "Pro Kind",
+        "both": "Beide"
+      }
+    },
+    "dashboard_admin_view_visibility": {
+      "options": {
+        "all_users": "Alle Benutzer",
+        "linked_parents": "Nur verknüpfte Eltern"
+      }
+    },
+    "dashboard_release_selection": {
+      "options": {
+        "latest_compatible": "Aktuellste kompatible Version (empfohlen)"
+      }
     },
     "manage_actions": {
       "options": {
@@ -2525,6 +2628,32 @@
           "name": "Aufgabenname",
           "description": "Name der zu öffnenden Rotationsaufgabe. Optional, falls chore_id angegeben ist.",
           "example": "Sauberes Schlafzimmer"
+        }
+      }
+    },
+    "generate_activity_report": {
+      "name": "Aktivitätsbericht erstellen",
+      "description": "Erstellt einen 7-Tage-Aktivitätsbericht aus dem Buchungsverlauf. Unterstützt optionale Filterung von untergeordneten Konten, optionale Benachrichtigungen und optionale HTML-Konvertierung und liefert dabei eine strukturierte Antwort.",
+      "fields": {
+        "kid_name": {
+          "name": "Kindername",
+          "description": "Optionaler Filter, um den Bericht nur für ein Kind zu generieren."
+        },
+        "report_language": {
+          "name": "Berichtssprache",
+          "description": "Optionaler Sprachcode für den Berichtstext. Standardmäßig wird die ausgewählte Kindersprache verwendet (sofern kid_name festgelegt ist) und anschließend Englisch."
+        },
+        "report_title": {
+          "name": "Berichtstitel",
+          "description": "Optionale Titelüberschreibung für die Markdown-Ausgabe."
+        },
+        "notify_service": {
+          "name": "Benachrichtigungsdienst",
+          "description": "Optionales Benachrichtigungsziel (z. B. notify.family), um den Bericht zuzustellen."
+        },
+        "output_format": {
+          "name": "Ausgabeformat",
+          "description": "Soll in der Antwort nur Markdown, nur HTML oder sowohl Markdown als auch HTML zurückgegeben werden?"
         }
       }
     },

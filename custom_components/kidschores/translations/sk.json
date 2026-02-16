@@ -1502,58 +1502,136 @@
         "data": {}
       },
       "dashboard_generator": {
-        "title": "Spravovať ovládací panel",
-        "description": "Vytvorte, aktualizujte alebo odstráňte dashboardy KidsChores Lovelace.\n\n**Požadované vlastné karty** (inštalácia cez HACS Frontend):\n- Karty s hubami (custom:mushroom-template-card)\n- Automatické entity (custom:auto-entities)\n- Minigrafová karta (custom:mini-graph-card)\n\nBez týchto kariet budú dashboardy zobrazovať chyby. Pred generovaním dashboardov ich najskôr nainštalujte z HACS.",
+        "title": "Akcie na ovládacom paneli",
+        "description": "Vytvorte, aktualizujte alebo odstráňte dashboardy KidsChores Lovelace.\n\nStav: {status}\n\n**Požadované vlastné karty** (inštalácia cez HACS Frontend):\n- Karty s hubami (custom:mushroom-template-card)\n- Automatické entity (custom:auto-entities)\n- Mini grafická karta (custom:mini-graph-card)\n\nBez týchto kariet budú dashboardy zobrazovať chyby. Pred generovaním dashboardov ich najskôr nainštalujte z HACS.",
         "data": {
           "dashboard_action": "Akcia",
           "dashboard_check_cards": "Skontrolujte inštaláciu karty"
         },
         "data_description": {
-          "dashboard_action": "Vyberte, či chcete vytvoriť nové dashboardy alebo odstrániť existujúce.",
+          "dashboard_action": "Vyberte jednu akciu: vytvoriť nový dashboard, aktualizovať zobrazenia na existujúcom dashboarde alebo odstrániť dashboardy.",
           "dashboard_check_cards": "Povoľte, ak chcete pred pokračovaním overiť, či sú nainštalované požadované vlastné karty."
         }
       },
       "dashboard_create": {
-        "title": "Vytvoriť/aktualizovať dashboard",
-        "description": "Vytvorte dashboard KidsChores s kartami pre každé dieťa.\n\nVyberte názov dashboardu, vyberte deti, ktoré chcete zahrnúť, a voliteľne pridajte kartu Správca pre správu rodičov.\n\n[📖 Sprievodca generovaním dashboardu]({documentation_url})",
+        "title": "Vytvoriť dashboard",
+        "description": "Zadajte názov dashboardu a potom pokračujte v konfigurácii.\n\n[📖 Sprievodca generovaním dashboardu]({documentation_url})",
         "data": {
-          "dashboard_name": "Názov panela s nástrojmi",
-          "dashboard_style": "Štýl palubnej dosky",
-          "dashboard_kid_selection": "Deti (jedna tableta na dieťa)",
-          "dashboard_include_admin": "Zahrnúť kartu Správca",
-          "dashboard_force_rebuild": "Vynútiť obnovu (prepísať existujúce)"
+          "dashboard_name": "Názov panela s nástrojmi"
         },
         "data_description": {
-          "dashboard_name": "Názov pre dashboard (zobrazí sa v bočnom paneli). Navrhované: Domáce práce",
-          "dashboard_style": "Vyberte rozloženie ovládacieho panela: Plné (všetky funkcie), Minimálne (iba základné) alebo Kompaktné (husté rozloženie).",
-          "dashboard_kid_selection": "Vyberte, pre ktoré deti chcete vytvoriť karty. Každé dieťa dostane vlastné zobrazenie/kartu.",
-          "dashboard_include_admin": "Pridajte kartu Správca s rodičovskými ovládacími prvkami na schvaľovanie a správu.",
-          "dashboard_force_rebuild": "Ak je povolené, existujúci dashboard bude prepísaný. V opačnom prípade generovanie zlyhá, ak dashboard existuje."
+          "dashboard_name": "Názov pre dashboard (zobrazí sa v bočnom paneli). Navrhované: Domáce práce"
+        }
+      },
+      "dashboard_update_select": {
+        "title": "Aktualizovať ovládací panel",
+        "description": "Vyberte existujúci ovládací panel KidsChores, ktorý chcete aktualizovať a znova nakonfigurovať.",
+        "data": {
+          "dashboard_update_selection": "Ovládací panel na aktualizáciu"
+        },
+        "data_description": {
+          "dashboard_update_selection": "Vyberte existujúci dashboard, ktorý chcete aktualizovať."
+        }
+      },
+      "dashboard_configure": {
+        "title": "Konfigurovať ovládací panel",
+        "description": "Nakonfigurujte sekcie dashboardu pre **{dashboard}** (režim: {mode}).\n\n[📖 Sprievodca generovaním dashboardu]({documentation_url})",
+        "sections": {
+          "section_kid_views": {
+            "name": "Názory detí",
+            "description": "Vyberte štýl šablóny pre deti a ktoré deti chcete zahrnúť.",
+            "data": {
+              "dashboard_template_profile": "Profil šablóny dieťaťa",
+              "dashboard_kid_selection": "Deti"
+            },
+            "data_description": {
+              "dashboard_template_profile": "Profil šablóny použitý na vybrané zobrazenia pre deti.",
+              "dashboard_kid_selection": "Vyberte deti, ktoré chcete zahrnúť do tohto ovládacieho panela."
+            }
+          },
+          "section_admin_views": {
+            "name": "Zobrazenia pre správcov",
+            "description": "Vyberte, ktoré rozloženie administrátora sa má vygenerovať a kto ho uvidí.",
+            "data": {
+              "dashboard_admin_mode": "Rozloženie pre administrátorov",
+              "dashboard_admin_template_global": "Zdieľaná šablóna pre správcu",
+              "dashboard_admin_template_per_kid": "Šablóna pre administrátora pre každé dieťa",
+              "dashboard_admin_view_visibility": "Viditeľnosť zobrazenia pre správcu"
+            },
+            "data_description": {
+              "dashboard_admin_mode": "Vyberte rozloženie pre správcu: žiadne, zdieľané, pre každé dieťa alebo oboje.",
+              "dashboard_admin_template_global": "Šablóna sa používa, keď rozloženie pre správcu obsahuje možnosť Zdieľané.",
+              "dashboard_admin_template_per_kid": "Šablóna sa používa, keď rozloženie pre správcu obsahuje možnosť „Na dieťa“.",
+              "dashboard_admin_view_visibility": "Ovládajte, kto môže vidieť zobrazenia správcu. Viditeľnosť prepojená s rodičom používa prepojených nadradených používateľov s vysokou dostupnosťou."
+            }
+          },
+          "section_access_sidebar": {
+            "name": "Konfigurácia ovládacieho panela",
+            "description": "Ikona ovládania, prístup iba pre správcu a viditeľnosť bočného panela.",
+            "data": {
+              "dashboard_icon": "Ikona ovládacieho panela",
+              "dashboard_require_admin": "Iba pre správcov",
+              "dashboard_show_in_sidebar": "Pridať do bočného panela"
+            },
+            "data_description": {
+              "dashboard_icon": "Ikona bočného panela pre tento ovládací panel.",
+              "dashboard_require_admin": "Obmedzte prístup k ovládaciemu panelu len pre administrátorov.",
+              "dashboard_show_in_sidebar": "Zobraziť tento ovládací panel na bočnom paneli Domáceho asistenta."
+            }
+          },
+          "section_template_version": {
+            "name": "Verzia šablóny",
+            "description": "Vyberte, ako režim aktualizácie vyberá kompatibilné šablóny dashboardu.",
+            "data": {
+              "dashboard_include_prereleases": "Zahrnúť predbežné vydania",
+              "dashboard_release_selection": "Verzia šablóny dashboardu"
+            },
+            "data_description": {
+              "dashboard_include_prereleases": "Zahrnúť značky predbežného panela do zisťovania vydaní.",
+              "dashboard_release_selection": "Vyberte automatický výber najnovšej kompatibilnej verzie alebo explicitne vyberte kompatibilnú značku vydania."
+            }
+          }
+        },
+        "data": {
+          "dashboard_template_profile": "Profil šablóny dieťaťa",
+          "dashboard_kid_selection": "Deti",
+          "dashboard_admin_mode": "Rozloženie pre administrátorov",
+          "dashboard_admin_template_global": "Zdieľaná šablóna pre správcu",
+          "dashboard_admin_template_per_kid": "Šablóna pre administrátora pre každé dieťa",
+          "dashboard_admin_view_visibility": "Viditeľnosť zobrazenia pre správcu",
+          "dashboard_icon": "Ikona ovládacieho panela",
+          "dashboard_require_admin": "Iba pre správcov",
+          "dashboard_show_in_sidebar": "Pridať do bočného panela",
+          "dashboard_include_prereleases": "Zahrnúť predbežné vydania",
+          "dashboard_release_selection": "Verzia šablóny dashboardu"
+        },
+        "data_description": {
+          "dashboard_template_profile": "Profil šablóny použitý na vybrané zobrazenia pre deti.",
+          "dashboard_kid_selection": "Vyberte deti, ktoré chcete zahrnúť do tohto ovládacieho panela.",
+          "dashboard_admin_mode": "Vyberte rozloženie pre správcu: žiadne, zdieľané, pre každé dieťa alebo oboje.",
+          "dashboard_admin_template_global": "Šablóna sa používa, keď rozloženie pre správcu obsahuje možnosť Zdieľané.",
+          "dashboard_admin_template_per_kid": "Šablóna sa používa, keď rozloženie pre správcu obsahuje možnosť „Na dieťa“.",
+          "dashboard_admin_view_visibility": "Ovládajte, kto môže vidieť zobrazenia správcu. Viditeľnosť prepojená s rodičom používa prepojených nadradených používateľov s vysokou dostupnosťou.",
+          "dashboard_icon": "Ikona bočného panela pre tento ovládací panel.",
+          "dashboard_require_admin": "Obmedzte prístup k ovládaciemu panelu len pre administrátorov.",
+          "dashboard_show_in_sidebar": "Zobraziť tento ovládací panel na bočnom paneli Domáceho asistenta.",
+          "dashboard_include_prereleases": "Zahrnúť značky predbežného panela do zisťovania vydaní.",
+          "dashboard_release_selection": "Vyberte automatický výber najnovšej kompatibilnej verzie alebo explicitne vyberte kompatibilnú značku vydania."
         }
       },
       "dashboard_delete": {
         "title": "Odstrániť informačný panel",
         "description": "Vyberte dashboardy KidsChores, ktoré chcete odstrániť.\n\n⚠️ Túto akciu nie je možné vrátiť späť.",
         "data": {
-          "dashboard_delete_selection": "Dashboardy na odstránenie"
+          "dashboard_update_selection": "Prístrojová doska"
         },
         "data_description": {
-          "dashboard_delete_selection": "Vyberte jeden alebo viacero dashboardov, ktoré chcete natrvalo odstrániť."
+          "dashboard_update_selection": "Vyberte dashboard, ktorý chcete natrvalo odstrániť."
         }
       },
       "dashboard_delete_confirm": {
         "title": "Potvrdiť vymazanie",
         "description": "⚠️ **Upozornenie:** Nasledujúce dashboardy budú natrvalo odstránené:\n\n**{dashboards}**\n\nTýmto sa dashboard odstráni z bočného panela a vymaže sa všetka konfigurácia.\n\nKliknite na Odoslať pre potvrdenie odstránenia.",
-        "data": {}
-      },
-      "dashboard_generator_confirm": {
-        "title": "Potvrdiť generovanie dashboardu",
-        "description": "Vytvoria sa nasledujúce dashboardy:\n\n**Štýl:** {style}\n**Vynútená obnova:** {force_rebuild}\n\n**Dashboardy:**\n{dashboards}\n\nKliknite na Odoslať a vygenerujte dashboardy.",
-        "data": {}
-      },
-      "dashboard_generator_result": {
-        "title": "Výsledky generovania dashboardu",
-        "description": "**Výsledky:** {success_count} úspešné, {failure_count} neúspešné\n\n{results}\n\nKliknite na Odoslať pre návrat do hlavnej ponuky.",
         "data": {}
       },
       "manage_general_options": {
@@ -1736,9 +1814,14 @@
       "dashboard_template_error": "Nepodarilo sa načítať šablónu ovládacieho panela. Skontrolujte sieťové pripojenie alebo skúste to znova neskôr.",
       "dashboard_render_error": "Nepodarilo sa vykresliť šablónu informačného panela. Môže to znamenať chybu šablóny.",
       "dashboard_save_error": "Nepodarilo sa uložiť ovládací panel do služby Home Assistant. Podrobnosti nájdete v systémových protokoloch.",
+      "dashboard_release_incompatible": "Vybraná verzia ovládacieho panela nie je kompatibilná s vašou nainštalovanou verziou KidsChores.",
       "dashboard_no_name": "Zadajte názov pre ovládací panel.",
       "dashboard_no_kids": "Vyberte aspoň jedno dieťa alebo povoľte možnosť „Zahrnúť kartu Správca“.",
-      "dashboard_no_dashboards": "Vyberte aspoň jeden dashboard, ktorý chcete odstrániť."
+      "dashboard_no_dashboards": "Vyberte aspoň jeden dashboard, ktorý chcete odstrániť.",
+      "dashboard_no_kids_no_admin": "Vyberte aspoň jedno dieťa alebo zvoľte iné rozloženie pre správcu ako „žiadne“.",
+      "dashboard_admin_global_template_required": "Zdieľaná šablóna správcu je povinná, keď rozloženie správcu zahŕňa možnosť Zdieľané.",
+      "dashboard_admin_per_kid_template_required": "Šablóna administrátora pre každé dieťa je vyžadovaná, keď rozloženie administrátora zahŕňa možnosť „Pre každé dieťa“.",
+      "dashboard_admin_per_kid_needs_kids": "Rozloženie administrátora pre každé dieťa vyžaduje aspoň jedno vybrané dieťa."
     },
     "abort": {
       "invalid_action": "Neplatná akcia",
@@ -1786,23 +1869,43 @@
     },
     "dashboard_action": {
       "options": {
-        "create": "Vytvoriť/aktualizovať dashboard",
-        "delete": "Odstrániť informačný panel"
-      }
-    },
-    "dashboard_style": {
-      "options": {
-        "dashboard_style_full": "Plná (všetky funkcie)",
-        "dashboard_style_minimal": "Minimálne (iba základné veci)",
-        "dashboard_style_compact": "Kompaktné (husté rozloženie)",
-        "dashboard_style_admin": "Správca (Rodičovský panel)"
+        "create": "Vytvoriť nový dashboard",
+        "update": "Aktualizovať existujúce zobrazenia informačného panela",
+        "delete": "Odstrániť informačný panel",
+        "exit": "VÝCHOD"
       }
     },
     "dashboard_kid_selection": {
       "options": {}
     },
-    "dashboard_delete_selection": {
+    "dashboard_update_selection": {
       "options": {}
+    },
+    "dashboard_template_profile": {
+      "options": {
+        "full": "Plná (všetky funkcie)",
+        "minimal": "Minimálne (iba základné veci)",
+        "compact": "Kompaktné (husté rozloženie)"
+      }
+    },
+    "dashboard_admin_mode": {
+      "options": {
+        "none": "Žiadne",
+        "global": "Zdieľané",
+        "per_kid": "Na dieťa",
+        "both": "Obaja"
+      }
+    },
+    "dashboard_admin_view_visibility": {
+      "options": {
+        "all_users": "Všetci používatelia",
+        "linked_parents": "Iba prepojení rodičia"
+      }
+    },
+    "dashboard_release_selection": {
+      "options": {
+        "latest_compatible": "Najnovšie kompatibilné (odporúčané)"
+      }
     },
     "manage_actions": {
       "options": {
@@ -2525,6 +2628,32 @@
           "name": "Názov úlohy",
           "description": "Názov rotačnej úlohy, ktorú chcete otvoriť. Voliteľné, ak je zadaný parameter chore_id.",
           "example": "Čistá spálňa"
+        }
+      }
+    },
+    "generate_activity_report": {
+      "name": "Generovať správu o aktivite",
+      "description": "Generuje 7-dňovú správu o aktivite z histórie účtovnej knihy. Podporuje voliteľné filtrovanie detí, voliteľné doručovanie upozornení a voliteľnú konverziu HTML a zároveň vracia štruktúrovanú odpoveď.",
+      "fields": {
+        "kid_name": {
+          "name": "Meno dieťaťa",
+          "description": "Voliteľný filter na generovanie prehľadu iba pre jedno dieťa."
+        },
+        "report_language": {
+          "name": "Jazyk prehľadu",
+          "description": "Voliteľný kód jazyka pre text prehľadu. Prejde späť na vybraný jazyk dieťaťa (ak je nastavený kid_name) a potom na angličtinu."
+        },
+        "report_title": {
+          "name": "Názov správy",
+          "description": "Voliteľné prepísanie názvu pre výstup Markdown."
+        },
+        "notify_service": {
+          "name": "Upozorniť službu",
+          "description": "Voliteľný cieľ upozornenia (napríklad notify.family) na doručenie správy."
+        },
+        "output_format": {
+          "name": "Výstupný formát",
+          "description": "V odpovedi vrátiť iba markdown, iba html alebo markdown aj html."
         }
       }
     },

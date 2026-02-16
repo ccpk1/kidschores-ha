@@ -1502,58 +1502,136 @@
         "data": {}
       },
       "dashboard_generator": {
-        "title": "Gerir painel de controle",
-        "description": "Crie, atualize ou apague painéis do KidsChores Lovelace.\n\n**Cartões personalizados necessários** (instalar através do frontend do HACS):\n- Cartões Mushroom (custom:mushroom-template-card)\n- Auto-Entities (custom:auto-entities)\n- Mini Graph Card (custom:mini-graph-card)\n\nSem estes cartões, os painéis apresentarão erros. Instale-os primeiro pelo HACS antes de gerar os painéis.",
+        "title": "Ações do painel de controlo",
+        "description": "Crie, atualize ou apague painéis do KidsChores Lovelace.\n\nEstado: {status}\n\n**Cartões personalizados necessários** (instalar através do frontend do HACS):\n- Cartões Mushroom (custom:mushroom-template-card)\n- Auto-Entities (custom:auto-entities)\n- Mini Graph Card (custom:mini-graph-card)\n\nSem estes cartões, os painéis irão apresentar erros. Instale-os primeiro pelo HACS antes de gerar os painéis.",
         "data": {
           "dashboard_action": "Ação",
           "dashboard_check_cards": "Instalação do cartão de verificação"
         },
         "data_description": {
-          "dashboard_action": "Escolha se pretende criar novos painéis ou eliminar os existentes.",
+          "dashboard_action": "Escolha uma ação: criar um novo painel, atualizar as vistas num painel existente ou eliminar painéis.",
           "dashboard_check_cards": "Ative para verificar se os cartões personalizados necessários estão instalados antes de prosseguir."
         }
       },
       "dashboard_create": {
-        "title": "Criar/Atualizar Painel de Controlo",
-        "description": "Gere um painel KidsChores com separadores para cada criança.\n\nEscolha um nome para o painel, selecione as crianças que pretende incluir e, opcionalmente, adicione um separador de Administrador para gestão pelos pais.\n\n[📖 Guia de Geração de Painéis]({documentation_url})",
+        "title": "Criar painel de controlo",
+        "description": "Introduza um nome para o painel e continue para a configuração.\n\n[📖 Guia de Criação de Painéis]({documentation_url})",
         "data": {
-          "dashboard_name": "Nome do painel de controlo",
-          "dashboard_style": "Estilo do painel de controlo",
-          "dashboard_kid_selection": "Crianças (um tablet por criança)",
-          "dashboard_include_admin": "Incluir guia de administração",
-          "dashboard_force_rebuild": "Forçar reconstrução (sobrescrever existente)"
+          "dashboard_name": "Nome do painel de controlo"
         },
         "data_description": {
-          "dashboard_name": "Nome para o painel (aparece na barra lateral). Sugestão: Tarefas",
-          "dashboard_style": "Escolha o layout do painel: Completo (todas as funcionalidades), Minimalista (apenas o essencial) ou Compacto (layout denso).",
-          "dashboard_kid_selection": "Selecione para que crianças pretende criar separadores. Cada criança terá a sua própria visualização/tab.",
-          "dashboard_include_admin": "Adicione um separador de Administração com controlos principais para aprovações e gestão.",
-          "dashboard_force_rebuild": "Se estiver ativada, a função sobrescreverá o painel existente. Caso contrário, a geração falhará se o painel já existir."
+          "dashboard_name": "Nome para o painel (aparece na barra lateral). Sugestão: Tarefas"
+        }
+      },
+      "dashboard_update_select": {
+        "title": "Painel de atualização",
+        "description": "Selecione um painel KidsChores existente para atualizar e reconfigurar.",
+        "data": {
+          "dashboard_update_selection": "Painel de controlo para atualização"
+        },
+        "data_description": {
+          "dashboard_update_selection": "Selecione o painel de controlo existente que pretende atualizar."
+        }
+      },
+      "dashboard_configure": {
+        "title": "Configurar painel de controlo",
+        "description": "Configure as secções do painel para **{dashboard}** (modo: {mode}).\n\n[📖 Guia de Geração do Painel]({documentation_url})",
+        "sections": {
+          "section_kid_views": {
+            "name": "Olhos da criança",
+            "description": "Escolha o estilo do modelo infantil e quais as crianças a incluir.",
+            "data": {
+              "dashboard_template_profile": "Perfil de modelo infantil",
+              "dashboard_kid_selection": "Miúdos"
+            },
+            "data_description": {
+              "dashboard_template_profile": "Modelo de perfil aplicado às visualizações infantis selecionadas.",
+              "dashboard_kid_selection": "Selecione as crianças que pretende incluir neste painel."
+            }
+          },
+          "section_admin_views": {
+            "name": "Visualizações do administrador",
+            "description": "Escolha qual o layout administrativo a gerar e quem o poderá visualizar.",
+            "data": {
+              "dashboard_admin_mode": "Layout administrativo",
+              "dashboard_admin_template_global": "Modelo de administração partilhado",
+              "dashboard_admin_template_per_kid": "Modelo de administração por criança",
+              "dashboard_admin_view_visibility": "Visibilidade da visualização do administrador"
+            },
+            "data_description": {
+              "dashboard_admin_mode": "Escolha o layout administrativo: nenhum, partilhado, por criança ou ambos.",
+              "dashboard_admin_template_global": "Modelo utilizado quando o layout do administrador inclui a opção Partilhado.",
+              "dashboard_admin_template_per_kid": "Modelo utilizado quando o layout do administrador inclui a opção \"Por Criança\".",
+              "dashboard_admin_view_visibility": "Controle quem pode ver as vistas de administrador. A visibilidade ligada ao pai utiliza utilizadores HA do pai ligados."
+            }
+          },
+          "section_access_sidebar": {
+            "name": "Configuração do painel de controlo",
+            "description": "Ícone de controlo, acesso exclusivo para administradores e visibilidade da barra lateral.",
+            "data": {
+              "dashboard_icon": "Ícone do painel",
+              "dashboard_require_admin": "Apenas para administradores",
+              "dashboard_show_in_sidebar": "Adicionar à barra lateral"
+            },
+            "data_description": {
+              "dashboard_icon": "Ícone da barra lateral para este painel.",
+              "dashboard_require_admin": "Restringir o acesso ao painel de controlo apenas aos utilizadores administradores.",
+              "dashboard_show_in_sidebar": "Exibir este painel na barra lateral do Home Assistant."
+            }
+          },
+          "section_template_version": {
+            "name": "Versão do modelo",
+            "description": "Selecione a forma como o modo de atualização escolhe os modelos de painel compatíveis.",
+            "data": {
+              "dashboard_include_prereleases": "Incluir versões prévias",
+              "dashboard_release_selection": "Versão do modelo do painel de controlo"
+            },
+            "data_description": {
+              "dashboard_include_prereleases": "Inclua as etiquetas de painel de pré-lançamento na descoberta de versões.",
+              "dashboard_release_selection": "Escolha a seleção automática da versão compatível mais recente ou selecione explicitamente uma etiqueta de versão compatível."
+            }
+          }
+        },
+        "data": {
+          "dashboard_template_profile": "Perfil de modelo infantil",
+          "dashboard_kid_selection": "Miúdos",
+          "dashboard_admin_mode": "Layout administrativo",
+          "dashboard_admin_template_global": "Modelo de administração partilhado",
+          "dashboard_admin_template_per_kid": "Modelo de administração por criança",
+          "dashboard_admin_view_visibility": "Visibilidade da visualização do administrador",
+          "dashboard_icon": "Ícone do painel",
+          "dashboard_require_admin": "Apenas para administradores",
+          "dashboard_show_in_sidebar": "Adicionar à barra lateral",
+          "dashboard_include_prereleases": "Incluir versões prévias",
+          "dashboard_release_selection": "Versão do modelo do painel de controlo"
+        },
+        "data_description": {
+          "dashboard_template_profile": "Modelo de perfil aplicado às visualizações infantis selecionadas.",
+          "dashboard_kid_selection": "Selecione as crianças que pretende incluir neste painel.",
+          "dashboard_admin_mode": "Escolha o layout administrativo: nenhum, partilhado, por criança ou ambos.",
+          "dashboard_admin_template_global": "Modelo utilizado quando o layout do administrador inclui a opção Partilhado.",
+          "dashboard_admin_template_per_kid": "Modelo utilizado quando o layout do administrador inclui a opção \"Por Criança\".",
+          "dashboard_admin_view_visibility": "Controle quem pode ver as vistas de administrador. A visibilidade ligada ao pai utiliza utilizadores HA do pai ligados.",
+          "dashboard_icon": "Ícone da barra lateral para este painel.",
+          "dashboard_require_admin": "Restringir o acesso ao painel de controlo apenas aos utilizadores administradores.",
+          "dashboard_show_in_sidebar": "Exibir este painel na barra lateral do Home Assistant.",
+          "dashboard_include_prereleases": "Inclua as etiquetas de painel de pré-lançamento na descoberta de versões.",
+          "dashboard_release_selection": "Escolha a seleção automática da versão compatível mais recente ou selecione explicitamente uma etiqueta de versão compatível."
         }
       },
       "dashboard_delete": {
         "title": "Apagar painel de controlo",
         "description": "Selecione os painéis KidsChores que pretende eliminar.\n\n⚠️ Esta ação não pode ser anulada.",
         "data": {
-          "dashboard_delete_selection": "Painéis a eliminar"
+          "dashboard_update_selection": "Painel"
         },
         "data_description": {
-          "dashboard_delete_selection": "Selecione um ou mais painéis para remover permanentemente."
+          "dashboard_update_selection": "Selecione o painel que pretende remover permanentemente."
         }
       },
       "dashboard_delete_confirm": {
         "title": "Confirmar eliminação",
         "description": "⚠️ **Aviso:** Os seguintes painéis serão eliminados permanentemente:\n\n**{dashboards}**\n\nIsto irá remover o painel da barra lateral e eliminar toda a configuração.\n\nClique em Enviar para confirmar a eliminação.",
-        "data": {}
-      },
-      "dashboard_generator_confirm": {
-        "title": "Confirmar geração do painel",
-        "description": "Serão criados os seguintes painéis:\n\n**Estilo:** {style}\n**Forçar Recriação:** {force_rebuild}\n\n**Painéis:**\n{dashboards}\n\nClique em Enviar para gerar os painéis.",
-        "data": {}
-      },
-      "dashboard_generator_result": {
-        "title": "Resultados da geração do painel de controlo",
-        "description": "**Resultados:** {success_count} sucesso, {failure_count} falha\n\n{results}\n\nClique em Enviar para voltar ao menu principal.",
         "data": {}
       },
       "manage_general_options": {
@@ -1736,9 +1814,14 @@
       "dashboard_template_error": "Não foi possível obter o modelo do painel de controlo. Verifique a sua ligação de rede ou tente novamente mais tarde.",
       "dashboard_render_error": "Falha ao renderizar o modelo do painel. Isto pode indicar um erro no modelo.",
       "dashboard_save_error": "Falha ao guardar o painel no Home Assistant. Verifique os registos do sistema para obter detalhes.",
+      "dashboard_release_incompatible": "A versão do painel de controlo selecionada não é compatível com a versão do KidsChores instalada em sua casa.",
       "dashboard_no_name": "Por favor, introduza um nome para o painel de controlo.",
       "dashboard_no_kids": "Selecione pelo menos uma criança ou ative a opção \"Incluir separador de administrador\".",
-      "dashboard_no_dashboards": "Selecione pelo menos um painel para eliminar."
+      "dashboard_no_dashboards": "Selecione pelo menos um painel para eliminar.",
+      "dashboard_no_kids_no_admin": "Selecione pelo menos uma criança ou escolha um layout de administrador diferente de \"nenhum\".",
+      "dashboard_admin_global_template_required": "O modelo de administração partilhado é necessário quando o layout de administração inclui a opção \"Partilhado\".",
+      "dashboard_admin_per_kid_template_required": "O modelo de administração por criança é necessário quando o esquema de administração inclui a opção \"Por Criança\".",
+      "dashboard_admin_per_kid_needs_kids": "O esquema de administração por criança requer pelo menos uma criança selecionada."
     },
     "abort": {
       "invalid_action": "Ação inválida",
@@ -1786,23 +1869,43 @@
     },
     "dashboard_action": {
       "options": {
-        "create": "Criar/Atualizar Painel de Controlo",
-        "delete": "Apagar painel de controlo"
-      }
-    },
-    "dashboard_style": {
-      "options": {
-        "dashboard_style_full": "Completo (Todas as características)",
-        "dashboard_style_minimal": "Minimalista (apenas o essencial)",
-        "dashboard_style_compact": "Compacto (Layout denso)",
-        "dashboard_style_admin": "Administrador (Painel de controlo principal)"
+        "create": "Criar novo painel de controlo",
+        "update": "Atualizar as visualizações de painel existentes",
+        "delete": "Apagar painel de controlo",
+        "exit": "Saída"
       }
     },
     "dashboard_kid_selection": {
       "options": {}
     },
-    "dashboard_delete_selection": {
+    "dashboard_update_selection": {
       "options": {}
+    },
+    "dashboard_template_profile": {
+      "options": {
+        "full": "Completo (Todas as características)",
+        "minimal": "Minimalista (apenas o essencial)",
+        "compact": "Compacto (Layout denso)"
+      }
+    },
+    "dashboard_admin_mode": {
+      "options": {
+        "none": "Nenhum",
+        "global": "Compartilhado",
+        "per_kid": "Por criança",
+        "both": "Ambos"
+      }
+    },
+    "dashboard_admin_view_visibility": {
+      "options": {
+        "all_users": "Todos os utilizadores",
+        "linked_parents": "Somente os pais vinculados"
+      }
+    },
+    "dashboard_release_selection": {
+      "options": {
+        "latest_compatible": "Última versão compatível (recomendado)"
+      }
     },
     "manage_actions": {
       "options": {
@@ -2525,6 +2628,32 @@
           "name": "Nome da tarefa",
           "description": "Nome da tarefa rotativa a abrir. Opcional se o chore_id for fornecido.",
           "example": "Quarto limpo"
+        }
+      }
+    },
+    "generate_activity_report": {
+      "name": "Gerar relatório de atividades",
+      "description": "Gera um relatório de atividades de 7 dias a partir do histórico do livro-razão. Suporta filtragem opcional de crianças, envio opcional de notificações e conversão opcional para HTML, devolvendo ainda uma resposta estruturada.",
+      "fields": {
+        "kid_name": {
+          "name": "Nome da criança",
+          "description": "Filtro opcional para gerar o relatório apenas para uma criança."
+        },
+        "report_language": {
+          "name": "Idioma do relatório",
+          "description": "Código de idioma opcional para o texto do relatório. Recorre ao idioma selecionado da criança (quando kid_name está definido) e, em seguida, ao inglês."
+        },
+        "report_title": {
+          "name": "Título do relatório",
+          "description": "Opcional: opção para alterar o título da saída em Markdown."
+        },
+        "notify_service": {
+          "name": "Serviço de Notificação",
+          "description": "Opcional: notificar o destinatário (por exemplo, notify.family) para enviar o relatório."
+        },
+        "output_format": {
+          "name": "Formato de saída",
+          "description": "Retorna apenas Markdown, apenas HTML ou ambos (Markdown e HTML) na resposta."
         }
       }
     },
