@@ -7,12 +7,12 @@
 
 ## Summary & immediate steps
 
-| Phase / Step                                | Description                                                               | % complete | Quick notes                                                                          |
-| ------------------------------------------- | ------------------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------ |
-| Phase 1 – Baseline & guardrails             | Freeze cumulative paths, define unified target contract                   | 100%       | Contracts and inventories captured; cumulative freeze guard added                    |
-| Phase 2 – Non-cumulative badge hardening    | Fix/standardize periodic + daily + streak badge evaluation/state updates  | 100%       | Runtime context + idempotent progress writes now active                              |
+| Phase / Step                                | Description                                                                    | % complete | Quick notes                                                                                   |
+| ------------------------------------------- | ------------------------------------------------------------------------------ | ---------- | --------------------------------------------------------------------------------------------- |
+| Phase 1 – Baseline & guardrails             | Freeze cumulative paths, define unified target contract                        | 100%       | Contracts and inventories captured; cumulative freeze guard added                             |
+| Phase 2 – Non-cumulative badge hardening    | Fix/standardize periodic + daily + streak badge evaluation/state updates       | 100%       | Runtime context + idempotent progress writes now active                                       |
 | Phase 3 – Achievement/challenge unification | Badge-first architecture hardening, then shared target evaluator/state updater | 68%        | Step 3 shared progress-mutator interface complete; achievement/challenge rewiring still gated |
-| Phase 4 – Tests, perf, rollout safety       | Expand deterministic tests + regression/perf coverage + migration check   | 65%        | Added migration cleanup + periodic loop/status regressions + cumulative guard reruns |
+| Phase 4 – Tests, perf, rollout safety       | Expand deterministic tests + regression/perf coverage + migration check        | 65%        | Added migration cleanup + periodic loop/status regressions + cumulative guard reruns          |
 
 1. **Key objective** – Make non-cumulative target tracking deterministic and reusable, then use the exact same core logic for achievements and challenges.
 2. **Summary of recent work** – Phase 3 Step 3 completed: periodic badge persistence now routes through a shared `persist_target_progress_state` interface (with backward-compatible wrapper behavior), keeping badge behavior stable while establishing the common mutator contract for future achievement/challenge adoption.
@@ -145,22 +145,22 @@
 
 #### Phase 3 planning deliverable: manager/engine re-organization blueprint
 
-| Layer | Responsibility | Allowed operations | Forbidden operations |
-| ----- | -------------- | ------------------ | -------------------- |
-| Engine | Canonical criterion evaluation and deterministic progress computation | Evaluate canonical targets, produce `EvaluationResult`/`CriterionResult` | Persistence, event emission, coordinator writes |
+| Layer   | Responsibility                                                               | Allowed operations                                                              | Forbidden operations                                        |
+| ------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| Engine  | Canonical criterion evaluation and deterministic progress computation        | Evaluate canonical targets, produce `EvaluationResult`/`CriterionResult`        | Persistence, event emission, coordinator writes             |
 | Manager | Orchestration, idempotent progress mutation, lifecycle control, side effects | Build runtime context, persist progress state, emit award and lifecycle signals | Embedding duplicated criterion math already owned by engine |
 
 #### Phase 3 planning deliverable: standardized naming and migration map
 
-| Current method | Target method/path | Owner after migration | Notes |
-| -------------- | ------------------ | --------------------- | ----- |
-| `_build_badge_runtime_context` | `build_target_runtime_context` | Manager | Shared context builder used by badge-first, then achievement/challenge wrappers |
-| `_persist_periodic_badge_progress` | `persist_target_progress_state` | Manager | Shared idempotent mutator keyed by `today_iso` + `last_update_day` |
-| `evaluate_badge` (non-cumulative branch) | `evaluate_canonical_target` (called by badge wrapper) | Engine | Keep cumulative branch isolated |
-| `_evaluate_daily_completion` / `_evaluate_streak` | `evaluate_daily_target` / `evaluate_streak_target` (shared internal handlers) | Engine | Shared handler families for all mapped target sources |
-| `_apply_periodic_first_award` / `_apply_periodic_reaward` | `apply_target_award_effects` + badge lifecycle wrapper | Manager | Retain badge-specific award_count semantics |
-| `_evaluate_achievement_for_kid` | `evaluate_achievement_for_kid` (thin wrapper + mapper) | Manager | No direct bespoke criterion branches after migration |
-| `_evaluate_challenge_for_kid` | `evaluate_challenge_for_kid` (thin wrapper + mapper) | Manager | Date-window lifecycle remains wrapper-owned |
+| Current method                                            | Target method/path                                                            | Owner after migration | Notes                                                                           |
+| --------------------------------------------------------- | ----------------------------------------------------------------------------- | --------------------- | ------------------------------------------------------------------------------- |
+| `_build_badge_runtime_context`                            | `build_target_runtime_context`                                                | Manager               | Shared context builder used by badge-first, then achievement/challenge wrappers |
+| `_persist_periodic_badge_progress`                        | `persist_target_progress_state`                                               | Manager               | Shared idempotent mutator keyed by `today_iso` + `last_update_day`              |
+| `evaluate_badge` (non-cumulative branch)                  | `evaluate_canonical_target` (called by badge wrapper)                         | Engine                | Keep cumulative branch isolated                                                 |
+| `_evaluate_daily_completion` / `_evaluate_streak`         | `evaluate_daily_target` / `evaluate_streak_target` (shared internal handlers) | Engine                | Shared handler families for all mapped target sources                           |
+| `_apply_periodic_first_award` / `_apply_periodic_reaward` | `apply_target_award_effects` + badge lifecycle wrapper                        | Manager               | Retain badge-specific award_count semantics                                     |
+| `_evaluate_achievement_for_kid`                           | `evaluate_achievement_for_kid` (thin wrapper + mapper)                        | Manager               | No direct bespoke criterion branches after migration                            |
+| `_evaluate_challenge_for_kid`                             | `evaluate_challenge_for_kid` (thin wrapper + mapper)                          | Manager               | Date-window lifecycle remains wrapper-owned                                     |
 
 #### Phase 3 planning deliverable: badge-first acceptance gates (pre-implementation)
 
