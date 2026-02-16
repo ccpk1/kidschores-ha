@@ -15,7 +15,7 @@ See docs/ARCHITECTURE.md for the Engine vs Manager distinction.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
 from .. import const
@@ -186,6 +186,8 @@ class EconomyEngine:
     def prune_ledger(
         ledger: list[LedgerEntry],
         max_entries: int = DEFAULT_MAX_LEDGER_ENTRIES,
+        max_age_days: int | None = None,
+        now_utc: datetime | None = None,
     ) -> list[LedgerEntry]:
         """Trim ledger to maximum entries, keeping most recent.
 
@@ -195,10 +197,38 @@ class EconomyEngine:
         Args:
             ledger: List of ledger entries to prune
             max_entries: Maximum entries to keep (default 50)
+            max_age_days: Optional age-based retention window in days
+            now_utc: Optional current time override for deterministic tests
 
         Returns:
             The pruned ledger list (same object, modified in place)
         """
+        if max_age_days is not None and max_age_days > 0:
+            current_time = now_utc or datetime.now(UTC)
+            cutoff = current_time - timedelta(days=max_age_days)
+
+            retained_entries: list[LedgerEntry] = []
+            for entry in ledger:
+                raw_timestamp = entry.get(const.DATA_LEDGER_TIMESTAMP)
+                if not isinstance(raw_timestamp, str):
+                    retained_entries.append(entry)
+                    continue
+
+                try:
+                    parsed = datetime.fromisoformat(raw_timestamp)
+                except ValueError:
+                    retained_entries.append(entry)
+                    continue
+
+                if parsed.tzinfo is None:
+                    parsed = parsed.replace(tzinfo=UTC)
+
+                if parsed >= cutoff:
+                    retained_entries.append(entry)
+
+            if len(retained_entries) != len(ledger):
+                ledger[:] = retained_entries
+
         if len(ledger) > max_entries:
             # Remove oldest entries (beginning of list)
             del ledger[: len(ledger) - max_entries]

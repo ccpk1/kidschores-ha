@@ -86,6 +86,27 @@ def load_dashboard_translations(language: str) -> dict[str, Any]:
         return json.load(f)
 
 
+def load_report_translations(language: str) -> dict[str, Any]:
+    """Load report translations for a language.
+
+    Args:
+        language: Language code (e.g., 'en')
+
+    Returns:
+        Full translation dictionary from JSON file
+
+    Raises:
+        FileNotFoundError: If translation file doesn't exist
+    """
+    translations_path = get_translations_dir() / f"{language}_report.json"
+
+    if not translations_path.exists():
+        raise FileNotFoundError(f"Translation file not found: {translations_path}")
+
+    with open(translations_path, encoding="utf-8") as f:
+        return json.load(f)
+
+
 def get_available_notification_languages() -> list[str]:
     """Get list of languages with notification translations.
 
@@ -137,6 +158,12 @@ class TestTranslationFilesExist:
     def test_english_dashboard_exists(self) -> None:
         """English dashboard translations must exist (master file)."""
         translations = load_dashboard_translations("en")
+        assert translations is not None
+        assert isinstance(translations, dict)
+
+    def test_english_report_exists(self) -> None:
+        """English report translations must exist (master file)."""
+        translations = load_report_translations("en")
         assert translations is not None
         assert isinstance(translations, dict)
 

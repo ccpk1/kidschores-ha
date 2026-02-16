@@ -2633,27 +2633,11 @@
     },
     "generate_activity_report": {
       "name": "Generate Activity Report",
-      "description": "Generate a markdown activity report from ledger history. Supports preset or custom date ranges, optional kid filtering, and optional notify delivery while still returning a structured response payload.",
+      "description": "Generate a 7-day activity report from ledger history. Supports optional kid filtering, optional notify delivery, and optional HTML conversion while still returning a structured response payload.",
       "fields": {
-        "range_mode": {
-          "name": "Range Mode",
-          "description": "Select last_7_days, last_30_days, or custom."
-        },
-        "start_date": {
-          "name": "Start Date",
-          "description": "Required when range_mode is custom."
-        },
-        "end_date": {
-          "name": "End Date",
-          "description": "Required when range_mode is custom."
-        },
         "kid_name": {
           "name": "Kid Name",
           "description": "Optional filter to generate the report for one kid only."
-        },
-        "report_style": {
-          "name": "Report Style",
-          "description": "Markdown style: kid (friendly), automation (compact), or both."
         },
         "report_language": {
           "name": "Report Language",
@@ -2665,45 +2649,11 @@
         },
         "notify_service": {
           "name": "Notify Service",
-          "description": "Optional notify target (for example notify.family) to deliver the markdown report."
-        }
-      }
-    },
-    "export_normalized_data": {
-      "name": "Export Normalized Data",
-      "description": "Export a normalized response payload with UUID-to-name mapping, optional kid/date filters, and section toggles for ledger, period summaries, items, and id_map.",
-      "fields": {
-        "range_mode": {
-          "name": "Range Mode",
-          "description": "Select last_7_days, last_30_days, or custom."
+          "description": "Optional notify target (for example notify.family) to deliver the report."
         },
-        "start_date": {
-          "name": "Start Date",
-          "description": "Required when range_mode is custom."
-        },
-        "end_date": {
-          "name": "End Date",
-          "description": "Required when range_mode is custom."
-        },
-        "kid_name": {
-          "name": "Kid Name",
-          "description": "Optional filter to export a single kid scope."
-        },
-        "include_ledger": {
-          "name": "Include Ledger",
-          "description": "Include normalized ledger_entries in response."
-        },
-        "include_period_summaries": {
-          "name": "Include Period Summaries",
-          "description": "Include point/chore/reward period summary sections in response."
-        },
-        "include_items": {
-          "name": "Include Items",
-          "description": "Include normalized kid item records in response."
-        },
-        "include_id_map": {
-          "name": "Include ID Map",
-          "description": "Include UUID-to-name mapping dictionary in response."
+        "output_format": {
+          "name": "Output Format",
+          "description": "Return markdown only, html only, or both markdown and html in the response payload."
         }
       }
     },

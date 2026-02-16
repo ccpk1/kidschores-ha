@@ -275,6 +275,90 @@ async def load_notification_translation(
 
 
 # ==============================================================================
+# Report Translation Helpers
+# ==============================================================================
+
+
+async def load_report_translation(
+    hass: HomeAssistant,
+    language: str = "en",
+) -> dict[str, str]:
+    """Load report translations for a specific language with English fallback.
+
+    Uses module-level caching to avoid repeated file I/O for report rendering.
+
+    Args:
+        hass: Home Assistant instance
+        language: Language code to load (e.g., 'en', 'es', 'de')
+
+    Returns:
+        A dict with report translation keys and string values.
+    """
+    if not language:
+        language = const.DEFAULT_REPORT_LANGUAGE
+
+    cache_key = f"{language}_report"
+    if cache_key in _translation_cache:
+        const.LOGGER.debug("Report translations for '%s' loaded from cache", language)
+        return {k: str(v) for k, v in _translation_cache[cache_key].items()}
+
+    translations_path = _get_translations_path()
+    if not await hass.async_add_executor_job(os.path.exists, translations_path):
+        const.LOGGER.error(
+            "Custom translations directory not found: %s", translations_path
+        )
+        return {}
+
+    lang_path = os.path.join(
+        translations_path,
+        f"{language}{const.REPORT_TRANSLATIONS_SUFFIX}.json",
+    )
+    if await hass.async_add_executor_job(os.path.exists, lang_path):
+        try:
+            data = await hass.async_add_executor_job(_read_json_file, lang_path)
+            if isinstance(data, dict):
+                _translation_cache[cache_key] = data
+                const.LOGGER.debug("Loaded %s report translations", language)
+                return {k: str(v) for k, v in data.items()}
+        except (OSError, json.JSONDecodeError) as err:
+            const.LOGGER.error(
+                "Error loading %s report translations: %s", language, err
+            )
+
+    if language != "en":
+        const.LOGGER.warning(
+            "Report language '%s' not found, falling back to English", language
+        )
+        en_cache_key = "en_report"
+        if en_cache_key in _translation_cache:
+            return {k: str(v) for k, v in _translation_cache[en_cache_key].items()}
+
+        en_path = os.path.join(
+            translations_path,
+            f"en{const.REPORT_TRANSLATIONS_SUFFIX}.json",
+        )
+        if await hass.async_add_executor_job(os.path.exists, en_path):
+            try:
+                data = await hass.async_add_executor_job(_read_json_file, en_path)
+                if isinstance(data, dict):
+                    _translation_cache[en_cache_key] = data
+                    const.LOGGER.debug("Loaded English report translations as fallback")
+                    return {k: str(v) for k, v in data.items()}
+            except (OSError, json.JSONDecodeError) as err:
+                const.LOGGER.error("Error loading English report translations: %s", err)
+    else:
+        const.LOGGER.error(
+            "English report translations not found at: %s",
+            os.path.join(
+                translations_path,
+                f"en{const.REPORT_TRANSLATIONS_SUFFIX}.json",
+            ),
+        )
+
+    return {}
+
+
+# ==============================================================================
 # Cache Management
 # ==============================================================================
 

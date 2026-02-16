@@ -521,7 +521,17 @@ class EconomyManager(BaseManager):
         # Append to ledger and prune
         ledger = self._ensure_ledger(kid)
         ledger.append(entry)
-        EconomyEngine.prune_ledger(ledger, const.DEFAULT_LEDGER_MAX_ENTRIES)
+        retention_days = int(
+            self._coordinator.statistics_manager.get_retention_config().get(
+                const.PERIOD_DAILY,
+                const.DEFAULT_RETENTION_DAILY,
+            )
+        )
+        EconomyEngine.prune_ledger(
+            ledger,
+            max_entries=const.DEFAULT_LEDGER_MAX_ENTRIES,
+            max_age_days=retention_days,
+        )
 
         # Ensure point structures exist (Landlord duty) before emitting signal
         # StatisticsManager (tenant) expects these to exist when it receives the event
@@ -625,7 +635,17 @@ class EconomyManager(BaseManager):
         # Append to ledger and prune
         ledger = self._ensure_ledger(kid)
         ledger.append(entry)
-        EconomyEngine.prune_ledger(ledger, const.DEFAULT_LEDGER_MAX_ENTRIES)
+        retention_days = int(
+            self._coordinator.statistics_manager.get_retention_config().get(
+                const.PERIOD_DAILY,
+                const.DEFAULT_RETENTION_DAILY,
+            )
+        )
+        EconomyEngine.prune_ledger(
+            ledger,
+            max_entries=const.DEFAULT_LEDGER_MAX_ENTRIES,
+            max_age_days=retention_days,
+        )
 
         # Ensure point structures exist (Landlord duty) before emitting signal
         # StatisticsManager (tenant) expects these to exist when it receives the event

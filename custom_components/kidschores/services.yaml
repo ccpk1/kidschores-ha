@@ -225,6 +225,57 @@ apply_bonus:
       selector:
         text:
 
+generate_activity_report:
+  name: "Generate Activity Report"
+  description: >
+    Build a 7-day activity report from kid ledger data. This service is
+    response-first and returns markdown, with optional HTML conversion for
+    email-oriented workflows, when called with return_response: true.
+  fields:
+    kid_name:
+      name: "Kid Name"
+      description: "Optional filter. If omitted, includes all kids in one aggregate report."
+      required: false
+      example: "Alice"
+      selector:
+        text:
+    report_language:
+      name: "Report Language"
+      description: "Optional language code for report text (for example en, es, de). If omitted, uses selected kid language when kid_name is provided, otherwise English."
+      required: false
+      example: "en"
+      selector:
+        text:
+    report_title:
+      name: "Report Title"
+      description: "Optional markdown title override for the generated report."
+      required: false
+      example: "Weekly Family Chore Summary"
+      selector:
+        text:
+    notify_service:
+      name: "Notify Service"
+      description: >
+        Optional notify target (for example notify.family). When provided, the
+        generated report message is sent to that service and delivery status
+        is reported in the response payload.
+      required: false
+      example: "notify.family"
+      selector:
+        text:
+    output_format:
+      name: "Output Format"
+      description: "Return markdown only, html only, or both markdown and html in the response payload."
+      required: false
+      default: "markdown"
+      example: "both"
+      selector:
+        select:
+          options:
+            - "markdown"
+            - "html"
+            - "both"
+
 # NOTE: reset_all_chores renamed to reset_chores_to_pending_state in v0.6.0
 
 reset_chores_to_pending_state:

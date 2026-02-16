@@ -126,20 +126,9 @@ class ActivityReportResponse(TypedDict):
     summary: dict[str, float | int]
     daily: list[ReportDailyBlock]
     markdown: str
+    html: NotRequired[str]
     supplemental: dict[str, Any]
     delivery: ReportDeliveryStatus
-
-
-class NormalizedExportResponse(TypedDict):
-    """Response payload for export_normalized_data service."""
-
-    meta: dict[str, Any]
-    id_map: dict[str, dict[str, str]]
-    kids: list[dict[str, Any]]
-    ledger_entries: list[dict[str, Any]]
-    period_summaries: dict[str, Any]
-    gamification: dict[str, Any]
-    raw_refs: dict[str, Any]
 
 
 class RewardData(TypedDict):
@@ -1380,7 +1369,6 @@ __all__ = [
     "KidsCollection",
     # Ledger types (Economy Stack)
     "LedgerEntry",
-    "NormalizedExportResponse",
     "ParentData",
     "ParentsCollection",
     "PenaltiesCollection",

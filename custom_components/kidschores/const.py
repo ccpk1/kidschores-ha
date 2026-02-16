@@ -1143,8 +1143,9 @@ DATA_LEDGER_BALANCE_AFTER: Final = "balance_after"  # Balance after transaction
 DATA_LEDGER_SOURCE: Final = "source"  # Transaction source type (uses POINTS_SOURCE_*)
 DATA_LEDGER_REFERENCE_ID: Final = "reference_id"  # Related entity ID (optional)
 
-# Default ledger limit to prevent storage bloat
-DEFAULT_LEDGER_MAX_ENTRIES: Final = 200
+# Default ledger limit is defined by daily data retention, this is a hard
+# limit to prevent storage bloat or performance issues.
+DEFAULT_LEDGER_MAX_ENTRIES: Final = 1000
 
 # ——————————————————————————————————————————————
 # Kid Reward Data Structure Constants (Modern - v0.5.0+)
@@ -2927,7 +2928,6 @@ SERVICE_MANAGE_SHADOW_LINK: Final = "manage_shadow_link"
 SERVICE_UPDATE_CHORE: Final = "update_chore"
 SERVICE_UPDATE_REWARD: Final = "update_reward"
 SERVICE_GENERATE_ACTIVITY_REPORT: Final = "generate_activity_report"
-SERVICE_EXPORT_NORMALIZED_DATA: Final = "export_normalized_data"
 
 
 # ------------------------------------------------------------------------------------------------
@@ -3053,12 +3053,12 @@ SERVICE_FIELD_REPORT_NOTIFY_SERVICE: Final = "notify_service"
 SERVICE_FIELD_REPORT_TITLE: Final = "report_title"
 SERVICE_FIELD_REPORT_STYLE: Final = "report_style"
 SERVICE_FIELD_REPORT_LANGUAGE: Final = "report_language"
+SERVICE_FIELD_REPORT_OUTPUT_FORMAT: Final = "output_format"
 
-# Export service fields
-SERVICE_FIELD_EXPORT_INCLUDE_LEDGER: Final = "include_ledger"
-SERVICE_FIELD_EXPORT_INCLUDE_PERIOD_SUMMARIES: Final = "include_period_summaries"
-SERVICE_FIELD_EXPORT_INCLUDE_ITEMS: Final = "include_items"
-SERVICE_FIELD_EXPORT_INCLUDE_ID_MAP: Final = "include_id_map"
+# Report output modes
+REPORT_OUTPUT_FORMAT_MARKDOWN: Final = "markdown"
+REPORT_OUTPUT_FORMAT_HTML: Final = "html"
+REPORT_OUTPUT_FORMAT_BOTH: Final = "both"
 
 # Reporting range modes
 REPORT_RANGE_MODE_LAST_7_DAYS: Final = "last_7_days"

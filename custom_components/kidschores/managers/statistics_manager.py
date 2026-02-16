@@ -1553,6 +1553,525 @@ class StatisticsManager(BaseManager):
             ),
         }
 
+    def get_report_rollup(
+        self,
+        kid_id: str,
+        start_iso: str,
+        end_iso: str,
+    ) -> dict[str, Any]:
+        """Return period rollups for report generation.
+
+        This method is the manager-owned query boundary for report helpers.
+        """
+        kid_info = self._get_kid(kid_id)
+        if not kid_info:
+            return self._empty_report_rollup()
+
+        points_periods = cast(
+            "dict[str, Any]",
+            kid_info.get(const.DATA_KID_POINT_PERIODS, {}),
+        )
+        chore_periods = cast(
+            "dict[str, Any]",
+            kid_info.get(const.DATA_KID_CHORE_PERIODS, {}),
+        )
+        reward_periods = cast(
+            "dict[str, Any]",
+            kid_info.get(const.DATA_KID_REWARD_PERIODS, {}),
+        )
+
+        bonus_periods = [
+            cast("dict[str, Any]", entry.get(const.DATA_KID_BONUS_PERIODS, {}))
+            for entry in cast(
+                "dict[str, Any]",
+                kid_info.get(const.DATA_KID_BONUS_APPLIES, {}),
+            ).values()
+            if isinstance(entry, dict)
+        ]
+        penalty_periods = [
+            cast("dict[str, Any]", entry.get(const.DATA_KID_PENALTY_PERIODS, {}))
+            for entry in cast(
+                "dict[str, Any]",
+                kid_info.get(const.DATA_KID_PENALTY_APPLIES, {}),
+            ).values()
+            if isinstance(entry, dict)
+        ]
+
+        points_rollup = self._rollup_period_metrics(
+            points_periods,
+            [
+                const.DATA_KID_POINT_PERIOD_POINTS_EARNED,
+                const.DATA_KID_POINT_PERIOD_POINTS_SPENT,
+            ],
+            start_iso,
+            end_iso,
+        )
+        chores_rollup = self._rollup_period_metrics(
+            chore_periods,
+            [
+                const.DATA_KID_CHORE_DATA_PERIOD_APPROVED,
+                const.DATA_KID_CHORE_DATA_PERIOD_CLAIMED,
+                const.DATA_KID_CHORE_DATA_PERIOD_DISAPPROVED,
+                const.DATA_KID_CHORE_DATA_PERIOD_MISSED,
+                const.DATA_KID_CHORE_DATA_PERIOD_OVERDUE,
+            ],
+            start_iso,
+            end_iso,
+        )
+        rewards_rollup = self._rollup_period_metrics(
+            reward_periods,
+            [
+                const.DATA_KID_REWARD_DATA_PERIOD_APPROVED,
+                const.DATA_KID_REWARD_DATA_PERIOD_CLAIMED,
+                const.DATA_KID_REWARD_DATA_PERIOD_DISAPPROVED,
+                const.DATA_KID_REWARD_DATA_PERIOD_POINTS,
+            ],
+            start_iso,
+            end_iso,
+        )
+
+        bonuses_rollup = self._rollup_period_collections(
+            bonus_periods,
+            [
+                const.DATA_KID_BONUS_PERIOD_APPLIES,
+                const.DATA_KID_BONUS_PERIOD_POINTS,
+            ],
+            start_iso,
+            end_iso,
+        )
+        penalties_rollup = self._rollup_period_collections(
+            penalty_periods,
+            [
+                const.DATA_KID_PENALTY_PERIOD_APPLIES,
+                const.DATA_KID_PENALTY_PERIOD_POINTS,
+            ],
+            start_iso,
+            end_iso,
+        )
+
+        badge_rollup = self._get_badge_rollup(kid_info)
+        streak_rollup = self._get_streak_rollup(kid_info, chore_periods)
+
+        return {
+            "points": {
+                "in_range_earned": round(
+                    float(
+                        points_rollup["in_range"][
+                            const.DATA_KID_POINT_PERIOD_POINTS_EARNED
+                        ]
+                    ),
+                    const.DATA_FLOAT_PRECISION,
+                ),
+                "in_range_spent": round(
+                    float(
+                        points_rollup["in_range"][
+                            const.DATA_KID_POINT_PERIOD_POINTS_SPENT
+                        ]
+                    ),
+                    const.DATA_FLOAT_PRECISION,
+                ),
+                "all_time_earned": round(
+                    float(
+                        points_rollup["all_time"][
+                            const.DATA_KID_POINT_PERIOD_POINTS_EARNED
+                        ]
+                    ),
+                    const.DATA_FLOAT_PRECISION,
+                ),
+                "all_time_spent": round(
+                    float(
+                        points_rollup["all_time"][
+                            const.DATA_KID_POINT_PERIOD_POINTS_SPENT
+                        ]
+                    ),
+                    const.DATA_FLOAT_PRECISION,
+                ),
+            },
+            "chores": {
+                "in_range_approved": int(
+                    chores_rollup["in_range"][const.DATA_KID_CHORE_DATA_PERIOD_APPROVED]
+                ),
+                "in_range_claimed": int(
+                    chores_rollup["in_range"][const.DATA_KID_CHORE_DATA_PERIOD_CLAIMED]
+                ),
+                "in_range_disapproved": int(
+                    chores_rollup["in_range"][
+                        const.DATA_KID_CHORE_DATA_PERIOD_DISAPPROVED
+                    ]
+                ),
+                "in_range_missed": int(
+                    chores_rollup["in_range"][const.DATA_KID_CHORE_DATA_PERIOD_MISSED]
+                ),
+                "in_range_overdue": int(
+                    chores_rollup["in_range"][const.DATA_KID_CHORE_DATA_PERIOD_OVERDUE]
+                ),
+                "all_time_approved": int(
+                    chores_rollup["all_time"][const.DATA_KID_CHORE_DATA_PERIOD_APPROVED]
+                ),
+                "all_time_claimed": int(
+                    chores_rollup["all_time"][const.DATA_KID_CHORE_DATA_PERIOD_CLAIMED]
+                ),
+                "all_time_disapproved": int(
+                    chores_rollup["all_time"][
+                        const.DATA_KID_CHORE_DATA_PERIOD_DISAPPROVED
+                    ]
+                ),
+                "all_time_missed": int(
+                    chores_rollup["all_time"][const.DATA_KID_CHORE_DATA_PERIOD_MISSED]
+                ),
+                "all_time_overdue": int(
+                    chores_rollup["all_time"][const.DATA_KID_CHORE_DATA_PERIOD_OVERDUE]
+                ),
+            },
+            "rewards": {
+                "in_range_approved": int(
+                    rewards_rollup["in_range"][
+                        const.DATA_KID_REWARD_DATA_PERIOD_APPROVED
+                    ]
+                ),
+                "in_range_claimed": int(
+                    rewards_rollup["in_range"][
+                        const.DATA_KID_REWARD_DATA_PERIOD_CLAIMED
+                    ]
+                ),
+                "in_range_disapproved": int(
+                    rewards_rollup["in_range"][
+                        const.DATA_KID_REWARD_DATA_PERIOD_DISAPPROVED
+                    ]
+                ),
+                "in_range_points_spent": round(
+                    float(
+                        rewards_rollup["in_range"][
+                            const.DATA_KID_REWARD_DATA_PERIOD_POINTS
+                        ]
+                    ),
+                    const.DATA_FLOAT_PRECISION,
+                ),
+                "all_time_approved": int(
+                    rewards_rollup["all_time"][
+                        const.DATA_KID_REWARD_DATA_PERIOD_APPROVED
+                    ]
+                ),
+                "all_time_claimed": int(
+                    rewards_rollup["all_time"][
+                        const.DATA_KID_REWARD_DATA_PERIOD_CLAIMED
+                    ]
+                ),
+                "all_time_disapproved": int(
+                    rewards_rollup["all_time"][
+                        const.DATA_KID_REWARD_DATA_PERIOD_DISAPPROVED
+                    ]
+                ),
+                "all_time_points_spent": round(
+                    float(
+                        rewards_rollup["all_time"][
+                            const.DATA_KID_REWARD_DATA_PERIOD_POINTS
+                        ]
+                    ),
+                    const.DATA_FLOAT_PRECISION,
+                ),
+            },
+            "bonuses": {
+                "in_range_applies": int(
+                    bonuses_rollup["in_range"][const.DATA_KID_BONUS_PERIOD_APPLIES]
+                ),
+                "in_range_points": round(
+                    float(
+                        bonuses_rollup["in_range"][const.DATA_KID_BONUS_PERIOD_POINTS]
+                    ),
+                    const.DATA_FLOAT_PRECISION,
+                ),
+                "all_time_applies": int(
+                    bonuses_rollup["all_time"][const.DATA_KID_BONUS_PERIOD_APPLIES]
+                ),
+                "all_time_points": round(
+                    float(
+                        bonuses_rollup["all_time"][const.DATA_KID_BONUS_PERIOD_POINTS]
+                    ),
+                    const.DATA_FLOAT_PRECISION,
+                ),
+            },
+            "penalties": {
+                "in_range_applies": int(
+                    penalties_rollup["in_range"][const.DATA_KID_PENALTY_PERIOD_APPLIES]
+                ),
+                "in_range_points": round(
+                    float(
+                        penalties_rollup["in_range"][
+                            const.DATA_KID_PENALTY_PERIOD_POINTS
+                        ]
+                    ),
+                    const.DATA_FLOAT_PRECISION,
+                ),
+                "all_time_applies": int(
+                    penalties_rollup["all_time"][const.DATA_KID_PENALTY_PERIOD_APPLIES]
+                ),
+                "all_time_points": round(
+                    float(
+                        penalties_rollup["all_time"][
+                            const.DATA_KID_PENALTY_PERIOD_POINTS
+                        ]
+                    ),
+                    const.DATA_FLOAT_PRECISION,
+                ),
+            },
+            "streaks": streak_rollup,
+            "badges": badge_rollup,
+        }
+
+    def _empty_report_rollup(self) -> dict[str, Any]:
+        """Return canonical empty report rollup structure."""
+        return {
+            "points": {
+                "in_range_earned": 0.0,
+                "in_range_spent": 0.0,
+                "all_time_earned": 0.0,
+                "all_time_spent": 0.0,
+            },
+            "chores": {
+                "in_range_approved": 0,
+                "in_range_claimed": 0,
+                "in_range_disapproved": 0,
+                "in_range_missed": 0,
+                "in_range_overdue": 0,
+                "all_time_approved": 0,
+                "all_time_claimed": 0,
+                "all_time_disapproved": 0,
+                "all_time_missed": 0,
+                "all_time_overdue": 0,
+            },
+            "rewards": {
+                "in_range_approved": 0,
+                "in_range_claimed": 0,
+                "in_range_disapproved": 0,
+                "in_range_points_spent": 0.0,
+                "all_time_approved": 0,
+                "all_time_claimed": 0,
+                "all_time_disapproved": 0,
+                "all_time_points_spent": 0.0,
+            },
+            "bonuses": {
+                "in_range_applies": 0,
+                "in_range_points": 0.0,
+                "all_time_applies": 0,
+                "all_time_points": 0.0,
+            },
+            "penalties": {
+                "in_range_applies": 0,
+                "in_range_points": 0.0,
+                "all_time_applies": 0,
+                "all_time_points": 0.0,
+            },
+            "streaks": {
+                "current_streak": 0,
+                "current_missed_streak": 0,
+                "all_time_longest_streak": 0,
+                "all_time_longest_missed_streak": 0,
+            },
+            "badges": {
+                "earned_unique_count": 0,
+                "all_time_award_count": 0,
+                "earned_badge_names": [],
+                "by_badge": {},
+            },
+        }
+
+    def _rollup_period_metrics(
+        self,
+        periods: dict[str, Any],
+        metrics: list[str],
+        start_iso: str,
+        end_iso: str,
+    ) -> dict[str, dict[str, int | float]]:
+        """Return in-range and all-time metric totals for one period container."""
+        in_range = self._sum_daily_metrics(periods, metrics, start_iso, end_iso)
+        all_time: dict[str, int | float] = {}
+        for metric in metrics:
+            all_time[metric] = self._stats_engine.get_period_total(
+                periods,
+                const.PERIOD_ALL_TIME,
+                metric,
+            )
+        return {
+            "in_range": in_range,
+            "all_time": all_time,
+        }
+
+    def _rollup_period_collections(
+        self,
+        period_collections: list[dict[str, Any]],
+        metrics: list[str],
+        start_iso: str,
+        end_iso: str,
+    ) -> dict[str, dict[str, int | float]]:
+        """Aggregate in-range and all-time totals across many period containers."""
+        in_range: dict[str, int | float] = dict.fromkeys(metrics, 0)
+        all_time: dict[str, int | float] = dict.fromkeys(metrics, 0)
+
+        for periods in period_collections:
+            period_rollup = self._rollup_period_metrics(
+                periods,
+                metrics,
+                start_iso,
+                end_iso,
+            )
+            for metric in metrics:
+                in_range[metric] = in_range[metric] + period_rollup["in_range"][metric]
+                all_time[metric] = all_time[metric] + period_rollup["all_time"][metric]
+
+        return {
+            "in_range": in_range,
+            "all_time": all_time,
+        }
+
+    def _get_streak_rollup(
+        self,
+        kid_info: dict[str, Any],
+        chore_periods: dict[str, Any],
+    ) -> dict[str, int]:
+        """Build streak rollup for report payloads."""
+        current_streak = 0
+        current_missed_streak = 0
+
+        kid_chore_data = kid_info.get(const.DATA_KID_CHORE_DATA, {})
+        if isinstance(kid_chore_data, dict):
+            for chore_data in kid_chore_data.values():
+                if not isinstance(chore_data, dict):
+                    continue
+                current_streak = max(
+                    current_streak,
+                    int(chore_data.get(const.DATA_KID_CHORE_DATA_CURRENT_STREAK, 0)),
+                )
+                current_missed_streak = max(
+                    current_missed_streak,
+                    int(
+                        chore_data.get(
+                            const.DATA_KID_CHORE_DATA_CURRENT_MISSED_STREAK,
+                            0,
+                        )
+                    ),
+                )
+
+        return {
+            "current_streak": current_streak,
+            "current_missed_streak": current_missed_streak,
+            "all_time_longest_streak": int(
+                self._stats_engine.get_period_total(
+                    chore_periods,
+                    const.PERIOD_ALL_TIME,
+                    const.DATA_KID_CHORE_DATA_PERIOD_LONGEST_STREAK,
+                )
+            ),
+            "all_time_longest_missed_streak": int(
+                self._stats_engine.get_period_total(
+                    chore_periods,
+                    const.PERIOD_ALL_TIME,
+                    const.DATA_KID_CHORE_DATA_PERIOD_MISSED_LONGEST_STREAK,
+                )
+            ),
+        }
+
+    def _get_badge_rollup(self, kid_info: dict[str, Any]) -> dict[str, Any]:
+        """Build badge rollup with per-badge details from kid badge data."""
+        badges_earned = cast(
+            "dict[str, Any]",
+            kid_info.get(const.DATA_KID_BADGES_EARNED, {}),
+        )
+        if not isinstance(badges_earned, dict):
+            return {
+                "earned_unique_count": 0,
+                "all_time_award_count": 0,
+                "earned_badge_names": [],
+                "by_badge": {},
+            }
+
+        all_time_award_count = 0
+        earned_badge_names: list[str] = []
+        by_badge: dict[str, dict[str, Any]] = {}
+
+        for badge_id, badge_info in badges_earned.items():
+            if not isinstance(badge_info, dict):
+                continue
+
+            badge_name = str(
+                badge_info.get(const.DATA_KID_BADGES_EARNED_NAME, "")
+            ).strip()
+            if badge_name:
+                earned_badge_names.append(badge_name)
+
+            periods = badge_info.get(const.DATA_KID_BADGES_EARNED_PERIODS, {})
+            award_count = 0
+            if isinstance(periods, dict):
+                all_time_bucket = periods.get(const.PERIOD_ALL_TIME, {})
+                if isinstance(all_time_bucket, dict):
+                    all_time_entry = all_time_bucket.get(const.PERIOD_ALL_TIME, {})
+                    if isinstance(all_time_entry, dict):
+                        raw_count = all_time_entry.get(
+                            const.DATA_KID_BADGES_EARNED_AWARD_COUNT,
+                            0,
+                        )
+                        if isinstance(raw_count, (int, float)):
+                            award_count = int(raw_count)
+
+            if award_count == 0:
+                raw_count = badge_info.get(const.DATA_KID_BADGES_EARNED_AWARD_COUNT, 0)
+                if isinstance(raw_count, (int, float)):
+                    award_count = int(raw_count)
+
+            all_time_award_count += award_count
+            by_badge[str(badge_id)] = {
+                "badge_id": str(badge_id),
+                "badge_name": badge_name,
+                "last_awarded_date": badge_info.get(
+                    const.DATA_KID_BADGES_EARNED_LAST_AWARDED
+                ),
+                "all_time_award_count": award_count,
+                "periods": periods if isinstance(periods, dict) else {},
+            }
+
+        return {
+            "earned_unique_count": len(by_badge),
+            "all_time_award_count": all_time_award_count,
+            "earned_badge_names": sorted(earned_badge_names),
+            "by_badge": by_badge,
+        }
+
+    def _sum_daily_metrics(
+        self,
+        periods: dict[str, Any],
+        metrics: list[str],
+        start_iso: str,
+        end_iso: str,
+    ) -> dict[str, int | float]:
+        """Sum selected metrics across daily period keys in a date range."""
+        parsed_start = dt_parse(start_iso)
+        parsed_end = dt_parse(end_iso)
+        if not isinstance(parsed_start, datetime) or not isinstance(
+            parsed_end, datetime
+        ):
+            return dict.fromkeys(metrics, 0)
+
+        start_key = parsed_start.date().isoformat()
+        end_key = parsed_end.date().isoformat()
+
+        daily_data = periods.get(const.PERIOD_DAILY, {})
+        if not isinstance(daily_data, dict):
+            return dict.fromkeys(metrics, 0)
+
+        sums: dict[str, int | float] = dict.fromkeys(metrics, 0)
+        for day_key, bucket in daily_data.items():
+            if not isinstance(day_key, str) or not isinstance(bucket, dict):
+                continue
+            if day_key < start_key or day_key > end_key:
+                continue
+
+            for metric in metrics:
+                value = bucket.get(metric, 0)
+                if isinstance(value, (int, float)):
+                    sums[metric] = sums[metric] + value
+
+        return sums
+
     def _get_kid(self, kid_id: str) -> dict[str, Any] | None:
         """Get kid data by ID.
 
